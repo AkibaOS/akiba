@@ -1,8 +1,12 @@
 #include "include/terminal.hpp"
+#include "include/gdt.hpp"
 
 extern "C" void kernel_main()
 {
-    // Initialize terminal
+    // First, initialize the GDT
+    AkibaOS::GDT::initialize();
+
+    // Then initialize terminal
     AkibaOS::Terminal::initialize();
 
     // Set colors and display welcome message
