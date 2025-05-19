@@ -12,7 +12,7 @@
  * except for a few special cases.
  */
 
-#include "../include/gdt.hpp"
+#include <arch/gdt.hpp>
 
 namespace AkibaOS
 {

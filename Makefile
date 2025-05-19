@@ -1,6 +1,7 @@
 # AkibaOS Makefile
 
 BUILD_DIR = build
+INCLUDE_DIR = include
 KERNEL_DIR = $(BUILD_DIR)/kernel
 
 KERNEL_OUT = $(KERNEL_DIR)/kernel.bin
@@ -15,7 +16,7 @@ CPP_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(CPP_SOURCES))
 CXX = clang++
 CXXFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions \
            -fno-rtti -std=c++17 -mno-red-zone -mno-mmx -mno-sse \
-           -mno-sse2 -mcmodel=kernel
+           -mno-sse2 -mcmodel=kernel -I$(INCLUDE_DIR)
 
 .PHONY: all clean kernel iso run
 

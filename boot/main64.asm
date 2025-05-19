@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 global long_mode_start    ; Export the entry point symbol
-extern kernel_main        ; Import the C++ kernel entry point
+extern Mirai              ; Import the C++ kernel entry point
 
 section .text
 bits 64                   ; Specify 64-bit instructions
@@ -28,7 +28,7 @@ long_mode_start:
     mov gs, ax            ; G segment (often used for CPU-local storage)
 
     ;; Jump to the C++ kernel entry point
-    call kernel_main      ; Call the main kernel function written in C++
+    call Mirai            ; Call the main kernel function written in C++
     
     ;; If the kernel ever returns (which it shouldn't), halt the CPU
     ;; This creates an infinite loop that does nothing, effectively stopping execution

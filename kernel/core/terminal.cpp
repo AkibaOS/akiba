@@ -1,4 +1,4 @@
-#include "include/terminal.hpp"
+#include <core/terminal.hpp>
 
 namespace AkibaOS
 {

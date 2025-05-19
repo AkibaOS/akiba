@@ -1,7 +1,7 @@
-#include "include/terminal.hpp"
-#include "include/gdt.hpp"
+#include <core/terminal.hpp>
+#include <arch/gdt.hpp>
 
-extern "C" void kernel_main()
+extern "C" void Mirai()
 {
     // First, initialize the GDT
     AkibaOS::GDT::initialize();
