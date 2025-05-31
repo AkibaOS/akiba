@@ -1,22 +1,20 @@
 /*
  * AkibaOS Mirai Kernel Entry Point
  *
- * Enhanced with timer system initialization for system timing
- * and the foundation of preemptive multitasking.
+ * Enhanced with physical memory management initialization.
+ * The kernel now properly manages physical memory using a bitmap allocator.
  */
 
 #include <core/terminal.hpp>
 #include <arch/gdt.hpp>
 #include <arch/idt.hpp>
 #include <arch/timer.hpp>
+#include <core/memory.hpp>
 
-extern "C" void Mirai()
+extern "C" void Mirai(void* multiboot_info)
 {
-    /* Initialize all kernel subsystems */
+    /* Initialize terminal output first */
     AkibaOS::Terminal::initialize();
-    AkibaOS::GDT::initialize();
-    AkibaOS::IDT::initialize();
-    AkibaOS::Timer::initialize();  /* Add timer initialization */
     
     /* Display welcome messages */
     AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::Cyan, 
@@ -33,50 +31,46 @@ extern "C" void Mirai()
     
     AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::White, 
                                  AkibaOS::Terminal::Color::Black);
+    
+    /* Initialize core kernel subsystems one by one with error checking */
+    AkibaOS::Terminal::print_string("Initializing GDT...\n");
+    AkibaOS::GDT::initialize();
+    
+    AkibaOS::Terminal::print_string("Initializing IDT...\n");
+    AkibaOS::IDT::initialize();
+    
+    AkibaOS::Terminal::print_string("Initializing Memory Manager...\n");
+    AkibaOS::Memory::initialize(multiboot_info);
+    
+    AkibaOS::Terminal::print_string("Initializing Timer...\n");
+    AkibaOS::Timer::initialize();
+    
     AkibaOS::Terminal::print_string("Mirai kernel initialized and ready.\n");
     
-    /* Test timer functionality */
-    AkibaOS::Terminal::print_string("Testing timer system...\n");
-    
-    /* Display uptime every 2 seconds for demonstration */
-    for (int i = 0; i < 5; i++) {
-        AkibaOS::Timer::delay_ms(2000);  /* Wait 2 seconds */
-        
-        AkibaOS::Terminal::print_string("System uptime: ");
-        uint64_t seconds = AkibaOS::Timer::get_uptime_seconds();
-        
-        /* Simple decimal display */
-        if (seconds == 0) {
-            AkibaOS::Terminal::print_char('0');
-        } else {
-            /* Convert to string manually since we don't have printf yet */
-            char time_str[20];
-            int digits = 0;
-            uint64_t temp = seconds;
-            
-            while (temp > 0) {
-                time_str[digits++] = '0' + (temp % 10);
-                temp /= 10;
-            }
-            
-            /* Print digits in reverse order */
-            for (int j = digits - 1; j >= 0; j--) {
-                AkibaOS::Terminal::print_char(time_str[j]);
-            }
-        }
-        
-        AkibaOS::Terminal::print_string(" seconds\n");
-    }
-    
+    /* Test memory allocation with error checking */
     AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::Green, 
                                  AkibaOS::Terminal::Color::Black);
-    AkibaOS::Terminal::print_string("Timer system working correctly!\n");
+    AkibaOS::Terminal::print_string("Testing memory allocation...\n");
+    
+    uintptr_t page1 = AkibaOS::Memory::physical_memory_manager.allocate_page();
+    if (page1 != 0) {
+        AkibaOS::Terminal::print_string("Single page allocation: SUCCESS\n");
+        AkibaOS::Memory::physical_memory_manager.free_page(page1);
+        AkibaOS::Terminal::print_string("Single page free: SUCCESS\n");
+    } else {
+        AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::Red, 
+                                     AkibaOS::Terminal::Color::Black);
+        AkibaOS::Terminal::print_string("Memory allocation: FAILED\n");
+    }
+    
+    /* Display memory information */
     AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::White, 
                                  AkibaOS::Terminal::Color::Black);
+    AkibaOS::Memory::physical_memory_manager.print_memory_info();
     
-    /* Enter idle loop with timer running */
-    AkibaOS::Terminal::print_string("Entering idle loop - timer interrupts active...\n");
+    /* Enter idle loop */
+    AkibaOS::Terminal::print_string("Entering idle loop...\n");
     while (true) {
-        __asm__ volatile("hlt");  /* Wait for next interrupt */
+        __asm__ volatile("hlt");
     }
 }
