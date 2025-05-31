@@ -7,16 +7,16 @@ KERNEL_DIR = $(BUILD_DIR)/kernel
 KERNEL_OUT = $(KERNEL_DIR)/kernel.bin
 ISO_OUT = $(BUILD_DIR)/akibaos.iso
 
-ASM_SOURCES = $(shell find boot -name '*.asm')
+ASM_SOURCES = $(shell find . -name '*.asm')
 ASM_OBJECTS = $(patsubst %.asm,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
 
-CPP_SOURCES = $(shell find kernel -name '*.cpp')
+CPP_SOURCES = $(shell find . -name '*.cpp')
 CPP_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(CPP_SOURCES))
 
 CXX = clang++
 CXXFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions \
            -fno-rtti -std=c++17 -mno-red-zone -mno-mmx -mno-sse \
-           -mno-sse2 -mcmodel=kernel -I$(INCLUDE_DIR)
+           -mno-sse2 -mcmodel=kernel -I$(INCLUDE_DIR) -fno-stack-protector
 
 .PHONY: all clean kernel iso run
 
