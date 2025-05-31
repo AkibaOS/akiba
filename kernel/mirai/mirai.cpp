@@ -1,13 +1,14 @@
 /*
  * AkibaOS Mirai Kernel Entry Point
  *
- * Enhanced with exception handling testing to verify our
- * improved debugging capabilities work correctly.
+ * Enhanced with timer system initialization for system timing
+ * and the foundation of preemptive multitasking.
  */
 
 #include <core/terminal.hpp>
 #include <arch/gdt.hpp>
 #include <arch/idt.hpp>
+#include <arch/timer.hpp>
 
 extern "C" void Mirai()
 {
@@ -15,6 +16,7 @@ extern "C" void Mirai()
     AkibaOS::Terminal::initialize();
     AkibaOS::GDT::initialize();
     AkibaOS::IDT::initialize();
+    AkibaOS::Timer::initialize();  /* Add timer initialization */
     
     /* Display welcome messages */
     AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::Cyan, 
@@ -33,29 +35,48 @@ extern "C" void Mirai()
                                  AkibaOS::Terminal::Color::Black);
     AkibaOS::Terminal::print_string("Mirai kernel initialized and ready.\n");
     
-    /* Test regular interrupt handling */
-    AkibaOS::Terminal::print_string("Testing interrupt handling...\n");
-    __asm__ volatile("int $0x80");
+    /* Test timer functionality */
+    AkibaOS::Terminal::print_string("Testing timer system...\n");
     
-    /* Test exception handling */
-    AkibaOS::Terminal::print_string("Testing exception handling...\n");
-    AkibaOS::Terminal::print_string("Triggering division by zero exception in 3 seconds...\n");
-    
-    /* Simple delay loop */
-    for (volatile int i = 0; i < 50000000; i++) {
-        /* Just wait */
+    /* Display uptime every 2 seconds for demonstration */
+    for (int i = 0; i < 5; i++) {
+        AkibaOS::Timer::delay_ms(2000);  /* Wait 2 seconds */
+        
+        AkibaOS::Terminal::print_string("System uptime: ");
+        uint64_t seconds = AkibaOS::Timer::get_uptime_seconds();
+        
+        /* Simple decimal display */
+        if (seconds == 0) {
+            AkibaOS::Terminal::print_char('0');
+        } else {
+            /* Convert to string manually since we don't have printf yet */
+            char time_str[20];
+            int digits = 0;
+            uint64_t temp = seconds;
+            
+            while (temp > 0) {
+                time_str[digits++] = '0' + (temp % 10);
+                temp /= 10;
+            }
+            
+            /* Print digits in reverse order */
+            for (int j = digits - 1; j >= 0; j--) {
+                AkibaOS::Terminal::print_char(time_str[j]);
+            }
+        }
+        
+        AkibaOS::Terminal::print_string(" seconds\n");
     }
     
-    /* Trigger a division by zero exception */
-    volatile int a = 1;
-    volatile int b = 0;
-    volatile int c = a / b;  /* This will cause a divide by zero exception */
+    AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::Green, 
+                                 AkibaOS::Terminal::Color::Black);
+    AkibaOS::Terminal::print_string("Timer system working correctly!\n");
+    AkibaOS::Terminal::set_color(AkibaOS::Terminal::Color::White, 
+                                 AkibaOS::Terminal::Color::Black);
     
-    /* This line should never be reached */
-    AkibaOS::Terminal::print_string("ERROR: Exception handling failed!\n");
-    
-    /* Idle loop */
+    /* Enter idle loop with timer running */
+    AkibaOS::Terminal::print_string("Entering idle loop - timer interrupts active...\n");
     while (true) {
-        __asm__ volatile("hlt");
+        __asm__ volatile("hlt");  /* Wait for next interrupt */
     }
 }
