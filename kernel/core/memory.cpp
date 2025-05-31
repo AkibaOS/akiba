@@ -46,7 +46,10 @@ namespace AkibaOS
          * a minimal allocator. This avoids multiboot parsing issues.
          */
         void PhysicalMemoryManager::initialize(uintptr_t memory_map_start, uint32_t memory_map_length)
-        {
+        {   
+            (void) memory_map_start;  /* Unused for now */
+            (void) memory_map_length; /* Unused for now */
+
             Terminal::set_color(Terminal::Color::Yellow, Terminal::Color::Black);
             Terminal::print_string("Initializing physical memory manager (basic mode)...\n");
 
@@ -78,7 +81,7 @@ namespace AkibaOS
 
             /* Mark pages 1MB-16MB as available (skip first 1MB for safety) */
             uint64_t available_start_page = (1024 * 1024) / PAGE_SIZE; /* 1MB */
-            uint64_t available_page_count = total_pages - available_start_page;
+            // uint64_t available_page_count = total_pages - available_start_page;
 
             stats.free_pages = 0;
             for (uint64_t page = available_start_page; page < total_pages; page++) {
@@ -299,6 +302,7 @@ namespace AkibaOS
         {
             /* For now, ignore multiboot_info to avoid crashes */
             /* We'll implement proper multiboot parsing later when it's safer */
+            (void)multiboot_info; /* Unused for now */
             
             Terminal::set_color(Terminal::Color::Yellow, Terminal::Color::Black);
             Terminal::print_string("Note: Using basic memory detection (multiboot parsing disabled)\n");
