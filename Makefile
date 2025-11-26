@@ -54,7 +54,7 @@ FS_ROOT = iso/akiba
 BUILD_DIR = iso/build
 
 # Directories to copy to /system/ on the disk
-SYSTEM_DIRS = assets/fonts
+SYSTEM_DIRS = resources/fonts
 
 # Calculate disk size based on content
 CONTENT_SIZE_KB := $(shell du -sk $(FS_ROOT) 2>/dev/null | awk '{sum += $$1} END {print sum + 10000}')
@@ -119,7 +119,7 @@ prepare-filesystem:
 	@cp $(BUILD_DIR)/kernel/mirai.akibakernel $(FS_ROOT)/system/akiba/
 	@rm -rf $(BUILD_DIR)/kernel
 	
-	@echo "→ Copying system assets..."
+	@echo "→ Copying system resources..."
 	@for dir in $(SYSTEM_DIRS); do \
 		if [ -d $$dir ]; then \
 			target_name=$$(basename $$dir); \
