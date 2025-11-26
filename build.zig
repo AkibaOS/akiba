@@ -19,6 +19,7 @@ pub fn build(b: *std.Build) void {
     });
 
     kernel.addAssemblyFile(b.path("boot/boot.s"));
+    kernel.addAssemblyFile(b.path("boot/boot64.s"));
     kernel.setLinkerScript(b.path("linker/mirai.linker"));
 
     b.installArtifact(kernel);

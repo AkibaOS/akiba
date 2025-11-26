@@ -18,85 +18,82 @@ multiboot2_header_end:
 _start:
     cli
     
-    # Save multiboot2 info pointer
     mov %ebx, multiboot2_info_ptr
-    
     mov $boot_stack_top, %esp
     
     call setup_page_tables
     call enable_long_mode
     
     lgdt gdt64_pointer
-    
     jmp $0x08, $long_mode_start
 
 setup_page_tables:
-    # L4 points to L3
     mov $page_table_l3, %eax
     or $0b11, %eax
     mov %eax, (page_table_l4)
     
-    # L3 entries point to L2 tables (each L2 maps 1GB)
-    # We'll map 4GB total (4 L2 tables)
-    
-    # L3[0] -> L2_0 (0-1GB)
     mov $page_table_l2_0, %eax
     or $0b11, %eax
     mov %eax, (page_table_l3)
     
-    # L3[1] -> L2_1 (1-2GB)
     mov $page_table_l2_1, %eax
     or $0b11, %eax
     mov %eax, (page_table_l3 + 8)
     
-    # L3[2] -> L2_2 (2-3GB)
     mov $page_table_l2_2, %eax
     or $0b11, %eax
     mov %eax, (page_table_l3 + 16)
     
-    # L3[3] -> L2_3 (3-4GB)
     mov $page_table_l2_3, %eax
     or $0b11, %eax
     mov %eax, (page_table_l3 + 24)
     
-    # Now map each L2 table (512 entries each, 2MB pages)
-    # Map L2_0 (0-1GB)
     mov $page_table_l2_0, %edi
     mov $0x00000000, %edx
+    mov $0b10000011, %esi
     call map_l2_table
     
-    # Map L2_1 (1-2GB)
     mov $page_table_l2_1, %edi
     mov $0x40000000, %edx
+    mov $0b10000011, %esi
     call map_l2_table
     
-    # Map L2_2 (2-3GB)
     mov $page_table_l2_2, %edi
     mov $0x80000000, %edx
+    mov $0b10000011, %esi
     call map_l2_table
     
-    # Map L2_3 (3-4GB)
     mov $page_table_l2_3, %edi
     mov $0xC0000000, %edx
+    mov $0b10000011, %esi
     call map_l2_table
     
     ret
 
-# Map a single L2 table
-# Input: %edi = L2 table address, %edx = base address
 map_l2_table:
+    push %ebx
+    push %ecx
+    push %edx
+    
+    mov %edx, %ebx
     mov $0, %ecx
+    
 .map_loop:
-    mov $0x200000, %eax
-    mul %ecx
-    add %edx, %eax
-    or $0b10000011, %eax
+    mov %ebx, %eax
+    or %esi, %eax
+    
     mov %eax, (%edi,%ecx,8)
+    movl $0, 4(%edi,%ecx,8)
+    
+    add $0x200000, %ebx
     
     inc %ecx
     cmp $512, %ecx
     jne .map_loop
     
+    pop %edx
+    pop %ecx
+    pop %ebx
     ret
 
 enable_long_mode:
@@ -129,7 +126,6 @@ long_mode_start:
     
     mov $stack_top, %rsp
     
-    # Load multiboot2 info pointer and pass to kernel
     xor %rdi, %rdi
     mov multiboot2_info_ptr(%rip), %edi
     
