@@ -142,3 +142,17 @@ fn convert_color(color: u32) u32 {
     const b = color & 0xFF;
     return (b << 16) | (g << 8) | r;
 }
+
+pub fn get_width() u32 {
+    if (font_info) |info| {
+        return info.width;
+    }
+    return 8;
+}
+
+pub fn get_height() u32 {
+    if (font_info) |info| {
+        return info.height;
+    }
+    return 16;
+}

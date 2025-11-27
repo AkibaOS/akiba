@@ -3,6 +3,7 @@
 const drivers = struct {
     const serial = @import("drivers/serial.zig");
     const ata = @import("drivers/ata.zig");
+    const keyboard = @import("drivers/keyboard.zig");
 };
 
 const boot = @import("boot/multiboot2.zig");
@@ -10,6 +11,7 @@ const afs = @import("fs/afs.zig");
 const font = @import("graphics/font.zig");
 const idt = @import("arch/idt.zig");
 const paging = @import("arch/paging.zig");
+const terminal = @import("terminal.zig");
 
 export fn mirai(multiboot_info_addr: u64) noreturn {
     drivers.serial.init();
@@ -51,10 +53,11 @@ export fn mirai(multiboot_info_addr: u64) noreturn {
 
     if (fb_info) |fb| {
         paging.map_framebuffer(fb.addr);
-        font.render_text("Akiba OS", 10, 10, fb, 0x00FF6B9D);
-        font.render_text("Drifting from abyss towards the infinite!", 10, 30, fb, 0x00FFFFFF);
+        terminal.init(fb);
         drivers.serial.print("Graphics initialized!\r\n");
     }
+
+    drivers.keyboard.init();
 
     drivers.serial.print("\r\n** Akiba OS Ready **\r\n");
 
