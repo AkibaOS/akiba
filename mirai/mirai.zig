@@ -40,7 +40,7 @@ export fn mirai(multiboot_info_addr: u64) noreturn {
         if (fs.find_file(system_cluster, "FONTS")) |fonts_dir| {
             const fonts_cluster = (@as(u32, fonts_dir.first_cluster_high) << 16) | @as(u32, fonts_dir.first_cluster_low);
 
-            if (fs.find_file(fonts_cluster, "DEFAULT.PSF")) |font_file| {
+            if (fs.find_file(fonts_cluster, "TERM.PSF")) |font_file| {
                 var font_buffer: [32768]u8 = undefined;
                 _ = fs.read_file(font_file, &font_buffer) catch {};
                 _ = font.init(font_buffer[0..font_file.file_size]) catch {};

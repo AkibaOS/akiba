@@ -128,9 +128,17 @@ fn render_glyph(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, col
                 const py = y + row;
                 if (px < fb.width and py < fb.height) {
                     const offset = py * (fb.pitch / 4) + px;
-                    pixels[offset] = color;
+                    pixels[offset] = convert_color(color);
                 }
             }
         }
     }
+}
+
+fn convert_color(color: u32) u32 {
+    // Convert RGBA to BGR if needed
+    const r = (color >> 16) & 0xFF;
+    const g = (color >> 8) & 0xFF;
+    const b = color & 0xFF;
+    return (b << 16) | (g << 8) | r;
 }
