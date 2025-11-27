@@ -1,7 +1,7 @@
 //! PS/2 Keyboard Driver
 
 const serial = @import("serial.zig");
-const terminal = @import("../terminal.zig");
+const ash = @import("../ash/ash.zig");
 
 const KEYBOARD_DATA_PORT: u16 = 0x60;
 const KEYBOARD_STATUS_PORT: u16 = 0x64;
@@ -144,9 +144,6 @@ fn handle_scancode(scancode: u8) void {
 }
 
 fn on_key_press(ascii: u8) void {
-    // Echo to serial
     serial.write(ascii);
-
-    // Display on screen
-    terminal.put_char(ascii);
+    ash.on_key_press(ascii);
 }

@@ -160,3 +160,17 @@ fn scroll() void {
 
     cursor_y -= char_height;
 }
+
+pub fn clear_screen() void {
+    if (framebuffer == null) return;
+    const fb = framebuffer.?;
+
+    video.clear(BG_COLOR);
+
+    // Redraw header
+    font.render_text("Akiba OS", 0, 10, fb, 0x00FF6B9D);
+    font.render_text("Drifting from abyss towards the infinite!", 0, 30, fb, 0x00FFFFFF);
+
+    cursor_x = 0;
+    cursor_y = 60;
+}

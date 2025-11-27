@@ -2,6 +2,7 @@
 
 const serial = @import("../drivers/serial.zig");
 const ata = @import("../drivers/ata.zig");
+const terminal = @import("../terminal.zig");
 
 pub const BootSector = packed struct {
     jump_boot_0: u8,
@@ -164,15 +165,10 @@ pub const AFS = struct {
     }
 
     pub fn list_directory(self: *AFS, cluster: u32) !void {
-        serial.print("\r\nListing directory at cluster ");
-        serial.print_hex(cluster);
-        serial.print(":\r\n");
-
         const lba = self.cluster_to_lba(cluster);
         var sector_buffer: [ata.SECTOR_SIZE]u8 = undefined;
 
         if (!self.device.read_sector(lba, &sector_buffer)) {
-            serial.print("ERROR: Failed to read directory cluster\r\n");
             return error.ReadFailed;
         }
 
@@ -184,20 +180,18 @@ pub const AFS = struct {
             if (entry.name_0 == 0x00) break;
             if (entry.name_0 == 0xE5) continue;
             if (entry.attributes == 0x0F) continue;
+            if ((entry.attributes & ATTR_VOLUME_ID) != 0) continue;
 
-            serial.print("  ");
             const name = get_entry_name(entry);
             for (name) |c| {
-                if (c != ' ') serial.write(c);
+                if (c != ' ') terminal.put_char(c);
             }
             if ((entry.attributes & ATTR_DIRECTORY) != 0) {
-                serial.print(" <DIR>");
+                terminal.print(" <STACK>");
             } else {
-                serial.print(" (");
-                serial.print_hex(entry.file_size);
-                serial.print(" bytes)");
+                terminal.print(" <UNIT>");
             }
-            serial.print("\r\n");
+            terminal.put_char('\n');
         }
     }
 

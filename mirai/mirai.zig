@@ -12,6 +12,7 @@ const font = @import("graphics/font.zig");
 const idt = @import("arch/idt.zig");
 const paging = @import("arch/paging.zig");
 const terminal = @import("terminal.zig");
+const ash = @import("ash/ash.zig");
 
 export fn mirai(multiboot_info_addr: u64) noreturn {
     drivers.serial.init();
@@ -60,6 +61,10 @@ export fn mirai(multiboot_info_addr: u64) noreturn {
     drivers.keyboard.init();
 
     drivers.serial.print("\r\n** Akiba OS Ready **\r\n");
+
+    ash.init(&fs);
+
+    drivers.serial.print("\r\n** Akiba Shell Ready **\r\n");
 
     while (true) {
         asm volatile ("hlt");
