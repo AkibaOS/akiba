@@ -160,7 +160,7 @@ pub const AFS = struct {
         };
     }
 
-    fn cluster_to_lba(self: *AFS, cluster: u32) u64 {
+    pub fn cluster_to_lba(self: *AFS, cluster: u32) u64 {
         return self.first_data_sector + @as(u64, (cluster - 2)) * @as(u64, self.sectors_per_cluster);
     }
 
@@ -182,10 +182,36 @@ pub const AFS = struct {
             if (entry.attributes == 0x0F) continue;
             if ((entry.attributes & ATTR_VOLUME_ID) != 0) continue;
 
+            // Filter out . and .. entries
             const name = get_entry_name(entry);
-            for (name) |c| {
-                if (c != ' ') terminal.put_char(c);
+            if (name[0] == '.' and name[1] == ' ') continue;
+            if (name[0] == '.' and name[1] == '.' and name[2] == ' ') continue;
+
+            // Print name (first 8 chars, trim spaces)
+            var name_len: usize = 8;
+            while (name_len > 0 and name[name_len - 1] == ' ') : (name_len -= 1) {}
+            for (name[0..name_len]) |c| {
+                terminal.put_char(c);
             }
+
+            // Print extension (last 3 chars, if not all spaces)
+            var has_ext = false;
+            for (name[8..11]) |c| {
+                if (c != ' ') {
+                    has_ext = true;
+                    break;
+                }
+            }
+
+            if (has_ext) {
+                terminal.put_char('.');
+                var ext_len: usize = 3;
+                while (ext_len > 0 and name[8 + ext_len - 1] == ' ') : (ext_len -= 1) {}
+                for (name[8 .. 8 + ext_len]) |c| {
+                    terminal.put_char(c);
+                }
+            }
+
             if ((entry.attributes & ATTR_DIRECTORY) != 0) {
                 terminal.print(" <STACK>");
             } else {

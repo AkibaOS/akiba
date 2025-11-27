@@ -3,6 +3,7 @@ const serial = @import("../drivers/serial.zig");
 const afs = @import("../fs/afs.zig");
 
 const mi = @import("commands/mi.zig");
+const nav = @import("commands/nav.zig");
 
 const MAX_INPUT: usize = 256;
 const MAX_ARGS: usize = 16;
@@ -104,6 +105,10 @@ fn execute_command() void {
     if (str_equal(cmd, "mi")) {
         if (filesystem) |fs| {
             mi.execute(fs, current_cluster, cmd_args);
+        }
+    } else if (str_equal(cmd, "nav")) {
+        if (filesystem) |fs| {
+            current_cluster = nav.execute(fs, current_cluster, &current_path, &current_path_len, cmd_args);
         }
     } else if (str_equal(cmd, "wipe")) {
         terminal.clear_screen();
