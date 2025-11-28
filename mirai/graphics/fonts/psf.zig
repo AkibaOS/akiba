@@ -1,7 +1,7 @@
 //! PSF font loading and rendering
 
-const boot = @import("../boot/multiboot2.zig");
-const serial = @import("../drivers/serial.zig");
+const boot = @import("../../boot/multiboot2.zig");
+const serial = @import("../../drivers/serial.zig");
 
 const PSF1_MAGIC: u16 = 0x0436;
 const PSF2_MAGIC: u32 = 0x864ab572;

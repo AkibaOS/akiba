@@ -17,6 +17,9 @@ const BUFFER_SIZE = 256;
 var input_buffer: [BUFFER_SIZE]u8 = undefined;
 var buffer_pos: usize = 0;
 
+// External function to send keys to terminal/shell
+extern fn on_key_typed(char: u8) void;
+
 const SCANCODE_TO_ASCII: [128]u8 = .{
     0,    27,  '1', '2',  '3',  '4', '5',    '6',
     '7',  '8', '9', '0',  '-',  '=', '\x08', '\t',
@@ -145,6 +148,9 @@ fn on_key_press(ascii: u8) void {
     // Echo to serial
     serial.write(ascii);
 
+    // Send to terminal/shell
+    on_key_typed(ascii);
+
     // Handle backspace
     if (ascii == '\x08') {
         if (buffer_pos > 0) {
@@ -155,7 +161,6 @@ fn on_key_press(ascii: u8) void {
 
     // Handle enter
     if (ascii == '\n') {
-        // Process command here later
         serial.print("\n");
         buffer_pos = 0;
         return;
