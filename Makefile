@@ -49,6 +49,7 @@ endif
 # ───────────────────────────────────────────────────────────────────────────
 
 GRUB_CONFIG = boot/grub/grub.cfg
+GRUB_THEME_DIR = boot/grub/themes
 DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 BUILD_DIR = iso/build
@@ -129,6 +130,7 @@ prepare-filesystem:
 	done
 	
 	@cp $(GRUB_CONFIG) $(FS_ROOT)/boot/grub/
+	@cp -R $(GRUB_THEME_DIR) $(FS_ROOT)/boot/grub/
 
 $(DISK_IMAGE): prepare-filesystem
 	@echo "→ Creating AFS bootable disk ($(DISK_SIZE_MB)MB)..."
