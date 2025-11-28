@@ -110,6 +110,20 @@ pub fn render_text(text: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, c
 fn render_glyph(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
     if (font_info == null) return;
 
+    // Handle different bit depths
+    if (fb.bpp == 32) {
+        render_glyph_32bit(glyph, x, y, fb, color);
+    } else if (fb.bpp == 24) {
+        render_glyph_24bit(glyph, x, y, fb, color);
+    } else {
+        // Fallback to 32-bit for other modes
+        render_glyph_32bit(glyph, x, y, fb, color);
+    }
+}
+
+fn render_glyph_32bit(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
+    if (font_info == null) return;
+
     const info = font_info.?;
     const pixels = @as([*]volatile u32, @ptrFromInt(fb.addr));
 
@@ -128,19 +142,47 @@ fn render_glyph(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, col
                 const py = y + row;
                 if (px < fb.width and py < fb.height) {
                     const offset = py * (fb.pitch / 4) + px;
-                    pixels[offset] = convert_color(color);
+                    pixels[offset] = color;
                 }
             }
         }
     }
 }
 
-fn convert_color(color: u32) u32 {
-    // Convert RGBA to BGR if needed
-    const r = (color >> 16) & 0xFF;
-    const g = (color >> 8) & 0xFF;
-    const b = color & 0xFF;
-    return (b << 16) | (g << 8) | r;
+fn render_glyph_24bit(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
+    if (font_info == null) return;
+
+    const info = font_info.?;
+    const pixels = @as([*]volatile u8, @ptrFromInt(fb.addr));
+
+    // Extract RGB components
+    const r = @as(u8, @truncate((color >> 16) & 0xFF));
+    const g = @as(u8, @truncate((color >> 8) & 0xFF));
+    const b = @as(u8, @truncate(color & 0xFF));
+
+    var row: u32 = 0;
+    while (row < info.height) : (row += 1) {
+        const byte_index = row;
+        if (byte_index >= glyph.len) break;
+
+        const byte = glyph[byte_index];
+
+        var col: u32 = 0;
+        while (col < 8) : (col += 1) {
+            const bit = 7 - col;
+            if ((byte & (@as(u8, 1) << @as(u3, @truncate(bit)))) != 0) {
+                const px = x + col;
+                const py = y + row;
+                if (px < fb.width and py < fb.height) {
+                    // 24-bit mode: 3 bytes per pixel (BGR order)
+                    const offset = py * fb.pitch + px * 3;
+                    pixels[offset] = b; // Blue
+                    pixels[offset + 1] = g; // Green
+                    pixels[offset + 2] = r; // Red
+                }
+            }
+        }
+    }
 }
 
 pub fn get_width() u32 {

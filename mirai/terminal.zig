@@ -184,6 +184,14 @@ fn clear_char_at_cursor() void {
     if (framebuffer == null) return;
     const fb = framebuffer.?;
 
+    if (fb.bpp == 32) {
+        clear_char_32bit(fb);
+    } else if (fb.bpp == 24) {
+        clear_char_24bit(fb);
+    }
+}
+
+fn clear_char_32bit(fb: boot.FramebufferInfo) void {
     const pixels = @as([*]volatile u32, @ptrFromInt(fb.addr));
 
     var row: u32 = 0;
@@ -200,10 +208,37 @@ fn clear_char_at_cursor() void {
     }
 }
 
+fn clear_char_24bit(fb: boot.FramebufferInfo) void {
+    const pixels = @as([*]volatile u8, @ptrFromInt(fb.addr));
+
+    var row: u32 = 0;
+    while (row < char_height) : (row += 1) {
+        var col: u32 = 0;
+        while (col < char_width) : (col += 1) {
+            const px = cursor_x + col;
+            const py = cursor_y + row;
+            if (px < fb.width and py < fb.height) {
+                const offset = py * fb.pitch + px * 3;
+                pixels[offset] = 0; // Blue
+                pixels[offset + 1] = 0; // Green
+                pixels[offset + 2] = 0; // Red
+            }
+        }
+    }
+}
+
 fn scroll() void {
     if (framebuffer == null) return;
     const fb = framebuffer.?;
 
+    if (fb.bpp == 32) {
+        scroll_32bit(fb);
+    } else if (fb.bpp == 24) {
+        scroll_24bit(fb);
+    }
+}
+
+fn scroll_32bit(fb: boot.FramebufferInfo) void {
     const pixels = @as([*]volatile u32, @ptrFromInt(fb.addr));
     const pixels_per_line = fb.pitch / 4;
 
@@ -228,6 +263,49 @@ fn scroll() void {
         while (x < fb.width) : (x += 1) {
             const offset = y * pixels_per_line + x;
             pixels[offset] = BG_COLOR;
+        }
+    }
+
+    cursor_y -= char_height;
+
+    // Shift line types up
+    var i: usize = 1;
+    while (i < MAX_LINES) : (i += 1) {
+        line_types[i - 1] = line_types[i];
+    }
+    line_types[MAX_LINES - 1] = .Hard;
+
+    if (current_line > 0) current_line -= 1;
+}
+
+fn scroll_24bit(fb: boot.FramebufferInfo) void {
+    const pixels = @as([*]volatile u8, @ptrFromInt(fb.addr));
+
+    var dst_y: u32 = 60;
+    var src_y: u32 = 60 + char_height;
+
+    while (src_y < fb.height) : ({
+        src_y += 1;
+        dst_y += 1;
+    }) {
+        var x: u32 = 0;
+        while (x < fb.width) : (x += 1) {
+            const src_offset = src_y * fb.pitch + x * 3;
+            const dst_offset = dst_y * fb.pitch + x * 3;
+            pixels[dst_offset] = pixels[src_offset]; // B
+            pixels[dst_offset + 1] = pixels[src_offset + 1]; // G
+            pixels[dst_offset + 2] = pixels[src_offset + 2]; // R
+        }
+    }
+
+    var y: u32 = dst_y;
+    while (y < fb.height) : (y += 1) {
+        var x: u32 = 0;
+        while (x < fb.width) : (x += 1) {
+            const offset = y * fb.pitch + x * 3;
+            pixels[offset] = 0;
+            pixels[offset + 1] = 0;
+            pixels[offset + 2] = 0;
         }
     }
 
