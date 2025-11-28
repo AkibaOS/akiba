@@ -28,10 +28,17 @@ _start:
     jmp $0x08, $long_mode_start
 
 setup_page_tables:
+    # PML4[0] -> L3 (identity map first 512GB)
     mov $page_table_l3, %eax
     or $0b11, %eax
     mov %eax, (page_table_l4)
     
+    # PML4[256] -> L3_high (higher-half at 0xFFFF800000000000)
+    mov $page_table_l3_high, %eax
+    or $0b11, %eax
+    mov %eax, (page_table_l4 + 2048)
+    
+    # Setup L3 entries for identity mapping (first 4GB)
     mov $page_table_l2_0, %eax
     or $0b11, %eax
     mov %eax, (page_table_l3)
@@ -48,6 +55,24 @@ setup_page_tables:
     or $0b11, %eax
     mov %eax, (page_table_l3 + 24)
     
+    # Setup L3_high entries (map first 4GB to higher-half too)
+    mov $page_table_l2_high_0, %eax
+    or $0b11, %eax
+    mov %eax, (page_table_l3_high)
+    
+    mov $page_table_l2_high_1, %eax
+    or $0b11, %eax
+    mov %eax, (page_table_l3_high + 8)
+    
+    mov $page_table_l2_high_2, %eax
+    or $0b11, %eax
+    mov %eax, (page_table_l3_high + 16)
+    
+    mov $page_table_l2_high_3, %eax
+    or $0b11, %eax
+    mov %eax, (page_table_l3_high + 24)
+    
+    # Map 4GB identity (low)
     mov $page_table_l2_0, %edi
     mov $0x00000000, %edx
     mov $0b10000011, %esi
@@ -64,6 +89,27 @@ setup_page_tables:
     call map_l2_table
     
     mov $page_table_l2_3, %edi
+    mov $0xC0000000, %edx
+    mov $0b10000011, %esi
+    call map_l2_table
+    
+    # Map 4GB to higher-half (same physical memory, different virtual addresses)
+    mov $page_table_l2_high_0, %edi
+    mov $0x00000000, %edx
+    mov $0b10000011, %esi
+    call map_l2_table
+    
+    mov $page_table_l2_high_1, %edi
+    mov $0x40000000, %edx
+    mov $0b10000011, %esi
+    call map_l2_table
+    
+    mov $page_table_l2_high_2, %edi
+    mov $0x80000000, %edx
+    mov $0b10000011, %esi
+    call map_l2_table
+    
+    mov $page_table_l2_high_3, %edi
     mov $0xC0000000, %edx
     mov $0b10000011, %esi
     call map_l2_table
@@ -148,6 +194,16 @@ page_table_l2_1:
 page_table_l2_2:
     .skip 4096
 page_table_l2_3:
+    .skip 4096
+page_table_l3_high:
+    .skip 4096
+page_table_l2_high_0:
+    .skip 4096
+page_table_l2_high_1:
+    .skip 4096
+page_table_l2_high_2:
+    .skip 4096
+page_table_l2_high_3:
     .skip 4096
 
 .align 16
