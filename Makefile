@@ -81,7 +81,7 @@ docker-run:
 	@./scripts/run.sh
 
 clean:
-	@docker run --rm -v $(PWD):/akiba -e DOCKER_BUILD=1 akiba-builder make clean 2>/dev/null || rm -rf iso/ zig-out/ zig-cache/
+	@docker run --rm -v $(PWD):/akiba -e DOCKER_BUILD=1 akiba-builder make clean 2>/dev/null || rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
 
 run: all docker-run
 
@@ -96,7 +96,7 @@ all: native-build
 native-build: $(DISK_IMAGE)
 
 native-clean:
-	@rm -rf iso/ zig-out/ zig-cache/
+	@rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
 
 clean: native-clean
 
