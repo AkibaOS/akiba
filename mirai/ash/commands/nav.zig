@@ -23,8 +23,10 @@ pub fn execute(
         };
 
         if (current_path_len.* > 1) {
-            var i = current_path_len.* - 1;
-            while (i > 0) : (i -= 1) {
+            // Search backwards from the end, but skip the last char to find the previous '/'
+            var i: usize = current_path_len.* - 1;
+            while (i > 0) {
+                i -= 1;
                 if (current_path[i] == '/') {
                     current_path_len.* = if (i == 0) 1 else i;
                     break;

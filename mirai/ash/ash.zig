@@ -1,6 +1,5 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-const serial = @import("../drivers/serial.zig");
 const terminal = @import("../terminal.zig");
 
 const mi = @import("commands/mi.zig");
