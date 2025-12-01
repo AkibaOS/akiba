@@ -61,13 +61,17 @@ fn get_current_stack_name() []const u8 {
         return "/";
     }
 
-    var i: usize = current_path_len - 1;
-    while (i > 0) : (i -= 1) {
+    // Find the last '/' in the path (searching backwards)
+    var i: usize = current_path_len;
+    while (i > 0) {
+        i -= 1;
         if (current_path[i] == '/') {
+            // Return everything after the last '/'
             return current_path[i + 1 .. current_path_len];
         }
     }
 
+    // If no '/' found (shouldn't happen for valid paths), return whole path
     return current_path[0..current_path_len];
 }
 

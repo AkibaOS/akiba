@@ -53,18 +53,12 @@ pub fn execute(
         return current_cluster;
     }
 
-    update_path(current_path, current_path_len, args[0], current_cluster, fs.root_cluster);
+    update_path(current_path, current_path_len, args[0]);
 
     return resolved.cluster;
 }
 
-fn update_path(
-    current_path: []u8,
-    current_path_len: *usize,
-    new_path: []const u8,
-    current_cluster: u32,
-    root_cluster: u32,
-) void {
+fn update_path(current_path: []u8, current_path_len: *usize, new_path: []const u8) void {
     if (new_path.len == 0) return;
 
     if (new_path[0] == '/') {
@@ -76,29 +70,22 @@ fn update_path(
         return;
     }
 
-    if (current_cluster == root_cluster and current_path_len.* == 1) {
-        if (current_path_len.* + 1 + new_path.len < current_path.len) {
-            current_path[current_path_len.*] = '/';
-            current_path_len.* += 1;
-
-            const copy_len = @min(new_path.len, current_path.len - current_path_len.*);
-            for (new_path[0..copy_len], 0..) |c, i| {
-                current_path[current_path_len.* + i] = c;
-            }
-            current_path_len.* += copy_len;
-        }
-    } else {
-        if (current_path_len.* + 1 + new_path.len < current_path.len) {
+    if (current_path_len.* + 1 + new_path.len < current_path.len) {
+        // Only add slash if not already at root
+        if (current_path_len.* > 1 or current_path[0] != '/') {
             if (current_path[current_path_len.* - 1] != '/') {
                 current_path[current_path_len.*] = '/';
                 current_path_len.* += 1;
             }
-
-            const copy_len = @min(new_path.len, current_path.len - current_path_len.*);
-            for (new_path[0..copy_len], 0..) |c, i| {
-                current_path[current_path_len.* + i] = c;
-            }
-            current_path_len.* += copy_len;
+        } else if (current_path_len.* == 1 and current_path[0] == '/') {
+            // At root ("/"), don't add another slash
+            // Just continue to append the path
         }
+
+        const copy_len = @min(new_path.len, current_path.len - current_path_len.*);
+        for (new_path[0..copy_len], 0..) |c, i| {
+            current_path[current_path_len.* + i] = c;
+        }
+        current_path_len.* += copy_len;
     }
 }

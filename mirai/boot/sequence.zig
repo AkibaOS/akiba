@@ -218,6 +218,6 @@ pub fn run(multiboot_info_addr: u64) void {
     if (terminal_ready) {
         terminal.clear_screen();
         boot_print_color("Akiba OS\n", COLOR_MAGENTA);
-        boot_print("Drifting from abyss towards infinity\n\n");
+        boot_print("Drifting from abyss towards infinity!\n\n");
     }
 }
