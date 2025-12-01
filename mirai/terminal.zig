@@ -44,6 +44,8 @@ pub fn init(fb: boot.FramebufferInfo) void {
     serial.print_hex(fb.height);
     serial.print("\n  FB Pitch: ");
     serial.print_hex(fb.pitch);
+    serial.print("\n  BPP: ");
+    serial.print_hex(fb.bpp);
     serial.print("\n  Pitch/4: ");
     serial.print_hex(max_line_width);
     serial.print("\n  Char Width: ");
@@ -58,13 +60,9 @@ pub fn init(fb: boot.FramebufferInfo) void {
     video.init(fb);
     video.clear(BG_COLOR);
 
-    // Draw header
-    font.render_text("Akiba OS", 10, 10, fb, 0x00FF6B9D);
-    font.render_text("Drifting from abyss towards infinity", 10, 30, fb, 0x00FFFFFF);
-
-    // Position cursor below header
-    cursor_y = 60;
-    current_line = get_line_number(cursor_y);
+    // Position cursor at top
+    cursor_y = 0;
+    current_line = 0;
 
     // Initialize all lines as hard newlines
     var i: usize = 0;
@@ -74,6 +72,10 @@ pub fn init(fb: boot.FramebufferInfo) void {
 }
 
 pub fn put_char(char: u8) void {
+    put_char_color(char, FG_COLOR);
+}
+
+pub fn put_char_color(char: u8, color: u32) void {
     if (framebuffer == null) return;
     const fb = framebuffer.?;
 
@@ -99,7 +101,7 @@ pub fn put_char(char: u8) void {
                 // Delete on same line
                 cursor_x -= char_width;
                 clear_char_at_cursor();
-            } else if (cursor_x == 0 and cursor_y > 60) {
+            } else if (cursor_x == 0 and cursor_y > 0) {
                 // At start of line - check if we can go to previous line
                 const current_line_num = get_line_number(cursor_y);
                 if (current_line_num > 0 and current_line_num < MAX_LINES) {
@@ -110,7 +112,6 @@ pub fn put_char(char: u8) void {
                         current_line = get_line_number(cursor_y);
 
                         // Position at end of previous line (before wrap point)
-                        // Use max_line_width, not fb.width
                         cursor_x = max_line_width - char_width;
 
                         // Align to character boundary
@@ -142,7 +143,6 @@ pub fn put_char(char: u8) void {
         else => {
             if (char >= 32 and char <= 126) {
                 // Check if character will fit on current line
-                // Use max_line_width (pitch/4), not fb.width
                 if (cursor_x + char_width > max_line_width) {
                     // Wrap to next line (SOFT wrap)
                     cursor_x = 0;
@@ -159,9 +159,9 @@ pub fn put_char(char: u8) void {
                     }
                 }
 
-                // Render character
+                // Render character with specified color
                 const text = [_]u8{char};
-                font.render_text(&text, cursor_x, cursor_y, fb, FG_COLOR);
+                font.render_text(&text, cursor_x, cursor_y, fb, color);
 
                 cursor_x += char_width;
             }
@@ -175,9 +175,14 @@ pub fn print(text: []const u8) void {
     }
 }
 
+pub fn print_color(text: []const u8, color: u32) void {
+    for (text) |char| {
+        put_char_color(char, color);
+    }
+}
+
 fn get_line_number(y: u32) usize {
-    if (y < 60) return 0;
-    return (y - 60) / char_height;
+    return y / char_height;
 }
 
 fn clear_char_at_cursor() void {
@@ -242,8 +247,8 @@ fn scroll_32bit(fb: boot.FramebufferInfo) void {
     const pixels = @as([*]volatile u32, @ptrFromInt(fb.addr));
     const pixels_per_line = fb.pitch / 4;
 
-    var dst_y: u32 = 60;
-    var src_y: u32 = 60 + char_height;
+    var dst_y: u32 = 0;
+    var src_y: u32 = char_height;
 
     while (src_y < fb.height) : ({
         src_y += 1;
@@ -281,8 +286,8 @@ fn scroll_32bit(fb: boot.FramebufferInfo) void {
 fn scroll_24bit(fb: boot.FramebufferInfo) void {
     const pixels = @as([*]volatile u8, @ptrFromInt(fb.addr));
 
-    var dst_y: u32 = 60;
-    var src_y: u32 = 60 + char_height;
+    var dst_y: u32 = 0;
+    var src_y: u32 = char_height;
 
     while (src_y < fb.height) : ({
         src_y += 1;
@@ -323,16 +328,11 @@ fn scroll_24bit(fb: boot.FramebufferInfo) void {
 
 pub fn clear_screen() void {
     if (framebuffer == null) return;
-    const fb = framebuffer.?;
 
     video.clear(BG_COLOR);
 
-    // Redraw header
-    font.render_text("Akiba OS", 10, 10, fb, 0x00FF6B9D);
-    font.render_text("Drifting from abyss towards infinity", 10, 30, fb, 0x00FFFFFF);
-
     cursor_x = 0;
-    cursor_y = 60;
+    cursor_y = 0;
     current_line = 0;
 
     // Reset line types
