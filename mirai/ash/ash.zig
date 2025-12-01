@@ -1,6 +1,7 @@
-const terminal = @import("../terminal.zig");
-const serial = @import("../drivers/serial.zig");
 const afs = @import("../fs/afs.zig");
+const ahci = @import("../drivers/ahci.zig");
+const serial = @import("../drivers/serial.zig");
+const terminal = @import("../terminal.zig");
 
 const mi = @import("commands/mi.zig");
 const nav = @import("commands/nav.zig");
@@ -13,9 +14,9 @@ var input_len: usize = 0;
 var current_path: [256]u8 = undefined;
 var current_path_len: usize = 1;
 var current_cluster: u32 = 0;
-var filesystem: ?*afs.AFS = null;
+var filesystem: ?*afs.AFS(ahci.BlockDevice) = null;
 
-pub fn init(fs: *afs.AFS) void {
+pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     filesystem = fs;
     current_cluster = fs.root_cluster;
     current_path[0] = '/';

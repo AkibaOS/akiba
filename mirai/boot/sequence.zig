@@ -1,13 +1,15 @@
-const serial = @import("../drivers/serial.zig");
-const multiboot = @import("../boot/multiboot2.zig");
-const pmm = @import("../memory/pmm.zig");
-const paging = @import("../memory/paging.zig");
+const afs = @import("../fs/afs.zig");
+const ahci = @import("../drivers/ahci.zig");
+const ata = @import("../drivers/ata.zig");
+const font = @import("../graphics/fonts/psf.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
 const keyboard = @import("../drivers/keyboard.zig");
-const ata = @import("../drivers/ata.zig");
-const afs = @import("../fs/afs.zig");
-const font = @import("../graphics/fonts/psf.zig");
+const multiboot = @import("../boot/multiboot2.zig");
+const paging = @import("../memory/paging.zig");
+const pci = @import("../drivers/pci.zig");
+const pmm = @import("../memory/pmm.zig");
+const serial = @import("../drivers/serial.zig");
 const terminal = @import("../terminal.zig");
 
 pub const COLOR_OK: u32 = 0x0000FF00;
@@ -18,7 +20,7 @@ pub const COLOR_WHITE: u32 = 0x00FFFFFF;
 pub const COLOR_MAGENTA: u32 = 0x00FF6B9D;
 
 var terminal_ready: bool = false;
-var filesystem: ?*afs.AFS = null;
+var filesystem: ?*afs.AFS(ahci.BlockDevice) = null;
 
 const MessageType = enum { Normal, Color };
 
@@ -32,7 +34,7 @@ const Message = struct {
 var message_buffer: [100]Message = undefined;
 var message_count: usize = 0;
 
-pub fn get_filesystem() *afs.AFS {
+pub fn get_filesystem() *afs.AFS(ahci.BlockDevice) {
     return filesystem.?;
 }
 
@@ -126,12 +128,48 @@ pub fn run(multiboot_info_addr: u64) void {
     idt.init();
     boot_ok();
 
-    boot_print("Detecting storage devices... ");
-    var device = ata.BlockDevice.init();
+    boot_print("Scanning PCI bus... ");
+    pci.scan_bus();
+    boot_ok();
+
+    boot_print("Detecting storage controller... ");
+
+    const all_devices = pci.get_devices();
+    var ahci_found = false;
+
+    for (all_devices) |*dev| {
+        if (dev.class_code == 0x01 and dev.subclass == 0x06) {
+            ahci.init(dev) catch |err| {
+                if (err == error.NoDriveFound) {
+                    continue;
+                }
+                boot_fail();
+                serial.print("ERROR: Failed to initialize AHCI: ");
+                serial.print(@errorName(err));
+                serial.print("\n");
+                keyboard.init();
+                while (true) {
+                    asm volatile ("hlt");
+                }
+            };
+            ahci_found = true;
+            break;
+        }
+    }
+
+    if (!ahci_found) {
+        boot_fail();
+        serial.print("ERROR: No AHCI controller with drive found\n");
+        keyboard.init();
+        while (true) {
+            asm volatile ("hlt");
+        }
+    }
     boot_ok();
 
     boot_print("Mounting Akiba File System... ");
-    var fs = afs.AFS.init(&device) catch |err| {
+    var device = ahci.BlockDevice.init();
+    var fs = afs.AFS(ahci.BlockDevice).init(&device) catch |err| {
         boot_fail();
         serial.print("ERROR: Failed to initialize AFS: ");
         serial.print(@errorName(err));
@@ -148,51 +186,48 @@ pub fn run(multiboot_info_addr: u64) void {
 
     boot_print("Loading font from filesystem... ");
 
-    if (fs.find_file(fs.root_cluster, "SYSTEM")) |system_dir| {
-        const system_cluster = (@as(u32, system_dir.first_cluster_high) << 16) |
-            @as(u32, system_dir.first_cluster_low);
-
-        if (fs.find_file(system_cluster, "FONTS")) |fonts_dir| {
-            const fonts_cluster = (@as(u32, fonts_dir.first_cluster_high) << 16) |
-                @as(u32, fonts_dir.first_cluster_low);
-
-            if (fs.find_file(fonts_cluster, "AKIBA.PSF")) |font_file| {
-                const font_buffer = heap.alloc(font_file.file_size) orelse {
-                    boot_fail();
-                    serial.print("ERROR: Failed to allocate memory for font\n");
-                    while (true) {
-                        asm volatile ("hlt");
-                    }
-                };
-
-                _ = fs.read_file(font_file, font_buffer[0..font_file.file_size]) catch {
-                    boot_fail();
-                    serial.print("ERROR: Failed to read font file\n");
-                    heap.free(font_buffer, font_file.file_size);
-                    while (true) {
-                        asm volatile ("hlt");
-                    }
-                };
-
-                font.init(font_buffer[0..font_file.file_size]) catch {
-                    boot_fail();
-                    serial.print("ERROR: Failed to parse font\n");
-                };
-
-                if (font.get_width() > 0 and font.get_height() > 0) {
-                    boot_ok();
-                } else {
-                    boot_fail();
-                }
-            } else {
-                boot_fail();
-            }
-        } else {
-            boot_fail();
-        }
-    } else {
+    // Try to find SYSTEM directory
+    serial.print("Looking for SYSTEM stack...\n");
+    const system_entry = fs.find_file(fs.root_cluster, "SYSTEM     ") orelse {
         boot_fail();
-    }
+        serial.print("ERROR: SYSTEM stack not found\n");
+        return;
+    };
+
+    serial.print("Found SYSTEM, looking for FONTS...\n");
+    const system_cluster = (@as(u32, system_entry.first_cluster_high) << 16) | @as(u32, system_entry.first_cluster_low);
+    const fonts_entry = fs.find_file(system_cluster, "FONTS      ") orelse {
+        boot_fail();
+        serial.print("ERROR: FONTS stack not found\n");
+        return;
+    };
+
+    serial.print("Found FONTS, looking for AKIBA.PSF...\n");
+    const fonts_cluster = (@as(u32, fonts_entry.first_cluster_high) << 16) | @as(u32, fonts_entry.first_cluster_low);
+    const font_entry = fs.find_file(fonts_cluster, "AKIBA   PSF") orelse {
+        boot_fail();
+        serial.print("ERROR: AKIBA.PSF not found\n");
+        return;
+    };
+
+    serial.print("Reading font file...\n");
+    var font_buffer: [8192]u8 = undefined;
+
+    const bytes_read = fs.read_file(font_entry, &font_buffer) catch {
+        boot_fail();
+        serial.print("ERROR: Failed to read font file\n");
+        return;
+    };
+
+    font.init(font_buffer[0..bytes_read]) catch |err| {
+        boot_fail();
+        serial.print("ERROR: Failed to parse PSF font: ");
+        serial.print(@errorName(err));
+        serial.print("\n");
+        return;
+    };
+
+    boot_ok();
 
     if (fb_info) |fb| {
         terminal.init(fb);
@@ -202,8 +237,6 @@ pub fn run(multiboot_info_addr: u64) void {
 
         boot_print("Initializing framebuffer... ");
         boot_ok();
-    } else {
-        boot_print_color("WARNING: No framebuffer found\n", COLOR_WARN);
     }
 
     boot_print("Initializing keyboard... ");

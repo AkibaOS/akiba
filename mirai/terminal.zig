@@ -33,8 +33,14 @@ pub fn init(fb: boot.FramebufferInfo) void {
     char_width = font.get_width();
     char_height = font.get_height();
 
-    // Calculate actual usable width (pitch/4 for u32 pixels)
-    max_line_width = fb.pitch / 4;
+    // Calculate actual usable width based on BPP
+    if (fb.bpp == 32) {
+        max_line_width = fb.pitch / 4;
+    } else if (fb.bpp == 24) {
+        max_line_width = fb.pitch / 3;
+    } else {
+        max_line_width = fb.width; // Fallback
+    }
 
     // Debug output
     serial.print("Terminal init:\n");
@@ -46,7 +52,7 @@ pub fn init(fb: boot.FramebufferInfo) void {
     serial.print_hex(fb.pitch);
     serial.print("\n  BPP: ");
     serial.print_hex(fb.bpp);
-    serial.print("\n  Pitch/4: ");
+    serial.print("\n  Max line width: ");
     serial.print_hex(max_line_width);
     serial.print("\n  Char Width: ");
     serial.print_hex(char_width);

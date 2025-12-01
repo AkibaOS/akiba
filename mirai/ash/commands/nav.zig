@@ -1,9 +1,10 @@
-const terminal = @import("../../terminal.zig");
 const afs = @import("../../fs/afs.zig");
+const ahci = @import("../../drivers/ahci.zig");
 const path = @import("../path.zig");
+const terminal = @import("../../terminal.zig");
 
 pub fn execute(
-    fs: *afs.AFS,
+    fs: *afs.AFS(ahci.BlockDevice),
     current_cluster: u32,
     current_path: []u8,
     current_path_len: *usize,
