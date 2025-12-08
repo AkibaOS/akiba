@@ -53,12 +53,12 @@ pub fn resolve_path(fs: *afs.AFS(ahci.BlockDevice), current_cluster: u32, path: 
             continue;
         }
 
-        const entry = fs.find_entry(cluster, component) orelse {
+        const entry = fs.find_file(cluster, component) orelse {
             return PathError.NotFound;
         };
 
-        cluster = (@as(u32, entry.first_cluster_high) << 16) | @as(u32, entry.first_cluster_low);
-        is_dir = (entry.attributes & afs.ATTR_DIRECTORY) != 0;
+        cluster = entry.first_cluster;
+        is_dir = (entry.entry_type == afs.ENTRY_TYPE_DIR);
 
         if (i < path.len) i += 1;
     }
@@ -67,8 +67,4 @@ pub fn resolve_path(fs: *afs.AFS(ahci.BlockDevice), current_cluster: u32, path: 
         .cluster = cluster,
         .is_directory = is_dir,
     };
-}
-
-pub fn get_parent_cluster(fs: *afs.AFS(ahci.BlockDevice), cluster: u32) PathError!u32 {
-    return fs.get_parent_cluster(cluster) orelse PathError.NotFound;
 }

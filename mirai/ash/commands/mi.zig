@@ -38,34 +38,23 @@ pub fn execute(fs: *afs.AFS(ahci.BlockDevice), current_cluster: u32, args: []con
     };
 
     for (entries[0..count]) |entry| {
-        const name = entry.name;
+        terminal.print(entry.name[0..entry.name_len]);
 
-        // Print name (first 8 chars, trim trailing spaces)
-        var name_len: usize = 8;
-        while (name_len > 0 and name[name_len - 1] == ' ') : (name_len -= 1) {}
-        for (name[0..name_len]) |c| {
-            terminal.put_char(c);
+        // Add padding for alignment
+        var padding: usize = 20;
+        if (entry.name_len < 20) {
+            padding = 20 - entry.name_len;
+        } else {
+            padding = 1;
         }
 
-        // Print extension (last 3 chars, if not all spaces)
-        var has_ext = false;
-        for (name[8..11]) |c| {
-            if (c != ' ') {
-                has_ext = true;
-                break;
-            }
+        var i: usize = 0;
+        while (i < padding) : (i += 1) {
+            terminal.put_char(' ');
         }
 
-        if (has_ext) {
-            terminal.put_char('.');
-            var ext_len: usize = 3;
-            while (ext_len > 0 and name[8 + ext_len - 1] == ' ') : (ext_len -= 1) {}
-            for (name[8 .. 8 + ext_len]) |c| {
-                terminal.put_char(c);
-            }
-        }
-
-        const unit_type = if (entry.is_directory) " <STACK>" else " <UNIT>";
+        // Print type
+        const unit_type = if (entry.is_directory) "<STACK>" else "<UNIT>";
         terminal.print(unit_type);
         terminal.put_char('\n');
     }
