@@ -15,7 +15,7 @@ terminal-font: "VGA Regular 16"
 	item_padding = 0
 	item_icon_space = 0
 	item_spacing = 1
-	selected_item_pixmap_style = "selected_blob_*.png"
+	selected_item_pixmap_style = "select_*.png"
 	scrollbar = true
 	scrollbar_width = 0
 	item_color = "#ffffff"
@@ -63,4 +63,3 @@ terminal-font: "VGA Regular 16"
 	+ image {  file = "inbox_c.png"  left = 16  top = 12  width = 100%-32  height = 100%-24  }
 
 }
-
