@@ -2,6 +2,7 @@ const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
 const font = @import("../graphics/fonts/psf.zig");
+const gpt = @import("../fs/gpt.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
 const keyboard = @import("../drivers/keyboard.zig");
@@ -38,30 +39,6 @@ pub fn get_filesystem() *afs.AFS(ahci.BlockDevice) {
     return filesystem.?;
 }
 
-fn buffer_or_print(text: []const u8, color: u32, is_colored: bool) void {
-    serial.print(text);
-
-    if (terminal_ready) {
-        if (is_colored) {
-            terminal.print_color(text, color);
-        } else {
-            terminal.print(text);
-        }
-    } else {
-        if (message_count >= message_buffer.len) return;
-
-        var msg = &message_buffer[message_count];
-        const copy_len = @min(text.len, 255);
-        for (text[0..copy_len], 0..) |c, i| {
-            msg.text[i] = c;
-        }
-        msg.len = copy_len;
-        msg.msg_type = if (is_colored) .Color else .Normal;
-        msg.color = color;
-        message_count += 1;
-    }
-}
-
 fn boot_print(text: []const u8) void {
     buffer_or_print(text, COLOR_WHITE, false);
 }
@@ -70,37 +47,12 @@ fn boot_print_color(text: []const u8, color: u32) void {
     buffer_or_print(text, color, true);
 }
 
-fn replay_messages() void {
-    for (message_buffer[0..message_count]) |msg| {
-        if (msg.msg_type == .Color) {
-            terminal.print_color(msg.text[0..msg.len], msg.color);
-        } else {
-            terminal.print(msg.text[0..msg.len]);
-        }
-
-        if (msg.len >= 5) {
-            const is_ok_line = msg.text[0] == '[' and msg.text[2] == 'O' and msg.text[3] == 'K';
-            if (is_ok_line) {
-                delay(10);
-            }
-        }
-    }
-    message_count = 0;
-}
-
 fn boot_ok() void {
     boot_print_color("[ OK ]\n", COLOR_OK);
 }
 
 fn boot_fail() void {
     boot_print_color("[ FAIL ]\n", COLOR_ERROR);
-}
-
-fn delay(ms: u32) void {
-    var i: u32 = 0;
-    while (i < ms * 100000) : (i += 1) {
-        asm volatile ("pause");
-    }
 }
 
 pub fn run(multiboot_info_addr: u64) void {
@@ -133,108 +85,56 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_ok();
 
     boot_print("Detecting storage controller... ");
-
-    const all_devices = pci.get_devices();
-    var ahci_found = false;
-
-    for (all_devices) |*dev| {
-        if (dev.class_code == 0x01 and dev.subclass == 0x06) {
-            ahci.init(dev) catch |err| {
-                if (err == error.NoDriveFound) {
-                    continue;
-                }
-                boot_fail();
-                serial.print("ERROR: Failed to initialize AHCI: ");
-                serial.print(@errorName(err));
-                serial.print("\n");
-                keyboard.init();
-                while (true) {
-                    asm volatile ("hlt");
-                }
-            };
-            ahci_found = true;
-            break;
-        }
-    }
-
-    if (!ahci_found) {
+    ahci.find_and_init() catch |err| {
         boot_fail();
-        serial.print("ERROR: No AHCI controller with drive found\n");
-        keyboard.init();
-        while (true) {
-            asm volatile ("hlt");
-        }
-    }
+        boot_print("ERROR: ");
+        boot_print(@errorName(err));
+        boot_print("\n");
+        halt();
+    };
     boot_ok();
 
     boot_print("Mounting Akiba File System... ");
     var device = ahci.BlockDevice.init();
-    var fs = afs.AFS(ahci.BlockDevice).init(&device) catch |err| {
+    const afs_partition = gpt.find_afs_partition(&device) orelse {
         boot_fail();
-        serial.print("ERROR: Failed to initialize AFS: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
+        boot_print("ERROR: AFS partition not found\n");
+        halt();
+    };
 
-        keyboard.init();
-
-        while (true) {
-            asm volatile ("hlt");
-        }
+    var fs = afs.AFS(ahci.BlockDevice).init(&device, afs_partition.start_lba) catch |err| {
+        boot_fail();
+        boot_print("ERROR: ");
+        boot_print(@errorName(err));
+        boot_print("\n");
+        halt();
     };
     filesystem = &fs;
     boot_ok();
 
     boot_print("Loading font from filesystem... ");
-
-    // Try to find SYSTEM directory
-    serial.print("Looking for SYSTEM stack...\n");
-    const system_entry = fs.find_file(fs.root_cluster, "SYSTEM     ") orelse {
-        boot_fail();
-        serial.print("ERROR: SYSTEM stack not found\n");
-        return;
-    };
-
-    serial.print("Found SYSTEM, looking for FONTS...\n");
-    const system_cluster = (@as(u32, system_entry.first_cluster_high) << 16) | @as(u32, system_entry.first_cluster_low);
-    const fonts_entry = fs.find_file(system_cluster, "FONTS      ") orelse {
-        boot_fail();
-        serial.print("ERROR: FONTS stack not found\n");
-        return;
-    };
-
-    serial.print("Found FONTS, looking for AKIBA.PSF...\n");
-    const fonts_cluster = (@as(u32, fonts_entry.first_cluster_high) << 16) | @as(u32, fonts_entry.first_cluster_low);
-    const font_entry = fs.find_file(fonts_cluster, "AKIBA   PSF") orelse {
-        boot_fail();
-        serial.print("ERROR: AKIBA.PSF not found\n");
-        return;
-    };
-
-    serial.print("Reading font file...\n");
     var font_buffer: [8192]u8 = undefined;
-
-    const bytes_read = fs.read_file(font_entry, &font_buffer) catch {
+    const bytes_read = fs.read_file_by_path("/system/fonts/Akiba.psf", &font_buffer) catch |err| {
         boot_fail();
-        serial.print("ERROR: Failed to read font file\n");
-        return;
+        boot_print("ERROR: ");
+        boot_print(@errorName(err));
+        boot_print("\n");
+        halt();
     };
 
     font.init(font_buffer[0..bytes_read]) catch |err| {
         boot_fail();
-        serial.print("ERROR: Failed to parse PSF font: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
-        return;
+        boot_print("ERROR: ");
+        boot_print(@errorName(err));
+        boot_print("\n");
+        halt();
     };
-
     boot_ok();
 
     if (fb_info) |fb| {
         terminal.init(fb);
         terminal_ready = true;
-
         replay_messages();
-
         boot_print("Initializing framebuffer... ");
         boot_ok();
     }
@@ -245,12 +145,65 @@ pub fn run(multiboot_info_addr: u64) void {
 
     boot_print_color("Boot sequence completed successfully!\n", COLOR_OK);
     delay(10);
-    boot_print("Starting Akiba shell (ash)... ");
-    delay(100);
 
     if (terminal_ready) {
         terminal.clear_screen();
         boot_print_color("Akiba OS\n", COLOR_MAGENTA);
         boot_print("Drifting from abyss towards infinity!\n\n");
     }
+}
+
+fn halt() noreturn {
+    while (true) {
+        asm volatile ("hlt");
+    }
+}
+
+fn delay(ms: u32) void {
+    var i: u32 = 0;
+    while (i < ms * 100000) : (i += 1) {
+        asm volatile ("pause");
+    }
+}
+
+fn buffer_or_print(text: []const u8, color: u32, is_colored: bool) void {
+    serial.print(text);
+
+    if (terminal_ready) {
+        if (is_colored) {
+            terminal.print_color(text, color);
+        } else {
+            terminal.print(text);
+        }
+    } else {
+        if (message_count >= message_buffer.len) return;
+
+        var msg = &message_buffer[message_count];
+        const copy_len = @min(text.len, 255);
+        for (text[0..copy_len], 0..) |c, i| {
+            msg.text[i] = c;
+        }
+        msg.len = copy_len;
+        msg.msg_type = if (is_colored) .Color else .Normal;
+        msg.color = color;
+        message_count += 1;
+    }
+}
+
+fn replay_messages() void {
+    for (message_buffer[0..message_count]) |msg| {
+        if (msg.msg_type == .Color) {
+            terminal.print_color(msg.text[0..msg.len], msg.color);
+        } else {
+            terminal.print(msg.text[0..msg.len]);
+        }
+
+        if (msg.len >= 5) {
+            const is_ok_line = msg.text[0] == '[' and msg.text[2] == 'O' and msg.text[3] == 'K';
+            if (is_ok_line) {
+                delay(10);
+            }
+        }
+    }
+    message_count = 0;
 }
