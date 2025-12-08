@@ -161,6 +161,24 @@ var hba_mem: ?*volatile HBAMemory = null;
 var port_num: u8 = 0;
 var dma_buffer_phys: u64 = 0;
 
+pub fn find_and_init() !void {
+    const all_devices = pci.get_devices();
+
+    for (all_devices) |*dev| {
+        if (dev.class_code == 0x01 and dev.subclass == 0x06) {
+            init(dev) catch |err| {
+                if (err == error.NoDriveFound) {
+                    continue;
+                }
+                return err;
+            };
+            return;
+        }
+    }
+
+    return error.NoAHCIController;
+}
+
 pub fn init(ahci_device: *pci.PCIDevice) !void {
     serial.print("Initializing AHCI controller at ");
     serial.print_hex(@as(u32, ahci_device.bus));
