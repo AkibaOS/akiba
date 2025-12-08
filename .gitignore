@@ -2,6 +2,10 @@ iso/
 *.o
 *.elf
 *.log
+zig-out/
 .zig-cache/
 .zig-build/
+toolchain/grub-afs/build
+toolchain/grub-afs/grub-*
+toolchain/grub-afs/grub.*
 .DS_Store
