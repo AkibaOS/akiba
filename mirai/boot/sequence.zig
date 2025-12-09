@@ -7,12 +7,15 @@ const gdt = @import("gdt.zig");
 const gpt = @import("../fs/gpt.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
+const kata = @import("../kata/kata.zig");
 const keyboard = @import("../drivers/keyboard.zig");
 const multiboot = @import("multiboot2.zig");
 const paging = @import("../memory/paging.zig");
 const pci = @import("../drivers/pci.zig");
 const pmm = @import("../memory/pmm.zig");
+const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
+const shift = @import("../kata/shift.zig");
 const terminal = @import("../terminal.zig");
 const tss = @import("tss.zig");
 
@@ -77,6 +80,18 @@ pub fn run(multiboot_info_addr: u64) void {
 
     boot_print("Initializing heap allocator... ");
     heap.init();
+    boot_ok();
+
+    boot_print("Initializing Kata management... ");
+    kata.init();
+    boot_ok();
+
+    boot_print("Initializing Sensei scheduler... ");
+    sensei.init();
+    boot_ok();
+
+    boot_print("Initializing context shifting... ");
+    shift.init();
     boot_ok();
 
     boot_print("Setting up task state segment... ");

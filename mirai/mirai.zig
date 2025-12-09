@@ -1,4 +1,5 @@
 const ash = @import("ash/ash.zig");
+const crimson = @import("crimson/panic.zig");
 const serial = @import("drivers/serial.zig");
 const sequence = @import("boot/sequence.zig");
 
@@ -23,7 +24,6 @@ export fn mirai(multiboot_info_addr: u64) noreturn {
 }
 
 pub fn panic(message: []const u8, _: ?*@import("std").builtin.StackTrace, _: ?usize) noreturn {
-    const crimson = @import("crimson/panic.zig");
     crimson.collapse(message, null);
 }
 
