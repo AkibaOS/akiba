@@ -56,3 +56,7 @@ pub fn get_size() u64 {
 pub fn set_kernel_stack(stack_pointer: u64) void {
     tss.rsp0 = stack_pointer;
 }
+
+pub fn get_kernel_stack() u64 {
+    return tss.rsp0;
+}
