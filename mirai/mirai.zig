@@ -1,6 +1,6 @@
+const ash = @import("ash/ash.zig");
 const serial = @import("drivers/serial.zig");
 const sequence = @import("boot/sequence.zig");
-const ash = @import("ash/ash.zig");
 
 export fn mirai(multiboot_info_addr: u64) noreturn {
     serial.init();
@@ -20,6 +20,11 @@ export fn mirai(multiboot_info_addr: u64) noreturn {
     while (true) {
         asm volatile ("hlt");
     }
+}
+
+pub fn panic(message: []const u8, _: ?*@import("std").builtin.StackTrace, _: ?usize) noreturn {
+    const crimson = @import("crimson/panic.zig");
+    crimson.collapse(message, null);
 }
 
 export fn on_key_typed(char: u8) void {

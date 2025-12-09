@@ -1,6 +1,7 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
+const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gpt = @import("../fs/gpt.zig");
 const heap = @import("../memory/heap.zig");
@@ -133,6 +134,7 @@ pub fn run(multiboot_info_addr: u64) void {
 
     if (fb_info) |fb| {
         terminal.init(fb);
+        crimson.init(fb);
         terminal_ready = true;
         replay_messages();
         boot_print("Initializing framebuffer... ");

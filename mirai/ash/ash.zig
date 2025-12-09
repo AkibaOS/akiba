@@ -4,6 +4,7 @@ const terminal = @import("../terminal.zig");
 
 const mi = @import("commands/mi.zig");
 const nav = @import("commands/nav.zig");
+const test_cmd = @import("commands/test.zig");
 
 const MAX_INPUT: usize = 256;
 const MAX_ARGS: usize = 16;
@@ -61,17 +62,14 @@ fn get_current_stack_name() []const u8 {
         return "/";
     }
 
-    // Find the last '/' in the path (searching backwards)
     var i: usize = current_path_len;
     while (i > 0) {
         i -= 1;
         if (current_path[i] == '/') {
-            // Return everything after the last '/'
             return current_path[i + 1 .. current_path_len];
         }
     }
 
-    // If no '/' found (shouldn't happen for valid paths), return whole path
     return current_path[0..current_path_len];
 }
 
