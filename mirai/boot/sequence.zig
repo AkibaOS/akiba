@@ -3,16 +3,18 @@ const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
 const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
+const gdt = @import("gdt.zig");
 const gpt = @import("../fs/gpt.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
 const keyboard = @import("../drivers/keyboard.zig");
-const multiboot = @import("../boot/multiboot2.zig");
+const multiboot = @import("multiboot2.zig");
 const paging = @import("../memory/paging.zig");
 const pci = @import("../drivers/pci.zig");
 const pmm = @import("../memory/pmm.zig");
 const serial = @import("../drivers/serial.zig");
 const terminal = @import("../terminal.zig");
+const tss = @import("tss.zig");
 
 pub const COLOR_OK: u32 = 0x0000FF00;
 pub const COLOR_INFO: u32 = 0x0000FFFF;
@@ -75,6 +77,14 @@ pub fn run(multiboot_info_addr: u64) void {
 
     boot_print("Initializing heap allocator... ");
     heap.init();
+    boot_ok();
+
+    boot_print("Setting up task state segment... ");
+    tss.init();
+    boot_ok();
+
+    boot_print("Setting up global descriptor table... ");
+    gdt.init();
     boot_ok();
 
     boot_print("Setting up interrupt descriptor table... ");
