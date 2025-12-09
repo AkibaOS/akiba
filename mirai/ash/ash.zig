@@ -4,7 +4,6 @@ const terminal = @import("../terminal.zig");
 
 const mi = @import("commands/mi.zig");
 const nav = @import("commands/nav.zig");
-const test_cmd = @import("commands/test.zig");
 
 const MAX_INPUT: usize = 256;
 const MAX_ARGS: usize = 16;
