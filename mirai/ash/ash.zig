@@ -2,6 +2,7 @@ const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const terminal = @import("../terminal.zig");
 
+const cast = @import("commands/cast.zig");
 const mi = @import("commands/mi.zig");
 const nav = @import("commands/nav.zig");
 
@@ -110,6 +111,10 @@ fn execute_command() void {
     } else if (str_equal(cmd, "nav")) {
         if (filesystem) |fs| {
             current_cluster = nav.execute(fs, current_cluster, &current_path, &current_path_len, cmd_args);
+        }
+    } else if (str_equal(cmd, "cast")) {
+        if (filesystem) |fs| {
+            cast.execute(fs, cmd_args);
         }
     } else if (str_equal(cmd, "wipe")) {
         terminal.clear_screen();
