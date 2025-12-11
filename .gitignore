@@ -1,11 +1,28 @@
+# Zig build artifacts
+zig-out
+
+# Zig build cache and build directory
+.zig-cache/
+.zig-build/
+
+# Akiba build artifacts
 iso/
+
+# Object files and logs
 *.o
 *.elf
 *.log
-zig-out/
-.zig-cache/
-.zig-build/
+
+# Grub AFS build artifacts
 toolchain/grub-afs/build
 toolchain/grub-afs/grub-*
 toolchain/grub-afs/grub.*
+
+# OS System files
 .DS_Store
+.Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+.claude/
