@@ -9,7 +9,6 @@ const serial = @import("../drivers/serial.zig");
 const Kata = kata_mod.Kata;
 const Context = kata_mod.Context;
 
-// Current executing Kata (for saving context on interrupts)
 var current_context: ?*Context = null;
 
 pub fn init() void {
@@ -17,22 +16,17 @@ pub fn init() void {
     serial.print("Shift mechanism initialized\n");
 }
 
-// Shift to a new Kata
 pub fn shift_to_kata(target_kata: *Kata) void {
     // Update TSS kernel stack for this Kata
     tss.set_kernel_stack(target_kata.stack_top);
 
-    // Switch to Kata's page table
-    set_page_table(target_kata.page_table);
-
     // Set current context pointer (for saving on interrupts)
     current_context = &target_kata.context;
 
-    // Perform the actual context shift
-    shift_context(&target_kata.context);
+    // Perform the actual context shift (CR3 switch happens in assembly)
+    shift_context(&target_kata.context, target_kata.page_table);
 }
 
-// Save current context (called from interrupt handlers)
 pub fn save_current_context(int_context: *const InterruptContext) void {
     if (current_context) |ctx| {
         ctx.rax = int_context.rax;
@@ -58,7 +52,6 @@ pub fn save_current_context(int_context: *const InterruptContext) void {
     }
 }
 
-// Interrupt context (matches interrupt stack frame)
 pub const InterruptContext = packed struct {
     r15: u64,
     r14: u64,
@@ -84,65 +77,48 @@ pub const InterruptContext = packed struct {
     ss: u64,
 };
 
-// Low-level context shift (assembly)
-fn shift_context(ctx: *const Context) void {
+// Low-level context shift
+fn shift_context(ctx: *const Context, page_table: u64) void {
     asm volatile (
-        \\# Restore general purpose registers
-        \\mov %[rax], %%rax
-        \\mov %[rbx], %%rbx
-        \\mov %[rcx], %%rcx
-        \\mov %[rdx], %%rdx
-        \\mov %[rsi], %%rsi
-        \\mov %[rdi], %%rdi
-        \\mov %[r8], %%r8
-        \\mov %[r9], %%r9
-        \\mov %[r10], %%r10
-        \\mov %[r11], %%r11
-        \\mov %[r12], %%r12
-        \\mov %[r13], %%r13
-        \\mov %[r14], %%r14
-        \\mov %[r15], %%r15
+        \\# RDI = ctx pointer, RSI = page_table
+        \\# Load iretq frame values into registers (while still in kernel page table)
+        \\mov 152(%%rdi), %%r12    # ctx.ss
+        \\mov 56(%%rdi), %%r13     # ctx.rsp
+        \\mov 136(%%rdi), %%r14    # ctx.rflags
+        \\mov 144(%%rdi), %%r15    # ctx.cs
+        \\mov 128(%%rdi), %%rax    # ctx.rip
         \\
-        \\# Restore RBP last (after using it to access context)
-        \\mov %[rbp], %%rbp
+        \\# Build iretq frame
+        \\pushq %%r12              # SS
+        \\pushq %%r13              # RSP
+        \\pushq %%r14              # RFLAGS
+        \\pushq %%r15              # CS
+        \\pushq %%rax              # RIP
         \\
-        \\# Build iretq frame on stack
-        \\pushq %[ss]
-        \\pushq %[rsp]
-        \\pushq %[rflags]
-        \\pushq %[cs]
-        \\pushq %[rip]
+        \\# Switch CR3 (AFTER reading ctx, BEFORE iretq)
+        \\mov %%rsi, %%cr3
         \\
-        \\# Jump to Kata
+        \\# Zero all registers for clean userspace entry
+        \\xor %%rax, %%rax
+        \\xor %%rbx, %%rbx
+        \\xor %%rcx, %%rcx
+        \\xor %%rdx, %%rdx
+        \\xor %%rsi, %%rsi
+        \\xor %%rdi, %%rdi
+        \\xor %%rbp, %%rbp
+        \\xor %%r8, %%r8
+        \\xor %%r9, %%r9
+        \\xor %%r10, %%r10
+        \\xor %%r11, %%r11
+        \\xor %%r12, %%r12
+        \\xor %%r13, %%r13
+        \\xor %%r14, %%r14
+        \\xor %%r15, %%r15
+        \\
         \\iretq
         :
-        : [rax] "m" (ctx.rax),
-          [rbx] "m" (ctx.rbx),
-          [rcx] "m" (ctx.rcx),
-          [rdx] "m" (ctx.rdx),
-          [rsi] "m" (ctx.rsi),
-          [rdi] "m" (ctx.rdi),
-          [rbp] "m" (ctx.rbp),
-          [rsp] "m" (ctx.rsp),
-          [r8] "m" (ctx.r8),
-          [r9] "m" (ctx.r9),
-          [r10] "m" (ctx.r10),
-          [r11] "m" (ctx.r11),
-          [r12] "m" (ctx.r12),
-          [r13] "m" (ctx.r13),
-          [r14] "m" (ctx.r14),
-          [r15] "m" (ctx.r15),
-          [rip] "m" (ctx.rip),
-          [rflags] "m" (ctx.rflags),
-          [cs] "m" (ctx.cs),
-          [ss] "m" (ctx.ss),
+        : [ctx] "{rdi}" (ctx),
+          [pt] "{rsi}" (page_table),
         : .{ .memory = true });
     unreachable;
-}
-
-fn set_page_table(page_table_phys: u64) void {
-    asm volatile ("mov %[pt], %%cr3"
-        :
-        : [pt] "r" (page_table_phys),
-        : .{ .memory = true });
 }

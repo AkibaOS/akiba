@@ -113,11 +113,14 @@ extern fn keyboard_handler() void;
 export fn timer_handler() void {
     tick_count += 1;
 
+    // Send EOI to PIC FIRST, before on_tick()
+    // This is important because on_tick() might call schedule() which
+    // calls shift_to_kata() which does iretq and never returns here.
+    // Without early EOI, no more timer interrupts would fire.
+    outb(0x20, 0x20);
+
     // Let Sensei schedule Kata on each tick
     sensei.on_tick();
-
-    // Send EOI to PIC
-    outb(0x20, 0x20);
 }
 
 pub fn get_ticks() u64 {

@@ -1,5 +1,5 @@
 //! AI Table - Akiba Invocation Table
-//! Implements individual invocations that Persona programs can call
+//! Implements individual invocations that Akiba programs can call
 
 const handler = @import("handler.zig");
 const kata_mod = @import("../kata/kata.zig");
@@ -26,11 +26,13 @@ pub fn invoke_exit(context: *InvocationContext) void {
         // Mark as dissolved
         kata_mod.dissolve_kata(current_kata.id);
 
+        // Clear current kata so scheduler knows we're done
+        sensei.clear_current_kata();
+
         // Trigger scheduler to pick next Kata
         sensei.schedule();
 
         // If schedule() returns (no other Kata to run), halt
-        serial.print("No more Kata to run, halting\n");
         while (true) {
             asm volatile ("hlt");
         }

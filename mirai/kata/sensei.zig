@@ -92,13 +92,11 @@ pub fn pick_next_kata() ?*Kata {
 }
 
 // Called on timer tick
-// Called on timer tick
 pub fn on_tick() void {
     tick_count += 1;
 
     if (current_kata) |kata| {
-        // Update vruntime based on weight
-        // vruntime += (real_time * 1024) / weight
+        // Update vruntime for running kata
         const delta = (TICK_NANOSECONDS * 1024) / kata.weight;
         kata.vruntime += delta;
 
@@ -111,6 +109,11 @@ pub fn on_tick() void {
 
         // Check if we should shift (every 10ms)
         if (tick_count % 10 == 0) {
+            schedule();
+        }
+    } else {
+        // No kata running - check if there's one waiting
+        if (run_queue_head != null) {
             schedule();
         }
     }
@@ -143,12 +146,6 @@ pub fn schedule() void {
         n.state = .Running;
         current_kata = n;
 
-        serial.print("Sensei: Shifting to Kata ");
-        serial.print_hex(n.id);
-        serial.print(" (vruntime: ");
-        serial.print_hex(n.vruntime);
-        serial.print(")\n");
-
         // Perform context shift
         shift.shift_to_kata(n);
     }
@@ -156,4 +153,8 @@ pub fn schedule() void {
 
 pub fn get_current_kata() ?*Kata {
     return current_kata;
+}
+
+pub fn clear_current_kata() void {
+    current_kata = null;
 }

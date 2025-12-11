@@ -1,4 +1,4 @@
-//! Kata Control Block - Kernel's representation of a running persona program
+//! Kata Control Block - Kernel's representation of a running Akiba program
 //! Kata (形) = Form/pattern - a program's execution form
 
 const paging = @import("../memory/paging.zig");
@@ -44,32 +44,61 @@ pub const Kata = struct {
 };
 
 // Saved CPU context for context shifting
-pub const Context = struct {
+// Must be extern struct to guarantee memory layout matches assembly offsets:
+// rax=0, rbx=8, rcx=16, rdx=24, rsi=32, rdi=40, rbp=48, rsp=56
+// r8=64, r9=72, r10=80, r11=88, r12=96, r13=104, r14=112, r15=120
+// rip=128, rflags=136, cs=144, ss=152
+pub const Context = extern struct {
     // General purpose registers
-    rax: u64 = 0,
-    rbx: u64 = 0,
-    rcx: u64 = 0,
-    rdx: u64 = 0,
-    rsi: u64 = 0,
-    rdi: u64 = 0,
-    rbp: u64 = 0,
-    rsp: u64 = 0,
-    r8: u64 = 0,
-    r9: u64 = 0,
-    r10: u64 = 0,
-    r11: u64 = 0,
-    r12: u64 = 0,
-    r13: u64 = 0,
-    r14: u64 = 0,
-    r15: u64 = 0,
+    rax: u64,
+    rbx: u64,
+    rcx: u64,
+    rdx: u64,
+    rsi: u64,
+    rdi: u64,
+    rbp: u64,
+    rsp: u64,
+    r8: u64,
+    r9: u64,
+    r10: u64,
+    r11: u64,
+    r12: u64,
+    r13: u64,
+    r14: u64,
+    r15: u64,
 
     // Instruction pointer and flags
-    rip: u64 = 0,
-    rflags: u64 = 0x202, // Interrupts enabled by default
+    rip: u64,
+    rflags: u64,
 
     // Segment selectors
-    cs: u64 = 0,
-    ss: u64 = 0,
+    cs: u64,
+    ss: u64,
+
+    pub fn init() Context {
+        return Context{
+            .rax = 0,
+            .rbx = 0,
+            .rcx = 0,
+            .rdx = 0,
+            .rsi = 0,
+            .rdi = 0,
+            .rbp = 0,
+            .rsp = 0,
+            .r8 = 0,
+            .r9 = 0,
+            .r10 = 0,
+            .r11 = 0,
+            .r12 = 0,
+            .r13 = 0,
+            .r14 = 0,
+            .r15 = 0,
+            .rip = 0,
+            .rflags = 0x202, // Interrupts enabled
+            .cs = 0,
+            .ss = 0,
+        };
+    }
 };
 
 // Kata table (pool of all Kata slots)
@@ -86,7 +115,7 @@ pub fn init() void {
         kata.* = Kata{
             .id = 0,
             .state = .Dissolved,
-            .context = Context{},
+            .context = Context.init(),
             .page_table = 0,
             .stack_top = 0,
             .user_stack_top = 0,
@@ -119,7 +148,7 @@ pub fn create_kata() !*Kata {
             kata.* = Kata{
                 .id = kata_id,
                 .state = .Ready,
-                .context = Context{},
+                .context = Context.init(),
                 .page_table = 0,
                 .stack_top = 0,
                 .user_stack_top = 0,
