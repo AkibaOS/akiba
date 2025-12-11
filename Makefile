@@ -35,9 +35,10 @@ DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 BUILD_DIR = iso/build
 SYSTEM_DIRS = resources/fonts
+BINARIES_DIR = binaries
 
 CONTENT_SIZE_KB := $(shell du -sk $(FS_ROOT) 2>/dev/null | awk '{sum += $$1} END {print sum + 10000}')
-DISK_SIZE_MB := $(shell echo "$$(($(CONTENT_SIZE_KB) / 1024 + 50))")
+DISK_SIZE_MB := $(shell echo "$$(($(CONTENT_SIZE_KB) / 1024 + 50))")1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Docker Build Mode
@@ -137,6 +138,7 @@ prepare-filesystem: build-grub
 	@echo "→ Preparing filesystem structure..."
 	@mkdir -p $(FS_ROOT)/boot/grub
 	@mkdir -p $(FS_ROOT)/system/akiba
+	@mkdir -p $(FS_ROOT)/binaries
 	@mkdir -p $(FS_ROOT)/EFI/BOOT
 	@mkdir -p $(BUILD_DIR)
 	
@@ -144,6 +146,23 @@ prepare-filesystem: build-grub
 	@zig build --cache-dir $(BUILD_DIR)/cache --prefix $(BUILD_DIR) --prefix-exe-dir kernel
 	@cp $(BUILD_DIR)/kernel/mirai.akibakernel $(FS_ROOT)/system/akiba/
 	@rm -rf $(BUILD_DIR)/kernel
+	
+	@echo "→ Building akibabuilder tool..."
+	@cd toolchain/akibabuilder && zig build --prefix ../../$(BUILD_DIR)
+	
+	@echo "→ Building .akiba binaries..."
+	@for dir in $(BINARIES_DIR)/*/; do \
+		if [ -f $$dir/build.zig ]; then \
+			binary_name=$$(basename $$dir); \
+			echo "  Building $$binary_name..."; \
+			cd $$dir && zig build --cache-dir ../../$(BUILD_DIR)/cache/$$binary_name --prefix ../../$(BUILD_DIR)/binaries/$$binary_name; \
+			cd ../..; \
+			if [ -f $(BUILD_DIR)/binaries/$$binary_name/bin/$$binary_name ]; then \
+				echo "  Wrapping $$binary_name in .akiba format..."; \
+				$(BUILD_DIR)/bin/akibabuilder $(BUILD_DIR)/binaries/$$binary_name/bin/$$binary_name $(FS_ROOT)/binaries/$$binary_name.akiba cli; \
+			fi; \
+		fi; \
+	done
 	
 	@echo "→ Copying system resources..."
 	@for dir in $(SYSTEM_DIRS); do \
