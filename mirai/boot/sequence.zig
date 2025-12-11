@@ -5,6 +5,7 @@ const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gdt = @import("gdt.zig");
 const gpt = @import("../fs/gpt.zig");
+const hikari = @import("../hikari/loader.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
 const invocations = @import("../invocations/handler.zig");
@@ -105,6 +106,10 @@ pub fn run(multiboot_info_addr: u64) void {
 
     boot_print("Initializing invocation handler... ");
     invocations.init();
+    boot_ok();
+
+    boot_print("Initializing Hikari loader... ");
+    hikari.init();
     boot_ok();
 
     boot_print("Setting up interrupt descriptor table... ");
