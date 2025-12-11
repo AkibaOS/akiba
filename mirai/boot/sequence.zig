@@ -180,6 +180,9 @@ pub fn run(multiboot_info_addr: u64) void {
     keyboard.init();
     boot_ok();
 
+    boot_print("Initializing Crimson error handler...");
+    boot_ok();
+
     boot_print_color("Boot sequence completed successfully!\n", COLOR_OK);
     delay(10);
 
