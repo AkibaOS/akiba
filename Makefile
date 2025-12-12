@@ -34,7 +34,7 @@ GRUB_THEME_DIR = boot/grub/themes
 DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 BUILD_DIR = iso/build
-SYSTEM_DIRS = resources/fonts
+SYSTEM_DIRS = resources/fonts resources/test
 BINARIES_DIR = binaries
 
 CONTENT_SIZE_KB := $(shell du -sk $(FS_ROOT) 2>/dev/null | awk '{sum += $$1} END {print sum + 10000}')
