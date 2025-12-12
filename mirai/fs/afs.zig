@@ -303,5 +303,289 @@ pub fn AFS(comptime BlockDeviceType: type) type {
 
             return null;
         }
+
+        // Create a new empty file
+        pub fn create_file(self: *Self, path: []const u8) !void {
+            const parent_path = get_parent_path(path);
+            const filename = get_filename(path);
+
+            if (filename.len == 0 or filename.len > 255) {
+                return error.InvalidFilename;
+            }
+
+            // Navigate to parent directory
+            var parent_cluster = self.root_cluster;
+            if (parent_path.len > 1) {
+                parent_cluster = try self.navigate_to_directory(parent_path);
+            }
+
+            // Check if file already exists
+            if (self.find_file(parent_cluster, filename)) |_| {
+                return error.FileExists;
+            }
+
+            // Allocate cluster for new file
+            const file_cluster = try self.allocate_cluster();
+
+            // Create directory entry
+            var new_entry = AFSDirEntry{
+                .entry_type = ENTRY_TYPE_FILE,
+                .name_len = @truncate(filename.len),
+                .name = undefined,
+                .attributes = 0,
+                .reserved = 0,
+                .first_cluster = file_cluster,
+                .file_size = 0,
+                .created_time = 0,
+                .modified_time = 0,
+            };
+
+            @memset(&new_entry.name, 0);
+            @memcpy(new_entry.name[0..filename.len], filename);
+
+            // Add entry to parent directory
+            try self.add_directory_entry(parent_cluster, new_entry);
+        }
+
+        // Write data to a file
+        pub fn write_file(self: *Self, path: []const u8, data: []const u8) !void {
+            const parent_path = get_parent_path(path);
+            const filename = get_filename(path);
+
+            // Navigate to parent directory
+            var parent_cluster = self.root_cluster;
+            if (parent_path.len > 1) {
+                parent_cluster = try self.navigate_to_directory(parent_path);
+            }
+
+            // Find existing file
+            const entry = self.find_file(parent_cluster, filename) orelse {
+                // File doesn't exist, create it first
+                try self.create_file(path);
+                // Now find it
+                const new_entry = self.find_file(parent_cluster, filename) orelse return error.CreateFailed;
+                try self.write_file_data(new_entry.first_cluster, data);
+                try self.update_file_size(parent_cluster, filename, data.len);
+                return;
+            };
+
+            // Overwrite existing file
+            try self.write_file_data(entry.first_cluster, data);
+            try self.update_file_size(parent_cluster, filename, data.len);
+        }
+
+        // Helper: Navigate to directory by path
+        fn navigate_to_directory(self: *Self, path: []const u8) !u32 {
+            var cluster = self.root_cluster;
+            var start: usize = if (path.len > 0 and path[0] == '/') 1 else 0;
+            var i: usize = start;
+
+            while (i <= path.len) : (i += 1) {
+                const is_end = (i == path.len);
+                const is_slash = !is_end and path[i] == '/';
+
+                if (is_slash or is_end) {
+                    if (i > start) {
+                        const component = path[start..i];
+                        const entry = self.find_file(cluster, component) orelse return error.NotFound;
+
+                        if (entry.entry_type != ENTRY_TYPE_DIR) {
+                            return error.NotADirectory;
+                        }
+
+                        cluster = entry.first_cluster;
+                    }
+                    start = i + 1;
+                }
+            }
+
+            return cluster;
+        }
+
+        // Helper: Write data to file clusters
+        fn write_file_data(self: *Self, start_cluster: u32, data: []const u8) !void {
+            var remaining = data.len;
+            var offset: usize = 0;
+            var current_cluster = start_cluster;
+
+            while (remaining > 0) {
+                const chunk_size = @min(remaining, SECTOR_SIZE);
+                const cluster_lba = self.partition_offset + self.data_area_sector + (current_cluster - 2);
+
+                var buffer: [SECTOR_SIZE]u8 align(16) = undefined;
+                @memset(&buffer, 0);
+                @memcpy(buffer[0..chunk_size], data[offset .. offset + chunk_size]);
+
+                if (!self.device.write_sector(cluster_lba, &buffer)) {
+                    return error.WriteFailed;
+                }
+
+                remaining -= chunk_size;
+                offset += chunk_size;
+
+                if (remaining > 0) {
+                    // Need another cluster
+                    const next = try self.allocate_cluster();
+                    try self.write_alloc_entry(current_cluster, next);
+                    current_cluster = next;
+                } else {
+                    // Mark end of file
+                    try self.write_alloc_entry(current_cluster, 0xFFFFFFFF);
+                }
+            }
+        }
+
+        // Helper: Allocate a new cluster
+        fn allocate_cluster(self: *Self) !u32 {
+            var cluster: u32 = 2; // Start from cluster 2
+
+            while (cluster < self.total_clusters) : (cluster += 1) {
+                const table_entry_offset = cluster * 4;
+                const table_sector = self.partition_offset + self.alloc_table_sector + (table_entry_offset / self.bytes_per_sector);
+                const entry_offset = table_entry_offset % self.bytes_per_sector;
+
+                var sector_buf: [SECTOR_SIZE]u8 align(16) = undefined;
+                if (!self.device.read_sector(table_sector, &sector_buf)) {
+                    return error.ReadFailed;
+                }
+
+                const entry_value = @as(u32, sector_buf[entry_offset]) |
+                    (@as(u32, sector_buf[entry_offset + 1]) << 8) |
+                    (@as(u32, sector_buf[entry_offset + 2]) << 16) |
+                    (@as(u32, sector_buf[entry_offset + 3]) << 24);
+
+                if (entry_value == 0) {
+                    // Free cluster found - mark as end of chain
+                    try self.write_alloc_entry(cluster, 0xFFFFFFFF);
+                    return cluster;
+                }
+            }
+
+            return error.DiskFull;
+        }
+
+        // Helper: Write allocation table entry
+        fn write_alloc_entry(self: *Self, cluster: u32, value: u32) !void {
+            const table_entry_offset = cluster * 4;
+            const table_sector = self.partition_offset + self.alloc_table_sector + (table_entry_offset / self.bytes_per_sector);
+            const entry_offset = table_entry_offset % self.bytes_per_sector;
+
+            var sector_buf: [SECTOR_SIZE]u8 align(16) = undefined;
+            if (!self.device.read_sector(table_sector, &sector_buf)) {
+                return error.ReadFailed;
+            }
+
+            sector_buf[entry_offset] = @truncate(value & 0xFF);
+            sector_buf[entry_offset + 1] = @truncate((value >> 8) & 0xFF);
+            sector_buf[entry_offset + 2] = @truncate((value >> 16) & 0xFF);
+            sector_buf[entry_offset + 3] = @truncate((value >> 24) & 0xFF);
+
+            if (!self.device.write_sector(table_sector, &sector_buf)) {
+                return error.WriteFailed;
+            }
+        }
+
+        // Helper: Add directory entry
+        fn add_directory_entry(self: *Self, dir_cluster: u32, entry: AFSDirEntry) !void {
+            var cluster = dir_cluster;
+
+            // Find free slot in directory
+            while (cluster >= 2 and cluster < 0xFFFFFFFF) {
+                const cluster_lba = self.partition_offset + self.data_area_sector + (cluster - 2);
+
+                var sector_buf: [SECTOR_SIZE]u8 align(16) = undefined;
+                if (!self.device.read_sector(cluster_lba, &sector_buf)) {
+                    return error.ReadFailed;
+                }
+
+                const existing = @as(*AFSDirEntry, @ptrCast(@alignCast(&sector_buf[0])));
+
+                if (existing.entry_type == ENTRY_TYPE_END) {
+                    // Found end marker - write new entry here
+                    @memcpy(sector_buf[0..@sizeOf(AFSDirEntry)], std.mem.asBytes(&entry));
+
+                    if (!self.device.write_sector(cluster_lba, &sector_buf)) {
+                        return error.WriteFailed;
+                    }
+                    return;
+                }
+
+                cluster = self.get_next_cluster(cluster) catch {
+                    // Need to allocate new cluster for directory
+                    const new_cluster = try self.allocate_cluster();
+                    try self.write_alloc_entry(dir_cluster, new_cluster);
+
+                    // Write entry to new cluster
+                    @memset(&sector_buf, 0);
+                    @memcpy(sector_buf[0..@sizeOf(AFSDirEntry)], std.mem.asBytes(&entry));
+
+                    const new_lba = self.partition_offset + self.data_area_sector + (new_cluster - 2);
+                    if (!self.device.write_sector(new_lba, &sector_buf)) {
+                        return error.WriteFailed;
+                    }
+                    return;
+                };
+            }
+
+            return error.DirectoryFull;
+        }
+
+        // Helper: Update file size in directory entry
+        fn update_file_size(self: *Self, dir_cluster: u32, filename: []const u8, new_size: usize) !void {
+            var cluster = dir_cluster;
+
+            while (cluster >= 2 and cluster < 0xFFFFFFFF) {
+                const cluster_lba = self.partition_offset + self.data_area_sector + (cluster - 2);
+
+                var sector_buf: [SECTOR_SIZE]u8 align(16) = undefined;
+                if (!self.device.read_sector(cluster_lba, &sector_buf)) {
+                    return error.ReadFailed;
+                }
+
+                const entry = @as(*AFSDirEntry, @ptrCast(@alignCast(&sector_buf[0])));
+
+                if (entry.entry_type == ENTRY_TYPE_END) {
+                    return error.NotFound;
+                }
+
+                const entry_name = entry.name[0..entry.name_len];
+                if (std.mem.eql(u8, entry_name, filename)) {
+                    // Found it - update size
+                    entry.file_size = new_size;
+
+                    if (!self.device.write_sector(cluster_lba, &sector_buf)) {
+                        return error.WriteFailed;
+                    }
+                    return;
+                }
+
+                cluster = self.get_next_cluster(cluster) catch return error.NotFound;
+            }
+
+            return error.NotFound;
+        }
+
+        // Helper: Get parent path
+        fn get_parent_path(path: []const u8) []const u8 {
+            var i: usize = path.len;
+            while (i > 0) : (i -= 1) {
+                if (path[i - 1] == '/') {
+                    if (i == 1) return "/";
+                    return path[0 .. i - 1];
+                }
+            }
+            return "/";
+        }
+
+        // Helper: Get filename from path
+        fn get_filename(path: []const u8) []const u8 {
+            var i: usize = path.len;
+            while (i > 0) : (i -= 1) {
+                if (path[i - 1] == '/') {
+                    return path[i..];
+                }
+            }
+            return path;
+        }
     };
 }

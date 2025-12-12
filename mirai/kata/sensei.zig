@@ -124,8 +124,11 @@ pub fn schedule() void {
     const next = pick_next_kata();
 
     if (next == null and current_kata == null) {
-        // Nothing to run
-        return;
+        // Nothing to run - halt
+        serial.print("Sensei: No katas to run\n");
+        while (true) {
+            asm volatile ("hlt");
+        }
     }
 
     // If same Kata, keep running
@@ -139,6 +142,7 @@ pub fn schedule() void {
             curr.state = .Ready;
             enqueue_kata(curr);
         }
+        // If current is Dissolved, just drop it
     }
 
     if (next) |n| {
@@ -148,6 +152,15 @@ pub fn schedule() void {
 
         // Perform context shift
         shift.shift_to_kata(n);
+        // Never returns
+        unreachable;
+    }
+
+    // No next kata but had current (which is now dissolved)
+    serial.print("Sensei: No more katas after dissolution\n");
+    clear_current_kata();
+    while (true) {
+        asm volatile ("hlt");
     }
 }
 

@@ -1,6 +1,7 @@
 //! Kata Control Block - Kernel's representation of a running Akiba program
 //! Kata (形) = Form/pattern - a program's execution form
 
+const fd_mod = @import("fd.zig");
 const paging = @import("../memory/paging.zig");
 const serial = @import("../drivers/serial.zig");
 
@@ -41,6 +42,13 @@ pub const Kata = struct {
 
     // Linked list for sorted vruntime queue (simple CFS-lite)
     next: ?*Kata,
+
+    // File descriptors
+    // fd 0 = /system/devices/source (input)
+    // fd 1 = /system/devices/stream (output)
+    // fd 2 = /system/devices/trace (errors)
+    fd_table: [16]fd_mod.FileDescriptor = [_]fd_mod.FileDescriptor{.{}} ** 16,
+    next_fd: u32 = 3,
 };
 
 // Saved CPU context for context shifting
@@ -164,6 +172,25 @@ pub fn create_kata() !*Kata {
 
             // Initialize location to root
             kata.current_location[0] = '/';
+
+            // Initialize standard file descriptors
+            kata.fd_table[0] = fd_mod.FileDescriptor{
+                .fd_type = .Device,
+                .device_type = .Source,
+                .flags = fd_mod.VIEW_ONLY,
+            };
+
+            kata.fd_table[1] = fd_mod.FileDescriptor{
+                .fd_type = .Device,
+                .device_type = .Stream,
+                .flags = fd_mod.MARK_ONLY,
+            };
+
+            kata.fd_table[2] = fd_mod.FileDescriptor{
+                .fd_type = .Device,
+                .device_type = .Trace,
+                .flags = fd_mod.MARK_ONLY,
+            };
 
             return kata;
         }

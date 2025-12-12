@@ -1,15 +1,12 @@
-//! Invocation Handler - Entry point for Persona programs calling kernel
-//! Handles the AI Table (Akiba Invocation Table)
+//! Invocation Handler - Entry point for Layer 3 programs calling kernel
+//! Handles the Akiba Invocation Table
 
 const serial = @import("../drivers/serial.zig");
 const table = @import("table.zig");
-const gdt = @import("../boot/gdt.zig");
-
-pub const AI_EXIT = 0x01;
 
 pub fn init() void {
     serial.print("\n=== Invocation Handler ===\n");
-    serial.print("AI Table initialized\n");
+    serial.print("Akiba Invocation Table initialized\n");
 
     const syscall = @import("syscall.zig");
     syscall.init();
@@ -19,7 +16,11 @@ pub fn handle_invocation(context: *InvocationContext) void {
     const invocation_num = context.rax;
 
     switch (invocation_num) {
-        AI_EXIT => table.invoke_exit(context),
+        0x01 => table.invoke_exit(context),
+        0x02 => table.invoke_attach(context),
+        0x03 => table.invoke_seal(context),
+        0x04 => table.invoke_view(context),
+        0x05 => table.invoke_mark(context),
         else => {
             serial.print("Unknown invocation: ");
             serial.print_hex(invocation_num);

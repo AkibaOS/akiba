@@ -18,6 +18,7 @@ const ATA_DEV_BUSY: u8 = 0x80;
 const ATA_DEV_DRQ: u8 = 0x08;
 
 const ATA_CMD_READ_DMA_EX: u8 = 0x25;
+const ATA_CMD_WRITE_DMA_EX: u8 = 0x35;
 
 const FIS_TYPE_REG_H2D: u8 = 0x27;
 
@@ -396,6 +397,69 @@ fn ahci_read_sector(lba: u64, buffer: *[SECTOR_SIZE]u8) bool {
     return true;
 }
 
+fn ahci_write_sector(lba: u64, buffer: *const [SECTOR_SIZE]u8) bool {
+    if (hba_mem == null) return false;
+
+    const hba = hba_mem.?;
+    const port = hba.get_port(port_num);
+
+    port.is = 0xFFFFFFFF;
+
+    const slot = find_cmdslot(port) orelse return false;
+
+    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(port.clb));
+    cmdheader[slot].cfl = @sizeOf(FISRegH2D) / 4;
+    cmdheader[slot].prdtl = 1;
+    cmdheader[slot].prdbc = 0;
+
+    const cmdtbl = @as(*volatile HBACmdTable, @ptrFromInt(cmdheader[slot].ctba));
+    @memset(@as([*]u8, @ptrFromInt(cmdheader[slot].ctba))[0..256], 0);
+
+    // Copy data to DMA buffer
+    const dma_buffer = @as([*]u8, @ptrFromInt(dma_buffer_phys));
+    for (buffer, 0..) |byte, i| {
+        dma_buffer[i] = byte;
+    }
+
+    cmdtbl.prdt_entry[0].dba = dma_buffer_phys;
+    cmdtbl.prdt_entry[0].dbc = (SECTOR_SIZE - 1) | (1 << 31);
+    cmdtbl.prdt_entry[0]._rsv0 = 0;
+
+    const cmdfis = @as(*volatile FISRegH2D, @ptrCast(&cmdtbl.cfis));
+    cmdfis.fis_type = FIS_TYPE_REG_H2D;
+    cmdfis.pmport_c = 0x80;
+    cmdfis.command = ATA_CMD_WRITE_DMA_EX;
+
+    cmdfis.lba0 = @truncate(lba & 0xFF);
+    cmdfis.lba1 = @truncate((lba >> 8) & 0xFF);
+    cmdfis.lba2 = @truncate((lba >> 16) & 0xFF);
+    cmdfis.device = 1 << 6;
+    cmdfis.lba3 = @truncate((lba >> 24) & 0xFF);
+    cmdfis.lba4 = @truncate((lba >> 32) & 0xFF);
+    cmdfis.lba5 = @truncate((lba >> 40) & 0xFF);
+
+    cmdfis.countl = 1;
+    cmdfis.counth = 0;
+
+    var spin: u32 = 0;
+    while ((port.tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) != 0 and spin < 1000000) : (spin += 1) {}
+
+    if (spin == 1000000) return false;
+
+    const ci_bit = @as(u32, 1) << @as(u5, @truncate(slot));
+    port.ci = ci_bit;
+
+    spin = 0;
+    while (spin < 10000000) : (spin += 1) {
+        if ((port.ci & ci_bit) == 0) break;
+        if ((port.is & HBA_PxIS_TFES) != 0) return false;
+    }
+
+    if ((port.ci & ci_bit) != 0) return false;
+
+    return true;
+}
+
 pub const BlockDevice = struct {
     pub fn init() BlockDevice {
         return BlockDevice{};
@@ -404,5 +468,10 @@ pub const BlockDevice = struct {
     pub fn read_sector(self: *BlockDevice, lba: u64, buffer: *[SECTOR_SIZE]u8) bool {
         _ = self;
         return ahci_read_sector(lba, buffer);
+    }
+
+    pub fn write_sector(self: *BlockDevice, lba: u64, buffer: *const [SECTOR_SIZE]u8) bool {
+        _ = self;
+        return ahci_write_sector(lba, buffer);
     }
 };
