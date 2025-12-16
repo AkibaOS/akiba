@@ -1,0 +1,9 @@
+.{
+    .name = "rd",
+    .version = "1.0.0",
+    .type = .executable,
+    .entry = "rd.zig",
+    .dependencies = .{
+        "akiba",
+    },
+}

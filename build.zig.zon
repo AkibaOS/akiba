@@ -1,0 +1,11 @@
+.{
+    .name = .akiba,
+    .version = "1.0.0",
+    .fingerprint = 0xa42f71a6534666a0,
+    .paths = .{
+        "libraries",
+        "binaries",
+        "build.zig",
+        "build.zig.zon",
+    },
+}

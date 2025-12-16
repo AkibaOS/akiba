@@ -138,28 +138,49 @@ prepare-filesystem: build-grub
 	@echo "→ Preparing filesystem structure..."
 	@mkdir -p $(FS_ROOT)/boot/grub
 	@mkdir -p $(FS_ROOT)/system/akiba
+	@mkdir -p $(FS_ROOT)/system/libraries
 	@mkdir -p $(FS_ROOT)/binaries
 	@mkdir -p $(FS_ROOT)/EFI/BOOT
 	@mkdir -p $(BUILD_DIR)
 	
-	@echo "→ Building Mirai kernel..."
-	@zig build --cache-dir $(BUILD_DIR)/cache --prefix $(BUILD_DIR) --prefix-exe-dir kernel
-	@cp $(BUILD_DIR)/kernel/mirai.akibakernel $(FS_ROOT)/system/akiba/
-	@rm -rf $(BUILD_DIR)/kernel
+	@echo "→ Building kernel..."
+	@zig build --cache-dir $(BUILD_DIR)/cache --prefix $(BUILD_DIR)
+	@mv $(BUILD_DIR)/bin/mirai.akibakernel $(FS_ROOT)/system/akiba/
+	
+	@echo "→ Building libraries..."
+	@mkdir -p $(BUILD_DIR)/lib $(FS_ROOT)/system/libraries
+	@for libdir in libraries/*/; do \
+		if [ -d "$$libdir" ]; then \
+			libname=$$(basename $$libdir); \
+			if [ -f "$$libdir$$libname.zig" ]; then \
+				echo "  Building $$libname.arx..."; \
+				zig build-lib "$$libdir$$libname.zig" \
+					-target x86_64-freestanding-none \
+					-O ReleaseSmall \
+					-femit-bin=$(BUILD_DIR)/lib/$$libname.a && \
+				cp $(BUILD_DIR)/lib/$$libname.a $(FS_ROOT)/system/libraries/$$libname.arx && \
+				echo "  ✓ $$libname.arx"; \
+			fi; \
+		fi; \
+	done
+	
+	@echo "→ Building akibacompile tool..."
+	@cd toolchain/akibacompile && zig build --prefix ../../$(BUILD_DIR)
 	
 	@echo "→ Building akibabuilder tool..."
 	@cd toolchain/akibabuilder && zig build --prefix ../../$(BUILD_DIR)
 	
-	@echo "→ Building .akiba binaries..."
-	@for dir in $(BINARIES_DIR)/*/; do \
-		if [ -f $$dir/build.zig ]; then \
-			binary_name=$$(basename $$dir); \
-			echo "  Building $$binary_name..."; \
-			cd $$dir && zig build --cache-dir ../../$(BUILD_DIR)/cache/$$binary_name --prefix ../../$(BUILD_DIR)/binaries/$$binary_name; \
-			cd ../..; \
-			if [ -f $(BUILD_DIR)/binaries/$$binary_name/bin/$$binary_name ]; then \
-				echo "  Wrapping $$binary_name in .akiba format..."; \
-				$(BUILD_DIR)/bin/akibabuilder $(BUILD_DIR)/binaries/$$binary_name/bin/$$binary_name $(FS_ROOT)/binaries/$$binary_name.akiba cli; \
+	@echo "→ Compiling binaries..."
+	@mkdir -p $(BUILD_DIR)/binaries
+	@for bindir in binaries/*/; do \
+		if [ -d "$$bindir" ]; then \
+			binname=$$(basename $$bindir); \
+			if [ -f "$$bindir$$binname.zig" ]; then \
+				echo "  Compiling $$binname..."; \
+				$(BUILD_DIR)/bin/akibacompile "$$bindir" "$(BUILD_DIR)/binaries/$$binname" "libraries" && \
+				echo "  Wrapping $$binname.akiba..." && \
+				$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/binaries/$$binname" "$(FS_ROOT)/binaries/$$binname.akiba" cli && \
+				echo "  ✓ $$binname.akiba"; \
 			fi; \
 		fi; \
 	done
@@ -191,7 +212,17 @@ prepare-filesystem: build-grub
 	@cp $(GRUB_BUILD)/lib/grub/x86_64-efi/afs.mod $(FS_ROOT)/boot/grub/modules/
 	
 	@echo "✓ Build completed successfully"
-
+	@echo ""
+	@echo "Built artifacts:"
+	@if [ -d "$(FS_ROOT)/system/libraries" ]; then \
+		echo "  Libraries (.arx):"; \
+		ls -lh $(FS_ROOT)/system/libraries/*.arx 2>/dev/null || echo "    (none)"; \
+	fi
+	@if [ -d "$(FS_ROOT)/binaries" ]; then \
+		echo "  Binaries (.akiba):"; \
+		ls -lh $(FS_ROOT)/binaries/*.akiba 2>/dev/null || echo "    (none)"; \
+	fi
+	
 # ═══════════════════════════════════════════════════════════════════════════
 # Disk Image Creation
 # ═══════════════════════════════════════════════════════════════════════════

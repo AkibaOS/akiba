@@ -6,6 +6,7 @@ zig-out
 .zig-build/
 
 # Akiba build artifacts
+.akiba-build-*
 iso/
 
 # Object files and logs

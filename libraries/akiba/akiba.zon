@@ -1,0 +1,6 @@
+.{
+    .name = "akiba",
+    .version = "1.0.0",
+    .type = .library,
+    .entry = "akiba.zig",
+}
