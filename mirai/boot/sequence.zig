@@ -9,7 +9,6 @@ const hikari = @import("../hikari/loader.zig");
 const heap = @import("../memory/heap.zig");
 const idt = @import("../interrupts/idt.zig");
 const invocations = @import("../invocations/handler.zig");
-const invocation_table = @import("../invocations/table.zig");
 const kata = @import("../kata/kata.zig");
 const keyboard = @import("../drivers/keyboard.zig");
 const multiboot = @import("multiboot2.zig");
@@ -105,10 +104,6 @@ pub fn run(multiboot_info_addr: u64) void {
     gdt.init();
     boot_ok();
 
-    boot_print("Initializing invocation handler... ");
-    invocations.init();
-    boot_ok();
-
     boot_print("Initializing Hikari loader... ");
     hikari.init();
     boot_ok();
@@ -149,8 +144,8 @@ pub fn run(multiboot_info_addr: u64) void {
     filesystem = &fs;
     boot_ok();
 
-    boot_print("Setting up invocation table... ");
-    invocation_table.set_afs_instance(&fs);
+    boot_print("Initializing invocation handler... ");
+    invocations.init(&fs);
     boot_ok();
 
     boot_print("Loading font from filesystem... ");

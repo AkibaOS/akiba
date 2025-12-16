@@ -6,56 +6,47 @@ const paging = @import("../memory/paging.zig");
 const serial = @import("../drivers/serial.zig");
 
 pub const KataState = enum {
-    Ready, // Ready to execute
-    Running, // Currently executing
-    Waiting, // Waiting for I/O or event
-    Dissolved, // Terminated
+    Ready,
+    Running,
+    Waiting,
+    Dissolved,
 };
 
 pub const Kata = struct {
-    // Kata identification
-    id: u32, // Kata ID (like PID)
-
-    // Execution state
+    id: u32,
     state: KataState,
 
-    // Saved registers (for context shifting)
+    // Execution context
     context: Context,
 
-    // Memory management
-    page_table: u64, // CR3 value (physical address of PML4)
-    stack_top: u64, // Top of kernel stack
-    user_stack_top: u64, // Top of user stack
-
-    // Location tracking (current stack/cluster in AFS)
-    current_location: [256]u8,
-    current_location_len: usize,
-    current_cluster: u32,
-
-    // Lineage
-    parent_id: u32, // Parent Kata ID
-
-    // CFS-lite scheduling
-    vruntime: u64, // Virtual runtime (nanoseconds)
-    weight: u32, // Priority weight (default 1024)
-    last_run: u64, // Last time this Kata ran
-
-    // Linked list for sorted vruntime queue (simple CFS-lite)
-    next: ?*Kata,
+    // Memory
+    page_table: u64,
+    stack_top: u64,
+    user_stack_top: u64,
 
     // File descriptors
-    // fd 0 = /system/devices/source (input)
-    // fd 1 = /system/devices/stream (output)
-    // fd 2 = /system/devices/trace (errors)
-    fd_table: [16]fd_mod.FileDescriptor = [_]fd_mod.FileDescriptor{.{}} ** 16,
-    next_fd: u32 = 3,
+    fd_table: [16]fd_mod.FileDescriptor,
+
+    // Working directory
+    current_location: [256]u8,
+    current_location_len: usize,
+    current_cluster: u64,
+
+    // Process hierarchy
+    parent_id: u32,
+
+    // Scheduling
+    vruntime: u64,
+    weight: u32,
+    last_run: u64,
+    next: ?*Kata,
+
+    // Process control
+    waiting_for: u32,
+    exit_code: u64,
 };
 
 // Saved CPU context for context shifting
-// Must be extern struct to guarantee memory layout matches assembly offsets:
-// rax=0, rbx=8, rcx=16, rdx=24, rsi=32, rdi=40, rbp=48, rsp=56
-// r8=64, r9=72, r10=80, r11=88, r12=96, r13=104, r14=112, r15=120
-// rip=128, rflags=136, cs=144, ss=152
 pub const Context = extern struct {
     // General purpose registers
     rax: u64,
@@ -127,6 +118,7 @@ pub fn init() void {
             .page_table = 0,
             .stack_top = 0,
             .user_stack_top = 0,
+            .fd_table = [_]fd_mod.FileDescriptor{.{}} ** 16,
             .current_location = undefined,
             .current_location_len = 1,
             .current_cluster = 0,
@@ -135,6 +127,8 @@ pub fn init() void {
             .weight = 1024,
             .last_run = 0,
             .next = null,
+            .waiting_for = 0,
+            .exit_code = 0,
         };
         kata_used[i] = false;
     }
@@ -160,6 +154,7 @@ pub fn create_kata() !*Kata {
                 .page_table = 0,
                 .stack_top = 0,
                 .user_stack_top = 0,
+                .fd_table = [_]fd_mod.FileDescriptor{.{}} ** 16,
                 .current_location = undefined,
                 .current_location_len = 1,
                 .current_cluster = 0,
@@ -168,6 +163,8 @@ pub fn create_kata() !*Kata {
                 .weight = 1024,
                 .last_run = 0,
                 .next = null,
+                .waiting_for = 0,
+                .exit_code = 0,
             };
 
             // Initialize location to root
@@ -199,10 +196,11 @@ pub fn create_kata() !*Kata {
     return error.TooManyKata;
 }
 
-pub fn get_kata(kata_id: u32) ?*Kata {
-    for (&kata_pool, 0..) |*kata, i| {
-        if (kata_used[i] and kata.id == kata_id) {
-            return kata;
+pub fn get_kata(id: u32) ?*Kata {
+    var i: usize = 0;
+    while (i < MAX_KATA) : (i += 1) {
+        if (kata_used[i] and kata_pool[i].id == id) {
+            return &kata_pool[i];
         }
     }
     return null;

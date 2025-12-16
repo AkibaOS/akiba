@@ -1,14 +1,30 @@
 //! Invocation Handler - Entry point for Layer 3 programs calling kernel
 //! Handles the Akiba Invocation Table
 
+const afs = @import("../fs/afs.zig");
+const ahci = @import("../drivers/ahci.zig");
 const serial = @import("../drivers/serial.zig");
-const table = @import("table.zig");
+const syscall = @import("syscall.zig");
 
-pub fn init() void {
+const attach = @import("attach.zig");
+const exit = @import("exit.zig");
+const mark = @import("mark.zig");
+const seal = @import("seal.zig");
+const spawn = @import("spawn.zig");
+const view = @import("view.zig");
+const wait = @import("wait.zig");
+
+pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     serial.print("\n=== Invocation Handler ===\n");
+
+    // Set AFS instance for all invocations that need it
+    exit.set_afs_instance(fs);
+    attach.set_afs_instance(fs);
+    seal.set_afs_instance(fs);
+    spawn.set_afs_instance(fs);
+
     serial.print("Akiba Invocation Table initialized\n");
 
-    const syscall = @import("syscall.zig");
     syscall.init();
 }
 
@@ -16,11 +32,13 @@ pub fn handle_invocation(context: *InvocationContext) void {
     const invocation_num = context.rax;
 
     switch (invocation_num) {
-        0x01 => table.invoke_exit(context),
-        0x02 => table.invoke_attach(context),
-        0x03 => table.invoke_seal(context),
-        0x04 => table.invoke_view(context),
-        0x05 => table.invoke_mark(context),
+        0x01 => exit.invoke(context),
+        0x02 => attach.invoke(context),
+        0x03 => seal.invoke(context),
+        0x04 => view.invoke(context),
+        0x05 => mark.invoke(context),
+        0x06 => spawn.invoke(context),
+        0x07 => wait.invoke(context),
         else => {
             serial.print("Unknown invocation: ");
             serial.print_hex(invocation_num);
