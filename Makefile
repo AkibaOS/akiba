@@ -149,18 +149,12 @@ prepare-filesystem: build-grub
 	
 	@echo "→ Building libraries..."
 	@mkdir -p $(BUILD_DIR)/lib $(FS_ROOT)/system/libraries
-	@for libdir in libraries/*/; do \
-		if [ -d "$$libdir" ]; then \
-			libname=$$(basename $$libdir); \
-			if [ -f "$$libdir$$libname.zig" ]; then \
-				echo "  Building $$libname.arx..."; \
-				zig build-lib "$$libdir$$libname.zig" \
-					-target x86_64-freestanding-none \
-					-O ReleaseSmall \
-					-femit-bin=$(BUILD_DIR)/lib/$$libname.a && \
-				cp $(BUILD_DIR)/lib/$$libname.a $(FS_ROOT)/system/libraries/$$libname.arx && \
-				echo "  ✓ $$libname.arx"; \
-			fi; \
+	@cd system/libraries && zig build --cache-dir ../../$(BUILD_DIR)/lib-cache --prefix ../../$(BUILD_DIR)
+	@for lib in $(BUILD_DIR)/lib/*.a; do \
+		if [ -f "$$lib" ]; then \
+			libname=$$(basename $$lib .a | sed 's/^lib//'); \
+			cp "$$lib" "$(FS_ROOT)/system/libraries/$$libname.arx"; \
+			echo "  ✓ $$libname.arx"; \
 		fi; \
 	done
 	
@@ -170,6 +164,28 @@ prepare-filesystem: build-grub
 	@echo "→ Building akibabuilder tool..."
 	@cd toolchain/akibabuilder && zig build --prefix ../../$(BUILD_DIR)
 	
+	@echo "→ Building system binaries..."
+	@mkdir -p $(BUILD_DIR)/system
+	@for sysdir in system/*/; do \
+		if [ -d "$$sysdir" ]; then \
+			sysname=$$(basename $$sysdir); \
+			if [ "$$sysname" = "libraries" ]; then continue; fi; \
+			if [ -f "$$sysdir$$sysname.zig" ]; then \
+				echo "  Compiling $$sysname..."; \
+				$(BUILD_DIR)/bin/akibacompile "$$sysdir" "$(BUILD_DIR)/system/$$sysname" "system/libraries" && \
+				if [ "$$sysname" = "pulse" ]; then \
+					echo "  Creating pulse.akibainit..."; \
+					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/akiba/pulse.akibainit" init && \
+					echo "  ✓ pulse.akibainit"; \
+				else \
+					echo "  Wrapping $$sysname.akiba..."; \
+					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/$$sysname.akiba" cli && \
+					echo "  ✓ $$sysname.akiba"; \
+				fi; \
+			fi; \
+		fi; \
+	done
+	
 	@echo "→ Compiling binaries..."
 	@mkdir -p $(BUILD_DIR)/binaries
 	@for bindir in binaries/*/; do \
@@ -177,7 +193,7 @@ prepare-filesystem: build-grub
 			binname=$$(basename $$bindir); \
 			if [ -f "$$bindir$$binname.zig" ]; then \
 				echo "  Compiling $$binname..."; \
-				$(BUILD_DIR)/bin/akibacompile "$$bindir" "$(BUILD_DIR)/binaries/$$binname" "libraries" && \
+				$(BUILD_DIR)/bin/akibacompile "$$bindir" "$(BUILD_DIR)/binaries/$$binname" "system/libraries" && \
 				echo "  Wrapping $$binname.akiba..." && \
 				$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/binaries/$$binname" "$(FS_ROOT)/binaries/$$binname.akiba" cli && \
 				echo "  ✓ $$binname.akiba"; \

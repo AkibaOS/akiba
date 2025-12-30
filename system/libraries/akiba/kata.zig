@@ -1,0 +1,24 @@
+//! Kata (process) control functions
+
+const sys = @import("sys.zig");
+
+pub fn exit(code: u64) noreturn {
+    _ = sys.syscall1(.exit, code);
+    unreachable;
+}
+
+pub fn spawn(path: []const u8) !u32 {
+    const result = sys.syscall1(.spawn, @intFromPtr(path.ptr));
+    if (result == @as(u64, @bitCast(@as(i64, -1)))) {
+        return error.SpawnFailed;
+    }
+    return @truncate(result);
+}
+
+pub fn wait(pid: u32) !u64 {
+    const result = sys.syscall1(.wait, pid);
+    if (result == @as(u64, @bitCast(@as(i64, -1)))) {
+        return error.WaitFailed;
+    }
+    return result;
+}
