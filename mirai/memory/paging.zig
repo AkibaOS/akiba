@@ -105,7 +105,13 @@ pub fn create_page_table() !u64 {
     // Map kernel (0x100000-0x1000000 = 16MB) as supervisor-only
     var addr: u64 = 0x100000;
     while (addr < 0x1000000) : (addr += PAGE_SIZE) {
-        // No USER bit = supervisor only, user mode can't access
+        _ = try map_page_in_table(new_pml4_phys, addr, addr, PAGE_PRESENT | PAGE_WRITABLE);
+    }
+
+    // Map MMIO region (0x80000000-0x82000000 = 32MB) for framebuffer and AHCI
+    // Supervisor-only
+    addr = 0x80000000;
+    while (addr < 0x82000000) : (addr += PAGE_SIZE) {
         _ = try map_page_in_table(new_pml4_phys, addr, addr, PAGE_PRESENT | PAGE_WRITABLE);
     }
 
