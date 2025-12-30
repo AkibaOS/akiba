@@ -4,7 +4,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x400000; /* Standard ELF load address */
+    . = 0x1000000; /* Start at 16MB (after kernel) */
 
     .text : {
         *(.text)
