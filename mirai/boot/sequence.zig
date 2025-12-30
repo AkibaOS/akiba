@@ -148,27 +148,7 @@ pub fn run(multiboot_info_addr: u64) void {
     invocations.init(&fs);
     boot_ok();
 
-    // Load Pulse (init system)
-    const pulse_id = hikari.load_init_system(&fs) catch |err| {
-        serial.print("Failed to load init system: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
-        crimson.collapse("Cannot start init system", null);
-    };
-
-    serial.print("Pulse loaded (Kata ");
-    serial.print_hex(pulse_id);
-    serial.print(")\n");
-
-    // Add this:
-    serial.print("About to call sensei.schedule()...\n");
-
-    // Start Pulse
-    sensei.schedule();
-
-    // This should never be reached
-    serial.print("ERROR: Returned from schedule()!\n");
-
+    // Initialize terminal BEFORE loading Pulse
     boot_print("Loading font from filesystem... ");
     var font_buffer: [8192]u8 = undefined;
     const bytes_read = fs.read_file_by_path("/system/fonts/Akiba.psf", &font_buffer) catch |err| {
@@ -189,11 +169,11 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_ok();
 
     if (fb_info) |fb| {
+        boot_print("Initializing framebuffer... ");
         terminal.init(fb);
         crimson.init(fb);
         terminal_ready = true;
         replay_messages();
-        boot_print("Initializing framebuffer... ");
         boot_ok();
     }
 
@@ -201,17 +181,38 @@ pub fn run(multiboot_info_addr: u64) void {
     keyboard.init();
     boot_ok();
 
-    boot_print("Initializing Crimson error handler...");
+    boot_print("Initializing Crimson error handler... ");
     boot_ok();
 
     boot_print_color("Boot sequence completed successfully!\n", COLOR_OK);
     delay(10);
+
+    // Load Pulse
+    boot_print("Initializing Pulse init system... ");
+    const pulse_id = hikari.load_init_system(&fs) catch |err| {
+        serial.print("Failed to load Pulse: ");
+        serial.print(@errorName(err));
+        serial.print("\n");
+        crimson.collapse("Akiba's Pulse is missing. System is dying.", null);
+    };
+
+    serial.print("Pulse loaded (Kata ");
+    serial.print_hex(pulse_id);
+    serial.print(")\n");
 
     if (terminal_ready) {
         terminal.clear_screen();
         boot_print_color("Akiba OS\n", COLOR_MAGENTA);
         boot_print("Drifting from abyss towards infinity!\n\n");
     }
+
+    serial.print("About to call sensei.schedule()...\n");
+
+    // Start Pulse - this never returns
+    sensei.schedule();
+
+    // This should never be reached
+    serial.print("ERROR: Returned from schedule()!\n");
 }
 
 fn halt() noreturn {
