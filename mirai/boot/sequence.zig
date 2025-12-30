@@ -148,6 +148,27 @@ pub fn run(multiboot_info_addr: u64) void {
     invocations.init(&fs);
     boot_ok();
 
+    // Load Pulse (init system)
+    const pulse_id = hikari.load_init_system(&fs) catch |err| {
+        serial.print("Failed to load init system: ");
+        serial.print(@errorName(err));
+        serial.print("\n");
+        crimson.collapse("Cannot start init system", null);
+    };
+
+    serial.print("Pulse loaded (Kata ");
+    serial.print_hex(pulse_id);
+    serial.print(")\n");
+
+    // Add this:
+    serial.print("About to call sensei.schedule()...\n");
+
+    // Start Pulse
+    sensei.schedule();
+
+    // This should never be reached
+    serial.print("ERROR: Returned from schedule()!\n");
+
     boot_print("Loading font from filesystem... ");
     var font_buffer: [8192]u8 = undefined;
     const bytes_read = fs.read_file_by_path("/system/fonts/Akiba.psf", &font_buffer) catch |err| {

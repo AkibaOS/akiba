@@ -87,8 +87,76 @@ pub fn dequeue_kata(target_kata: *Kata) void {
 }
 
 // Pick next Kata to run (lowest vruntime)
-pub fn pick_next_kata() ?*Kata {
-    return run_queue_head;
+fn pick_next_kata() ?*Kata {
+    serial.print("pick_next_kata called, checking queue...\n");
+    serial.print("  run_queue_head: ");
+    serial.print_hex(@intFromPtr(run_queue_head));
+    serial.print("\n");
+
+    // Debug: show all katas
+    var i: usize = 0;
+    while (i < kata_mod.MAX_KATA) : (i += 1) {
+        if (kata_mod.kata_used[i]) {
+            serial.print("  Kata ");
+            serial.print_hex(kata_mod.kata_pool[i].id);
+            serial.print(" state: ");
+            serial.print_hex(@intFromEnum(kata_mod.kata_pool[i].state));
+            serial.print(", next: ");
+            serial.print_hex(@intFromPtr(kata_mod.kata_pool[i].next));
+            serial.print("\n");
+        }
+    }
+
+    var current = run_queue_head;
+    var local_min_vruntime: u64 = 0xFFFFFFFFFFFFFFFF;
+    var chosen: ?*Kata = null;
+    var fallback: ?*Kata = null;
+
+    serial.print("  Traversing queue:\n");
+    while (current) |kata| {
+        serial.print("    Checking Kata ");
+        serial.print_hex(kata.id);
+        serial.print(", state ");
+        serial.print_hex(@intFromEnum(kata.state));
+        serial.print("\n");
+
+        if (kata.state == .Ready and kata.vruntime < local_min_vruntime) {
+            local_min_vruntime = kata.vruntime;
+            chosen = kata;
+        }
+        if (kata.state == .Running) {
+            fallback = kata;
+        }
+        current = kata.next;
+    }
+
+    if (chosen) |k| {
+        serial.print("  Chose Ready kata: ");
+        serial.print_hex(k.id);
+        serial.print("\n");
+        return k;
+    }
+
+    // NEW: If no Ready kata, check if current_kata should keep running
+    if (current_kata) |curr| {
+        if (curr.state == .Running) {
+            serial.print("  No Ready kata, continuing current: ");
+            serial.print_hex(curr.id);
+            serial.print("\n");
+            return curr;
+        }
+    }
+
+    // Also check fallback from queue
+    if (fallback) |k| {
+        serial.print("  Chose Running kata (fallback): ");
+        serial.print_hex(k.id);
+        serial.print("\n");
+        return k;
+    }
+
+    serial.print("  No kata available!\n");
+    return null;
 }
 
 // Called on timer tick
@@ -96,24 +164,17 @@ pub fn on_tick() void {
     tick_count += 1;
 
     if (current_kata) |kata| {
-        // Update vruntime for running kata
         const delta = (TICK_NANOSECONDS * 1024) / kata.weight;
         kata.vruntime += delta;
 
-        // Update min_vruntime
         if (run_queue_head) |head| {
             min_vruntime = head.vruntime;
         } else {
             min_vruntime = kata.vruntime;
         }
 
-        // Check if we should shift (every 10ms)
-        if (tick_count % 10 == 0) {
-            schedule();
-        }
-    } else {
-        // No kata running - check if there's one waiting
-        if (run_queue_head != null) {
+        // ONLY schedule if there are other katas waiting
+        if (run_queue_head != null and tick_count % 10 == 0) {
             schedule();
         }
     }
@@ -121,46 +182,75 @@ pub fn on_tick() void {
 
 // Main scheduling decision
 pub fn schedule() void {
+    const rbp = asm volatile ("mov %%rbp, %[ret]"
+        : [ret] "=r" (-> u64),
+    );
+    serial.print("\n=== Sensei Schedule (called from RBP: ");
+    serial.print_hex(rbp);
+    serial.print(") ===\n");
+    serial.print("\n=== Sensei Schedule ===\n");
+    wake_waiting_katas();
+
     const next = pick_next_kata();
 
     if (next == null and current_kata == null) {
-        // Nothing to run - halt
         serial.print("Sensei: No katas to run\n");
         while (true) {
             asm volatile ("hlt");
         }
     }
 
-    // If same Kata, keep running
-    if (next == current_kata) {
+    // DON'T return early - always handle the shift properly
+    if (next == current_kata and next != null) {
+        // Same kata, but we might be coming from interrupt
+        // Just continue - no shift needed
         return;
     }
 
-    // Save current Kata and shift to next
     if (current_kata) |curr| {
         if (curr.state == .Running) {
             curr.state = .Ready;
             enqueue_kata(curr);
         }
-        // If current is Dissolved, just drop it
     }
 
     if (next) |n| {
         dequeue_kata(n);
         n.state = .Running;
         current_kata = n;
-
-        // Perform context shift
         shift.shift_to_kata(n);
-        // Never returns
         unreachable;
     }
 
-    // No next kata but had current (which is now dissolved)
     serial.print("Sensei: No more katas after dissolution\n");
     clear_current_kata();
     while (true) {
         asm volatile ("hlt");
+    }
+}
+
+fn wake_waiting_katas() void {
+    var i: usize = 0;
+    while (i < kata_mod.MAX_KATA) : (i += 1) {
+        if (!kata_mod.kata_used[i]) continue;
+
+        const kata = &kata_mod.kata_pool[i];
+        if (kata.state != .Waiting) continue;
+
+        // Check if the Kata we're waiting for has exited
+        const target = kata_mod.get_kata(kata.waiting_for);
+        if (target == null or target.?.state == .Dissolved) {
+            // Target exited, wake this Kata up
+            serial.print("Sensei: Waking Kata ");
+            serial.print_hex(kata.id);
+            serial.print(" (target ");
+            serial.print_hex(kata.waiting_for);
+            serial.print(" dissolved)\n");
+
+            kata.state = .Ready;
+            enqueue_kata(kata);
+            kata.waiting_for = 0;
+        }
     }
 }
 

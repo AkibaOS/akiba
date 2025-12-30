@@ -424,6 +424,16 @@ fn dump_registers_serial(ctx: *const Context) void {
     serial.print("  ERR: ");
     serial.print_hex(ctx.error_code);
     serial.print("\n");
+
+    // Disassemble faulting instruction
+    serial.print("\nFaulting instruction bytes at RIP:\n  ");
+    const rip_ptr = @as([*]const u8, @ptrFromInt(ctx.rip));
+    var i: usize = 0;
+    while (i < 16) : (i += 1) {
+        serial.print_hex(rip_ptr[i]);
+        serial.print(" ");
+    }
+    serial.print("\n");
 }
 
 fn halt() noreturn {

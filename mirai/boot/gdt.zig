@@ -97,6 +97,14 @@ pub fn init() void {
     serial.print("TSS: 0x");
     serial.print_hex(TSS_SEGMENT);
     serial.print("\n");
+
+    // Mask all IRQs on both PICs
+    serial.print("Masking all hardware interrupts...\n");
+    asm volatile (
+        \\mov $0xFF, %al
+        \\out %al, $0x21  # Master PIC
+        \\out %al, $0xA1  # Slave PIC
+    );
 }
 
 fn create_code_descriptor(dpl: u8, long_mode: bool, is_user: bool) u64 {

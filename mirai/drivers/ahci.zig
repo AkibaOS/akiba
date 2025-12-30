@@ -6,6 +6,7 @@ const pmm = @import("../memory/pmm.zig");
 const paging = @import("../memory/paging.zig");
 
 pub const SECTOR_SIZE = 512;
+const HIGHER_HALF_START: u64 = 0xFFFF800000000000;
 
 const HBA_PORT_CMD_ST: u32 = 0x0001;
 const HBA_PORT_CMD_FRE: u32 = 0x0010;
@@ -161,6 +162,7 @@ const FISRegH2D = extern struct {
 var hba_mem: ?*volatile HBAMemory = null;
 var port_num: u8 = 0;
 var dma_buffer_phys: u64 = 0;
+var dma_buffer_virt: u64 = 0;
 
 pub fn find_and_init() !void {
     const all_devices = pci.get_devices();
@@ -192,25 +194,25 @@ pub fn init(ahci_device: *pci.PCIDevice) !void {
     pci.enable_bus_mastering(ahci_device);
     pci.enable_memory_space(ahci_device);
 
-    const abar = ahci_device.bar5 & 0xFFFFFFF0;
-    serial.print("  ABAR: ");
-    serial.print_hex(abar);
+    const abar_phys = ahci_device.bar5 & 0xFFFFFFF0;
+    serial.print("  ABAR physical: ");
+    serial.print_hex(abar_phys);
     serial.print("\n");
 
-    const PAGE_PRESENT: u64 = 0x1;
-    const PAGE_WRITE: u64 = 0x2;
+    // Map ABAR to higher-half (physical MMIO is already mapped by boot.s)
+    const abar_virt = abar_phys + HIGHER_HALF_START;
 
-    var page_addr = abar;
-    while (page_addr < abar + 0x2000) : (page_addr += 0x1000) {
-        try paging.map_page(page_addr, page_addr, PAGE_PRESENT | PAGE_WRITE);
-    }
+    serial.print("  ABAR virtual: ");
+    serial.print_hex(abar_virt);
+    serial.print("\n");
 
+    // Allocate and map DMA buffer to higher-half
     if (dma_buffer_phys == 0) {
         dma_buffer_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        try paging.map_page(dma_buffer_phys, dma_buffer_phys, PAGE_PRESENT | PAGE_WRITE);
+        dma_buffer_virt = dma_buffer_phys + HIGHER_HALF_START;
     }
 
-    hba_mem = @ptrFromInt(abar);
+    hba_mem = @ptrFromInt(abar_virt);
     const hba = hba_mem.?;
 
     serial.print("  AHCI Version: ");
@@ -289,29 +291,30 @@ fn port_rebase(port: *volatile HBAPort, portno: u8) !void {
     const clb_phys = pmm.alloc_page() orelse return error.OutOfMemory;
     const fb_phys = pmm.alloc_page() orelse return error.OutOfMemory;
 
-    const PAGE_PRESENT: u64 = 0x1;
-    const PAGE_WRITE: u64 = 0x2;
-    try paging.map_page(clb_phys, clb_phys, PAGE_PRESENT | PAGE_WRITE);
-    try paging.map_page(fb_phys, fb_phys, PAGE_PRESENT | PAGE_WRITE);
-
+    // Use physical addresses for DMA (hardware accesses)
     port.clb = clb_phys;
     port.fb = fb_phys;
 
-    @memset(@as([*]u8, @ptrFromInt(clb_phys))[0..4096], 0);
-    @memset(@as([*]u8, @ptrFromInt(fb_phys))[0..4096], 0);
+    // Access via higher-half for CPU
+    const clb_virt = clb_phys + HIGHER_HALF_START;
+    const fb_virt = fb_phys + HIGHER_HALF_START;
 
-    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(clb_phys));
+    @memset(@as([*]u8, @ptrFromInt(clb_virt))[0..4096], 0);
+    @memset(@as([*]u8, @ptrFromInt(fb_virt))[0..4096], 0);
+
+    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(clb_virt));
 
     var i: usize = 0;
     while (i < 32) : (i += 1) {
         cmdheader[i].prdtl = 8;
 
         const cmdtable_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        try paging.map_page(cmdtable_phys, cmdtable_phys, PAGE_PRESENT | PAGE_WRITE);
+        const cmdtable_virt = cmdtable_phys + HIGHER_HALF_START;
 
+        // Hardware uses physical address
         cmdheader[i].ctba = cmdtable_phys;
 
-        @memset(@as([*]u8, @ptrFromInt(cmdtable_phys))[0..4096], 0);
+        @memset(@as([*]u8, @ptrFromInt(cmdtable_virt))[0..4096], 0);
     }
 
     port.serr = 0xFFFFFFFF;
@@ -345,14 +348,18 @@ fn ahci_read_sector(lba: u64, buffer: *[SECTOR_SIZE]u8) bool {
 
     const slot = find_cmdslot(port) orelse return false;
 
-    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(port.clb));
+    const clb_virt = port.clb + HIGHER_HALF_START;
+    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(clb_virt));
+
     cmdheader[slot].cfl = @sizeOf(FISRegH2D) / 4;
     cmdheader[slot].prdtl = 1;
     cmdheader[slot].prdbc = 0;
 
-    const cmdtbl = @as(*volatile HBACmdTable, @ptrFromInt(cmdheader[slot].ctba));
-    @memset(@as([*]u8, @ptrFromInt(cmdheader[slot].ctba))[0..256], 0);
+    const cmdtbl_virt = cmdheader[slot].ctba + HIGHER_HALF_START;
+    const cmdtbl = @as(*volatile HBACmdTable, @ptrFromInt(cmdtbl_virt));
+    @memset(@as([*]u8, @ptrFromInt(cmdtbl_virt))[0..256], 0);
 
+    // Hardware uses physical DMA address
     cmdtbl.prdt_entry[0].dba = dma_buffer_phys;
     cmdtbl.prdt_entry[0].dbc = (SECTOR_SIZE - 1) | (1 << 31);
     cmdtbl.prdt_entry[0]._rsv0 = 0;
@@ -389,7 +396,8 @@ fn ahci_read_sector(lba: u64, buffer: *[SECTOR_SIZE]u8) bool {
 
     if ((port.ci & ci_bit) != 0) return false;
 
-    const dma_buffer = @as([*]u8, @ptrFromInt(dma_buffer_phys));
+    // CPU accesses DMA buffer via higher-half
+    const dma_buffer = @as([*]u8, @ptrFromInt(dma_buffer_virt));
     for (buffer, 0..) |*byte, i| {
         byte.* = dma_buffer[i];
     }
@@ -407,20 +415,24 @@ fn ahci_write_sector(lba: u64, buffer: *const [SECTOR_SIZE]u8) bool {
 
     const slot = find_cmdslot(port) orelse return false;
 
-    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(port.clb));
+    const clb_virt = port.clb + HIGHER_HALF_START;
+    const cmdheader = @as([*]volatile HBACmdHeader, @ptrFromInt(clb_virt));
+
     cmdheader[slot].cfl = @sizeOf(FISRegH2D) / 4;
     cmdheader[slot].prdtl = 1;
     cmdheader[slot].prdbc = 0;
 
-    const cmdtbl = @as(*volatile HBACmdTable, @ptrFromInt(cmdheader[slot].ctba));
-    @memset(@as([*]u8, @ptrFromInt(cmdheader[slot].ctba))[0..256], 0);
+    const cmdtbl_virt = cmdheader[slot].ctba + HIGHER_HALF_START;
+    const cmdtbl = @as(*volatile HBACmdTable, @ptrFromInt(cmdtbl_virt));
+    @memset(@as([*]u8, @ptrFromInt(cmdtbl_virt))[0..256], 0);
 
-    // Copy data to DMA buffer
-    const dma_buffer = @as([*]u8, @ptrFromInt(dma_buffer_phys));
+    // Copy data to DMA buffer via higher-half
+    const dma_buffer = @as([*]u8, @ptrFromInt(dma_buffer_virt));
     for (buffer, 0..) |byte, i| {
         dma_buffer[i] = byte;
     }
 
+    // Hardware uses physical DMA address
     cmdtbl.prdt_entry[0].dba = dma_buffer_phys;
     cmdtbl.prdt_entry[0].dbc = (SECTOR_SIZE - 1) | (1 << 31);
     cmdtbl.prdt_entry[0]._rsv0 = 0;

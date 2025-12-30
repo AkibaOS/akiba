@@ -20,7 +20,13 @@ pub fn init() void {
     serial.print("Akiba executable loader initialized\n");
 }
 
-// Load an Akiba executable from AFS and create a Kata
+pub fn load_init_system(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
+    serial.print("\n=== Loading Init System ===\n");
+
+    const pulse_path = "/system/akiba/pulse.akibainit";
+    return load_program(fs, pulse_path);
+}
+
 pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
     serial.print("\n=== Loading Program ===\n");
     serial.print("Path: ");
@@ -49,35 +55,32 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
 }
 
 fn setup_kata_memory(kata: *kata_mod.Kata, elf_info: *const elf.ELFInfo, elf_data: []const u8) !void {
-
-    // Create dedicated page table for this Kata
+    // Create isolated page table for this process
     kata.page_table = try paging.create_page_table();
 
     serial.print("Kata page table: ");
     serial.print_hex(kata.page_table);
     serial.print("\n");
 
-    // Load program segments into kata's page table
+    // Load program segments at their original ELF addresses
     for (elf_info.program_headers) |ph| {
         if (ph.type == elf.PT_LOAD) {
             try load_segment(kata, ph, elf_data);
         }
     }
 
-    // Allocate user stack - MUST be in canonical address space!
-    // Use a nice round address with plenty of room
-    const user_stack_base: u64 = 0x00007FFFFFF00000; // Changed!
-    const user_stack_size: u64 = PAGE_SIZE * 4; // 16KB
+    // Allocate user stack in high canonical address
+    const user_stack_base: u64 = 0x00007FFFFFF00000;
+    const user_stack_size: u64 = PAGE_SIZE * 4;
 
     try allocate_user_stack(kata, user_stack_base, user_stack_size);
-
     kata.user_stack_top = user_stack_base + user_stack_size;
 
     serial.print("User stack: ");
     serial.print_hex(kata.user_stack_top);
     serial.print("\n");
 
-    // Allocate kernel stack
+    // Allocate kernel stack in higher-half
     const kernel_stack_phys = pmm.alloc_page() orelse return error.OutOfMemory;
     kata.stack_top = kernel_stack_phys + HIGHER_HALF + PAGE_SIZE;
 
@@ -91,6 +94,8 @@ fn load_segment(kata: *kata_mod.Kata, ph: elf.ELF64ProgramHeader, elf_data: []co
     serial.print_hex(ph.vaddr);
     serial.print(", size: ");
     serial.print_hex(ph.memsz);
+    serial.print(", file offset: ");
+    serial.print_hex(ph.offset);
     serial.print("\n");
 
     var vaddr = ph.vaddr;
@@ -102,21 +107,33 @@ fn load_segment(kata: *kata_mod.Kata, ph: elf.ELF64ProgramHeader, elf_data: []co
         const offset_in_page = vaddr - page_base;
         const bytes_in_page = @min(PAGE_SIZE - offset_in_page, remaining);
 
-        // Map the page (or get existing mapping)
+        // Allocate and map page
         const phys_page = pmm.alloc_page() orelse return error.OutOfMemory;
         const result = try paging.map_page_in_table(kata.page_table, page_base, phys_page, 0b111);
         const was_mapped = result[0];
         const actual_phys = result[1];
 
-        // If page was already mapped, free the one we just allocated
+        // DEBUG: Verify mapping
+        if (page_base == 0x400000) {
+            serial.print("DEBUG: Mapped 0x400000 -> phys ");
+            serial.print_hex(actual_phys);
+            serial.print(", was_mapped=");
+            serial.print(if (was_mapped) "true\n" else "false\n");
+
+            // Verify we can read it back
+            const verify_phys = paging.get_physical_address(kata.page_table, 0x400000) catch 0;
+            serial.print("DEBUG: Verify readback: ");
+            serial.print_hex(verify_phys);
+            serial.print("\n");
+        }
+
         if (was_mapped) {
             pmm.free_page(phys_page);
         }
 
-        // Write data to the page (whether new or existing)
+        // Zero page and write segment data
         const dest_base = @as([*]u8, @ptrFromInt(actual_phys + HIGHER_HALF));
 
-        // Zero the entire page only if it's a new mapping
         if (!was_mapped) {
             var i: usize = 0;
             while (i < PAGE_SIZE) : (i += 1) {
@@ -124,7 +141,6 @@ fn load_segment(kata: *kata_mod.Kata, ph: elf.ELF64ProgramHeader, elf_data: []co
             }
         }
 
-        // Write segment data at correct offset (always do this, even for existing mappings)
         if (file_offset < ph.filesz) {
             const file_bytes = @min(bytes_in_page, ph.filesz - file_offset);
             const src_offset = ph.offset + file_offset;
@@ -140,6 +156,23 @@ fn load_segment(kata: *kata_mod.Kata, ph: elf.ELF64ProgramHeader, elf_data: []co
         file_offset += bytes_in_page;
         remaining -= bytes_in_page;
     }
+
+    // Verify entry point was loaded correctly
+    if (ph.vaddr == 0x400000) {
+        serial.print("DEBUG: Verifying entry point at 0x");
+        serial.print_hex(ph.vaddr);
+        serial.print(":\n  Bytes: ");
+        const page_phys = paging.get_physical_address(kata.page_table, 0x400000) catch 0;
+        if (page_phys != 0) {
+            const bytes = @as([*]u8, @ptrFromInt(page_phys + HIGHER_HALF));
+            var i: usize = 0;
+            while (i < 32) : (i += 1) {
+                serial.print_hex(bytes[i]);
+                serial.print(" ");
+            }
+            serial.print("\n");
+        }
+    }
 }
 
 fn allocate_user_stack(kata: *kata_mod.Kata, base: u64, size: u64) !void {
@@ -149,18 +182,16 @@ fn allocate_user_stack(kata: *kata_mod.Kata, base: u64, size: u64) !void {
     while (remaining > 0) {
         const phys_page = pmm.alloc_page() orelse return error.OutOfMemory;
 
-        // Map into kata's dedicated page table
         const flags: u64 = 0b111; // Present + Writable + User
         const result = try paging.map_page_in_table(kata.page_table, addr, phys_page, flags);
         const was_mapped = result[0];
         const actual_phys = result[1];
 
-        // Free the page we allocated if it was already mapped
         if (was_mapped) {
             pmm.free_page(phys_page);
         }
 
-        // Zero via higher-half (use actual physical address)
+        // Zero the stack page
         const dest = @as([*]u8, @ptrFromInt(actual_phys + HIGHER_HALF));
         var i: usize = 0;
         while (i < PAGE_SIZE) : (i += 1) {
@@ -175,7 +206,7 @@ fn allocate_user_stack(kata: *kata_mod.Kata, base: u64, size: u64) !void {
 fn setup_kata_context(kata: *kata_mod.Kata, entry_point: u64) void {
     kata.context.rip = entry_point;
     kata.context.rsp = kata.user_stack_top;
-    kata.context.rflags = 0x202; // Interrupts enabled
+    kata.context.rflags = 0x3202;
     kata.context.cs = gdt.USER_CODE | 3;
     kata.context.ss = gdt.USER_DATA | 3;
 }

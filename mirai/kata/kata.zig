@@ -47,7 +47,7 @@ pub const Kata = struct {
 };
 
 // Saved CPU context for context shifting
-pub const Context = extern struct {
+pub const Context = packed struct {
     // General purpose registers
     rax: u64,
     rbx: u64,
@@ -101,9 +101,9 @@ pub const Context = extern struct {
 };
 
 // Kata table (pool of all Kata slots)
-const MAX_KATA: usize = 256;
-var kata_pool: [MAX_KATA]Kata = undefined;
-var kata_used: [MAX_KATA]bool = [_]bool{false} ** MAX_KATA;
+pub const MAX_KATA: usize = 256;
+pub var kata_pool: [MAX_KATA]Kata = undefined;
+pub var kata_used: [MAX_KATA]bool = [_]bool{false} ** MAX_KATA;
 var next_kata_id: u32 = 1;
 
 pub fn init() void {

@@ -2,6 +2,7 @@
 
 const gdt = @import("../boot/gdt.zig");
 const serial = @import("../drivers/serial.zig");
+const handler = @import("handler.zig");
 const tss = @import("../boot/tss.zig");
 
 // MSR addresses
@@ -144,6 +145,15 @@ comptime {
         \\
         \\  # Call invocation handler
         \\  mov %rsp, %rdi        # Pass context pointer
+        \\
+        \\  # DEBUG: Check saved RIP before calling handler
+        \\  push %rdi
+        \\  mov 128(%rsp), %rdi
+        \\  call debug_saved_rip
+        \\  pop %rdi
+        \\
+        \\  # Call invocation handler
+        \\  mov %rsp, %rdi        # Pass context pointer
         \\  call handle_syscall
         \\
         \\  # Disable interrupts before returning to user
@@ -183,7 +193,6 @@ extern fn syscall_entry_asm() void;
 
 // Handler called from syscall_entry
 export fn handle_syscall(ctx_ptr: u64) void {
-    const handler = @import("handler.zig");
     const regs = @as(*SyscallContext, @ptrFromInt(ctx_ptr));
 
     // Build invocation context
@@ -215,33 +224,51 @@ export fn handle_syscall(ctx_ptr: u64) void {
 
     // Write back return value (RAX)
     regs.rax = inv_ctx.rax;
+
+    // DEBUG: Log what we're returning
+    serial.print("Syscall complete, returning to RIP: ");
+    serial.print_hex(regs.user_rip);
+    serial.print(", RAX: ");
+    serial.print_hex(regs.rax);
+    serial.print(", CR3: ");
+    const cr3 = asm volatile ("mov %%cr3, %[result]"
+        : [result] "=r" (-> u64),
+    );
+    serial.print_hex(cr3);
+    serial.print("\n");
 }
 
 // Context saved on kernel stack
 const SyscallContext = packed struct {
-    rax: u64,
-    rbx: u64,
-    rcx: u64,
-    rdx: u64,
-    rsi: u64,
-    rdi: u64,
-    rbp: u64,
-    r8: u64,
-    r9: u64,
-    r10: u64,
-    r11: u64,
-    r12: u64,
-    r13: u64,
-    r14: u64,
-    r15: u64,
-    user_cs: u64,
-    user_rip: u64,
-    user_ss: u64,
-    user_rflags: u64,
-    user_rsp: u64,
+    rax: u64, // 0
+    rbx: u64, // 8
+    rcx: u64, // 16
+    rdx: u64, // 24
+    rsi: u64, // 32
+    rdi: u64, // 40
+    rbp: u64, // 48
+    r8: u64, // 56
+    r9: u64, // 64
+    r10: u64, // 72
+    r11: u64, // 80
+    r12: u64, // 88
+    r13: u64, // 96
+    r14: u64, // 104
+    r15: u64, // 112
+    user_cs: u64, // 120
+    user_rip: u64, // 128
+    user_ss: u64, // 136
+    user_rflags: u64, // 144
+    user_rsp: u64, // 152
 };
 
 // Export for assembly to call - gets kernel stack from TSS
 export fn get_kernel_stack() u64 {
     return tss.get_kernel_stack();
+}
+
+export fn debug_saved_rip(rip: u64) void {
+    serial.print("Syscall entry: saved RIP = ");
+    serial.print_hex(rip);
+    serial.print("\n");
 }

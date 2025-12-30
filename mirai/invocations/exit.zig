@@ -18,6 +18,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const current_kata = sensei.get_current_kata() orelse return;
     const exit_code = ctx.rdi;
 
+    serial.print("!!! EXIT CALLED !!!\n");
     serial.print("Invocation: exit\n");
     serial.print("  Kata exit with code: ");
     serial.print_hex(exit_code);

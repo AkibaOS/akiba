@@ -190,6 +190,27 @@ export fn exception_handler(frame: *InterruptFrame) void {
 
     const int_num = frame.int_num;
 
+    // IMMEDIATE DEBUG
+    asm volatile (
+        \\mov $0x3F8, %%dx
+        \\mov $'E', %%al
+        \\out %%al, %%dx
+        \\mov $'X', %%al
+        \\out %%al, %%dx
+        \\mov $'C', %%al
+        \\out %%al, %%dx
+        \\mov $'!', %%al
+        \\out %%al, %%dx
+        \\mov $'\n', %%al
+        \\out %%al, %%dx
+        ::: .{ .rax = true, .rdx = true });
+
+    serial.print("\n!!! EXCEPTION ");
+    serial.print_hex(int_num);
+    serial.print(" at RIP ");
+    serial.print_hex(frame.rip);
+    serial.print(" !!!\n");
+
     // Build context for Crimson
     var context = panic.Context{
         .rax = frame.rax,

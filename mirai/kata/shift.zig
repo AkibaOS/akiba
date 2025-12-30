@@ -1,5 +1,4 @@
 //! Context Shifting - Save and restore Kata execution state
-//! Shifts between different Kata, preserving their execution context
 
 const kata_mod = @import("kata.zig");
 const gdt = @import("../boot/gdt.zig");
@@ -17,14 +16,26 @@ pub fn init() void {
 }
 
 pub fn shift_to_kata(target_kata: *Kata) void {
+    serial.print("\n=== Context Shift ===\n");
+    serial.print("Shifting to Kata ");
+    serial.print_hex(target_kata.id);
+    serial.print("\n");
+    serial.print("  Entry: ");
+    serial.print_hex(target_kata.context.rip);
+    serial.print("\n  Stack: ");
+    serial.print_hex(target_kata.context.rsp);
+    serial.print("\n  CR3: ");
+    serial.print_hex(target_kata.page_table);
+    serial.print("\n");
+
     // Update TSS kernel stack for this Kata
     tss.set_kernel_stack(target_kata.stack_top);
 
-    // Set current context pointer (for saving on interrupts)
+    // Set current context pointer for interrupt handling
     current_context = &target_kata.context;
 
-    // Perform the actual context shift (CR3 switch happens in assembly)
-    shift_context(&target_kata.context, target_kata.page_table);
+    // Perform context switch - pass kernel stack to ensure it's accessible after CR3 switch
+    shift_context(&target_kata.context, target_kata.page_table, target_kata.stack_top);
 }
 
 pub fn save_current_context(int_context: *const InterruptContext) void {
@@ -77,11 +88,20 @@ pub const InterruptContext = packed struct {
     ss: u64,
 };
 
-// Low-level context shift
-fn shift_context(ctx: *const Context, page_table: u64) void {
+fn shift_context(ctx: *const Context, page_table: u64, kernel_stack: u64) void {
+    const ctx_addr = @intFromPtr(ctx);
+    const pt = page_table;
+    const kstack = kernel_stack;
+
     asm volatile (
-        \\# RDI = ctx pointer, RSI = page_table
-        \\# Load iretq frame values into registers (while still in kernel page table)
+        \\# Load parameters
+        \\mov %[ctx_addr], %%rdi
+        \\mov %[pt], %%rsi
+        \\
+        \\# Switch to kata's higher-half kernel stack
+        \\mov %[kstack], %%rsp
+        \\
+        \\# Read iretq frame values from context struct
         \\mov 152(%%rdi), %%r12    # ctx.ss
         \\mov 56(%%rdi), %%r13     # ctx.rsp
         \\mov 136(%%rdi), %%r14    # ctx.rflags
@@ -89,14 +109,28 @@ fn shift_context(ctx: *const Context, page_table: u64) void {
         \\mov 128(%%rdi), %%rax    # ctx.rip
         \\
         \\# Build iretq frame
-        \\pushq %%r12              # SS
-        \\pushq %%r13              # RSP
-        \\pushq %%r14              # RFLAGS
-        \\pushq %%r15              # CS
-        \\pushq %%rax              # RIP
+        \\pushq %%r12
+        \\pushq %%r13
+        \\pushq %%r14
+        \\pushq %%r15
+        \\pushq %%rax
         \\
-        \\# Switch CR3 (AFTER reading ctx, BEFORE iretq)
+        \\# Switch to user page table
+        \\# Kernel code is at higher-half, so it stays accessible
+        \\# mov %%rsi, %%cr3
+        \\
+        \\# DEBUG: Print 'A' before CR3 switch
+        \\mov $0x3F8, %%dx
+        \\mov $'A', %%al
+        \\out %%al, %%dx
+        \\
+        \\# Switch to user page table
         \\mov %%rsi, %%cr3
+        \\
+        \\# DEBUG: Print 'B' after CR3 switch
+        \\mov $0x3F8, %%dx
+        \\mov $'B', %%al
+        \\out %%al, %%dx
         \\
         \\# Zero all registers for clean userspace entry
         \\xor %%rax, %%rax
@@ -115,10 +149,17 @@ fn shift_context(ctx: *const Context, page_table: u64) void {
         \\xor %%r14, %%r14
         \\xor %%r15, %%r15
         \\
+        \\# DEBUG: Print 'C' before iretq
+        \\mov $0x3F8, %%dx
+        \\mov $'C', %%al
+        \\out %%al, %%dx
+        \\
+        \\# Jump to userspace
         \\iretq
         :
-        : [ctx] "{rdi}" (ctx),
-          [pt] "{rsi}" (page_table),
+        : [ctx_addr] "r" (ctx_addr),
+          [pt] "r" (pt),
+          [kstack] "r" (kstack),
         : .{ .memory = true });
     unreachable;
 }
