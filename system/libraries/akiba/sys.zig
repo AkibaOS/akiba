@@ -8,7 +8,18 @@ pub const Invocation = enum(u64) {
     mark = 0x05,
     spawn = 0x06,
     wait = 0x07,
+    yield = 0x08,
 };
+
+pub fn syscall0(inv: Invocation) u64 {
+    var result: u64 = undefined;
+    asm volatile ("syscall"
+        : [ret] "={rax}" (result),
+        : [inv] "{rax}" (@intFromEnum(inv)),
+        : .{ .rcx = true, .r11 = true, .memory = true }
+    );
+    return result;
+}
 
 pub fn syscall1(inv: Invocation, arg1: u64) u64 {
     var result: u64 = undefined;
@@ -16,7 +27,8 @@ pub fn syscall1(inv: Invocation, arg1: u64) u64 {
         : [ret] "={rax}" (result),
         : [inv] "{rax}" (@intFromEnum(inv)),
           [arg1] "{rdi}" (arg1),
-        : .{ .memory = true });
+        : .{ .rcx = true, .r11 = true, .memory = true }
+    );
     return result;
 }
 
@@ -27,7 +39,8 @@ pub fn syscall2(inv: Invocation, arg1: u64, arg2: u64) u64 {
         : [inv] "{rax}" (@intFromEnum(inv)),
           [arg1] "{rdi}" (arg1),
           [arg2] "{rsi}" (arg2),
-        : .{ .memory = true });
+        : .{ .rcx = true, .r11 = true, .memory = true }
+    );
     return result;
 }
 
@@ -39,6 +52,7 @@ pub fn syscall3(inv: Invocation, arg1: u64, arg2: u64, arg3: u64) u64 {
           [arg1] "{rdi}" (arg1),
           [arg2] "{rsi}" (arg2),
           [arg3] "{rdx}" (arg3),
-        : .{ .memory = true });
+        : .{ .rcx = true, .r11 = true, .memory = true }
+    );
     return result;
 }

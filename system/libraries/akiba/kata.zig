@@ -2,6 +2,10 @@
 
 const sys = @import("sys.zig");
 
+pub fn yield() void {
+    _ = sys.syscall0(.yield);
+}
+
 pub fn exit(code: u64) noreturn {
     _ = sys.syscall1(.exit, code);
     unreachable;
