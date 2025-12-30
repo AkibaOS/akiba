@@ -11,6 +11,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("mirai/mirai.zig"),
         .target = target,
         .optimize = .ReleaseSmall,
+        .code_model = .kernel,
     });
 
     const kernel = b.addExecutable(.{
