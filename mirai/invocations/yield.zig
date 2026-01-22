@@ -10,8 +10,13 @@ pub fn invoke(context: *handler.InvocationContext) void {
         return;
     };
 
-    // Mark current kata as READY so scheduler can pick it again
+    // Mark current kata as READY
     current.state = kata_mod.KataState.Ready;
+
+    // Only enqueue if not already in queue
+    if (!sensei.is_in_queue(current)) {
+        sensei.enqueue_kata(current);
+    }
 
     // Trigger scheduler to pick next ready kata (might pick us again if we're only one)
     sensei.schedule();

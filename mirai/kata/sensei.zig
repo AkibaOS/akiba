@@ -5,6 +5,7 @@ const kata_mod = @import("kata.zig");
 const idt = @import("../interrupts/idt.zig");
 const serial = @import("../drivers/serial.zig");
 const shift = @import("shift.zig");
+const keyboard = @import("../drivers/keyboard.zig");
 
 const Kata = kata_mod.Kata;
 
@@ -86,12 +87,18 @@ pub fn dequeue_kata(target_kata: *Kata) void {
     }
 }
 
+// Check if a kata is already in the run queue
+pub fn is_in_queue(target_kata: *Kata) bool {
+    var current = run_queue_head;
+    while (current) |kata| {
+        if (kata == target_kata) return true;
+        current = kata.next;
+    }
+    return false;
+}
+
 // Pick next Kata to run (lowest vruntime)
 fn pick_next_kata() ?*Kata {
-    serial.print("pick_next_kata called, checking queue...\n");
-    serial.print("  run_queue_head: ");
-    serial.print_hex(@intFromPtr(run_queue_head));
-    serial.print("\n");
 
     // Debug: show all katas
     var i: usize = 0;
@@ -114,12 +121,6 @@ fn pick_next_kata() ?*Kata {
 
     serial.print("  Traversing queue:\n");
     while (current) |kata| {
-        serial.print("    Checking Kata ");
-        serial.print_hex(kata.id);
-        serial.print(", state ");
-        serial.print_hex(@intFromEnum(kata.state));
-        serial.print("\n");
-
         if (kata.state == .Ready and kata.vruntime < local_min_vruntime) {
             local_min_vruntime = kata.vruntime;
             chosen = kata;
@@ -137,7 +138,7 @@ fn pick_next_kata() ?*Kata {
         return k;
     }
 
-    // NEW: If no Ready kata, check if current_kata should keep running
+    // If no Ready kata, check if current_kata should keep running
     if (current_kata) |curr| {
         if (curr.state == .Running) {
             serial.print("  No Ready kata, continuing current: ");
@@ -163,6 +164,11 @@ fn pick_next_kata() ?*Kata {
 pub fn on_tick() void {
     tick_count += 1;
 
+    // Wake blocked katas if keyboard has input
+    if (tick_count % 5 == 0) { // Check every 5ms
+        wake_blocked_katas();
+    }
+
     if (current_kata) |kata| {
         const delta = (TICK_NANOSECONDS * 1024) / kata.weight;
         kata.vruntime += delta;
@@ -182,14 +188,7 @@ pub fn on_tick() void {
 
 // Main scheduling decision
 pub fn schedule() void {
-    const rbp = asm volatile ("mov %%rbp, %[ret]"
-        : [ret] "=r" (-> u64),
-    );
-    serial.print("\n=== Sensei Schedule (called from RBP: ");
-    serial.print_hex(rbp);
-    serial.print(") ===\n");
-    serial.print("\n=== Sensei Schedule ===\n");
-    wake_waiting_katas();
+    wake_all_waiting_katas();
 
     const next = pick_next_kata();
 
@@ -200,10 +199,12 @@ pub fn schedule() void {
         }
     }
 
-    // DON'T return early - always handle the shift properly
+    // If same kata is picked, we still need to dequeue it and set to Running
     if (next == current_kata and next != null) {
-        // Same kata, but we might be coming from interrupt
-        // Just continue - no shift needed
+        // Same kata picked - dequeue it since it was enqueued by yield
+        dequeue_kata(next.?);
+        next.?.state = .Running;
+        // No shift needed - just return
         return;
     }
 
@@ -229,7 +230,7 @@ pub fn schedule() void {
     }
 }
 
-fn wake_waiting_katas() void {
+fn wake_all_waiting_katas() void {
     var i: usize = 0;
     while (i < kata_mod.MAX_KATA) : (i += 1) {
         if (!kata_mod.kata_used[i]) continue;
@@ -251,6 +252,76 @@ fn wake_waiting_katas() void {
             enqueue_kata(kata);
             kata.waiting_for = 0;
         }
+    }
+}
+
+// Wake katas waiting for a specific kata (called when a kata dissolves)
+pub fn wake_waiting_katas(target_id: u32) void {
+    var i: usize = 0;
+    while (i < kata_mod.MAX_KATA) : (i += 1) {
+        if (!kata_mod.kata_used[i]) continue;
+
+        const kata = &kata_mod.kata_pool[i];
+        if (kata.state == .Waiting and kata.waiting_for == target_id) {
+            serial.print("Sensei: Waking Kata ");
+            serial.print_hex(kata.id);
+            serial.print(" (target ");
+            serial.print_hex(target_id);
+            serial.print(" dissolved)\n");
+
+            kata.state = .Ready;
+            enqueue_kata(kata);
+            kata.waiting_for = 0;
+        }
+    }
+}
+
+// Wake katas blocked on keyboard input
+fn wake_blocked_katas() void {
+    // Only wake if keyboard has input
+    if (!keyboard.has_input()) return;
+
+    // Wake only ONE blocked kata per character (FIFO order)
+    var i: usize = 0;
+    while (i < kata_mod.MAX_KATA) : (i += 1) {
+        if (!kata_mod.kata_used[i]) continue;
+
+        const kata = &kata_mod.kata_pool[i];
+        if (kata.state == .Blocked) {
+            kata.state = .Ready;
+            enqueue_kata(kata);
+            // Only wake one kata at a time for keyboard input
+            return;
+        }
+    }
+}
+
+// Wake one blocked kata (called from keyboard interrupt)
+pub fn wake_one_blocked_kata() void {
+    var i: usize = 0;
+    while (i < kata_mod.MAX_KATA) : (i += 1) {
+        if (!kata_mod.kata_used[i]) continue;
+
+        const kata = &kata_mod.kata_pool[i];
+        if (kata.state == .Blocked) {
+            kata.state = .Ready;
+            enqueue_kata(kata);
+            return;
+        }
+    }
+}
+
+// Wake a specific kata by ID (called from interrupt handlers)
+pub fn wake_kata(kata_id: u32) void {
+    const kata = kata_mod.get_kata(kata_id) orelse return;
+
+    if (kata.state == .Blocked) {
+        serial.print("Sensei: Waking blocked Kata ");
+        serial.print_hex(kata_id);
+        serial.print("\n");
+
+        kata.state = .Ready;
+        enqueue_kata(kata);
     }
 }
 

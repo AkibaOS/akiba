@@ -172,6 +172,7 @@ pub fn run(multiboot_info_addr: u64) void {
         boot_print("Initializing framebuffer... ");
         terminal.init(fb);
         crimson.init(fb);
+        multiboot.init_framebuffer(fb);
         terminal_ready = true;
         replay_messages();
         boot_ok();

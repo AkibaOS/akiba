@@ -179,8 +179,9 @@ prepare-filesystem: build-grub
 					echo "  ✓ pulse.akibainit"; \
 				else \
 					echo "  Wrapping $$sysname.akiba..."; \
-					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/$$sysname.akiba" cli && \
-					echo "  ✓ $$sysname.akiba"; \
+					mkdir -p "$(FS_ROOT)/system/$$sysname" && \
+					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/$$sysname/$$sysname.akiba" cli && \
+					echo "  ✓ system/$$sysname/$$sysname.akiba"; \
 				fi; \
 			fi; \
 		fi; \

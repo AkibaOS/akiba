@@ -192,6 +192,46 @@ pub fn get_physical_address(page_table: u64, vaddr: u64) !u64 {
     return (pt[pt_index] & ~@as(u64, 0xFFF)) + offset;
 }
 
+pub fn virt_to_phys(cr3: u64, virt: u64) ?u64 {
+    // Walk the 4-level page table
+    const pml4_addr = cr3 + HIGHER_HALF_START;
+    const pml4 = @as([*]u64, @ptrFromInt(pml4_addr));
+
+    const pml4_index = (virt >> 39) & 0x1FF;
+    const pml4_entry = pml4[pml4_index];
+
+    if ((pml4_entry & 1) == 0) return null; // Not present
+
+    const pdp_addr = (pml4_entry & 0x000FFFFFFFFFF000) + HIGHER_HALF_START;
+    const pdp = @as([*]u64, @ptrFromInt(pdp_addr));
+
+    const pdp_index = (virt >> 30) & 0x1FF;
+    const pdp_entry = pdp[pdp_index];
+
+    if ((pdp_entry & 1) == 0) return null; // Not present
+
+    const pd_addr = (pdp_entry & 0x000FFFFFFFFFF000) + HIGHER_HALF_START;
+    const pd = @as([*]u64, @ptrFromInt(pd_addr));
+
+    const pd_index = (virt >> 21) & 0x1FF;
+    const pd_entry = pd[pd_index];
+
+    if ((pd_entry & 1) == 0) return null; // Not present
+
+    const pt_addr = (pd_entry & 0x000FFFFFFFFFF000) + HIGHER_HALF_START;
+    const pt = @as([*]u64, @ptrFromInt(pt_addr));
+
+    const pt_index = (virt >> 12) & 0x1FF;
+    const pt_entry = pt[pt_index];
+
+    if ((pt_entry & 1) == 0) return null; // Not present
+
+    const phys_base = pt_entry & 0x000FFFFFFFFFF000;
+    const offset = virt & 0xFFF;
+
+    return phys_base + offset;
+}
+
 pub fn init() void {
     serial.print("\n=== Page Table Manager ===\n");
     serial.print("CR3: ");

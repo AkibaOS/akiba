@@ -20,9 +20,13 @@ pub fn spawn(path: []const u8) !u32 {
 }
 
 pub fn wait(pid: u32) !u64 {
-    const result = sys.syscall1(.wait, pid);
-    if (result == @as(u64, @bitCast(@as(i64, -1)))) {
-        return error.WaitFailed;
+    // Retry loop: keep checking until the target exits
+    while (true) {
+        const result = sys.syscall1(.wait, pid);
+        if (result != @as(u64, @bitCast(@as(i64, -1)))) {
+            return result;
+        }
+        // Target still running, yield and try again
+        yield();
     }
-    return result;
 }

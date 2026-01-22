@@ -20,6 +20,16 @@ pub const FramebufferInfo = struct {
 const MAX_MEMORY_ENTRIES = 32;
 var memory_entries: [MAX_MEMORY_ENTRIES]MemoryEntry = undefined;
 
+var saved_framebuffer: ?FramebufferInfo = null;
+
+pub fn init_framebuffer(fb: FramebufferInfo) void {
+    saved_framebuffer = fb;
+}
+
+pub fn get_framebuffer() ?FramebufferInfo {
+    return saved_framebuffer;
+}
+
 pub fn parse_memory_map(addr: u64) []MemoryEntry {
     serial.print("\n=== Multiboot2 Memory Map ===\n");
 

@@ -29,20 +29,23 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return;
     }
 
-    // Mark current Kata as waiting
-    if (sensei.get_current_kata()) |current| {
-        current.state = .Waiting;
-        current.waiting_for = target_id;
-    }
+    // Target is still running - block this kata
+    const current = sensei.get_current_kata() orelse {
+        ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
+        return;
+    };
 
-    // Schedule another Kata
+    serial.print("  Kata still running, blocking parent\n");
+    current.state = .Waiting;
+    current.waiting_for = target_id;
+
+    // Schedule another kata
     sensei.schedule();
 
-    // When we resume, the target has exited
-    const exit_code = target.exit_code;
-    serial.print("  Kata exited with code: ");
-    serial.print_hex(exit_code);
-    serial.print("\n");
-
-    ctx.rax = exit_code;
+    // When we return here, check if target has exited
+    if (target.state == .Dissolved) {
+        ctx.rax = target.exit_code;
+    } else {
+        ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
+    }
 }

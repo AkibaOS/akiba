@@ -1,6 +1,7 @@
 //! File I/O operations
 
 const sys = @import("sys.zig");
+const kata = @import("kata.zig");
 
 pub const Error = error{
     NotFound,
@@ -49,6 +50,21 @@ pub fn mark(fd: FileDescriptor, data: []const u8) Error!usize {
         return Error.WriteFailed;
     }
     return result;
+}
+
+pub fn getchar() !u8 {
+    // Loop until character is available, yielding CPU
+    while (true) {
+        const result = sys.syscall0(.getkeychar);
+        if (result != @as(u64, @bitCast(@as(i64, -2)))) {
+            if (result != @as(u64, @bitCast(@as(i64, -1)))) {
+                return @truncate(result);
+            }
+            return error.ReadFailed;
+        }
+        // No input yet (-2 = EAGAIN), yield and try again
+        kata.yield();
+    }
 }
 
 pub fn print(text: []const u8) Error!void {

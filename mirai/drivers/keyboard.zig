@@ -1,6 +1,7 @@
 //! PS/2 Keyboard Driver
 
 const serial = @import("serial.zig");
+const sensei = @import("../kata/sensei.zig");
 
 const KEYBOARD_DATA_PORT: u16 = 0x60;
 const KEYBOARD_STATUS_PORT: u16 = 0x64;
@@ -12,13 +13,11 @@ var ctrl_pressed = false;
 var alt_pressed = false;
 var caps_lock = false;
 
-// Input buffer for shell
+// Circular buffer for keyboard input
 const BUFFER_SIZE = 256;
-var input_buffer: [BUFFER_SIZE]u8 = undefined;
-var buffer_pos: usize = 0;
-
-// External function to send keys to terminal/shell
-extern fn on_key_typed(char: u8) void;
+var key_buffer: [BUFFER_SIZE]u8 = undefined;
+var read_pos: usize = 0;
+var write_pos: usize = 0;
 
 const SCANCODE_TO_ASCII: [128]u8 = .{
     0,    27,  '1', '2',  '3',  '4', '5',    '6',
@@ -145,38 +144,38 @@ fn handle_scancode(scancode: u8) void {
 }
 
 fn on_key_press(ascii: u8) void {
-    // Echo to serial
+    // Echo to serial only
     serial.write(ascii);
+    serial.print(" [keypress] write_pos=");
+    serial.print_hex(write_pos);
+    serial.print(", read_pos=");
+    serial.print_hex(read_pos);
+    serial.print("\n");
 
-    // Send to terminal/shell
-    on_key_typed(ascii);
+    // Add to circular buffer
+    const next_write = (write_pos + 1) % BUFFER_SIZE;
+    if (next_write != read_pos) {
+        key_buffer[write_pos] = ascii;
+        write_pos = next_write;
 
-    // Handle backspace
-    if (ascii == '\x08') {
-        if (buffer_pos > 0) {
-            buffer_pos -= 1;
-        }
-        return;
-    }
-
-    // Handle enter
-    if (ascii == '\n') {
-        serial.print("\n");
-        buffer_pos = 0;
-        return;
-    }
-
-    // Add to buffer
-    if (buffer_pos < BUFFER_SIZE - 1) {
-        input_buffer[buffer_pos] = ascii;
-        buffer_pos += 1;
+        // Wake one blocked kata waiting for keyboard input
+        sensei.wake_one_blocked_kata();
+    } else {
+        serial.print("Keyboard buffer full!\n");
     }
 }
 
-pub fn get_input_buffer() []const u8 {
-    return input_buffer[0..buffer_pos];
+pub fn has_input() bool {
+    return read_pos != write_pos;
 }
 
-pub fn clear_buffer() void {
-    buffer_pos = 0;
+// Non-blocking read
+pub fn read_char() ?u8 {
+    if (read_pos == write_pos) {
+        return null;
+    }
+
+    const char = key_buffer[read_pos];
+    read_pos = (read_pos + 1) % BUFFER_SIZE;
+    return char;
 }

@@ -9,6 +9,7 @@ pub const KataState = enum {
     Ready,
     Running,
     Waiting,
+    Blocked,
     Dissolved,
 };
 
@@ -207,10 +208,16 @@ pub fn get_kata(id: u32) ?*Kata {
 }
 
 pub fn dissolve_kata(kata_id: u32) void {
+    const sensei = @import("sensei.zig");
+
     for (&kata_pool, 0..) |*kata, i| {
         if (kata_used[i] and kata.id == kata_id) {
             kata.state = .Dissolved;
             kata_used[i] = false;
+
+            // Wake any katas waiting for this one
+            sensei.wake_waiting_katas(kata_id);
+
             return;
         }
     }

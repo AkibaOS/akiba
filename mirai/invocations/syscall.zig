@@ -225,17 +225,17 @@ export fn handle_syscall(ctx_ptr: u64) void {
     // Write back return value (RAX)
     regs.rax = inv_ctx.rax;
 
-    // DEBUG: Log what we're returning
-    serial.print("Syscall complete, returning to RIP: ");
-    serial.print_hex(regs.user_rip);
-    serial.print(", RAX: ");
-    serial.print_hex(regs.rax);
-    serial.print(", CR3: ");
-    const cr3 = asm volatile ("mov %%cr3, %[result]"
-        : [result] "=r" (-> u64),
-    );
-    serial.print_hex(cr3);
-    serial.print("\n");
+    // // DEBUG: Log what we're returning
+    // serial.print("Syscall complete, returning to RIP: ");
+    // serial.print_hex(regs.user_rip);
+    // serial.print(", RAX: ");
+    // serial.print_hex(regs.rax);
+    // serial.print(", CR3: ");
+    // const cr3 = asm volatile ("mov %%cr3, %[result]"
+    //     : [result] "=r" (-> u64),
+    // );
+    // serial.print_hex(cr3);
+    // serial.print("\n");
 }
 
 // Context saved on kernel stack

@@ -14,6 +14,7 @@ const spawn = @import("spawn.zig");
 const view = @import("view.zig");
 const wait = @import("wait.zig");
 const yield = @import("yield.zig");
+const getkeychar = @import("getkeychar.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     serial.print("\n=== Invocation Handler ===\n");
@@ -41,6 +42,7 @@ pub fn handle_invocation(context: *InvocationContext) void {
         0x06 => spawn.invoke(context),
         0x07 => wait.invoke(context),
         0x08 => yield.invoke(context),
+        0x09 => getkeychar.invoke(context),
         else => {
             serial.print("Unknown invocation: ");
             serial.print_hex(invocation_num);
