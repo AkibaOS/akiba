@@ -53,7 +53,7 @@ pub fn mark(fd: FileDescriptor, data: []const u8) Error!usize {
 }
 
 pub fn getchar() !u8 {
-    // Loop until character is available (busy-wait for now)
+    // Loop until character is available
     while (true) {
         const result = sys.syscall0(.getkeychar);
         if (result != @as(u64, @bitCast(@as(i64, -2)))) {
@@ -62,8 +62,8 @@ pub fn getchar() !u8 {
             }
             return error.ReadFailed;
         }
-        // No input yet (-2 = EAGAIN), busy-wait and try again
-        // kata.yield();  // Disabled for now to avoid stack issues
+        // No input yet (-2 = EAGAIN), yield to kernel
+        kata.yield();
     }
 }
 

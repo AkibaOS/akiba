@@ -1,12 +1,13 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
+const constants = @import("../memory/constants.zig");
 const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gdt = @import("gdt.zig");
 const gpt = @import("../fs/gpt.zig");
-const hikari = @import("../hikari/loader.zig");
 const heap = @import("../memory/heap.zig");
+const hikari = @import("../hikari/loader.zig");
 const idt = @import("../interrupts/idt.zig");
 const invocations = @import("../invocations/handler.zig");
 const kata = @import("../kata/kata.zig");
@@ -70,14 +71,8 @@ pub fn run(multiboot_info_addr: u64) void {
     const memory_map = multiboot.parse_memory_map(multiboot_info_addr);
     boot_ok();
 
-    const kernel_end: u64 = 0x500000;
-
     boot_print("Initializing physical memory manager... ");
-    pmm.init(kernel_end, memory_map);
-    boot_ok();
-
-    boot_print("Initializing paging... ");
-    paging.init();
+    pmm.init(constants.KERNEL_END, memory_map);
     boot_ok();
 
     boot_print("Initializing heap allocator... ");
@@ -88,24 +83,12 @@ pub fn run(multiboot_info_addr: u64) void {
     kata.init();
     boot_ok();
 
-    boot_print("Initializing Sensei scheduler... ");
-    sensei.init();
-    boot_ok();
-
-    boot_print("Initializing context shifting... ");
-    shift.init();
-    boot_ok();
-
     boot_print("Setting up task state segment... ");
     tss.init();
     boot_ok();
 
     boot_print("Setting up global descriptor table... ");
     gdt.init();
-    boot_ok();
-
-    boot_print("Initializing Hikari loader... ");
-    hikari.init();
     boot_ok();
 
     boot_print("Setting up interrupt descriptor table... ");
@@ -188,15 +171,16 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_print_color("Boot sequence completed successfully!\n", COLOR_OK);
     delay(10);
 
-    // Load Pulse
+    // Initialize Pulse (load init system)
     boot_print("Initializing Pulse init system... ");
-    const pulse_id = hikari.load_init_system(&fs) catch |err| {
+    const pulse_id = hikari.init(&fs) catch |err| {
         serial.print("Failed to load Pulse: ");
         serial.print(@errorName(err));
         serial.print("\n");
         crimson.collapse("Akiba's Pulse is missing. System is dying.", null);
     };
     _ = pulse_id;
+    boot_ok();
 
     if (terminal_ready) {
         terminal.clear_screen();

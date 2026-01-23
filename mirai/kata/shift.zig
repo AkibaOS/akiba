@@ -10,8 +10,6 @@ const Context = kata_mod.Context;
 
 var current_context: ?*Context = null;
 
-pub fn init() void {}
-
 pub fn shift_to_kata(target_kata: *Kata) void {
     // Update TSS kernel stack for this Kata
     tss.set_kernel_stack(target_kata.stack_top);

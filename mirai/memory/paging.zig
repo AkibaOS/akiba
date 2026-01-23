@@ -1,18 +1,18 @@
 //! Page Table Manager - Hybrid kernel with independent user page tables
 
+const constants = @import("constants.zig");
 const pmm = @import("pmm.zig");
 const serial = @import("../drivers/serial.zig");
 
-pub const PAGE_SIZE: u64 = 4096;
-pub const HIGHER_HALF_START: u64 = 0xFFFF800000000000;
+pub const PAGE_SIZE = constants.PAGE_SIZE;
+pub const HIGHER_HALF_START = constants.HIGHER_HALF_START;
 
-const PAGE_PRESENT: u64 = 1 << 0;
-const PAGE_WRITABLE: u64 = 1 << 1;
-const PAGE_USER: u64 = 1 << 2;
+pub const PAGE_PRESENT: u64 = 1 << 0;
+pub const PAGE_WRITABLE: u64 = 1 << 1;
+pub const PAGE_USER: u64 = 1 << 2;
 
-// Kernel occupies 0x100000 - 0x500000 (4MB)
-const KERNEL_START: u64 = 0x100000;
-const KERNEL_END: u64 = 0x500000;
+const KERNEL_START = constants.KERNEL_START;
+const KERNEL_END = constants.KERNEL_END;
 
 fn get_cr3() u64 {
     return asm volatile ("mov %%cr3, %[result]"
@@ -24,7 +24,7 @@ fn invlpg(addr: u64) void {
     asm volatile ("invlpg (%[addr])"
         :
         : [addr] "r" (addr),
-        : .{ .memory = true });
+    );
 }
 
 fn zero_page(virt: u64) void {
@@ -46,40 +46,78 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     const pml4: [*]volatile u64 = @ptrFromInt(pml4_phys + HIGHER_HALF_START);
 
     var pdpt_phys: u64 = undefined;
+    var pdpt_was_new = false;
     if ((pml4[pml4_index] & PAGE_PRESENT) == 0) {
         pdpt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        zero_page(pdpt_phys + HIGHER_HALF_START);
+        serial.print("      [map_page] NEW PDPT phys=");
+        serial.print_hex(pdpt_phys);
+        serial.print(" PML4[");
+        serial.print_hex(pml4_index);
+        serial.print("]\n");
+        // Don't zero - page might be reused from boot tables
+        // Instead, we'll link it and entries will be created on-demand
         pml4[pml4_index] = pdpt_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
+        pdpt_was_new = true;
     } else {
         pdpt_phys = pml4[pml4_index] & ~@as(u64, 0xFFF);
     }
 
     const pdpt: [*]volatile u64 = @ptrFromInt(pdpt_phys + HIGHER_HALF_START);
 
+    // If we just created this PDPT, zero only the entry we're about to use
+    if (pdpt_was_new) {
+        pdpt[pdpt_index] = 0;
+    }
+
     var pd_phys: u64 = undefined;
+    var pd_was_new = false;
     if ((pdpt[pdpt_index] & PAGE_PRESENT) == 0) {
         pd_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        zero_page(pd_phys + HIGHER_HALF_START);
+        serial.print("      [map_page] NEW PD phys=");
+        serial.print_hex(pd_phys);
+        serial.print(" PDPT[");
+        serial.print_hex(pdpt_index);
+        serial.print("]\n");
+        // Don't zero - page might be reused from boot tables
         pdpt[pdpt_index] = pd_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
+        pd_was_new = true;
     } else {
         pd_phys = pdpt[pdpt_index] & ~@as(u64, 0xFFF);
     }
 
     const pd: [*]volatile u64 = @ptrFromInt(pd_phys + HIGHER_HALF_START);
 
+    // If we just created this PD, zero only the entry we're about to use
+    if (pd_was_new) {
+        pd[pd_index] = 0;
+    }
+
     var pt_phys: u64 = undefined;
+    var pt_was_new = false;
     if ((pd[pd_index] & PAGE_PRESENT) == 0) {
         pt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        zero_page(pt_phys + HIGHER_HALF_START);
+        serial.print("      [map_page] NEW PT phys=");
+        serial.print_hex(pt_phys);
+        serial.print(" PD[");
+        serial.print_hex(pd_index);
+        serial.print("]\n");
+        // Don't zero - page might be reused from boot tables
         pd[pd_index] = pt_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
+        pt_was_new = true;
     } else {
         pt_phys = pd[pd_index] & ~@as(u64, 0xFFF);
     }
 
     const pt: [*]volatile u64 = @ptrFromInt(pt_phys + HIGHER_HALF_START);
 
+    // If we just created this PT, zero only the entry we're about to use
+    if (pt_was_new) {
+        pt[pt_index] = 0;
+    }
+
     pt[pt_index] = phys | PAGE_PRESENT | flags;
 
+    // Flush TLB for the new mapping
     invlpg(virt);
 }
 
@@ -166,6 +204,8 @@ pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64)
         return .{ false, phys };
     } else {
         const existing_phys = pt[pt_index] & ~@as(u64, 0xFFF);
+        // Update entry if flags changed (e.g., upgrading to writable)
+        pt[pt_index] = existing_phys | flags | PAGE_PRESENT;
         return .{ true, existing_phys };
     }
 }
@@ -190,6 +230,30 @@ pub fn get_physical_address(page_table: u64, vaddr: u64) !u64 {
     if ((pt[pt_index] & 1) == 0) return error.NotMapped;
 
     return (pt[pt_index] & ~@as(u64, 0xFFF)) + offset;
+}
+
+// Get the page table entry for a virtual address (returns null if not mapped)
+pub fn get_page_entry(page_table_phys: u64, virt: u64) ?u64 {
+    const pml4_index = (virt >> 39) & 0x1FF;
+    const pdpt_index = (virt >> 30) & 0x1FF;
+    const pd_index = (virt >> 21) & 0x1FF;
+    const pt_index = (virt >> 12) & 0x1FF;
+
+    const pml4: [*]volatile u64 = @ptrFromInt(page_table_phys + HIGHER_HALF_START);
+    if ((pml4[pml4_index] & PAGE_PRESENT) == 0) return null;
+
+    const pdpt_phys = pml4[pml4_index] & ~@as(u64, 0xFFF);
+    const pdpt: [*]volatile u64 = @ptrFromInt(pdpt_phys + HIGHER_HALF_START);
+    if ((pdpt[pdpt_index] & PAGE_PRESENT) == 0) return null;
+
+    const pd_phys = pdpt[pdpt_index] & ~@as(u64, 0xFFF);
+    const pd: [*]volatile u64 = @ptrFromInt(pd_phys + HIGHER_HALF_START);
+    if ((pd[pd_index] & PAGE_PRESENT) == 0) return null;
+
+    const pt_phys = pd[pd_index] & ~@as(u64, 0xFFF);
+    const pt: [*]volatile u64 = @ptrFromInt(pt_phys + HIGHER_HALF_START);
+
+    return pt[pt_index];
 }
 
 pub fn virt_to_phys(cr3: u64, virt: u64) ?u64 {
@@ -231,5 +295,3 @@ pub fn virt_to_phys(cr3: u64, virt: u64) ?u64 {
 
     return phys_base + offset;
 }
-
-pub fn init() void {}

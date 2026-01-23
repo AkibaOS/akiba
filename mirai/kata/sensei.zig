@@ -21,8 +21,6 @@ var tick_count: u64 = 0;
 
 const TICK_NANOSECONDS: u64 = 1_000_000; // 1ms per tick
 
-pub fn init() void {}
-
 // Add Kata to run queue (sorted by vruntime)
 pub fn enqueue_kata(new_kata: *Kata) void {
     new_kata.state = .Ready;

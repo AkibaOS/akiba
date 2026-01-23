@@ -1,10 +1,11 @@
 //! Physical Memory Manager - Tracks free/used 4KB pages using a bitmap
 
-const serial = @import("../drivers/serial.zig");
+const constants = @import("constants.zig");
 const multiboot = @import("../boot/multiboot2.zig");
+const serial = @import("../drivers/serial.zig");
 
-const PAGE_SIZE: u64 = 4096;
-const HIGHER_HALF_START: u64 = 0xFFFF800000000000;
+const PAGE_SIZE = constants.PAGE_SIZE;
+const HIGHER_HALF_START = constants.HIGHER_HALF_START;
 
 var bitmap: [*]u8 = undefined;
 var bitmap_size: usize = 0;
@@ -71,6 +72,14 @@ pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     reserve_region(0, 0x100000); // Reserve first 1MB
     reserve_region(0x100000, kernel_size);
     reserve_region(bitmap_phys, bitmap_pages * PAGE_SIZE);
+
+    // Reserve MMIO regions (PCI, AHCI, framebuffer, etc.)
+    // PCI configuration space and above
+    reserve_region(0xE0000000, 0x10000000); // 256MB PCI MMIO region
+    reserve_region(0x80000000, 0x10000000); // Framebuffer and device MMIO (includes AHCI ABAR at 0x81084000)
+
+    // Reserve currently active page tables to prevent reallocation
+    reserve_active_page_tables();
 
     serial.print("Free pages: ");
     serial.print_hex(total_pages - used_pages);
@@ -160,4 +169,53 @@ fn align_up(addr: u64, alignment: u64) u64 {
 
 fn align_down(addr: u64, alignment: u64) u64 {
     return addr & ~(alignment - 1);
+}
+
+fn get_cr3() u64 {
+    return asm volatile ("mov %%cr3, %[result]"
+        : [result] "=r" (-> u64),
+    );
+}
+
+/// Reserve all page table pages currently in use by walking CR3 hierarchy
+fn reserve_active_page_tables() void {
+    const PAGE_PRESENT: u64 = 1;
+
+    const cr3 = get_cr3() & ~@as(u64, 0xFFF);
+
+    // Reserve PML4 page
+    reserve_region(cr3, PAGE_SIZE);
+
+    const pml4: [*]volatile u64 = @ptrFromInt(cr3 + HIGHER_HALF_START);
+
+    // Walk PML4
+    var pml4_i: usize = 0;
+    while (pml4_i < 512) : (pml4_i += 1) {
+        if ((pml4[pml4_i] & PAGE_PRESENT) == 0) continue;
+
+        const pdpt_phys = pml4[pml4_i] & ~@as(u64, 0xFFF);
+        reserve_region(pdpt_phys, PAGE_SIZE);
+
+        const pdpt: [*]volatile u64 = @ptrFromInt(pdpt_phys + HIGHER_HALF_START);
+
+        // Walk PDPT
+        var pdpt_i: usize = 0;
+        while (pdpt_i < 512) : (pdpt_i += 1) {
+            if ((pdpt[pdpt_i] & PAGE_PRESENT) == 0) continue;
+
+            const pd_phys = pdpt[pdpt_i] & ~@as(u64, 0xFFF);
+            reserve_region(pd_phys, PAGE_SIZE);
+
+            const pd: [*]volatile u64 = @ptrFromInt(pd_phys + HIGHER_HALF_START);
+
+            // Walk PD
+            var pd_i: usize = 0;
+            while (pd_i < 512) : (pd_i += 1) {
+                if ((pd[pd_i] & PAGE_PRESENT) == 0) continue;
+
+                const pt_phys = pd[pd_i] & ~@as(u64, 0xFFF);
+                reserve_region(pt_phys, PAGE_SIZE);
+            }
+        }
+    }
 }
