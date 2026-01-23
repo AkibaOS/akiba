@@ -1,9 +1,9 @@
 //! Wait invocation - Wait for child Kata to exit
 
 const handler = @import("handler.zig");
-const serial = @import("../drivers/serial.zig");
-const sensei = @import("../kata/sensei.zig");
 const kata_mod = @import("../kata/kata.zig");
+const sensei = @import("../kata/sensei.zig");
+const serial = @import("../drivers/serial.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {
     const target_id = @as(u32, @truncate(ctx.rdi));

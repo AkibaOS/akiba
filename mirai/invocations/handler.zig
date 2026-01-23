@@ -3,18 +3,17 @@
 
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-const serial = @import("../drivers/serial.zig");
-const syscall = @import("syscall.zig");
-
 const attach = @import("attach.zig");
 const exit = @import("exit.zig");
+const getkeychar = @import("getkeychar.zig");
 const mark = @import("mark.zig");
 const seal = @import("seal.zig");
+const serial = @import("../drivers/serial.zig");
 const spawn = @import("spawn.zig");
+const syscall = @import("syscall.zig");
 const view = @import("view.zig");
 const wait = @import("wait.zig");
 const yield = @import("yield.zig");
-const getkeychar = @import("getkeychar.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     // Set AFS instance for all invocations that need it

@@ -2,8 +2,8 @@
 //! Tracks open files and device access for each running Kata
 
 const afs = @import("../fs/afs.zig");
-const terminal = @import("../terminal.zig");
 const serial = @import("../drivers/serial.zig");
+const terminal = @import("../terminal.zig");
 
 pub const FDType = enum {
     Regular, // Normal AFS file

@@ -1,17 +1,16 @@
 //! Attach invocation - Open file descriptor
 
-const handler = @import("handler.zig");
-const sensei = @import("../kata/sensei.zig");
-const kata_mod = @import("../kata/kata.zig");
-const serial = @import("../drivers/serial.zig");
-const fd_mod = @import("../kata/fd.zig");
-const heap = @import("../memory/heap.zig");
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-
-const path_utils = @import("../utils/path.zig");
-const string_utils = @import("../utils/string.zig");
+const fd_mod = @import("../kata/fd.zig");
 const fd_utils = @import("../utils/fd.zig");
+const handler = @import("handler.zig");
+const heap = @import("../memory/heap.zig");
+const kata_mod = @import("../kata/kata.zig");
+const path_utils = @import("../utils/path.zig");
+const sensei = @import("../kata/sensei.zig");
+const serial = @import("../drivers/serial.zig");
+const string_utils = @import("../utils/string.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 

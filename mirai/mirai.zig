@@ -1,6 +1,6 @@
 const crimson = @import("crimson/panic.zig");
-const serial = @import("drivers/serial.zig");
 const sequence = @import("boot/sequence.zig");
+const serial = @import("drivers/serial.zig");
 
 export fn mirai(multiboot_info_addr: u64) noreturn {
     serial.init();

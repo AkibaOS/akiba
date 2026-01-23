@@ -1,11 +1,11 @@
 //! Sensei - The Kata scheduler using CFS-lite algorithm
 //! Sensei (先生) = Teacher/master who guides all Kata
 
-const kata_mod = @import("kata.zig");
 const idt = @import("../interrupts/idt.zig");
+const kata_mod = @import("kata.zig");
+const keyboard = @import("../drivers/keyboard.zig");
 const serial = @import("../drivers/serial.zig");
 const shift = @import("shift.zig");
-const keyboard = @import("../drivers/keyboard.zig");
 
 const Kata = kata_mod.Kata;
 

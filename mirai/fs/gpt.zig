@@ -1,6 +1,7 @@
 //! GPT Partition Table Parser for AFS
 
 const serial = @import("../drivers/serial.zig");
+const std = @import("std");
 
 pub const Partition = struct {
     start_lba: u64,
@@ -64,5 +65,3 @@ fn read_u64_le(bytes: []const u8) u64 {
         (@as(u64, bytes[6]) << 48) |
         (@as(u64, bytes[7]) << 56);
 }
-
-const std = @import("std");

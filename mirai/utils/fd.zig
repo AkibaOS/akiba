@@ -1,12 +1,12 @@
 //! File descriptor utilities
 
-const kata_mod = @import("../kata/kata.zig");
-const fd_mod = @import("../kata/fd.zig");
-const heap = @import("../memory/heap.zig");
-const serial = @import("../drivers/serial.zig");
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
+const fd_mod = @import("../kata/fd.zig");
+const heap = @import("../memory/heap.zig");
+const kata_mod = @import("../kata/kata.zig");
 const path_utils = @import("path.zig");
+const serial = @import("../drivers/serial.zig");
 
 /// Allocate a free file descriptor (starting from 3)
 pub fn allocate_fd(kata: *kata_mod.Kata) !u32 {

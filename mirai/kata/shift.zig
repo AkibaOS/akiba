@@ -1,9 +1,9 @@
 //! Context Shifting - Save and restore Kata execution state
 
-const kata_mod = @import("kata.zig");
 const gdt = @import("../boot/gdt.zig");
-const tss = @import("../boot/tss.zig");
+const kata_mod = @import("kata.zig");
 const serial = @import("../drivers/serial.zig");
+const tss = @import("../boot/tss.zig");
 
 const Kata = kata_mod.Kata;
 const Context = kata_mod.Context;

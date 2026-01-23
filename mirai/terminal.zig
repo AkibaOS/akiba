@@ -1,9 +1,9 @@
 //! Terminal/Console Manager
 
-const font = @import("graphics/fonts/psf.zig");
 const boot = @import("boot/multiboot2.zig");
-const video = @import("graphics/video.zig");
+const font = @import("graphics/fonts/psf.zig");
 const serial = @import("drivers/serial.zig");
+const video = @import("graphics/video.zig");
 
 var framebuffer: ?boot.FramebufferInfo = null;
 var cursor_x: u32 = 0;

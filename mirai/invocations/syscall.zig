@@ -1,8 +1,8 @@
 //! SYSCALL/SYSRET implementation - Invocation mechanism using MSRs (Model Specific Registers)
 
 const gdt = @import("../boot/gdt.zig");
-const serial = @import("../drivers/serial.zig");
 const handler = @import("handler.zig");
+const serial = @import("../drivers/serial.zig");
 const tss = @import("../boot/tss.zig");
 
 // MSR addresses

@@ -1,12 +1,12 @@
 //! Exit invocation - Terminate Kata
 
-const handler = @import("handler.zig");
-const sensei = @import("../kata/sensei.zig");
-const kata_mod = @import("../kata/kata.zig");
-const serial = @import("../drivers/serial.zig");
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const fd_utils = @import("../utils/fd.zig");
+const handler = @import("handler.zig");
+const kata_mod = @import("../kata/kata.zig");
+const sensei = @import("../kata/sensei.zig");
+const serial = @import("../drivers/serial.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 

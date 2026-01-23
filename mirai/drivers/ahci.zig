@@ -1,9 +1,9 @@
 //! AHCI (Advanced Host Controller Interface) SATA driver
 
-const serial = @import("serial.zig");
+const paging = @import("../memory/paging.zig");
 const pci = @import("pci.zig");
 const pmm = @import("../memory/pmm.zig");
-const paging = @import("../memory/paging.zig");
+const serial = @import("serial.zig");
 
 pub const SECTOR_SIZE = 512;
 const HIGHER_HALF_START: u64 = 0xFFFF800000000000;

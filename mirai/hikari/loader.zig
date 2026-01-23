@@ -1,18 +1,18 @@
 //! Hikari - The ELF loader
 //! Hikari (光) = Light - illuminates programs into execution
 
-const serial = @import("../drivers/serial.zig");
-const heap = @import("../memory/heap.zig");
-const pmm = @import("../memory/pmm.zig");
-const paging = @import("../memory/paging.zig");
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
+const boot = @import("../boot/multiboot2.zig");
 const elf = @import("elf.zig");
 const format = @import("format.zig");
-const kata_mod = @import("../kata/kata.zig");
-const sensei = @import("../kata/sensei.zig");
 const gdt = @import("../boot/gdt.zig");
-const boot = @import("../boot/multiboot2.zig");
+const heap = @import("../memory/heap.zig");
+const kata_mod = @import("../kata/kata.zig");
+const paging = @import("../memory/paging.zig");
+const pmm = @import("../memory/pmm.zig");
+const sensei = @import("../kata/sensei.zig");
+const serial = @import("../drivers/serial.zig");
 
 const HIGHER_HALF: u64 = 0xFFFF800000000000;
 const USER_STACK_TOP: u64 = 0x00007FFFFFF00000;

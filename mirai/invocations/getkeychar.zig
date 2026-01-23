@@ -1,7 +1,7 @@
 //! Getkeychar invocation - read one character from keyboard
 
-const keyboard = @import("../drivers/keyboard.zig");
 const handler = @import("handler.zig");
+const keyboard = @import("../drivers/keyboard.zig");
 const serial = @import("../drivers/serial.zig");
 
 pub fn invoke(context: *handler.InvocationContext) void {

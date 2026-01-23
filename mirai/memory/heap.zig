@@ -1,8 +1,8 @@
 //! Kernel Heap Allocator
 //! Size-segregated allocator with object caching
 
-const serial = @import("../drivers/serial.zig");
 const pmm = @import("pmm.zig");
+const serial = @import("../drivers/serial.zig");
 
 const PAGE_SIZE: usize = 4096;
 const HIGHER_HALF_START: u64 = 0xFFFF800000000000;

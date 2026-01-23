@@ -1,8 +1,8 @@
 //! Yield invocation - voluntarily give up CPU time
 
-const sensei = @import("../kata/sensei.zig");
-const kata_mod = @import("../kata/kata.zig");
 const handler = @import("handler.zig");
+const kata_mod = @import("../kata/kata.zig");
+const sensei = @import("../kata/sensei.zig");
 
 pub fn invoke(context: *handler.InvocationContext) void {
     const current = sensei.get_current_kata() orelse {

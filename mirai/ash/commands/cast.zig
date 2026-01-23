@@ -1,11 +1,11 @@
 //! Cast command - Execute .akiba binaries
 //! Cast = Execute (matching our AI Table invocation naming)
 
-const terminal = @import("../../terminal.zig");
-const serial = @import("../../drivers/serial.zig");
-const hikari = @import("../../hikari/loader.zig");
 const afs = @import("../../fs/afs.zig");
 const ahci = @import("../../drivers/ahci.zig");
+const hikari = @import("../../hikari/loader.zig");
+const serial = @import("../../drivers/serial.zig");
+const terminal = @import("../../terminal.zig");
 
 pub fn execute(fs: *afs.AFS(ahci.BlockDevice), args: []const []const u8) void {
     if (args.len == 0) {

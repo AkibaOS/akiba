@@ -1,6 +1,7 @@
 //! Akiba Executable Format (.akiba)
 //! Wraps ELF64 with Akiba-specific metadata and branding
 
+const elf = @import("elf.zig");
 const serial = @import("../drivers/serial.zig");
 
 // Akiba magic signature

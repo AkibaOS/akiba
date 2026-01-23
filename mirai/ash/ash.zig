@@ -1,10 +1,9 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-const terminal = @import("../terminal.zig");
-
 const cast = @import("commands/cast.zig");
 const mi = @import("commands/mi.zig");
 const nav = @import("commands/nav.zig");
+const terminal = @import("../terminal.zig");
 
 const MAX_INPUT: usize = 256;
 const MAX_ARGS: usize = 16;

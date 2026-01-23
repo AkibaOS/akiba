@@ -1,12 +1,12 @@
 //! Spawn invocation - Create new Kata from executable
 
-const handler = @import("handler.zig");
-const serial = @import("../drivers/serial.zig");
-const hikari = @import("../hikari/loader.zig");
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-const string_utils = @import("../utils/string.zig");
+const handler = @import("handler.zig");
+const hikari = @import("../hikari/loader.zig");
 const sensei = @import("../kata/sensei.zig");
+const serial = @import("../drivers/serial.zig");
+const string_utils = @import("../utils/string.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 

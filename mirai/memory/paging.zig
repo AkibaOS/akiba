@@ -1,7 +1,7 @@
 //! Page Table Manager - Hybrid kernel with independent user page tables
 
-const serial = @import("../drivers/serial.zig");
 const pmm = @import("pmm.zig");
+const serial = @import("../drivers/serial.zig");
 
 pub const PAGE_SIZE: u64 = 4096;
 pub const HIGHER_HALF_START: u64 = 0xFFFF800000000000;
