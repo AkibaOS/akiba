@@ -82,8 +82,21 @@ pub fn put_char(char: u8) void {
 }
 
 pub fn put_char_color(char: u8, color: u32) void {
-    if (framebuffer == null) return;
+    if (framebuffer == null) {
+        serial.print("terminal.put_char_color: framebuffer is null!\n");
+        return;
+    }
     const fb = framebuffer.?;
+
+    serial.print("terminal.put_char_color: char=");
+    serial.print_hex(char);
+    serial.print(", fb.addr=");
+    serial.print_hex(fb.addr);
+    serial.print(", cursor_x=");
+    serial.print_hex(cursor_x);
+    serial.print(", cursor_y=");
+    serial.print_hex(cursor_y);
+    serial.print("\n");
 
     switch (char) {
         '\n' => {

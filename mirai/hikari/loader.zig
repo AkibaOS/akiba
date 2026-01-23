@@ -16,7 +16,7 @@ const boot = @import("../boot/multiboot2.zig");
 
 const HIGHER_HALF: u64 = 0xFFFF800000000000;
 const USER_STACK_TOP: u64 = 0x00007FFFFFF00000;
-const USER_STACK_PAGES: u64 = 4;
+const USER_STACK_PAGES: u64 = 64; // 256KB stack (was 4 pages = 16KB)
 
 pub fn init() void {
     serial.print("Hikari loader initialized\n");

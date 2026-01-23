@@ -94,7 +94,23 @@ fn get_char_bitmap(char: u8) ?[]const u8 {
 }
 
 pub fn render_text(text: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
-    if (font_info == null) return;
+    if (font_info == null) {
+        serial.print("psf.render_text: font_info is null!\n");
+        return;
+    }
+
+    serial.print("psf.render_text: text='");
+    for (text) |c| {
+        serial.print_hex(c);
+        serial.print(" ");
+    }
+    serial.print("', x=");
+    serial.print_hex(x);
+    serial.print(", y=");
+    serial.print_hex(y);
+    serial.print(", fb.addr=");
+    serial.print_hex(fb.addr);
+    serial.print("\n");
 
     const info = font_info.?;
     var current_x = x;

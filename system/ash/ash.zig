@@ -5,6 +5,7 @@ const akiba = @import("akiba");
 const MAX_INPUT = 256;
 var input_buffer: [MAX_INPUT]u8 = undefined;
 var input_len: usize = 0;
+var char_buffer: [1]u8 = undefined; // Static buffer for single char echoing
 
 export fn _start() noreturn {
     while (true) {
@@ -30,8 +31,8 @@ export fn _start() noreturn {
                 input_buffer[input_len] = char;
                 input_len += 1;
                 // Echo character to screen
-                const char_str = [_]u8{char};
-                akiba.io.print(&char_str) catch {};
+                char_buffer[0] = char;
+                akiba.io.print(&char_buffer) catch {};
             }
         }
 
