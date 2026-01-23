@@ -144,14 +144,6 @@ fn handle_scancode(scancode: u8) void {
 }
 
 fn on_key_press(ascii: u8) void {
-    // Echo to serial only
-    serial.write(ascii);
-    serial.print(" [keypress] write_pos=");
-    serial.print_hex(write_pos);
-    serial.print(", read_pos=");
-    serial.print_hex(read_pos);
-    serial.print("\n");
-
     // Add to circular buffer
     const next_write = (write_pos + 1) % BUFFER_SIZE;
     if (next_write != read_pos) {
@@ -160,8 +152,6 @@ fn on_key_press(ascii: u8) void {
 
         // Wake one blocked kata waiting for keyboard input
         sensei.wake_one_blocked_kata();
-    } else {
-        serial.print("Keyboard buffer full!\n");
     }
 }
 

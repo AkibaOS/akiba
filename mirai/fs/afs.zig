@@ -67,8 +67,6 @@ pub fn AFS(comptime BlockDeviceType: type) type {
         };
 
         pub fn init(device: *BlockDeviceType, partition_offset: u64) !Self {
-            serial.print("Initializing Akiba File System...\n");
-
             var boot_sector: [SECTOR_SIZE]u8 align(16) = undefined;
             if (!device.read_sector(partition_offset, &boot_sector)) {
                 return error.ReadFailed;
@@ -77,25 +75,12 @@ pub fn AFS(comptime BlockDeviceType: type) type {
             const boot = @as(*AFSBootSector, @ptrCast(@alignCast(&boot_sector)));
 
             if (!std.mem.eql(u8, boot.signature[0..8], "AKIBAFS!")) {
-                serial.print("ERROR: Invalid AFS signature\n");
                 return error.InvalidFilesystem;
             }
 
             if (boot.boot_signature != 0xAA55) {
-                serial.print("ERROR: Invalid boot signature\n");
                 return error.InvalidFilesystem;
             }
-
-            serial.print("AFS detected\n");
-            serial.print("Version: ");
-            serial.print_hex(boot.version);
-            serial.print("\n");
-            serial.print("Total clusters: ");
-            serial.print_hex(boot.total_clusters);
-            serial.print("\n");
-            serial.print("Root cluster: ");
-            serial.print_hex(boot.root_cluster);
-            serial.print("\n");
 
             return Self{
                 .device = device,
@@ -267,9 +252,6 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                         const component = path[start..i];
 
                         const entry = self.find_file(cluster, component) orelse {
-                            serial.print("ERROR: Path component not found: ");
-                            serial.print(component);
-                            serial.print("\n");
                             return error.NotFound;
                         };
 

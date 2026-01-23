@@ -11,8 +11,6 @@ const IA32_LSTAR: u32 = 0xC0000082; // Syscall entry point (64-bit)
 const IA32_FMASK: u32 = 0xC0000084; // RFLAGS mask
 
 pub fn init() void {
-    serial.print("\n=== SYSCALL/SYSRET Setup ===\n");
-
     // STAR: Segment selectors
     // Bits 47:32 = Kernel CS (SYSCALL loads this)
     // Bits 63:48 = User base selector (SYSRET adds 16 for CS, 8 for SS)
@@ -39,8 +37,6 @@ pub fn init() void {
     const IA32_EFER: u32 = 0xC0000080;
     const efer = rdmsr(IA32_EFER);
     wrmsr(IA32_EFER, efer | (1 << 0));
-
-    serial.print("SYSCALL/SYSRET enabled\n");
 }
 
 // Write to MSR

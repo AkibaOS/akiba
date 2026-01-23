@@ -102,8 +102,6 @@ fn pci_config_write_u16(bus: u8, device: u8, function: u8, offset: u8, value: u1
 }
 
 pub fn scan_bus() void {
-    serial.print("Scanning PCI bus...\n");
-
     var bus: u16 = 0;
     while (bus < 256) : (bus += 1) {
         var device: u8 = 0;
@@ -118,7 +116,6 @@ pub fn scan_bus() void {
                 }
 
                 if (device_count >= MAX_DEVICES) {
-                    serial.print("WARNING: Too many PCI devices, increase MAX_DEVICES\n");
                     return;
                 }
 
@@ -143,21 +140,6 @@ pub fn scan_bus() void {
 
                 device_count += 1;
 
-                serial.print("  ");
-                print_hex_u8(@truncate(bus));
-                serial.print(":");
-                print_hex_u8(device);
-                serial.print(".");
-                print_hex_u8(function);
-                serial.print(" ");
-                print_hex_u16(vendor_id);
-                serial.print(":");
-                print_hex_u16(dev.device_id);
-                serial.print(" Class: ");
-                print_hex_u8(dev.class_code);
-                print_hex_u8(dev.subclass);
-                serial.print("\n");
-
                 if (function == 0) {
                     const header_type = pci_config_read_u8(@truncate(bus), device, function, 0x0E);
                     if ((header_type & 0x80) == 0) break;
@@ -165,10 +147,6 @@ pub fn scan_bus() void {
             }
         }
     }
-
-    serial.print("Found ");
-    print_hex_u32(@truncate(device_count));
-    serial.print(" PCI devices\n");
 }
 
 pub fn find_device_by_class(class: u8, subclass: u8) ?*PCIDevice {

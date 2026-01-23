@@ -18,12 +18,6 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const current_kata = sensei.get_current_kata() orelse return;
     const exit_code = ctx.rdi;
 
-    serial.print("!!! EXIT CALLED !!!\n");
-    serial.print("Invocation: exit\n");
-    serial.print("  Kata exit with code: ");
-    serial.print_hex(exit_code);
-    serial.print("\n");
-
     // Close all open file descriptors
     var i: u32 = 0;
     while (i < 16) : (i += 1) {
@@ -36,10 +30,6 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     current_kata.exit_code = exit_code;
 
     // Dissolve the Kata
-    serial.print("  Dissolving Kata ");
-    serial.print_hex(current_kata.id);
-    serial.print("\n");
-
     kata_mod.dissolve_kata(current_kata.id);
     sensei.schedule();
 }

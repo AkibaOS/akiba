@@ -25,7 +25,6 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     // Validate user pointer
     if (path_ptr >= 0x0000800000000000) {
-        serial.print("spawn: invalid path pointer\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }
@@ -38,16 +37,12 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     };
 
     const path_len = string_utils.copy_string_from_user(current_kata, &path_buf, path_ptr) catch {
-        serial.print("spawn: Invalid path pointer\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };
 
     // Load and create new Kata
-    const kata_id = hikari.load_program(fs, path_buf[0..path_len]) catch |err| {
-        serial.print("spawn failed: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
+    const kata_id = hikari.load_program(fs, path_buf[0..path_len]) catch {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };

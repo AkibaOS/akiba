@@ -6,9 +6,6 @@ const serial = @import("../drivers/serial.zig");
 
 pub fn invoke(context: *handler.InvocationContext) void {
     if (keyboard.read_char()) |char| {
-        serial.print("getkeychar: got char ");
-        serial.print_hex(char);
-        serial.print("\n");
         context.rax = char;
     } else {
         // No input available - return -2 (EAGAIN)

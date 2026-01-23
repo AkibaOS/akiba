@@ -17,15 +17,11 @@ const yield = @import("yield.zig");
 const getkeychar = @import("getkeychar.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
-    serial.print("\n=== Invocation Handler ===\n");
-
     // Set AFS instance for all invocations that need it
     exit.set_afs_instance(fs);
     attach.set_afs_instance(fs);
     seal.set_afs_instance(fs);
     spawn.set_afs_instance(fs);
-
-    serial.print("Akiba Invocation Table initialized\n");
 
     syscall.init();
 }
@@ -44,9 +40,6 @@ pub fn handle_invocation(context: *InvocationContext) void {
         0x08 => yield.invoke(context),
         0x09 => getkeychar.invoke(context),
         else => {
-            serial.print("Unknown invocation: ");
-            serial.print_hex(invocation_num);
-            serial.print("\n");
             context.rax = @as(u64, @bitCast(@as(i64, -1)));
         },
     }

@@ -16,15 +16,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const buffer_ptr = ctx.rsi;
     const count = ctx.rdx;
 
-    serial.print("Invocation: view\n");
-    serial.print("  fd: ");
-    serial.print_hex(fd);
-    serial.print(", count: ");
-    serial.print_hex(count);
-    serial.print("\n");
-
     if (fd >= 16 or current_kata.fd_table[fd].fd_type == .Closed) {
-        serial.print("  Invalid fd\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }
@@ -34,9 +26,6 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return;
     };
 
-    serial.print("  Read ");
-    serial.print_hex(bytes_read);
-    serial.print(" bytes\n");
     ctx.rax = bytes_read;
 }
 

@@ -22,13 +22,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const fd = @as(u32, @truncate(ctx.rdi));
 
-    serial.print("Invocation: seal\n");
-    serial.print("  fd: ");
-    serial.print_hex(fd);
-    serial.print("\n");
-
     if (fd >= 16 or current_kata.fd_table[fd].fd_type == .Closed) {
-        serial.print("  Invalid fd\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }

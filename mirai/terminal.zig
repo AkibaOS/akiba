@@ -42,26 +42,6 @@ pub fn init(fb: boot.FramebufferInfo) void {
         max_line_width = fb.width; // Fallback
     }
 
-    // Debug output
-    serial.print("Terminal init:\n");
-    serial.print("  FB Width: ");
-    serial.print_hex(fb.width);
-    serial.print("\n  FB Height: ");
-    serial.print_hex(fb.height);
-    serial.print("\n  FB Pitch: ");
-    serial.print_hex(fb.pitch);
-    serial.print("\n  BPP: ");
-    serial.print_hex(fb.bpp);
-    serial.print("\n  Max line width: ");
-    serial.print_hex(max_line_width);
-    serial.print("\n  Char Width: ");
-    serial.print_hex(char_width);
-    serial.print("\n  Char Height: ");
-    serial.print_hex(char_height);
-    serial.print("\n  Chars per line: ");
-    serial.print_hex(max_line_width / char_width);
-    serial.print("\n");
-
     // Clear screen
     video.init(fb);
     video.clear(BG_COLOR);
@@ -82,21 +62,8 @@ pub fn put_char(char: u8) void {
 }
 
 pub fn put_char_color(char: u8, color: u32) void {
-    if (framebuffer == null) {
-        serial.print("terminal.put_char_color: framebuffer is null!\n");
-        return;
-    }
+    if (framebuffer == null) return;
     const fb = framebuffer.?;
-
-    serial.print("terminal.put_char_color: char=");
-    serial.print_hex(char);
-    serial.print(", fb.addr=");
-    serial.print_hex(fb.addr);
-    serial.print(", cursor_x=");
-    serial.print_hex(cursor_x);
-    serial.print(", cursor_y=");
-    serial.print_hex(cursor_y);
-    serial.print("\n");
 
     switch (char) {
         '\n' => {

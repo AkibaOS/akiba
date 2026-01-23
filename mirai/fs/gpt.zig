@@ -12,13 +12,11 @@ pub fn find_afs_partition(device: anytype) ?Partition {
     // Read GPT header (sector 1)
     var gpt_header: [512]u8 align(16) = undefined;
     if (!device.read_sector(1, &gpt_header)) {
-        serial.print("Failed to read GPT header\n");
         return null;
     }
 
     // Verify GPT signature
     if (!std.mem.eql(u8, gpt_header[0..8], "EFI PART")) {
-        serial.print("Invalid GPT signature\n");
         return null;
     }
 
@@ -28,7 +26,6 @@ pub fn find_afs_partition(device: anytype) ?Partition {
     // Read partition entries (sector 2)
     var entries_sector: [512]u8 align(16) = undefined;
     if (!device.read_sector(partition_entry_lba, &entries_sector)) {
-        serial.print("Failed to read partition entries\n");
         return null;
     }
 
@@ -46,12 +43,6 @@ pub fn find_afs_partition(device: anytype) ?Partition {
             const start_lba = read_u64_le(entries_sector[entry_offset + 32 .. entry_offset + 40]);
             const end_lba = read_u64_le(entries_sector[entry_offset + 40 .. entry_offset + 48]);
 
-            serial.print("GPT: Found AFS partition at LBA ");
-            serial.print_hex(start_lba);
-            serial.print(" to ");
-            serial.print_hex(end_lba);
-            serial.print("\n");
-
             var partition: Partition = undefined;
             partition.start_lba = start_lba;
             partition.end_lba = end_lba;
@@ -60,7 +51,6 @@ pub fn find_afs_partition(device: anytype) ?Partition {
         }
     }
 
-    serial.print("No AFS partition found in GPT\n");
     return null;
 }
 

@@ -18,9 +18,7 @@ const HIGHER_HALF: u64 = 0xFFFF800000000000;
 const USER_STACK_TOP: u64 = 0x00007FFFFFF00000;
 const USER_STACK_PAGES: u64 = 64; // 256KB stack (was 4 pages = 16KB)
 
-pub fn init() void {
-    serial.print("Hikari loader initialized\n");
-}
+pub fn init() void {}
 
 pub fn load_init_system(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
     return load_program(fs, "/system/akiba/pulse.akibainit");
@@ -63,37 +61,22 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
     const file_buffer = file_buffer_ptr[0..buffer_size];
 
     const bytes_read = fs.read_file_by_path(path, file_buffer) catch |err| {
-        serial.print("Error reading file: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         return err;
     };
 
     const akiba_data = format.parse_akiba(file_buffer[0..bytes_read]) catch |err| {
-        serial.print("Error parsing Akiba format: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         return err;
     };
 
     const elf_info = elf.parse_elf(akiba_data.elf_data) catch |err| {
-        serial.print("Error parsing ELF: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         return err;
     };
 
     const kata = kata_mod.create_kata() catch |err| {
-        serial.print("Error creating Kata: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         return err;
     };
 
     setup_kata_memory(kata, akiba_data.elf_data, elf_info) catch |err| {
-        serial.print("Error setting up memory: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         kata_mod.dissolve_kata(kata.id);
         return err;
     };

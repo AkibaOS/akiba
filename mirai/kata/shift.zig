@@ -101,21 +101,7 @@ fn shift_context(ctx: *const Context, page_table: u64, kernel_stack: u64) void {
         \\pushq %%rax
         \\
         \\# Switch to user page table
-        \\# Kernel code is at higher-half, so it stays accessible
-        \\# mov %%rsi, %%cr3
-        \\
-        \\# DEBUG: Print 'A' before CR3 switch
-        \\mov $0x3F8, %%dx
-        \\mov $'A', %%al
-        \\out %%al, %%dx
-        \\
-        \\# Switch to user page table
         \\mov %%rsi, %%cr3
-        \\
-        \\# DEBUG: Print 'B' after CR3 switch
-        \\mov $0x3F8, %%dx
-        \\mov $'B', %%al
-        \\out %%al, %%dx
         \\
         \\# Zero all registers for clean userspace entry
         \\xor %%rax, %%rax
@@ -133,11 +119,6 @@ fn shift_context(ctx: *const Context, page_table: u64, kernel_stack: u64) void {
         \\xor %%r13, %%r13
         \\xor %%r14, %%r14
         \\xor %%r15, %%r15
-        \\
-        \\# DEBUG: Print 'C' before iretq
-        \\mov $0x3F8, %%dx
-        \\mov $'C', %%al
-        \\out %%al, %%dx
         \\
         \\# Jump to userspace
         \\iretq

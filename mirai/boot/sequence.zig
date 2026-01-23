@@ -196,10 +196,7 @@ pub fn run(multiboot_info_addr: u64) void {
         serial.print("\n");
         crimson.collapse("Akiba's Pulse is missing. System is dying.", null);
     };
-
-    serial.print("Pulse loaded (Kata ");
-    serial.print_hex(pulse_id);
-    serial.print(")\n");
+    _ = pulse_id;
 
     if (terminal_ready) {
         terminal.clear_screen();

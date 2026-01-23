@@ -163,7 +163,6 @@ pub fn schedule() void {
     const next = pick_next_kata();
 
     if (next == null and current_kata == null) {
-        serial.print("Sensei: No katas to run\n");
         while (true) {
             asm volatile ("hlt");
         }
@@ -193,7 +192,6 @@ pub fn schedule() void {
         unreachable;
     }
 
-    serial.print("Sensei: No more katas after dissolution\n");
     clear_current_kata();
     while (true) {
         asm volatile ("hlt");

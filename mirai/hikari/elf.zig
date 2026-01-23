@@ -98,14 +98,6 @@ pub fn parse_elf(data: []const u8) !ELFInfo {
         return error.NotExecutable;
     }
 
-    serial.print("ELF validated:\n");
-    serial.print("  Entry point: ");
-    serial.print_hex(header.entry);
-    serial.print("\n");
-    serial.print("  Program headers: ");
-    serial.print_hex(header.phnum);
-    serial.print("\n");
-
     // Get program headers
     if (header.phoff + (header.phnum * header.phentsize) > data.len) {
         return error.InvalidProgramHeaders;

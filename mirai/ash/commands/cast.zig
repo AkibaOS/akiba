@@ -23,9 +23,7 @@ pub fn execute(fs: *afs.AFS(ahci.BlockDevice), args: []const []const u8) void {
     // Load and execute the program
     const kata_id = hikari.load_program(fs, binary_path) catch |err| {
         terminal.print("Error: Failed to cast binary\n");
-        serial.print("Error: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
+        _ = err;
         return;
     };
 
@@ -33,10 +31,6 @@ pub fn execute(fs: *afs.AFS(ahci.BlockDevice), args: []const []const u8) void {
     print_decimal(kata_id);
     terminal.print(")\n");
     terminal.print("(Program is now running in background)\n");
-
-    serial.print("Kata ");
-    serial.print_hex(kata_id);
-    serial.print(" started\n");
 }
 
 fn print_decimal(value: u32) void {

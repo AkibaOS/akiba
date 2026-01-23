@@ -45,11 +45,8 @@ pub const AkibaExecutable = struct {
 };
 
 pub fn parse_akiba(data: []const u8) !AkibaExecutable {
-    serial.print("Parsing Akiba executable...\n");
-
     // Verify minimum size
     if (data.len < @sizeOf(AkibaHeader)) {
-        serial.print("ERROR: File too small for Akiba header\n");
         return error.TooSmall;
     }
 
@@ -59,34 +56,14 @@ pub fn parse_akiba(data: []const u8) !AkibaExecutable {
     // Validate magic
     for (AKIBA_MAGIC, 0..) |byte, i| {
         if (header.magic[i] != byte) {
-            serial.print("ERROR: Invalid Akiba magic\n");
-            serial.print("Expected: AKIBAELF\n");
-            serial.print("Got: ");
-            for (header.magic) |b| {
-                if (b >= 32 and b <= 126) {
-                    serial.write(b);
-                } else {
-                    serial.print_hex(b);
-                }
-            }
-            serial.print("\n");
             return error.InvalidMagic;
         }
     }
 
-    serial.print("✓ Akiba magic validated (AKIBAELF)\n");
-
     // Validate version
     if (header.version != AKIBA_VERSION) {
-        serial.print("ERROR: Unsupported Akiba version: ");
-        serial.print_hex(header.version);
-        serial.print("\n");
         return error.UnsupportedVersion;
     }
-
-    serial.print("✓ Version: ");
-    serial.print_hex(header.version);
-    serial.print("\n");
 
     // Validate type
     const type_name = switch (header.exec_type) {
@@ -96,21 +73,12 @@ pub fn parse_akiba(data: []const u8) !AkibaExecutable {
         AKIBA_TYPE_LIBRARY => "Library",
         else => "Unknown",
     };
-    serial.print("✓ Type: ");
-    serial.print(type_name);
-    serial.print("\n");
+    _ = type_name;
 
     // Validate ELF offset and size
     if (header.elf_offset + header.elf_size > data.len) {
-        serial.print("ERROR: Invalid ELF bounds\n");
         return error.InvalidELFBounds;
     }
-
-    serial.print("✓ ELF at offset: ");
-    serial.print_hex(header.elf_offset);
-    serial.print(", size: ");
-    serial.print_hex(header.elf_size);
-    serial.print("\n");
 
     // Extract ELF data
     const elf_data = data[header.elf_offset .. header.elf_offset + header.elf_size];
@@ -121,8 +89,6 @@ pub fn parse_akiba(data: []const u8) !AkibaExecutable {
         if (header.metadata_offset + header.metadata_size <= data.len) {
             const meta_ptr = data.ptr + header.metadata_offset;
             metadata = @as(*const AkibaMetadata, @ptrCast(@alignCast(meta_ptr))).*;
-
-            serial.print("✓ Metadata found\n");
         }
     }
 

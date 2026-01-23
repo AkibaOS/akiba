@@ -232,9 +232,4 @@ pub fn virt_to_phys(cr3: u64, virt: u64) ?u64 {
     return phys_base + offset;
 }
 
-pub fn init() void {
-    serial.print("\n=== Page Table Manager ===\n");
-    serial.print("CR3: ");
-    serial.print_hex(get_cr3());
-    serial.print("\n");
-}
+pub fn init() void {}

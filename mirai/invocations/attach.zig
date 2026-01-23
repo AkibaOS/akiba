@@ -30,27 +30,16 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     var path_buffer: [256]u8 = undefined;
     const path_len = string_utils.copy_string_from_user(current_kata, &path_buffer, path_ptr) catch {
-        serial.print("attach: Invalid path pointer\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };
     const path = path_buffer[0..path_len];
-
-    serial.print("Invocation: attach\n");
-    serial.print("  Path: ");
-    serial.print(path);
-    serial.print("\n  Flags: ");
-    serial.print_hex(flags);
-    serial.print("\n");
 
     if (path_utils.is_device_path(path)) {
         const fd = open_device(current_kata, path, flags) catch {
             ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
             return;
         };
-        serial.print("  Opened device fd ");
-        serial.print_hex(fd);
-        serial.print("\n");
         ctx.rax = fd;
         return;
     }
@@ -60,9 +49,6 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return;
     };
 
-    serial.print("  Opened fd ");
-    serial.print_hex(fd);
-    serial.print("\n");
     ctx.rax = fd;
 }
 
@@ -84,9 +70,6 @@ fn open_device(kata: *kata_mod.Kata, path: []const u8, flags: u32) !u32 {
     else if (string_utils.strings_equal(device_name, "console"))
         .Console
     else {
-        serial.print("  Unknown device: ");
-        serial.print(device_name);
-        serial.print("\n");
         return error.UnknownDevice;
     };
 
@@ -109,7 +92,7 @@ fn open_regular_file(kata: *kata_mod.Kata, path: []const u8, flags: u32) !u32 {
     const fd = try fd_utils.allocate_fd(kata);
 
     var file_buffer: [1024 * 1024]u8 = undefined;
-    const bytes_read = fs.read_file_by_path(full_path, &file_buffer) catch |err| {
+    const bytes_read = fs.read_file_by_path(full_path, &file_buffer) catch {
         if (flags & fd_mod.CREATE != 0) {
             fs.create_file(full_path) catch {
                 return error.CannotCreate;
@@ -126,9 +109,6 @@ fn open_regular_file(kata: *kata_mod.Kata, path: []const u8, flags: u32) !u32 {
             return fd;
         }
 
-        serial.print("  Cannot open: ");
-        serial.print(@errorName(err));
-        serial.print("\n");
         return error.FileNotFound;
     };
 

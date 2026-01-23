@@ -108,8 +108,6 @@ pub var kata_used: [MAX_KATA]bool = [_]bool{false} ** MAX_KATA;
 var next_kata_id: u32 = 1;
 
 pub fn init() void {
-    serial.print("\n=== Kata Management ===\n");
-
     // Initialize all Kata slots
     for (&kata_pool, 0..) |*kata, i| {
         kata.* = Kata{
@@ -133,10 +131,6 @@ pub fn init() void {
         };
         kata_used[i] = false;
     }
-
-    serial.print("Kata pool initialized (");
-    serial.print_hex(MAX_KATA);
-    serial.print(" slots)\n");
 }
 
 pub fn create_kata() !*Kata {
