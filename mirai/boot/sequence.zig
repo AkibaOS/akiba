@@ -207,8 +207,6 @@ pub fn run(multiboot_info_addr: u64) void {
         boot_print("Drifting from abyss towards infinity!\n\n");
     }
 
-    serial.print("About to call sensei.schedule()...\n");
-
     // Start Pulse - this never returns
     sensei.schedule();
 

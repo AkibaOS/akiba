@@ -27,10 +27,6 @@ pub fn load_init_system(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
 }
 
 pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
-    serial.print("Loading program: ");
-    serial.print(path);
-    serial.print("\n");
-
     // Allocate file buffer directly from PMM (2MB is too large for heap slab allocator)
     const buffer_size: usize = 2 * 1024 * 1024;
     const num_pages = (buffer_size + 0xFFF) / 0x1000; // 512 pages
@@ -87,10 +83,6 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
         return err;
     };
 
-    serial.print("  Entry point: ");
-    serial.print_hex(elf_info.entry_point);
-    serial.print("\n");
-
     const kata = kata_mod.create_kata() catch |err| {
         serial.print("Error creating Kata: ");
         serial.print(@errorName(err));
@@ -109,22 +101,12 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
     setup_kata_context(kata, elf_info.entry_point);
     sensei.enqueue_kata(kata);
 
-    serial.print("  Kata ");
-    serial.print_hex(kata.id);
-    serial.print(" ready\n");
-
     return kata.id;
 }
 
 fn setup_kata_memory(kata: *kata_mod.Kata, elf_data: []const u8, elf_info: elf.ELFInfo) !void {
-    serial.print("  Setting up memory...\n");
-
     const new_cr3 = try paging.create_page_table();
     kata.page_table = new_cr3;
-
-    serial.print("  New CR3: ");
-    serial.print_hex(new_cr3);
-    serial.print("\n");
 
     for (elf_info.program_headers) |phdr| {
         if (phdr.type == elf.PT_LOAD) {
@@ -149,27 +131,10 @@ fn setup_kata_memory(kata: *kata_mod.Kata, elf_data: []const u8, elf_info: elf.E
     const kernel_stack_page = pmm.alloc_page() orelse return error.OutOfMemory;
     kata.stack_top = kernel_stack_page + HIGHER_HALF + 0x1000;
 
-    serial.print("  User stack: ");
-    serial.print_hex(kata.user_stack_top);
-    serial.print("\n");
-    serial.print("  Kernel stack: ");
-    serial.print_hex(kata.stack_top);
-    serial.print("\n");
-
     if (boot.get_framebuffer()) |fb_info| {
-        serial.print("  Mapping framebuffer for userspace access...\n");
-
         const fb_start = fb_info.addr;
         const fb_size = fb_info.height * fb_info.pitch;
         const fb_pages = (fb_size + 0xFFF) / 0x1000;
-
-        serial.print("  FB addr: ");
-        serial.print_hex(fb_start);
-        serial.print(", size: ");
-        serial.print_hex(fb_size);
-        serial.print(", pages: ");
-        serial.print_hex(fb_pages);
-        serial.print("\n");
 
         var page: u64 = 0;
         while (page < fb_pages) : (page += 1) {
@@ -178,20 +143,10 @@ fn setup_kata_memory(kata: *kata_mod.Kata, elf_data: []const u8, elf_info: elf.E
 
             _ = try paging.map_page_in_table(kata.page_table, virt, phys, 0b111);
         }
-
-        serial.print("  Framebuffer mapped successfully\n");
-    } else {
-        serial.print("  WARNING: No framebuffer info available\n");
     }
 }
 
 fn load_segment(cr3: u64, elf_data: []const u8, phdr: elf.ELF64ProgramHeader) !void {
-    serial.print("  Loading segment at ");
-    serial.print_hex(phdr.vaddr);
-    serial.print(" (");
-    serial.print_hex(phdr.memsz);
-    serial.print(" bytes)\n");
-
     const start_addr = phdr.vaddr;
     const mem_size = phdr.memsz;
     const file_size = phdr.filesz;
@@ -232,23 +187,9 @@ fn load_segment(cr3: u64, elf_data: []const u8, phdr: elf.ELF64ProgramHeader) !v
             copied += bytes_in_page;
         }
     }
-
-    if (phdr.vaddr == 0x400000) {
-        const phys = paging.virt_to_phys(cr3, 0x400000) orelse return error.PageNotMapped;
-        const check_ptr = @as([*]volatile u8, @ptrFromInt(phys + HIGHER_HALF));
-        serial.print("  Entry point bytes: ");
-        serial.print_hex(check_ptr[0]);
-        serial.print(" ");
-        serial.print_hex(check_ptr[1]);
-        serial.print(" ");
-        serial.print_hex(check_ptr[2]);
-        serial.print("\n");
-    }
 }
 
 fn setup_kata_context(kata: *kata_mod.Kata, entry_point: u64) void {
-    serial.print("  Setting up context...\n");
-
     kata.context.rip = entry_point;
     kata.context.rsp = kata.user_stack_top;
     kata.context.rflags = 0x3202;
@@ -270,6 +211,4 @@ fn setup_kata_context(kata: *kata_mod.Kata, entry_point: u64) void {
     kata.context.r13 = 0;
     kata.context.r14 = 0;
     kata.context.r15 = 0;
-
-    serial.print("  Context ready\n");
 }

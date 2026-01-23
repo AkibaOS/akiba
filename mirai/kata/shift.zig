@@ -10,24 +10,9 @@ const Context = kata_mod.Context;
 
 var current_context: ?*Context = null;
 
-pub fn init() void {
-    serial.print("\n=== Context Shifting ===\n");
-    serial.print("Shift mechanism initialized\n");
-}
+pub fn init() void {}
 
 pub fn shift_to_kata(target_kata: *Kata) void {
-    serial.print("\n=== Context Shift ===\n");
-    serial.print("Shifting to Kata ");
-    serial.print_hex(target_kata.id);
-    serial.print("\n");
-    serial.print("  Entry: ");
-    serial.print_hex(target_kata.context.rip);
-    serial.print("\n  Stack: ");
-    serial.print_hex(target_kata.context.rsp);
-    serial.print("\n  CR3: ");
-    serial.print_hex(target_kata.page_table);
-    serial.print("\n");
-
     // Update TSS kernel stack for this Kata
     tss.set_kernel_stack(target_kata.stack_top);
 

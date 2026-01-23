@@ -43,23 +43,14 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return;
     };
 
-    serial.print("Invocation: spawn\n");
-    serial.print("  Path: ");
-    serial.print(path_buf[0..path_len]);
-    serial.print("\n");
-
     // Load and create new Kata
     const kata_id = hikari.load_program(fs, path_buf[0..path_len]) catch |err| {
-        serial.print("  spawn failed: ");
+        serial.print("spawn failed: ");
         serial.print(@errorName(err));
         serial.print("\n");
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };
-
-    serial.print("  Created Kata: ");
-    serial.print_hex(kata_id);
-    serial.print("\n");
 
     ctx.rax = kata_id;
 }

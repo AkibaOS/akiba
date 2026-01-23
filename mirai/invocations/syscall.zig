@@ -13,10 +13,18 @@ const IA32_FMASK: u32 = 0xC0000084; // RFLAGS mask
 pub fn init() void {
     serial.print("\n=== SYSCALL/SYSRET Setup ===\n");
 
-    // STAR: Segment selectors (Kernel CS/SS at 47:32, User CS/SS at 63:48)
+    // STAR: Segment selectors
+    // Bits 47:32 = Kernel CS (SYSCALL loads this)
+    // Bits 63:48 = User base selector (SYSRET adds 16 for CS, 8 for SS)
+    // For SYSRET: CS = (STAR[63:48] + 16) | 3, SS = (STAR[63:48] + 8) | 3
+    // We have USER_DATA=0x18, USER_CODE=0x20
+    // So SYSRET needs base = USER_DATA, which gives:
+    //   CS = 0x18 + 16 = 0x28 (WRONG! We want 0x20)
+    // FIX: Use (USER_CODE - 16) as base so SYSRET adds 16 to get USER_CODE
+    const user_base = gdt.USER_CODE - 16; // 0x20 - 16 = 0x10
     const star_value: u64 =
         (@as(u64, gdt.KERNEL_CODE) << 32) |
-        (@as(u64, gdt.USER_DATA) << 48);
+        (@as(u64, user_base) << 48);
     wrmsr(IA32_STAR, star_value);
 
     // LSTAR: Syscall entry point
@@ -145,15 +153,6 @@ comptime {
         \\
         \\  # Call invocation handler
         \\  mov %rsp, %rdi        # Pass context pointer
-        \\
-        \\  # DEBUG: Check saved RIP before calling handler
-        \\  push %rdi
-        \\  mov 128(%rsp), %rdi
-        \\  call debug_saved_rip
-        \\  pop %rdi
-        \\
-        \\  # Call invocation handler
-        \\  mov %rsp, %rdi        # Pass context pointer
         \\  call handle_syscall
         \\
         \\  # Disable interrupts before returning to user
@@ -267,8 +266,8 @@ export fn get_kernel_stack() u64 {
     return tss.get_kernel_stack();
 }
 
-export fn debug_saved_rip(rip: u64) void {
-    serial.print("Syscall entry: saved RIP = ");
-    serial.print_hex(rip);
-    serial.print("\n");
-}
+// export fn debug_saved_rip(rip: u64) void {
+//     serial.print("Syscall entry: saved RIP = ");
+//     serial.print_hex(rip);
+//     serial.print("\n");
+// }
