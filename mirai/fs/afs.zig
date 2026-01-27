@@ -223,7 +223,14 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                     }
                     entries[count].name_len = entry.name_len;
                     entries[count].is_directory = (entry.entry_type == ENTRY_TYPE_DIR);
-                    entries[count].file_size = @truncate(entry.file_size);
+
+                    // Calculate recursive size for directories
+                    if (entry.entry_type == ENTRY_TYPE_DIR) {
+                        entries[count].file_size = @truncate(self.calculate_directory_size(entry.first_cluster) catch 0);
+                    } else {
+                        entries[count].file_size = @truncate(entry.file_size);
+                    }
+
                     count += 1;
                 }
 
@@ -231,6 +238,38 @@ pub fn AFS(comptime BlockDeviceType: type) type {
             }
 
             return count;
+        }
+
+        /// Calculate total size of a directory recursively
+        fn calculate_directory_size(self: *Self, cluster_arg: u32) !u64 {
+            var cluster = cluster_arg;
+            var total_size: u64 = 0;
+
+            while (cluster >= 2 and cluster < 0xFFFFFFFF) {
+                const cluster_lba = self.cluster_to_lba(cluster);
+
+                var sector_buf: [SECTOR_SIZE]u8 align(16) = undefined;
+                if (!self.device.read_sector(cluster_lba, &sector_buf)) {
+                    return error.ReadFailed;
+                }
+
+                const entry = @as(*AFSDirEntry, @ptrCast(@alignCast(&sector_buf[0])));
+
+                if (entry.entry_type == ENTRY_TYPE_END) {
+                    return total_size;
+                }
+
+                if (entry.entry_type == ENTRY_TYPE_FILE) {
+                    total_size += entry.file_size;
+                } else if (entry.entry_type == ENTRY_TYPE_DIR) {
+                    // Recursively calculate subdirectory size
+                    total_size += self.calculate_directory_size(entry.first_cluster) catch 0;
+                }
+
+                cluster = self.get_next_cluster(cluster) catch return total_size;
+            }
+
+            return total_size;
         }
 
         /// Get file size by path without reading the file contents

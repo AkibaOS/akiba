@@ -14,17 +14,28 @@ const Color = struct {
 };
 
 export fn _start() noreturn {
-    display_current_stack() catch |err| {
+    // TODO: Parse command line arguments when implemented
+    // For now, default to root "/"
+    const target_path: []const u8 = "/";
+
+    display_stack(target_path) catch |err| {
         mark_error(@errorName(err));
         akiba.kata.exit(1);
     };
     akiba.kata.exit(0);
 }
 
-fn display_current_stack() !void {
+fn display_stack(path: []const u8) !void {
     var entries: [128]akiba.io.StackEntry = undefined;
-    const count = akiba.io.viewstack("/", &entries) catch 0;
+    const count = akiba.io.viewstack(path, &entries) catch 0;
 
+    // Beautiful header
+    _ = akiba.io.mark(akiba.io.stream, "\n  ", Color.white) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, path, Color.cyan) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, "\n  ", Color.white) catch 0;
+    for (0..60) |_| {
+        _ = akiba.io.mark(akiba.io.stream, "─", Color.blue) catch 0;
+    }
     _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
 
     var stack_count: usize = 0;
@@ -38,19 +49,32 @@ fn display_current_stack() !void {
         if (entry.is_stack) {
             stack_count += 1;
             _ = akiba.io.mark(akiba.io.stream, "  ", Color.white) catch 0;
+            _ = akiba.io.mark(akiba.io.stream, "[]", Color.blue) catch 0;
+            _ = akiba.io.mark(akiba.io.stream, "  ", Color.white) catch 0;
             _ = akiba.io.mark(akiba.io.stream, identity, Color.cyan) catch 0;
             _ = akiba.io.mark(akiba.io.stream, "/", Color.blue) catch 0;
+
+            // Show stack size
+            var buf: [32]u8 = undefined;
+            const size_str = format_size(entry.size, &buf);
+            const padding = calculate_padding(identity.len + 4);
+            for (0..padding) |_| {
+                _ = akiba.io.mark(akiba.io.stream, " ", Color.white) catch 0;
+            }
+            _ = akiba.io.mark(akiba.io.stream, size_str, Color.blue) catch 0;
             _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
         } else {
             unit_count += 1;
             total_size += entry.size;
 
             _ = akiba.io.mark(akiba.io.stream, "  ", Color.white) catch 0;
+            _ = akiba.io.mark(akiba.io.stream, "*", Color.yellow) catch 0;
+            _ = akiba.io.mark(akiba.io.stream, "  ", Color.white) catch 0;
             _ = akiba.io.mark(akiba.io.stream, identity, Color.white) catch 0;
 
             var buf: [32]u8 = undefined;
             const size_str = format_size(entry.size, &buf);
-            const padding = calculate_padding(identity.len);
+            const padding = calculate_padding(identity.len + 3);
 
             for (0..padding) |_| {
                 _ = akiba.io.mark(akiba.io.stream, " ", Color.white) catch 0;
@@ -61,9 +85,13 @@ fn display_current_stack() !void {
         }
     }
 
+    // Footer separator and summary
     if (count > 0) {
-        _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, "  ", Color.white) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, "\n  ", Color.white) catch 0;
+        for (0..60) |_| {
+            _ = akiba.io.mark(akiba.io.stream, "─", Color.blue) catch 0;
+        }
+        _ = akiba.io.mark(akiba.io.stream, "\n  ", Color.white) catch 0;
 
         var buf: [16]u8 = undefined;
         const stack_str = int_to_str(stack_count, &buf);
