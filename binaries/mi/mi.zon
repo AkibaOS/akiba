@@ -1,0 +1,10 @@
+.{
+    .name = "mi",
+    .version = "0.1.0",
+    .dependencies = .{
+        .akiba = .{ .path = "../../system/libraries/akiba" },
+    },
+    .paths = .{
+        "mi.zig",
+    },
+}

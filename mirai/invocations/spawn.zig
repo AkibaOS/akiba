@@ -22,7 +22,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     };
 
     const path_ptr = ctx.rdi;
-    // args support (ctx.rsi) will be implemented when command-line arguments are needed
+    const path_len = ctx.rsi;
 
     // Validate user pointer is in valid userspace range
     if (!system.is_valid_user_pointer(path_ptr)) {
@@ -30,17 +30,17 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return;
     }
 
-    // Copy path from user space with size limit
-    var path_buf: [system.limits.MAX_PATH_LENGTH]u8 = undefined;
-    const current_kata = sensei.get_current_kata() orelse {
+    if (path_len > system.limits.MAX_PATH_LENGTH) {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
-    };
+    }
 
-    const path_len = string_utils.copy_string_from_user(current_kata, &path_buf, path_ptr) catch {
-        ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
-        return;
-    };
+    // Copy path from user space
+    var path_buf: [system.limits.MAX_PATH_LENGTH]u8 = undefined;
+    const path_src = @as([*]const u8, @ptrFromInt(path_ptr));
+    for (0..path_len) |i| {
+        path_buf[i] = path_src[i];
+    }
 
     // Load and create new Kata
     const kata_id = hikari.load_program(fs, path_buf[0..path_len]) catch {

@@ -44,8 +44,8 @@ pub fn view(fd: FileDescriptor, buffer: []u8) Error!usize {
     return result;
 }
 
-pub fn mark(fd: FileDescriptor, data: []const u8) Error!usize {
-    const result = sys.syscall3(.mark, fd, @intFromPtr(data.ptr), data.len);
+pub fn mark(fd: FileDescriptor, data: []const u8, color: u32) Error!usize {
+    const result = sys.syscall4(.mark, fd, @intFromPtr(data.ptr), data.len, color);
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return Error.WriteFailed;
     }
@@ -68,10 +68,25 @@ pub fn getchar() !u8 {
 }
 
 pub fn print(text: []const u8) Error!void {
-    _ = try mark(stream, text);
+    _ = try mark(stream, text, 0x00FFFFFF);
 }
 
 pub fn println(text: []const u8) Error!void {
-    _ = try mark(stream, text);
-    _ = try mark(stream, "\n");
+    _ = try mark(stream, text, 0x00FFFFFF);
+    _ = try mark(stream, "\n", 0x00FFFFFF);
 }
+
+pub fn viewstack(path: []const u8, entries: []StackEntry) Error!usize {
+    const result = sys.syscall4(.viewstack, @intFromPtr(path.ptr), path.len, @intFromPtr(entries.ptr), entries.len);
+    if (result == @as(u64, @bitCast(@as(i64, -1)))) {
+        return Error.ReadFailed;
+    }
+    return result;
+}
+
+pub const StackEntry = extern struct {
+    identity: [64]u8,
+    identity_len: u8,
+    size: u32,
+    is_stack: bool,
+};

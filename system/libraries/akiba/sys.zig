@@ -10,6 +10,7 @@ pub const Invocation = enum(u64) {
     wait = 0x07,
     yield = 0x08,
     getkeychar = 0x09,
+    viewstack = 0x0A,
 };
 
 pub fn syscall0(inv: Invocation) u64 {
@@ -50,6 +51,19 @@ pub fn syscall3(inv: Invocation, arg1: u64, arg2: u64, arg3: u64) u64 {
           [arg1] "{rdi}" (arg1),
           [arg2] "{rsi}" (arg2),
           [arg3] "{rdx}" (arg3),
+        : .{ .rcx = true, .r11 = true, .memory = true });
+    return result;
+}
+
+pub fn syscall4(inv: Invocation, arg1: u64, arg2: u64, arg3: u64, arg4: u64) u64 {
+    var result: u64 = undefined;
+    asm volatile ("syscall"
+        : [ret] "={rax}" (result),
+        : [inv] "{rax}" (@intFromEnum(inv)),
+          [arg1] "{rdi}" (arg1),
+          [arg2] "{rsi}" (arg2),
+          [arg3] "{rdx}" (arg3),
+          [arg4] "{r10}" (arg4),
         : .{ .rcx = true, .r11 = true, .memory = true });
     return result;
 }

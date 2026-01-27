@@ -12,6 +12,7 @@ const serial = @import("../drivers/serial.zig");
 const spawn = @import("spawn.zig");
 const syscall = @import("syscall.zig");
 const view = @import("view.zig");
+const viewstack = @import("viewstack.zig");
 const wait = @import("wait.zig");
 const yield = @import("yield.zig");
 
@@ -21,6 +22,7 @@ pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     attach.set_afs_instance(fs);
     seal.set_afs_instance(fs);
     spawn.set_afs_instance(fs);
+    viewstack.set_afs_instance(fs);
 
     syscall.init();
 }
@@ -38,6 +40,7 @@ pub fn handle_invocation(context: *InvocationContext) void {
         0x07 => wait.invoke(context),
         0x08 => yield.invoke(context),
         0x09 => getkeychar.invoke(context),
+        0x0A => viewstack.invoke(context),
         else => {
             context.rax = @as(u64, @bitCast(@as(i64, -1)));
         },

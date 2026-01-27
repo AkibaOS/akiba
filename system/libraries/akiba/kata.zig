@@ -12,7 +12,7 @@ pub fn exit(code: u64) noreturn {
 }
 
 pub fn spawn(path: []const u8) !u32 {
-    const result = sys.syscall1(.spawn, @intFromPtr(path.ptr));
+    const result = sys.syscall2(.spawn, @intFromPtr(path.ptr), path.len);
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return error.SpawnFailed;
     }
