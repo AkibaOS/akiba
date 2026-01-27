@@ -1,12 +1,12 @@
 //! Kernel Heap Allocator
 //! Size-segregated allocator with object caching
 
-const constants = @import("constants.zig");
+const system = @import("../system/system.zig");
 const pmm = @import("pmm.zig");
 const serial = @import("../drivers/serial.zig");
 
-const PAGE_SIZE = constants.PAGE_SIZE;
-const HIGHER_HALF_START = constants.HIGHER_HALF_START;
+const PAGE_SIZE = system.constants.PAGE_SIZE;
+const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
 
 const SIZE_CLASSES = [_]usize{ 16, 32, 64, 128, 256, 512, 1024, 2048 };
 const NUM_CACHES = SIZE_CLASSES.len;

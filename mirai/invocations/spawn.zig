@@ -7,6 +7,7 @@ const hikari = @import("../hikari/loader.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
 const string_utils = @import("../utils/string.zig");
+const system = @import("../system/system.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 
@@ -21,16 +22,16 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     };
 
     const path_ptr = ctx.rdi;
-    _ = ctx.rsi; // TODO: args support later
+    // args support (ctx.rsi) will be implemented when command-line arguments are needed
 
-    // Validate user pointer
-    if (path_ptr >= 0x0000800000000000) {
+    // Validate user pointer is in valid userspace range
+    if (!system.is_valid_user_pointer(path_ptr)) {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }
 
-    // Copy path from user space
-    var path_buf: [256]u8 = undefined;
+    // Copy path from user space with size limit
+    var path_buf: [system.limits.MAX_PATH_LENGTH]u8 = undefined;
     const current_kata = sensei.get_current_kata() orelse {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;

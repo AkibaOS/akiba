@@ -1,7 +1,7 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
-const constants = @import("../memory/constants.zig");
+const system = @import("../system/system.zig");
 const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gdt = @import("gdt.zig");
@@ -72,7 +72,7 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_ok();
 
     boot_print("Initializing physical memory manager... ");
-    pmm.init(constants.KERNEL_END, memory_map);
+    pmm.init(system.constants.KERNEL_END, memory_map);
     boot_ok();
 
     boot_print("Initializing heap allocator... ");

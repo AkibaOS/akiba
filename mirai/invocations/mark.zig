@@ -6,6 +6,7 @@ const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
 const terminal = @import("../terminal.zig");
+const system = @import("../system/system.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {
     const current_kata = sensei.get_current_kata() orelse {
@@ -17,7 +18,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const buffer_ptr = ctx.rsi;
     const count = ctx.rdx;
 
-    if (fd >= 16 or current_kata.fd_table[fd].fd_type == .Closed) {
+    if (fd >= system.limits.MAX_FILE_DESCRIPTORS or current_kata.fd_table[fd].fd_type == .Closed) {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }
@@ -31,6 +32,10 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 }
 
 fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 {
+    // Validate count is reasonable
+    if (count == 0) return 0;
+    if (count > system.limits.MAX_WRITE_SIZE) return error.WriteTooLarge;
+
     const fd_entry = &kata.fd_table[fd];
 
     // Device files
@@ -39,16 +44,21 @@ fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 
         return write_to_device(device, buffer_ptr, count);
     }
 
-    // Regular files - for now, just mark as dirty
-    // TODO: Proper buffer management with reallocation
+    // Regular files - mark as dirty for later flush
+    // File writes will be implemented when file I/O buffering is added
     fd_entry.dirty = true;
     return count;
 }
 
 fn write_to_device(device: fd_mod.DeviceType, buffer_ptr: u64, count: u64) !u64 {
+    // Validate user buffer pointer
+    if (!system.is_valid_user_pointer(buffer_ptr)) {
+        return error.InvalidPointer;
+    }
+
     // Copy userspace buffer to kernel space to prevent stack corruption
-    var kernel_buffer: [256]u8 = undefined;
-    const copy_size = @min(count, 256);
+    var kernel_buffer: [system.limits.KERNEL_COPY_BUFFER_SIZE]u8 = undefined;
+    const copy_size = @min(count, system.limits.KERNEL_COPY_BUFFER_SIZE);
 
     const src = @as([*]const u8, @ptrFromInt(buffer_ptr));
     var i: u64 = 0;

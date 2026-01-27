@@ -4,6 +4,7 @@
 const fd_mod = @import("fd.zig");
 const paging = @import("../memory/paging.zig");
 const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 pub const KataState = enum {
     Ready,
@@ -26,10 +27,10 @@ pub const Kata = struct {
     user_stack_top: u64,
 
     // File descriptors
-    fd_table: [16]fd_mod.FileDescriptor,
+    fd_table: [system.limits.MAX_FILE_DESCRIPTORS]fd_mod.FileDescriptor,
 
     // Working directory
-    current_location: [256]u8,
+    current_location: [system.limits.MAX_CWD_LENGTH]u8,
     current_location_len: usize,
     current_cluster: u64,
 
@@ -102,9 +103,8 @@ pub const Context = packed struct {
 };
 
 // Kata table (pool of all Kata slots)
-pub const MAX_KATA: usize = 256;
-pub var kata_pool: [MAX_KATA]Kata = undefined;
-pub var kata_used: [MAX_KATA]bool = [_]bool{false} ** MAX_KATA;
+pub var kata_pool: [system.limits.MAX_PROCESSES]Kata = undefined;
+pub var kata_used: [system.limits.MAX_PROCESSES]bool = [_]bool{false} ** system.limits.MAX_PROCESSES;
 var next_kata_id: u32 = 1;
 
 pub fn init() void {
@@ -117,7 +117,7 @@ pub fn init() void {
             .page_table = 0,
             .stack_top = 0,
             .user_stack_top = 0,
-            .fd_table = [_]fd_mod.FileDescriptor{.{}} ** 16,
+            .fd_table = [_]fd_mod.FileDescriptor{.{}} ** system.limits.MAX_FILE_DESCRIPTORS,
             .current_location = undefined,
             .current_location_len = 1,
             .current_cluster = 0,
@@ -149,7 +149,7 @@ pub fn create_kata() !*Kata {
                 .page_table = 0,
                 .stack_top = 0,
                 .user_stack_top = 0,
-                .fd_table = [_]fd_mod.FileDescriptor{.{}} ** 16,
+                .fd_table = [_]fd_mod.FileDescriptor{.{}} ** system.limits.MAX_FILE_DESCRIPTORS,
                 .current_location = undefined,
                 .current_location_len = 1,
                 .current_cluster = 0,
@@ -193,7 +193,7 @@ pub fn create_kata() !*Kata {
 
 pub fn get_kata(id: u32) ?*Kata {
     var i: usize = 0;
-    while (i < MAX_KATA) : (i += 1) {
+    while (i < system.limits.MAX_PROCESSES) : (i += 1) {
         if (kata_used[i] and kata_pool[i].id == id) {
             return &kata_pool[i];
         }

@@ -1,18 +1,17 @@
 //! Page Table Manager - Hybrid kernel with independent user page tables
 
-const constants = @import("constants.zig");
+const system = @import("../system/system.zig");
 const pmm = @import("pmm.zig");
-const serial = @import("../drivers/serial.zig");
 
-pub const PAGE_SIZE = constants.PAGE_SIZE;
-pub const HIGHER_HALF_START = constants.HIGHER_HALF_START;
+pub const PAGE_SIZE = system.constants.PAGE_SIZE;
+pub const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
 
-pub const PAGE_PRESENT: u64 = 1 << 0;
-pub const PAGE_WRITABLE: u64 = 1 << 1;
-pub const PAGE_USER: u64 = 1 << 2;
+pub const PAGE_PRESENT = system.constants.PTE_PRESENT;
+pub const PAGE_WRITABLE = system.constants.PTE_WRITABLE;
+pub const PAGE_USER = system.constants.PTE_USER;
 
-const KERNEL_START = constants.KERNEL_START;
-const KERNEL_END = constants.KERNEL_END;
+const KERNEL_START = system.constants.KERNEL_PHYSICAL_START;
+const KERNEL_END = system.constants.KERNEL_PHYSICAL_END;
 
 fn get_cr3() u64 {
     return asm volatile ("mov %%cr3, %[result]"
@@ -49,13 +48,6 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     var pdpt_was_new = false;
     if ((pml4[pml4_index] & PAGE_PRESENT) == 0) {
         pdpt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        serial.print("      [map_page] NEW PDPT phys=");
-        serial.print_hex(pdpt_phys);
-        serial.print(" PML4[");
-        serial.print_hex(pml4_index);
-        serial.print("]\n");
-        // Don't zero - page might be reused from boot tables
-        // Instead, we'll link it and entries will be created on-demand
         pml4[pml4_index] = pdpt_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
         pdpt_was_new = true;
     } else {
@@ -73,12 +65,6 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     var pd_was_new = false;
     if ((pdpt[pdpt_index] & PAGE_PRESENT) == 0) {
         pd_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        serial.print("      [map_page] NEW PD phys=");
-        serial.print_hex(pd_phys);
-        serial.print(" PDPT[");
-        serial.print_hex(pdpt_index);
-        serial.print("]\n");
-        // Don't zero - page might be reused from boot tables
         pdpt[pdpt_index] = pd_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
         pd_was_new = true;
     } else {
@@ -96,12 +82,6 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     var pt_was_new = false;
     if ((pd[pd_index] & PAGE_PRESENT) == 0) {
         pt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
-        serial.print("      [map_page] NEW PT phys=");
-        serial.print_hex(pt_phys);
-        serial.print(" PD[");
-        serial.print_hex(pd_index);
-        serial.print("]\n");
-        // Don't zero - page might be reused from boot tables
         pd[pd_index] = pt_phys | PAGE_PRESENT | PAGE_WRITABLE | flags;
         pt_was_new = true;
     } else {

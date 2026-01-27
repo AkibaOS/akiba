@@ -4,7 +4,7 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const boot = @import("../boot/multiboot2.zig");
-const constants = @import("../memory/constants.zig");
+const system = @import("../system/system.zig");
 const elf = @import("elf.zig");
 const format = @import("format.zig");
 const gdt = @import("../boot/gdt.zig");
@@ -12,21 +12,49 @@ const heap = @import("../memory/heap.zig");
 const kata_memory = @import("../kata/memory.zig");
 const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
-
-const PAGE_SIZE = constants.PAGE_SIZE;
+const serial = @import("../drivers/serial.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
-    return load_program(fs, "/system/akiba/pulse.akibainit");
+    const init_path = "/system/akiba/pulse.akibainit";
+
+    // Validate init binary exists before attempting to load
+    const init_size = fs.get_file_size_by_path(init_path) catch |err| {
+        serial.print("FATAL: Cannot find init system at ");
+        serial.print(init_path);
+        serial.print("\n");
+        return err;
+    };
+
+    if (init_size == 0) {
+        serial.print("FATAL: Init system is empty\n");
+        return error.EmptyFile;
+    }
+
+    return load_program(fs, init_path);
 }
 
 pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
-    // Allocate buffer using heap (files are typically < 10KB)
-    const max_file_size = 16 * 1024;
-    const buffer_ptr = heap.alloc(max_file_size) orelse return error.OutOfMemory;
-    defer heap.free(buffer_ptr, max_file_size);
-    const buffer = buffer_ptr[0..max_file_size];
+    // Validate path
+    if (path.len == 0 or path.len > system.limits.MAX_PATH_LENGTH) {
+        return error.InvalidPath;
+    }
+
+    // Get actual file size from filesystem
+    const file_size = try fs.get_file_size_by_path(path);
+
+    // Validate file size (programs should be reasonable size)
+    if (file_size == 0) return error.EmptyFile;
+    if (file_size > system.limits.MAX_FILE_SIZE) return error.FileTooLarge;
+    const buffer_ptr = heap.alloc(@intCast(file_size)) orelse return error.OutOfMemory;
+    defer heap.free(buffer_ptr, @intCast(file_size));
+    const buffer = buffer_ptr[0..@intCast(file_size)];
 
     const bytes_read = try fs.read_file_by_path(path, buffer);
+
+    // Verify we read the expected amount
+    if (bytes_read != file_size) {
+        return error.IncompleteRead;
+    }
 
     // Parse Akiba executable format
     const akiba_data = try format.parse_akiba(buffer[0..bytes_read]);

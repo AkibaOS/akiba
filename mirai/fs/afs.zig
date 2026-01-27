@@ -233,6 +233,50 @@ pub fn AFS(comptime BlockDeviceType: type) type {
             return count;
         }
 
+        /// Get file size by path without reading the file contents
+        pub fn get_file_size_by_path(self: *Self, path: []const u8) !u64 {
+            var cluster = self.root_cluster;
+            var start: usize = 0;
+            var i: usize = 0;
+
+            if (path.len == 0) return error.InvalidPath;
+
+            if (path[0] == '/') {
+                start = 1;
+                i = 1;
+            }
+
+            while (i <= path.len) : (i += 1) {
+                const is_end = (i == path.len);
+                const is_slash = !is_end and path[i] == '/';
+
+                if (is_slash or is_end) {
+                    if (i > start) {
+                        const component = path[start..i];
+
+                        const entry = self.find_file(cluster, component) orelse {
+                            return error.NotFound;
+                        };
+
+                        if (is_end) {
+                            if (entry.entry_type != ENTRY_TYPE_FILE) {
+                                return error.NotAFile;
+                            }
+                            return entry.file_size;
+                        } else {
+                            if (entry.entry_type != ENTRY_TYPE_DIR) {
+                                return error.NotADirectory;
+                            }
+                            cluster = entry.first_cluster;
+                        }
+                    }
+                    start = i + 1;
+                }
+            }
+
+            return error.InvalidPath;
+        }
+
         pub fn read_file_by_path(self: *Self, path: []const u8, buffer: []u8) !usize {
             var cluster = self.root_cluster;
             var start: usize = 0;

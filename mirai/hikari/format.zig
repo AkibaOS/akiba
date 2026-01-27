@@ -2,7 +2,7 @@
 //! Wraps ELF64 with Akiba-specific metadata and branding
 
 const elf = @import("elf.zig");
-const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 // Akiba magic signature
 pub const AKIBA_MAGIC = [8]u8{ 'A', 'K', 'I', 'B', 'A', 'E', 'L', 'F' };
@@ -62,21 +62,22 @@ pub fn parse_akiba(data: []const u8) !AkibaExecutable {
     }
 
     // Validate version
-    if (header.version != AKIBA_VERSION) {
+    if (header.version == 0 or header.version > AKIBA_VERSION) {
         return error.UnsupportedVersion;
     }
 
-    // Validate type
-    const type_name = switch (header.exec_type) {
-        AKIBA_TYPE_CLI => "CLI",
-        AKIBA_TYPE_GUI => "GUI",
-        AKIBA_TYPE_SERVICE => "Service",
-        AKIBA_TYPE_LIBRARY => "Library",
-        else => "Unknown",
-    };
-    _ = type_name;
+    // Validate executable type
+    if (header.exec_type > AKIBA_TYPE_LIBRARY) {
+        return error.InvalidExecutableType;
+    }
 
     // Validate ELF offset and size
+    if (header.elf_size == 0) {
+        return error.EmptyELF;
+    }
+    if (header.elf_offset < @sizeOf(AkibaHeader)) {
+        return error.InvalidELFOffset;
+    }
     if (header.elf_offset + header.elf_size > data.len) {
         return error.InvalidELFBounds;
     }

@@ -1,11 +1,11 @@
 //! Physical Memory Manager - Tracks free/used 4KB pages using a bitmap
 
-const constants = @import("constants.zig");
+const system = @import("../system/system.zig");
 const multiboot = @import("../boot/multiboot2.zig");
 const serial = @import("../drivers/serial.zig");
 
-const PAGE_SIZE = constants.PAGE_SIZE;
-const HIGHER_HALF_START = constants.HIGHER_HALF_START;
+const PAGE_SIZE = system.constants.PAGE_SIZE;
+const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
 
 var bitmap: [*]u8 = undefined;
 var bitmap_size: usize = 0;
@@ -15,6 +15,9 @@ var initialized: bool = false;
 
 pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     serial.print("\n=== Physical Memory Manager ===\n");
+    serial.print("Kernel end physical: ");
+    serial.print_hex(kernel_end_phys);
+    serial.print("\n");
 
     // Find highest memory address
     var highest_addr: u64 = 0;

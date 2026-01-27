@@ -1,17 +1,17 @@
 //! Kata Memory Management - Memory setup and allocation for kata processes
 //! Handles page table creation, stack allocation, segment mapping, and virtual buffers
 
-const constants = @import("../memory/constants.zig");
+const system = @import("../system/system.zig");
 const kata_mod = @import("kata.zig");
 const paging = @import("../memory/paging.zig");
 const pmm = @import("../memory/pmm.zig");
 const serial = @import("../drivers/serial.zig");
 
-const HIGHER_HALF = constants.HIGHER_HALF_START;
-const PAGE_SIZE = constants.PAGE_SIZE;
-const USER_STACK_TOP = constants.USER_STACK_TOP;
-const USER_STACK_PAGES = constants.USER_STACK_PAGES;
-const KERNEL_STACK_SIZE = constants.KERNEL_STACK_SIZE;
+const HIGHER_HALF = system.constants.HIGHER_HALF_START;
+const PAGE_SIZE = system.constants.PAGE_SIZE;
+const USER_STACK_TOP = system.constants.USER_STACK_TOP;
+const USER_STACK_PAGES = system.constants.USER_STACK_PAGES;
+const KERNEL_STACK_SIZE = system.constants.KERNEL_STACK_SIZE;
 
 // Virtual address range for large kernel allocations (use highest PML4 entry to avoid conflicts)
 const KERNEL_VMALLOC_START: u64 = 0xFFFFFF8000000000; // PML4[0x1FF] - last PML4 entry
@@ -137,6 +137,7 @@ pub fn setup_kata_memory(kata: *kata_mod.Kata, framebuffer_phys: u64, framebuffe
 }
 
 /// Load a segment into kata memory with proper page allocation and mapping
+/// Validates all inputs and handles overlapping segments correctly
 pub fn load_segment(
     kata: *kata_mod.Kata,
     vaddr: u64,
@@ -146,6 +147,16 @@ pub fn load_segment(
     mem_size: u64,
     flags: u32,
 ) !void {
+    // Validate segment parameters
+    if (mem_size == 0) return; // Empty segment, nothing to do
+    if (file_size > mem_size) return error.InvalidSegment;
+    if (file_offset + file_size > file_data.len) return error.SegmentOutOfBounds;
+
+    // Ensure virtual address is in userspace range
+    if (!system.is_userspace_range(vaddr, mem_size)) {
+        return error.InvalidAddress;
+    }
+
     const page_aligned_vaddr = vaddr & ~@as(u64, 0xFFF);
     const offset_in_page = vaddr - page_aligned_vaddr;
 

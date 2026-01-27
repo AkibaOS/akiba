@@ -1,6 +1,6 @@
 //! ELF64 format parser - Reads and validates ELF binaries
 
-const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 // ELF magic number
 const ELF_MAGIC = [4]u8{ 0x7F, 'E', 'L', 'F' };
@@ -68,6 +68,7 @@ pub const ELFInfo = struct {
 };
 
 pub fn parse_elf(data: []const u8) !ELFInfo {
+    // Validate minimum size
     if (data.len < @sizeOf(ELF64Header)) {
         return error.TooSmall;
     }
@@ -98,14 +99,42 @@ pub fn parse_elf(data: []const u8) !ELFInfo {
         return error.NotExecutable;
     }
 
-    // Get program headers
-    if (header.phoff + (header.phnum * header.phentsize) > data.len) {
+    // Validate entry point is in userspace
+    if (!system.is_valid_user_pointer(header.entry)) {
+        return error.InvalidEntryPoint;
+    }
+
+    // Validate program header table bounds
+    if (header.phnum == 0) {
+        return error.NoProgramHeaders;
+    }
+    if (header.phentsize != @sizeOf(ELF64ProgramHeader)) {
+        return error.InvalidProgramHeaderSize;
+    }
+    const ph_table_size = @as(u64, header.phnum) * @as(u64, header.phentsize);
+    if (header.phoff + ph_table_size > data.len) {
         return error.InvalidProgramHeaders;
     }
 
     const ph_start = data.ptr + header.phoff;
     const ph_ptr: [*]const ELF64ProgramHeader = @ptrCast(@alignCast(ph_start));
     const program_headers = ph_ptr[0..header.phnum];
+
+    // Validate all PT_LOAD segments are within bounds
+    for (program_headers) |phdr| {
+        if (phdr.type == PT_LOAD) {
+            if (phdr.offset + phdr.filesz > data.len) {
+                return error.SegmentOutOfBounds;
+            }
+            if (phdr.filesz > phdr.memsz) {
+                return error.InvalidSegmentSize;
+            }
+            // Validate virtual address is in userspace
+            if (!system.is_userspace_range(phdr.vaddr, phdr.memsz)) {
+                return error.SegmentAddressOutOfRange;
+            }
+        }
+    }
 
     return ELFInfo{
         .entry_point = header.entry,

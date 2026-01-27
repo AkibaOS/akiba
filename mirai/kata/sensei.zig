@@ -6,6 +6,7 @@ const kata_mod = @import("kata.zig");
 const keyboard = @import("../drivers/keyboard.zig");
 const serial = @import("../drivers/serial.zig");
 const shift = @import("shift.zig");
+const system = @import("../system/system.zig");
 
 const Kata = kata_mod.Kata;
 
@@ -198,7 +199,7 @@ pub fn schedule() void {
 
 fn wake_all_waiting_katas() void {
     var i: usize = 0;
-    while (i < kata_mod.MAX_KATA) : (i += 1) {
+    while (i < system.limits.MAX_PROCESSES) : (i += 1) {
         if (!kata_mod.kata_used[i]) continue;
 
         const kata = &kata_mod.kata_pool[i];
@@ -218,7 +219,7 @@ fn wake_all_waiting_katas() void {
 // Wake katas waiting for a specific kata (called when a kata dissolves)
 pub fn wake_waiting_katas(target_id: u32) void {
     var i: usize = 0;
-    while (i < kata_mod.MAX_KATA) : (i += 1) {
+    while (i < system.limits.MAX_PROCESSES) : (i += 1) {
         if (!kata_mod.kata_used[i]) continue;
 
         const kata = &kata_mod.kata_pool[i];
@@ -237,7 +238,7 @@ fn wake_blocked_katas() void {
 
     // Wake only ONE blocked kata per character (FIFO order)
     var i: usize = 0;
-    while (i < kata_mod.MAX_KATA) : (i += 1) {
+    while (i < system.limits.MAX_PROCESSES) : (i += 1) {
         if (!kata_mod.kata_used[i]) continue;
 
         const kata = &kata_mod.kata_pool[i];
@@ -253,7 +254,7 @@ fn wake_blocked_katas() void {
 // Wake one blocked kata (called from keyboard interrupt)
 pub fn wake_one_blocked_kata() void {
     var i: usize = 0;
-    while (i < kata_mod.MAX_KATA) : (i += 1) {
+    while (i < system.limits.MAX_PROCESSES) : (i += 1) {
         if (!kata_mod.kata_used[i]) continue;
 
         const kata = &kata_mod.kata_pool[i];

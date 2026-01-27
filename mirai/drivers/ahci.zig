@@ -1,13 +1,13 @@
 //! AHCI (Advanced Host Controller Interface) SATA driver
 
-const constants = @import("../memory/constants.zig");
 const paging = @import("../memory/paging.zig");
 const pci = @import("pci.zig");
 const pmm = @import("../memory/pmm.zig");
 const serial = @import("serial.zig");
+const system = @import("../system/system.zig");
 
 pub const SECTOR_SIZE = 512;
-const HIGHER_HALF_START = constants.HIGHER_HALF_START;
+const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
 
 const HBA_PORT_CMD_ST: u32 = 0x0001;
 const HBA_PORT_CMD_FRE: u32 = 0x0010;
