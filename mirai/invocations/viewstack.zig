@@ -63,6 +63,15 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         user_entry.identity_len = @as(u8, @intCast(name_len));
         user_entry.size = entry.file_size;
         user_entry.is_stack = entry.is_directory;
+        user_entry.modified_time = entry.modified_time;
+
+        // Copy owner name
+        const owner_len = @min(entry.owner_name_len, 63);
+        for (0..owner_len) |j| {
+            user_entry.owner_name[j] = entry.owner_name[j];
+        }
+        user_entry.owner_name_len = @as(u8, @intCast(owner_len));
+        user_entry.permission_type = entry.permission_type;
     }
 
     ctx.rax = copy_count;
@@ -73,4 +82,8 @@ const UserStackEntry = extern struct {
     identity_len: u8,
     size: u32,
     is_stack: bool,
+    modified_time: u64,
+    owner_name: [64]u8,
+    owner_name_len: u8,
+    permission_type: u8,
 };

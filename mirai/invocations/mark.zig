@@ -17,13 +17,14 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const fd = @as(u32, @truncate(ctx.rdi));
     const buffer_ptr = ctx.rsi;
     const count = ctx.rdx;
+    const color = @as(u32, @truncate(ctx.r10));
 
     if (fd >= system.limits.MAX_FILE_DESCRIPTORS or current_kata.fd_table[fd].fd_type == .Closed) {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     }
 
-    const bytes_written = write_to_fd(current_kata, fd, buffer_ptr, count) catch {
+    const bytes_written = write_to_fd(current_kata, fd, buffer_ptr, count, color) catch {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };
@@ -31,7 +32,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     ctx.rax = bytes_written;
 }
 
-fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 {
+fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64, color: u32) !u64 {
     // Validate count is reasonable
     if (count == 0) return 0;
     if (count > system.limits.MAX_WRITE_SIZE) return error.WriteTooLarge;
@@ -41,7 +42,7 @@ fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 
     // Device files
     if (fd_entry.fd_type == .Device) {
         const device = fd_entry.device_type orelse return error.InvalidDevice;
-        return write_to_device(device, buffer_ptr, count);
+        return write_to_device(device, buffer_ptr, count, color);
     }
 
     // Regular files - mark as dirty for later flush
@@ -50,7 +51,7 @@ fn write_to_fd(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 
     return count;
 }
 
-fn write_to_device(device: fd_mod.DeviceType, buffer_ptr: u64, count: u64) !u64 {
+fn write_to_device(device: fd_mod.DeviceType, buffer_ptr: u64, count: u64, color: u32) !u64 {
     // Validate user buffer pointer
     if (!system.is_valid_user_pointer(buffer_ptr)) {
         return error.InvalidPointer;
@@ -68,10 +69,10 @@ fn write_to_device(device: fd_mod.DeviceType, buffer_ptr: u64, count: u64) !u64 
 
     switch (device) {
         .Stream, .Trace, .Console => {
-            // Write to terminal from kernel buffer
+            // Write to terminal from kernel buffer with color
             i = 0;
             while (i < copy_size) : (i += 1) {
-                terminal.put_char(kernel_buffer[i]);
+                terminal.put_char_color(kernel_buffer[i], color);
             }
             return count;
         },

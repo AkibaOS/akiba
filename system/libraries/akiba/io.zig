@@ -89,4 +89,8 @@ pub const StackEntry = extern struct {
     identity_len: u8,
     size: u32,
     is_stack: bool,
+    modified_time: u64,
+    owner_name: [64]u8,
+    owner_name_len: u8,
+    permission_type: u8,
 };
