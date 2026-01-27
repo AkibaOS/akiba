@@ -15,9 +15,6 @@ var initialized: bool = false;
 
 pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     serial.print("\n=== Physical Memory Manager ===\n");
-    serial.print("Kernel end physical: ");
-    serial.print_hex(kernel_end_phys);
-    serial.print("\n");
 
     // Find highest memory address
     var highest_addr: u64 = 0;

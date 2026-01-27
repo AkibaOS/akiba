@@ -30,9 +30,25 @@ pub const KERNEL_PHYSICAL_END: u64 = 0x500000;
 /// Virtual address where kernel is mapped
 pub const KERNEL_VIRTUAL_START: u64 = HIGHER_HALF_START + KERNEL_PHYSICAL_START;
 
-/// Kernel physical end address (conservative estimate)
-/// TODO: Make this precise by reading from linker symbol
-pub const KERNEL_END: u64 = 0x500000; // 5MB - safe upper bound
+/// External linker symbol marking the end of the kernel binary
+extern const _kernel_end: u8;
+
+/// Dynamically calculate the physical address where kernel binary ends
+/// The linker places _kernel_end at the end of .bss section
+/// This symbol's address is in the linker's address space (starts at 0x100000)
+pub fn KERNEL_END() u64 {
+    // Get the link-time address of the symbol
+    const link_addr = @intFromPtr(&_kernel_end);
+    // The linker script starts at 0x100000, so this is already a physical address
+    // but we need to handle if it's in higher-half or identity mapping
+    if (link_addr >= HIGHER_HALF_START) {
+        // Symbol accessed through higher-half mapping, convert to physical
+        return link_addr - HIGHER_HALF_START;
+    } else {
+        // Symbol accessed through identity mapping or direct physical address
+        return link_addr;
+    }
+}
 
 // ============================================================================
 // User Address Space Layout

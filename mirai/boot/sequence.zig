@@ -72,7 +72,7 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_ok();
 
     boot_print("Initializing physical memory manager... ");
-    pmm.init(system.constants.KERNEL_END, memory_map);
+    pmm.init(system.constants.KERNEL_END(), memory_map);
     boot_ok();
 
     boot_print("Initializing heap allocator... ");
