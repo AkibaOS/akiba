@@ -31,8 +31,10 @@ struct afs_dir_entry
   grub_uint8_t entry_type;
   grub_uint8_t name_len;
   grub_uint8_t name[255];
-  grub_uint8_t attributes;
-  grub_uint16_t reserved;
+  grub_uint8_t owner_name_len;
+  grub_uint8_t owner_name[64];
+  grub_uint8_t permission_type;
+  grub_uint8_t reserved;
   grub_uint32_t first_cluster;
   grub_uint64_t file_size;
   grub_uint64_t created_time;

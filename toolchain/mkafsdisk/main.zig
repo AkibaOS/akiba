@@ -22,8 +22,10 @@ const AFSDirEntry = extern struct {
     entry_type: u8,
     name_len: u8,
     name: [255]u8,
-    attributes: u8,
-    reserved: u16,
+    owner_name_len: u8,
+    owner_name: [64]u8,
+    permission_type: u8, // 1=OA, 2=WA, 3=WR
+    reserved: u8,
     first_cluster: u32,
     file_size: u64,
     created_time: u64,
@@ -33,6 +35,10 @@ const AFSDirEntry = extern struct {
 const ENTRY_TYPE_END: u8 = 0x00;
 const ENTRY_TYPE_FILE: u8 = 0x01;
 const ENTRY_TYPE_DIR: u8 = 0x02;
+
+const PERM_OWNER: u8 = 1; // OA - Owner All
+const PERM_WORLD: u8 = 2; // WA - World All
+const PERM_READ_ONLY: u8 = 3; // WR - World Read
 
 const FATDateTime = struct {
     date: u16,
@@ -702,6 +708,31 @@ fn copyDirectoryAFS(allocator: mem.Allocator, file: fs.File, dir_path: []const u
         afs_entry.entry_type = if (entry.kind == .directory) ENTRY_TYPE_DIR else ENTRY_TYPE_FILE;
         afs_entry.name_len = @intCast(name.len);
         @memcpy(afs_entry.name[0..name.len], name);
+
+        // Set owner to "akiba"
+        const owner = "akiba";
+        afs_entry.owner_name_len = @intCast(owner.len);
+        @memcpy(afs_entry.owner_name[0..owner.len], owner);
+
+        // Set permissions based on directory
+        // system/ - WR, EFI/ - WR, boot/ - WR, binaries/ - WA
+        const is_system = std.mem.indexOf(u8, dir_path, "/system") != null or std.mem.eql(u8, name, "system");
+        const is_efi = std.mem.indexOf(u8, dir_path, "/EFI") != null or std.mem.eql(u8, name, "EFI");
+        const is_boot = std.mem.indexOf(u8, dir_path, "/boot") != null or std.mem.eql(u8, name, "boot");
+        const is_binaries = std.mem.indexOf(u8, dir_path, "/binaries") != null or std.mem.eql(u8, name, "binaries");
+
+        if (is_binaries) {
+            afs_entry.permission_type = PERM_WORLD;
+        } else if (is_system or is_efi or is_boot) {
+            afs_entry.permission_type = PERM_READ_ONLY;
+        } else {
+            afs_entry.permission_type = PERM_OWNER;
+        }
+        afs_entry.reserved = 0;
+
+        const current_time = std.time.timestamp();
+        afs_entry.created_time = @intCast(current_time);
+        afs_entry.modified_time = @intCast(current_time);
 
         if (entry.kind == .directory) {
             const new_cluster = try cluster_alloc.allocate(10);

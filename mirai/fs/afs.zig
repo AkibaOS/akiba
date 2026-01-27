@@ -24,8 +24,10 @@ pub const AFSDirEntry = extern struct {
     entry_type: u8,
     name_len: u8,
     name: [255]u8,
-    attributes: u8,
-    reserved: u16,
+    owner_name_len: u8,
+    owner_name: [64]u8,
+    permission_type: u8, // 1=OA, 2=WA, 3=WR
+    reserved: u8,
     first_cluster: u32,
     file_size: u64,
     created_time: u64,
@@ -36,6 +38,10 @@ pub const ENTRY_TYPE_END: u8 = 0x00;
 pub const ENTRY_TYPE_FILE: u8 = 0x01;
 pub const ENTRY_TYPE_DIR: u8 = 0x02;
 
+pub const PERM_OWNER: u8 = 1; // OA - Owner All
+pub const PERM_WORLD: u8 = 2; // WA - World All
+pub const PERM_READ_ONLY: u8 = 3; // WR - World Read
+
 pub const ATTR_DIRECTORY: u8 = 0x10;
 
 pub const ListEntry = struct {
@@ -43,6 +49,10 @@ pub const ListEntry = struct {
     name_len: usize,
     is_directory: bool,
     file_size: u32,
+    modified_time: u64,
+    owner_name: [64]u8,
+    owner_name_len: usize,
+    permission_type: u8,
 };
 
 pub fn AFS(comptime BlockDeviceType: type) type {
@@ -224,6 +234,13 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                     entries[count].name_len = entry.name_len;
                     entries[count].is_directory = (entry.entry_type == ENTRY_TYPE_DIR);
 
+                    // Copy owner information
+                    for (entry.owner_name[0..entry.owner_name_len], 0..) |c, i| {
+                        entries[count].owner_name[i] = c;
+                    }
+                    entries[count].owner_name_len = entry.owner_name_len;
+                    entries[count].permission_type = entry.permission_type;
+
                     // Calculate recursive size for directories
                     if (entry.entry_type == ENTRY_TYPE_DIR) {
                         entries[count].file_size = @truncate(self.calculate_directory_size(entry.first_cluster) catch 0);
@@ -397,7 +414,9 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                 .entry_type = ENTRY_TYPE_FILE,
                 .name_len = @truncate(filename.len),
                 .name = undefined,
-                .attributes = 0,
+                .owner_name_len = 0,
+                .owner_name = undefined,
+                .permission_type = PERM_OWNER,
                 .reserved = 0,
                 .first_cluster = file_cluster,
                 .file_size = 0,
@@ -406,6 +425,7 @@ pub fn AFS(comptime BlockDeviceType: type) type {
             };
 
             @memset(&new_entry.name, 0);
+            @memset(&new_entry.owner_name, 0);
             @memcpy(new_entry.name[0..filename.len], filename);
 
             // Add entry to parent directory
