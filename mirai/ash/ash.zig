@@ -51,8 +51,7 @@ pub fn on_key_press(char: u8) void {
 }
 
 fn show_prompt() void {
-    const stack_name = get_current_stack_name();
-    terminal.print(stack_name);
+    terminal.print(current_path[0..current_path_len]);
     terminal.print(" >>> ");
 }
 

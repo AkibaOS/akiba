@@ -52,8 +52,9 @@ docker-build:
 	@echo "═══════════════════════════════════════════════════════════"
 	@echo " Building Akiba OS (Docker mode)"
 	@echo "═══════════════════════════════════════════════════════════"
+	@echo "Setting Docker time to: $(shell date -u)"
 	@docker build -t akiba-builder ./toolchain
-	@docker run --rm -v $(PWD):/akiba -e DOCKER_BUILD=1 akiba-builder make all
+	@docker run --rm -v $(PWD):/akiba -e BUILD_DATE="$(shell date -u)" -e DOCKER_BUILD=1 akiba-builder sh -c 'echo "Docker received date: $$BUILD_DATE" && date -s "$$BUILD_DATE" >/dev/null 2>&1 || true && echo "Docker current time: $$(date -u)" && make all'
 
 docker-run:
 	@./scripts/run.sh

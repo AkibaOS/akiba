@@ -240,6 +240,7 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                     }
                     entries[count].owner_name_len = entry.owner_name_len;
                     entries[count].permission_type = entry.permission_type;
+                    entries[count].modified_time = entry.modified_time;
 
                     // Calculate recursive size for directories
                     if (entry.entry_type == ENTRY_TYPE_DIR) {

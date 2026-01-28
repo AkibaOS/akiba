@@ -30,28 +30,42 @@ fn display_stack(path: []const u8) !void {
     var entries: [128]akiba.io.StackEntry = undefined;
     const count = akiba.io.viewstack(path, &entries) catch 0;
 
-    _ = akiba.io.mark(akiba.io.stream, "\nAccess", Color.gray) catch 0;
-    print_padding(2);
-    _ = akiba.io.mark(akiba.io.stream, "Size", Color.gray) catch 0;
-    print_padding(2);
-    _ = akiba.io.mark(akiba.io.stream, "Persona", Color.gray) catch 0;
-    print_padding(2);
-    _ = akiba.io.mark(akiba.io.stream, "Modified", Color.gray) catch 0;
-    print_padding(9);
-    _ = akiba.io.mark(akiba.io.stream, "Name\n", Color.gray) catch 0;
+    // Calculate max widths for each column
+    var max_access_len: usize = 6; // "Access" header
+    var max_size_len: usize = 4; // "Size" header
+    var max_owner_len: usize = 7; // "Persona" header
+    var max_date_len: usize = 8; // "Modified" header
+    const formatted_date_len: usize = 19; // All dates format to " 1 Jan 1970 00:00  "
+    if (formatted_date_len > max_date_len) max_date_len = formatted_date_len;
 
-    var stack_count: usize = 0;
-    var unit_count: usize = 0;
-    var total_size: u64 = 0;
-
-    // Calculate max owner name length
-    var max_owner_len: usize = 7; // "Persona" header length
     for (0..count) |i| {
         const entry = &entries[i];
+        const perms = get_permissions(entry.permission_type);
+        if (perms.len > max_access_len) max_access_len = perms.len;
+
+        var size_buf: [32]u8 = undefined;
+        const size_str = format_size(entry.size, &size_buf);
+        if (size_str.len > max_size_len) max_size_len = size_str.len;
+
         if (entry.owner_name_len > max_owner_len) {
             max_owner_len = entry.owner_name_len;
         }
     }
+
+    // Print header
+    _ = akiba.io.mark(akiba.io.stream, "\nAccess", Color.white) catch 0;
+    print_padding(max_access_len - 6 + 2);
+    _ = akiba.io.mark(akiba.io.stream, "Size", Color.white) catch 0;
+    print_padding(max_size_len - 4 + 2);
+    _ = akiba.io.mark(akiba.io.stream, "Persona", Color.white) catch 0;
+    print_padding(max_owner_len - 7 + 3);
+    _ = akiba.io.mark(akiba.io.stream, "Modified", Color.white) catch 0;
+    print_padding(max_date_len - 8 + 1);
+    _ = akiba.io.mark(akiba.io.stream, "Name\n", Color.white) catch 0;
+
+    var stack_count: usize = 0;
+    var unit_count: usize = 0;
+    var total_size: u64 = 0;
 
     for (0..count) |i| {
         const entry = &entries[i];
@@ -60,18 +74,18 @@ fn display_stack(path: []const u8) !void {
 
         const perms = get_permissions(entry.permission_type);
         _ = akiba.io.mark(akiba.io.stream, perms, Color.cyan) catch 0;
-        print_padding(if (perms.len < 10) 10 - perms.len else 0);
+        print_padding(max_access_len - perms.len + 2);
 
         var size_buf: [32]u8 = undefined;
         const size_str = format_size(entry.size, &size_buf);
-        print_padding(if (size_str.len < 6) 6 - size_str.len else 0);
         _ = akiba.io.mark(akiba.io.stream, size_str, Color.green) catch 0;
-        print_padding(2);
+        print_padding(max_size_len - size_str.len + 2);
 
         _ = akiba.io.mark(akiba.io.stream, owner, Color.yellow) catch 0;
-        print_padding(max_owner_len - owner.len + 2);
+        print_padding(max_owner_len - owner.len + 3);
 
         format_date(entry.modified_time);
+        print_padding(1);
 
         if (entry.is_stack) {
             stack_count += 1;
@@ -89,12 +103,12 @@ fn display_stack(path: []const u8) !void {
     if (count > 0) {
         _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
         var buf: [16]u8 = undefined;
-        _ = akiba.io.mark(akiba.io.stream, int_to_str(stack_count, &buf), Color.white) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, " stacks  ", Color.white) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, int_to_str(unit_count, &buf), Color.white) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, " units  ", Color.white) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, int_to_str(stack_count, &buf), Color.gray) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, " stacks  ", Color.gray) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, int_to_str(unit_count, &buf), Color.gray) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, " units  ", Color.gray) catch 0;
         var size_buf: [32]u8 = undefined;
-        _ = akiba.io.mark(akiba.io.stream, format_size(total_size, &size_buf), Color.white) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, format_size(total_size, &size_buf), Color.gray) catch 0;
         _ = akiba.io.mark(akiba.io.stream, "\n\n", Color.white) catch 0;
     }
 }
@@ -158,7 +172,7 @@ fn format_date(timestamp: u64) void {
     var buf: [20]u8 = undefined;
     var pos: usize = 0;
     if (day < 10) {
-        buf[pos] = ' ';
+        buf[pos] = '0';
         pos += 1;
     }
     const day_str = int_to_str(day, buf[pos..]);
