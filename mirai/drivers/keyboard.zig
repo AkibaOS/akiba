@@ -1,5 +1,6 @@
 //! PS/2 Keyboard Driver
 
+const io = @import("../asm/io.zig");
 const serial = @import("serial.zig");
 const sensei = @import("../kata/sensei.zig");
 
@@ -63,38 +64,23 @@ const SCANCODE_LCTRL: u8 = 0x1D;
 const SCANCODE_LALT: u8 = 0x38;
 const SCANCODE_CAPS: u8 = 0x3A;
 
-fn inb(port: u16) u8 {
-    return asm volatile ("inb %[port], %[result]"
-        : [result] "={al}" (-> u8),
-        : [port] "{dx}" (port),
-    );
-}
-
-fn outb(port: u16, value: u8) void {
-    asm volatile ("outb %[value], %[port]"
-        :
-        : [value] "{al}" (value),
-          [port] "{dx}" (port),
-    );
-}
-
 pub fn init() void {
     serial.print("Initializing PS/2 keyboard...\n");
 
     // Clear keyboard buffer
-    while ((inb(KEYBOARD_STATUS_PORT) & 0x01) != 0) {
-        _ = inb(KEYBOARD_DATA_PORT);
+    while ((io.read_port_byte(KEYBOARD_STATUS_PORT) & 0x01) != 0) {
+        _ = io.read_port_byte(KEYBOARD_DATA_PORT);
     }
 
     serial.print("Keyboard ready\n");
 }
 
 export fn keyboard_handler() void {
-    const scancode = inb(KEYBOARD_DATA_PORT);
+    const scancode = io.read_port_byte(KEYBOARD_DATA_PORT);
     handle_scancode(scancode);
 
     // Send EOI to PIC
-    outb(0x20, 0x20);
+    io.write_port_byte(0x20, 0x20);
 }
 
 fn handle_scancode(scancode: u8) void {

@@ -1,5 +1,6 @@
 //! ATA PIO block device driver
 
+const io = @import("../asm/io.zig");
 const serial = @import("serial.zig");
 
 pub const SECTOR_SIZE: usize = 512;
@@ -21,36 +22,14 @@ const STATUS_DRDY: u8 = 0x40;
 const STATUS_DRQ: u8 = 0x08;
 const STATUS_ERR: u8 = 0x01;
 
-fn outb(port: u16, value: u8) void {
-    asm volatile ("outb %[value], %[port]"
-        :
-        : [value] "{al}" (value),
-          [port] "{dx}" (port),
-    );
-}
-
-fn inb(port: u16) u8 {
-    return asm volatile ("inb %[port], %[result]"
-        : [result] "={al}" (-> u8),
-        : [port] "{dx}" (port),
-    );
-}
-
-fn inw(port: u16) u16 {
-    return asm volatile ("inw %[port], %[result]"
-        : [result] "={ax}" (-> u16),
-        : [port] "{dx}" (port),
-    );
-}
-
 fn wait_ready() void {
-    while ((inb(ATA_STATUS) & STATUS_BSY) != 0) {}
+    while ((io.read_port_byte(ATA_STATUS) & STATUS_BSY) != 0) {}
 }
 
 fn wait_data_ready() bool {
     var timeout: u32 = 0;
     while (timeout < 10000) : (timeout += 1) {
-        const status = inb(ATA_STATUS);
+        const status = io.read_port_byte(ATA_STATUS);
         if ((status & STATUS_ERR) != 0) return false;
         if ((status & STATUS_DRQ) != 0) return true;
     }
@@ -74,12 +53,12 @@ pub const BlockDevice = struct {
         wait_ready();
 
         const drive_bits: u8 = 0xE0 | (self.disk_id << 4) | @as(u8, @truncate((lba >> 24) & 0x0F));
-        outb(ATA_DRIVE_SELECT, drive_bits);
-        outb(ATA_SECTOR_COUNT, 1);
-        outb(ATA_LBA_LOW, @as(u8, @truncate(lba)));
-        outb(ATA_LBA_MID, @as(u8, @truncate(lba >> 8)));
-        outb(ATA_LBA_HIGH, @as(u8, @truncate(lba >> 16)));
-        outb(ATA_COMMAND, CMD_READ_SECTORS);
+        io.write_port_byte(ATA_DRIVE_SELECT, drive_bits);
+        io.write_port_byte(ATA_SECTOR_COUNT, 1);
+        io.write_port_byte(ATA_LBA_LOW, @as(u8, @truncate(lba)));
+        io.write_port_byte(ATA_LBA_MID, @as(u8, @truncate(lba >> 8)));
+        io.write_port_byte(ATA_LBA_HIGH, @as(u8, @truncate(lba >> 16)));
+        io.write_port_byte(ATA_COMMAND, CMD_READ_SECTORS);
 
         if (!wait_data_ready()) {
             serial.print("ERROR: ATA read timeout\r\n");
@@ -88,7 +67,7 @@ pub const BlockDevice = struct {
 
         var i: usize = 0;
         while (i < SECTOR_SIZE) : (i += 2) {
-            const word = inw(ATA_DATA);
+            const word = io.read_port_word(ATA_DATA);
             buffer[i] = @as(u8, @truncate(word));
             buffer[i + 1] = @as(u8, @truncate(word >> 8));
         }

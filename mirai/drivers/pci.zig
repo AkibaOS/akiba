@@ -1,5 +1,6 @@
 //! PCI (Peripheral Component Interconnect) bus enumeration
 
+const io = @import("../asm/io.zig");
 const serial = @import("serial.zig");
 
 pub const PCIDevice = struct {
@@ -29,36 +30,6 @@ const MAX_DEVICES = 64;
 var devices: [MAX_DEVICES]PCIDevice = undefined;
 var device_count: usize = 0;
 
-fn outl(port: u16, value: u32) void {
-    asm volatile ("outl %[value], %[port]"
-        :
-        : [value] "{eax}" (value),
-          [port] "{dx}" (port),
-    );
-}
-
-fn inl(port: u16) u32 {
-    return asm volatile ("inl %[port], %[result]"
-        : [result] "={eax}" (-> u32),
-        : [port] "{dx}" (port),
-    );
-}
-
-fn outw(port: u16, value: u16) void {
-    asm volatile ("outw %[value], %[port]"
-        :
-        : [value] "{ax}" (value),
-          [port] "{dx}" (port),
-    );
-}
-
-fn inw(port: u16) u16 {
-    return asm volatile ("inw %[port], %[result]"
-        : [result] "={ax}" (-> u16),
-        : [port] "{dx}" (port),
-    );
-}
-
 fn pci_config_read_u32(bus: u8, device: u8, function: u8, offset: u8) u32 {
     const address: u32 = (@as(u32, 1) << 31) |
         (@as(u32, bus) << 16) |
@@ -66,8 +37,8 @@ fn pci_config_read_u32(bus: u8, device: u8, function: u8, offset: u8) u32 {
         (@as(u32, function) << 8) |
         (@as(u32, offset) & 0xFC);
 
-    outl(PCI_CONFIG_ADDRESS, address);
-    return inl(PCI_CONFIG_DATA);
+    io.write_port_long(PCI_CONFIG_ADDRESS, address);
+    return io.read_port_long(PCI_CONFIG_DATA);
 }
 
 fn pci_config_read_u16(bus: u8, device: u8, function: u8, offset: u8) u16 {
@@ -89,8 +60,8 @@ fn pci_config_write_u32(bus: u8, device: u8, function: u8, offset: u8, value: u3
         (@as(u32, function) << 8) |
         (@as(u32, offset) & 0xFC);
 
-    outl(PCI_CONFIG_ADDRESS, address);
-    outl(PCI_CONFIG_DATA, value);
+    io.write_port_long(PCI_CONFIG_ADDRESS, address);
+    io.write_port_long(PCI_CONFIG_DATA, value);
 }
 
 fn pci_config_write_u16(bus: u8, device: u8, function: u8, offset: u8, value: u16) void {
