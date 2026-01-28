@@ -169,7 +169,6 @@ pub fn run(multiboot_info_addr: u64) void {
     boot_ok();
 
     boot_print_color("Boot sequence completed successfully!\n", COLOR_OK);
-    delay(10);
 
     // Initialize Pulse (load init system)
     boot_print("Initializing Pulse init system... ");
@@ -198,13 +197,6 @@ pub fn run(multiboot_info_addr: u64) void {
 fn halt() noreturn {
     while (true) {
         asm volatile ("hlt");
-    }
-}
-
-fn delay(ms: u32) void {
-    var i: u32 = 0;
-    while (i < ms * 100000) : (i += 1) {
-        asm volatile ("pause");
     }
 }
 
@@ -238,13 +230,6 @@ fn replay_messages() void {
             terminal.print_color(msg.text[0..msg.len], msg.color);
         } else {
             terminal.print(msg.text[0..msg.len]);
-        }
-
-        if (msg.len >= 5) {
-            const is_ok_line = msg.text[0] == '[' and msg.text[2] == 'O' and msg.text[3] == 'K';
-            if (is_ok_line) {
-                delay(10);
-            }
         }
     }
     message_count = 0;
