@@ -1,6 +1,8 @@
 //! CPU Exception Handlers (0-31)
 //! Called when CPU encounters fatal errors
 
+const io = @import("../asm/io.zig");
+const mem = @import("../asm/memory.zig");
 const panic = @import("panic.zig");
 const serial = @import("../drivers/serial.zig");
 const std = @import("std");
@@ -181,29 +183,17 @@ pub fn get_isr_handlers() [32]u64 {
 // Main exception handler - called from assembly stub
 export fn exception_handler(frame: *InterruptFrame) void {
     // Read control registers
-    const cr2 = asm volatile ("mov %%cr2, %[result]"
-        : [result] "=r" (-> u64),
-    );
-    const cr3 = asm volatile ("mov %%cr3, %[result]"
-        : [result] "=r" (-> u64),
-    );
+    const cr2 = mem.read_page_fault_address();
+    const cr3 = mem.read_page_table_base();
 
     const int_num = frame.int_num;
 
     // IMMEDIATE DEBUG
-    asm volatile (
-        \\mov $0x3F8, %%dx
-        \\mov $'E', %%al
-        \\out %%al, %%dx
-        \\mov $'X', %%al
-        \\out %%al, %%dx
-        \\mov $'C', %%al
-        \\out %%al, %%dx
-        \\mov $'!', %%al
-        \\out %%al, %%dx
-        \\mov $'\n', %%al
-        \\out %%al, %%dx
-        ::: .{ .rax = true, .rdx = true });
+    io.write_byte(0x3F8, 'E');
+    io.write_byte(0x3F8, 'X');
+    io.write_byte(0x3F8, 'C');
+    io.write_byte(0x3F8, '!');
+    io.write_byte(0x3F8, '\n');
 
     serial.print("\n!!! EXCEPTION ");
     serial.print_hex(int_num);

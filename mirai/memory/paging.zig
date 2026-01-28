@@ -1,7 +1,8 @@
 //! Page Table Manager - Hybrid kernel with independent user page tables
 
-const system = @import("../system/system.zig");
+const mem = @import("../asm/memory.zig");
 const pmm = @import("pmm.zig");
+const system = @import("../system/system.zig");
 
 pub const PAGE_SIZE = system.constants.PAGE_SIZE;
 pub const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
@@ -14,16 +15,11 @@ const KERNEL_START = system.constants.KERNEL_PHYSICAL_START;
 const KERNEL_END = system.constants.KERNEL_PHYSICAL_END;
 
 fn get_cr3() u64 {
-    return asm volatile ("mov %%cr3, %[result]"
-        : [result] "=r" (-> u64),
-    );
+    return mem.read_page_table_base();
 }
 
 fn invlpg(addr: u64) void {
-    asm volatile ("invlpg (%[addr])"
-        :
-        : [addr] "r" (addr),
-    );
+    mem.invalidate_page(addr);
 }
 
 fn zero_page(virt: u64) void {

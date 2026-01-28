@@ -1,5 +1,7 @@
 //! Global Descriptor Table - Extended for Layer 0-3
 
+const cpu = @import("../asm/cpu.zig");
+const io = @import("../asm/io.zig");
 const serial = @import("../drivers/serial.zig");
 const tss = @import("tss.zig");
 
@@ -100,11 +102,8 @@ pub fn init() void {
 
     // Mask all IRQs on both PICs
     serial.print("Masking all hardware interrupts...\n");
-    asm volatile (
-        \\mov $0xFF, %al
-        \\out %al, $0x21  # Master PIC
-        \\out %al, $0xA1  # Slave PIC
-    );
+    io.write_port_byte(0x21, 0xFF); // Master PIC
+    io.write_port_byte(0xA1, 0xFF); // Slave PIC
 }
 
 fn create_code_descriptor(dpl: u8, long_mode: bool, is_user: bool) u64 {
@@ -184,10 +183,7 @@ fn create_tss_descriptor(base: u64, limit: u64) void {
 }
 
 fn load_gdt() void {
-    asm volatile ("lgdt (%[gdt_ptr])"
-        :
-        : [gdt_ptr] "r" (&gdt_ptr),
-    );
+    cpu.load_global_descriptor_table(@intFromPtr(&gdt_ptr));
 
     // Reload segment registers with new kernel data segment
     asm volatile (
@@ -210,8 +206,5 @@ fn load_gdt() void {
 }
 
 fn load_tss() void {
-    asm volatile ("ltr %[tss]"
-        :
-        : [tss] "r" (@as(u16, TSS_SEGMENT)),
-    );
+    cpu.load_task_register(TSS_SEGMENT);
 }

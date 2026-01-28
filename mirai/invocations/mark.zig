@@ -5,8 +5,8 @@ const handler = @import("handler.zig");
 const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
-const terminal = @import("../terminal.zig");
 const system = @import("../system/system.zig");
+const terminal = @import("../terminal.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {
     const current_kata = sensei.get_current_kata() orelse {

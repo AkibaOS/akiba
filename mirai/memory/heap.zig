@@ -1,9 +1,9 @@
 //! Kernel Heap Allocator
 //! Size-segregated allocator with object caching
 
-const system = @import("../system/system.zig");
 const pmm = @import("pmm.zig");
 const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 const PAGE_SIZE = system.constants.PAGE_SIZE;
 const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;

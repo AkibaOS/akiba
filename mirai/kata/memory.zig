@@ -1,11 +1,11 @@
 //! Kata Memory Management - Memory setup and allocation for kata processes
 //! Handles page table creation, stack allocation, segment mapping, and virtual buffers
 
-const system = @import("../system/system.zig");
 const kata_mod = @import("kata.zig");
 const paging = @import("../memory/paging.zig");
 const pmm = @import("../memory/pmm.zig");
 const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 const HIGHER_HALF = system.constants.HIGHER_HALF_START;
 const PAGE_SIZE = system.constants.PAGE_SIZE;

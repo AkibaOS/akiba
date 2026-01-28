@@ -1,6 +1,8 @@
 //! Interrupt Descriptor Table - IDT setup and IRQ routing
 
+const cpu = @import("../asm/cpu.zig");
 const exceptions = @import("../crimson/exceptions.zig");
+const io = @import("../asm/io.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
 
@@ -117,7 +119,7 @@ export fn timer_handler() void {
     // This is important because on_tick() might call schedule() which
     // calls shift_to_kata() which does iretq and never returns here.
     // Without early EOI, no more timer interrupts would fire.
-    outb(0x20, 0x20);
+    io.write_port_byte(0x20, 0x20);
 
     // Let Sensei schedule Kata on each tick
     sensei.on_tick();
@@ -125,21 +127,6 @@ export fn timer_handler() void {
 
 pub fn get_ticks() u64 {
     return tick_count;
-}
-
-fn outb(port: u16, value: u8) void {
-    asm volatile ("outb %[value], %[port]"
-        :
-        : [value] "{al}" (value),
-          [port] "{dx}" (port),
-    );
-}
-
-fn inb(port: u16) u8 {
-    return asm volatile ("inb %[port], %[result]"
-        : [result] "={al}" (-> u8),
-        : [port] "{dx}" (port),
-    );
 }
 
 pub fn init() void {
@@ -161,10 +148,7 @@ pub fn init() void {
         .base = @intFromPtr(&idt),
     };
 
-    asm volatile ("lidt (%[idtr])"
-        :
-        : [idtr] "r" (&idtr),
-    );
+    cpu.load_interrupt_descriptor_table(@intFromPtr(&idtr));
 
     // Remap PIC
     remap_pic();
@@ -174,7 +158,7 @@ pub fn init() void {
     unmask_irq(1);
 
     // Enable interrupts
-    asm volatile ("sti");
+    cpu.enable_interrupts();
 
     serial.print("IDT loaded, interrupts enabled\n");
 }
@@ -192,27 +176,27 @@ fn set_handler(vector: u16, handler_addr: u64, flags: u8) void {
 }
 
 fn remap_pic() void {
-    const mask1 = inb(0x21);
-    const mask2 = inb(0xA1);
+    const mask1 = io.read_port_byte(0x21);
+    const mask2 = io.read_port_byte(0xA1);
 
-    outb(0x20, 0x11);
-    outb(0xA0, 0x11);
+    io.write_port_byte(0x20, 0x11);
+    io.write_port_byte(0xA0, 0x11);
 
-    outb(0x21, 32);
-    outb(0xA1, 40);
+    io.write_port_byte(0x21, 32);
+    io.write_port_byte(0xA1, 40);
 
-    outb(0x21, 0x04);
-    outb(0xA1, 0x02);
+    io.write_port_byte(0x21, 0x04);
+    io.write_port_byte(0xA1, 0x02);
 
-    outb(0x21, 0x01);
-    outb(0xA1, 0x01);
+    io.write_port_byte(0x21, 0x01);
+    io.write_port_byte(0xA1, 0x01);
 
-    outb(0x21, mask1);
-    outb(0xA1, mask2);
+    io.write_port_byte(0x21, mask1);
+    io.write_port_byte(0xA1, mask2);
 }
 
 fn unmask_irq(irq: u8) void {
     const port: u16 = if (irq < 8) 0x21 else 0xA1;
-    const mask = inb(port) & ~(@as(u8, 1) << @truncate(irq % 8));
-    outb(port, mask);
+    const mask = io.read_port_byte(port) & ~(@as(u8, 1) << @truncate(irq % 8));
+    io.write_port_byte(port, mask);
 }

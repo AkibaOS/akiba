@@ -1,7 +1,7 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const ata = @import("../drivers/ata.zig");
-const system = @import("../system/system.zig");
+const cpu = @import("../asm/cpu.zig");
 const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gdt = @import("gdt.zig");
@@ -19,6 +19,7 @@ const pmm = @import("../memory/pmm.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
 const shift = @import("../kata/shift.zig");
+const system = @import("../system/system.zig");
 const terminal = @import("../terminal.zig");
 const tss = @import("tss.zig");
 
@@ -196,7 +197,7 @@ pub fn run(multiboot_info_addr: u64) void {
 
 fn halt() noreturn {
     while (true) {
-        asm volatile ("hlt");
+        cpu.halt_processor();
     }
 }
 

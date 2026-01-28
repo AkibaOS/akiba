@@ -1,8 +1,9 @@
 //! Physical Memory Manager - Tracks free/used 4KB pages using a bitmap
 
-const system = @import("../system/system.zig");
+const mem = @import("../asm/memory.zig");
 const multiboot = @import("../boot/multiboot2.zig");
 const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 const PAGE_SIZE = system.constants.PAGE_SIZE;
 const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
@@ -172,9 +173,7 @@ fn align_down(addr: u64, alignment: u64) u64 {
 }
 
 fn get_cr3() u64 {
-    return asm volatile ("mov %%cr3, %[result]"
-        : [result] "=r" (-> u64),
-    );
+    return mem.read_page_table_base();
 }
 
 /// Reserve all page table pages currently in use by walking CR3 hierarchy

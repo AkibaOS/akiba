@@ -1,6 +1,7 @@
 //! Crimson Panic Handler - "Hey! You finally met Crimson!"
 
 const boot = @import("../boot/multiboot2.zig");
+const cpu = @import("../asm/cpu.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const serial = @import("../drivers/serial.zig");
 
@@ -46,7 +47,7 @@ pub fn init(fb: boot.FramebufferInfo) void {
 // Main collapse function - called on fatal errors
 pub fn collapse(message: []const u8, context: ?*const Context) noreturn {
     // Disable interrupts immediately
-    asm volatile ("cli");
+    cpu.disable_interrupts();
 
     // Log to serial first (in case framebuffer fails)
     serial.print("\n╔════════════════════════════════════╗\n");
@@ -438,6 +439,7 @@ fn dump_registers_serial(ctx: *const Context) void {
 
 fn halt() noreturn {
     while (true) {
-        asm volatile ("cli; hlt");
+        cpu.disable_interrupts();
+        cpu.halt_processor();
     }
 }

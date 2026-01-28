@@ -4,7 +4,6 @@
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
 const boot = @import("../boot/multiboot2.zig");
-const system = @import("../system/system.zig");
 const elf = @import("elf.zig");
 const format = @import("format.zig");
 const gdt = @import("../boot/gdt.zig");
@@ -13,6 +12,7 @@ const kata_memory = @import("../kata/memory.zig");
 const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
+const system = @import("../system/system.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
     const init_path = "/system/akiba/pulse.akibainit";

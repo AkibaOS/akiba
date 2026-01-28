@@ -1,6 +1,7 @@
 //! Sensei - The Kata scheduler using CFS-lite algorithm
 //! Sensei (先生) = Teacher/master who guides all Kata
 
+const cpu = @import("../asm/cpu.zig");
 const idt = @import("../interrupts/idt.zig");
 const kata_mod = @import("kata.zig");
 const keyboard = @import("../drivers/keyboard.zig");
@@ -163,7 +164,7 @@ pub fn schedule() void {
 
     if (next == null and current_kata == null) {
         while (true) {
-            asm volatile ("hlt");
+            cpu.halt_processor();
         }
     }
 
