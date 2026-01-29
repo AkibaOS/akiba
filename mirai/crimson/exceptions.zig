@@ -1,8 +1,7 @@
 //! CPU Exception Handlers (0-31)
 //! Called when CPU encounters fatal errors
 
-const io = @import("../asm/io.zig");
-const mem = @import("../asm/memory.zig");
+const memory = @import("../asm/memory.zig");
 const panic = @import("panic.zig");
 const serial = @import("../drivers/serial.zig");
 const std = @import("std");
@@ -183,17 +182,17 @@ pub fn get_isr_handlers() [32]u64 {
 // Main exception handler - called from assembly stub
 export fn exception_handler(frame: *InterruptFrame) void {
     // Read control registers
-    const cr2 = mem.read_page_fault_address();
-    const cr3 = mem.read_page_table_base();
+    const cr2 = memory.read_page_fault_address();
+    const cr3 = memory.read_page_table_base();
 
     const int_num = frame.int_num;
 
-    // IMMEDIATE DEBUG
-    io.write_byte(0x3F8, 'E');
-    io.write_byte(0x3F8, 'X');
-    io.write_byte(0x3F8, 'C');
-    io.write_byte(0x3F8, '!');
-    io.write_byte(0x3F8, '\n');
+    // Immediate debug output
+    serial.write('E');
+    serial.write('X');
+    serial.write('C');
+    serial.write('!');
+    serial.write('\n');
 
     serial.print("\n!!! EXCEPTION ");
     serial.print_hex(int_num);

@@ -1,6 +1,6 @@
 //! Physical Memory Manager - Tracks free/used 4KB pages using a bitmap
 
-const mem = @import("../asm/memory.zig");
+const memory = @import("../asm/memory.zig");
 const multiboot = @import("../boot/multiboot2.zig");
 const serial = @import("../drivers/serial.zig");
 const system = @import("../system/system.zig");
@@ -172,15 +172,11 @@ fn align_down(addr: u64, alignment: u64) u64 {
     return addr & ~(alignment - 1);
 }
 
-fn get_cr3() u64 {
-    return mem.read_page_table_base();
-}
-
 /// Reserve all page table pages currently in use by walking CR3 hierarchy
 fn reserve_active_page_tables() void {
     const PAGE_PRESENT: u64 = 1;
 
-    const cr3 = get_cr3() & ~@as(u64, 0xFFF);
+    const cr3 = memory.read_page_table_base() & ~@as(u64, 0xFFF);
 
     // Reserve PML4 page
     reserve_region(cr3, PAGE_SIZE);

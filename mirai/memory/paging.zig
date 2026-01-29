@@ -1,6 +1,6 @@
 //! Page Table Manager - Hybrid kernel with independent user page tables
 
-const mem = @import("../asm/memory.zig");
+const memory = @import("../asm/memory.zig");
 const pmm = @import("pmm.zig");
 const system = @import("../system/system.zig");
 
@@ -13,14 +13,6 @@ pub const PAGE_USER = system.constants.PTE_USER;
 
 const KERNEL_START = system.constants.KERNEL_PHYSICAL_START;
 const KERNEL_END = system.constants.KERNEL_PHYSICAL_END;
-
-fn get_cr3() u64 {
-    return mem.read_page_table_base();
-}
-
-fn invlpg(addr: u64) void {
-    mem.invalidate_page(addr);
-}
 
 fn zero_page(virt: u64) void {
     const ptr: [*]volatile u8 = @ptrFromInt(virt);
@@ -37,7 +29,7 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     const pd_index = (virt >> 21) & 0x1FF;
     const pt_index = (virt >> 12) & 0x1FF;
 
-    const pml4_phys = get_cr3() & ~@as(u64, 0xFFF);
+    const pml4_phys = memory.read_page_table_base() & ~@as(u64, 0xFFF);
     const pml4: [*]volatile u64 = @ptrFromInt(pml4_phys + HIGHER_HALF_START);
 
     var pdpt_phys: u64 = undefined;
@@ -94,7 +86,7 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
     pt[pt_index] = phys | PAGE_PRESENT | flags;
 
     // Flush TLB for the new mapping
-    invlpg(virt);
+    memory.invalidate_page(virt);
 }
 
 // Create completely independent page table structure for user
@@ -107,7 +99,7 @@ pub fn create_page_table() !u64 {
         new_pml4[i] = 0;
     }
 
-    const kernel_pml4_phys = get_cr3() & ~@as(u64, 0xFFF);
+    const kernel_pml4_phys = memory.read_page_table_base() & ~@as(u64, 0xFFF);
     const kernel_pml4: [*]volatile u64 = @ptrFromInt(kernel_pml4_phys + HIGHER_HALF_START);
 
     // Copy higher-half mappings (PML4[256-511]) for kernel heap/data access

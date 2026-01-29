@@ -2,6 +2,7 @@
 
 const gdt = @import("../boot/gdt.zig");
 const handler = @import("handler.zig");
+const msr = @import("../asm/msr.zig");
 const serial = @import("../drivers/serial.zig");
 const tss = @import("../boot/tss.zig");
 
@@ -23,49 +24,20 @@ pub fn init() void {
     const star_value: u64 =
         (@as(u64, gdt.KERNEL_CODE) << 32) |
         (@as(u64, user_base) << 48);
-    wrmsr(IA32_STAR, star_value);
+    msr.write_msr(IA32_STAR, star_value);
 
     // LSTAR: Syscall entry point
     const entry_addr = @intFromPtr(&syscall_entry_asm);
-    wrmsr(IA32_LSTAR, entry_addr);
+    msr.write_msr(IA32_LSTAR, entry_addr);
 
     // FMASK: Mask interrupts during syscall entry
     const fmask: u64 = 0x200;
-    wrmsr(IA32_FMASK, fmask);
+    msr.write_msr(IA32_FMASK, fmask);
 
     // Enable SYSCALL/SYSRET in EFER
     const IA32_EFER: u32 = 0xC0000080;
-    const efer = rdmsr(IA32_EFER);
-    wrmsr(IA32_EFER, efer | (1 << 0));
-}
-
-// Write to MSR
-fn wrmsr(msr: u32, value: u64) void {
-    const low: u32 = @truncate(value);
-    const high: u32 = @truncate(value >> 32);
-
-    asm volatile (
-        \\wrmsr
-        :
-        : [msr] "{ecx}" (msr),
-          [low] "{eax}" (low),
-          [high] "{edx}" (high),
-    );
-}
-
-// Read from MSR
-fn rdmsr(msr: u32) u64 {
-    var low: u32 = undefined;
-    var high: u32 = undefined;
-
-    asm volatile (
-        \\rdmsr
-        : [low] "={eax}" (low),
-          [high] "={edx}" (high),
-        : [msr] "{ecx}" (msr),
-    );
-
-    return (@as(u64, high) << 32) | low;
+    const efer = msr.read_msr(IA32_EFER);
+    msr.write_msr(IA32_EFER, efer | (1 << 0));
 }
 
 // Assembly syscall entry point
@@ -219,18 +191,6 @@ export fn handle_syscall(ctx_ptr: u64) void {
 
     // Write back return value (RAX)
     regs.rax = inv_ctx.rax;
-
-    // // DEBUG: Log what we're returning
-    // serial.print("Syscall complete, returning to RIP: ");
-    // serial.print_hex(regs.user_rip);
-    // serial.print(", RAX: ");
-    // serial.print_hex(regs.rax);
-    // serial.print(", CR3: ");
-    // const cr3 = asm volatile ("mov %%cr3, %[result]"
-    //     : [result] "=r" (-> u64),
-    // );
-    // serial.print_hex(cr3);
-    // serial.print("\n");
 }
 
 // Context saved on kernel stack
@@ -261,9 +221,3 @@ const SyscallContext = packed struct {
 export fn get_kernel_stack() u64 {
     return tss.get_kernel_stack();
 }
-
-// export fn debug_saved_rip(rip: u64) void {
-//     serial.print("Syscall entry: saved RIP = ");
-//     serial.print_hex(rip);
-//     serial.print("\n");
-// }
