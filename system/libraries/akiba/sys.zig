@@ -13,57 +13,42 @@ pub const Invocation = enum(u64) {
     viewstack = 0x0A,
 };
 
-pub fn syscall0(inv: Invocation) u64 {
-    var result: u64 = undefined;
-    asm volatile ("syscall"
-        : [ret] "={rax}" (result),
-        : [inv] "{rax}" (@intFromEnum(inv)),
-        : .{ .rcx = true, .r11 = true, .memory = true });
-    return result;
-}
+/// System call interface - handles variable parameter counts
+/// Always sets all 6 parameter registers (unused ones are zero)
+pub fn syscall(inv: Invocation, params: anytype) u64 {
+    const params_type = @typeInfo(@TypeOf(params));
 
-pub fn syscall1(inv: Invocation, arg1: u64) u64 {
-    var result: u64 = undefined;
-    asm volatile ("syscall"
-        : [ret] "={rax}" (result),
-        : [inv] "{rax}" (@intFromEnum(inv)),
-          [arg1] "{rdi}" (arg1),
-        : .{ .rcx = true, .r11 = true, .memory = true });
-    return result;
-}
+    if (params_type != .@"struct") {
+        @compileError("syscall params must be a tuple");
+    }
 
-pub fn syscall2(inv: Invocation, arg1: u64, arg2: u64) u64 {
-    var result: u64 = undefined;
-    asm volatile ("syscall"
-        : [ret] "={rax}" (result),
-        : [inv] "{rax}" (@intFromEnum(inv)),
-          [arg1] "{rdi}" (arg1),
-          [arg2] "{rsi}" (arg2),
-        : .{ .rcx = true, .r11 = true, .memory = true });
-    return result;
-}
+    const fields = params_type.@"struct".fields;
 
-pub fn syscall3(inv: Invocation, arg1: u64, arg2: u64, arg3: u64) u64 {
-    var result: u64 = undefined;
-    asm volatile ("syscall"
-        : [ret] "={rax}" (result),
-        : [inv] "{rax}" (@intFromEnum(inv)),
-          [arg1] "{rdi}" (arg1),
-          [arg2] "{rsi}" (arg2),
-          [arg3] "{rdx}" (arg3),
-        : .{ .rcx = true, .r11 = true, .memory = true });
-    return result;
-}
+    // Convert parameters to u64 at comptime
+    var param_values: [6]u64 = .{0} ** 6;
 
-pub fn syscall4(inv: Invocation, arg1: u64, arg2: u64, arg3: u64, arg4: u64) u64 {
+    inline for (fields, 0..) |field, i| {
+        if (i >= 6) @compileError("Maximum 6 syscall parameters");
+
+        param_values[i] = switch (@typeInfo(field.type)) {
+            .int, .comptime_int => @intCast(@field(params, field.name)),
+            .pointer => @intFromPtr(@field(params, field.name)),
+            .@"enum" => @intFromEnum(@field(params, field.name)),
+            else => @compileError("Unsupported syscall parameter type"),
+        };
+    }
+
+    // Always set all 6 registers
     var result: u64 = undefined;
     asm volatile ("syscall"
         : [ret] "={rax}" (result),
-        : [inv] "{rax}" (@intFromEnum(inv)),
-          [arg1] "{rdi}" (arg1),
-          [arg2] "{rsi}" (arg2),
-          [arg3] "{rdx}" (arg3),
-          [arg4] "{r10}" (arg4),
+        : [num] "{rax}" (@intFromEnum(inv)),
+          [p0] "{rdi}" (param_values[0]),
+          [p1] "{rsi}" (param_values[1]),
+          [p2] "{rdx}" (param_values[2]),
+          [p3] "{r10}" (param_values[3]),
+          [p4] "{r8}" (param_values[4]),
+          [p5] "{r9}" (param_values[5]),
         : .{ .rcx = true, .r11 = true, .memory = true });
     return result;
 }

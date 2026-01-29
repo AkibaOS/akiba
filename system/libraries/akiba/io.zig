@@ -25,7 +25,7 @@ pub const BOTH: u32 = 0x03;
 pub const CREATE: u32 = 0x0100;
 
 pub fn attach(path: []const u8, flags: u32) Error!FileDescriptor {
-    const result = sys.syscall2(.attach, @intFromPtr(path.ptr), flags);
+    const result = sys.syscall(.attach, .{ @intFromPtr(path.ptr), flags });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return Error.NotFound;
     }
@@ -33,11 +33,11 @@ pub fn attach(path: []const u8, flags: u32) Error!FileDescriptor {
 }
 
 pub fn seal(fd: FileDescriptor) void {
-    _ = sys.syscall1(.seal, fd);
+    _ = sys.syscall(.seal, .{fd});
 }
 
 pub fn view(fd: FileDescriptor, buffer: []u8) Error!usize {
-    const result = sys.syscall3(.view, fd, @intFromPtr(buffer.ptr), buffer.len);
+    const result = sys.syscall(.view, .{ fd, @intFromPtr(buffer.ptr), buffer.len });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return Error.ReadFailed;
     }
@@ -45,7 +45,7 @@ pub fn view(fd: FileDescriptor, buffer: []u8) Error!usize {
 }
 
 pub fn mark(fd: FileDescriptor, data: []const u8, color: u32) Error!usize {
-    const result = sys.syscall4(.mark, fd, @intFromPtr(data.ptr), data.len, color);
+    const result = sys.syscall(.mark, .{ fd, @intFromPtr(data.ptr), data.len, color });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return Error.WriteFailed;
     }
@@ -55,7 +55,7 @@ pub fn mark(fd: FileDescriptor, data: []const u8, color: u32) Error!usize {
 pub fn getchar() !u8 {
     // Loop until character is available
     while (true) {
-        const result = sys.syscall0(.getkeychar);
+        const result = sys.syscall(.getkeychar, .{});
         if (result != @as(u64, @bitCast(@as(i64, -2)))) {
             if (result != @as(u64, @bitCast(@as(i64, -1)))) {
                 return @truncate(result);
@@ -77,7 +77,7 @@ pub fn println(text: []const u8) Error!void {
 }
 
 pub fn viewstack(path: []const u8, entries: []StackEntry) Error!usize {
-    const result = sys.syscall4(.viewstack, @intFromPtr(path.ptr), path.len, @intFromPtr(entries.ptr), entries.len);
+    const result = sys.syscall(.viewstack, .{ @intFromPtr(path.ptr), path.len, @intFromPtr(entries.ptr), entries.len });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return Error.ReadFailed;
     }

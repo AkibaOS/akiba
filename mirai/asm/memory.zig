@@ -13,8 +13,7 @@ pub inline fn write_page_table_base(value: u64) void {
     asm volatile ("mov %[value], %%cr3"
         :
         : [value] "r" (value),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
 }
 
 /// Read page fault address register
@@ -29,6 +28,5 @@ pub inline fn invalidate_page(address: u64) void {
     asm volatile ("invlpg (%[addr])"
         :
         : [addr] "r" (address),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
 }

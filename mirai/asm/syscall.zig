@@ -22,7 +22,6 @@ pub inline fn invoke_syscall(
           [p3] "{r10}" (param3),
           [p4] "{r8}" (param4),
           [p5] "{r9}" (param5),
-        : .{ .rcx = true, .r11 = true, .memory = true }
-    );
+        : .{ .rcx = true, .r11 = true, .memory = true });
     return result;
 }
