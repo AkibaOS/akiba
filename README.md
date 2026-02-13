@@ -1,4 +1,4 @@
 # akiba
 
 Drifting from abyss towards the infinity!
-![Akiba Screenshot](https://github.com/user-attachments/assets/08508139-fe2e-4d48-904a-1a922b1eb207)
+![Akiba Screenshot](https://github.com/user-attachments/assets/6b582a12-370b-41aa-9bc6-d72665177646)
