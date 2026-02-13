@@ -3,9 +3,15 @@
 const akiba = @import("akiba");
 
 const MAX_INPUT = 256;
+const MAX_ARGS = 16;
+
 var input_buffer: [MAX_INPUT]u8 = undefined;
 var input_len: usize = 0;
 var char_buffer: [1]u8 = undefined;
+
+// Argument parsing buffers
+var arg_ptrs: [MAX_ARGS][*:0]const u8 = undefined;
+var arg_storage: [MAX_ARGS][128]u8 = undefined;
 
 export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
     _ = pc;
@@ -45,27 +51,60 @@ export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
 }
 
 fn execute_command(input: []const u8) void {
-    var start: usize = 0;
-    while (start < input.len and input[start] == ' ') : (start += 1) {}
+    // Parse input into arguments
+    var argc: usize = 0;
+    var i: usize = 0;
 
-    var end: usize = input.len;
-    while (end > start and input[end - 1] == ' ') : (end -= 1) {}
+    while (i < input.len and argc < MAX_ARGS) {
+        // Skip whitespace
+        while (i < input.len and input[i] == ' ') : (i += 1) {}
+        if (i >= input.len) break;
 
-    if (start >= end) return;
+        // Find end of argument
+        const start = i;
+        while (i < input.len and input[i] != ' ') : (i += 1) {}
+        const end = i;
 
-    const trimmed = input[start..end];
+        if (end > start) {
+            const arg_len = end - start;
+            if (arg_len < 127) {
+                // Copy to storage with null terminator
+                for (input[start..end], 0..) |c, j| {
+                    arg_storage[argc][j] = c;
+                }
+                arg_storage[argc][arg_len] = 0;
+                arg_ptrs[argc] = @ptrCast(&arg_storage[argc]);
+                argc += 1;
+            }
+        }
+    }
 
+    if (argc == 0) return;
+
+    // First argument is the command
+    const cmd = arg_storage[0][0..find_null(&arg_storage[0])];
+
+    // Build binary path
     var path_buf: [512]u8 = undefined;
 
-    const path1 = build_path(&path_buf, "/binaries/", trimmed, ".akiba");
-    if (try_spawn(path1)) return;
+    // Try with .akiba extension
+    const path1 = build_path(&path_buf, "/binaries/", cmd, ".akiba");
+    if (try_spawn_with_args(path1, arg_ptrs[0..argc])) return;
 
-    const path2 = build_path(&path_buf, "/binaries/", trimmed, "");
-    if (try_spawn(path2)) return;
+    // Try without extension
+    const path2 = build_path(&path_buf, "/binaries/", cmd, "");
+    if (try_spawn_with_args(path2, arg_ptrs[0..argc])) return;
 
+    // Binary not found
     _ = akiba.io.mark(akiba.io.stream, "ash: binary not found: ", 0x00FFFFFF) catch {};
-    _ = akiba.io.mark(akiba.io.stream, trimmed, 0x00FFFFFF) catch {};
+    _ = akiba.io.mark(akiba.io.stream, cmd, 0x00FFFFFF) catch {};
     _ = akiba.io.mark(akiba.io.stream, "\n", 0x00FFFFFF) catch {};
+}
+
+fn find_null(buf: []const u8) usize {
+    var len: usize = 0;
+    while (len < buf.len and buf[len] != 0) : (len += 1) {}
+    return len;
 }
 
 fn build_path(buf: []u8, prefix: []const u8, name: []const u8, suffix: []const u8) []const u8 {
@@ -92,8 +131,8 @@ fn build_path(buf: []u8, prefix: []const u8, name: []const u8, suffix: []const u
     return buf[0..pos];
 }
 
-fn try_spawn(path: []const u8) bool {
-    const pid = akiba.kata.spawn(path) catch return false;
+fn try_spawn_with_args(path: []const u8, argv: [][*:0]const u8) bool {
+    const pid = akiba.kata.spawn_with_args(path, argv) catch return false;
     _ = akiba.kata.wait(pid) catch return false;
     return true;
 }

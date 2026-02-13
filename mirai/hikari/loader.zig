@@ -120,45 +120,40 @@ fn setup_user_stack_args(kata: *kata_mod.Kata, args: []const []const u8) !u64 {
     const pc: u64 = args.len;
 
     // Phase 1: Copy argument strings to stack (with null terminators)
-    // Store where each string starts
     var string_addrs: [system.limits.MAX_ARGS]u64 = undefined;
 
     for (args, 0..) |arg, i| {
-        // Align down and make room for string + null terminator
-        const str_len = arg.len + 1; // Include null terminator
+        const str_len = arg.len + 1;
         stack_top -= str_len;
         stack_top &= ~@as(u64, 0x7); // Align to 8 bytes
 
         string_addrs[i] = stack_top;
 
-        // Copy string to user stack via page table translation
         const phys_addr = paging.virt_to_phys(kata.page_table, stack_top) orelse return error.StackNotMapped;
         const dest = @as([*]u8, @ptrFromInt(phys_addr + system.constants.HIGHER_HALF_START));
 
         for (arg, 0..) |c, j| {
             dest[j] = c;
         }
-        dest[arg.len] = 0; // Null terminator
+        dest[arg.len] = 0;
     }
 
-    // Align stack to 8 bytes
-    stack_top &= ~@as(u64, 0x7);
-
     // Phase 2: Build pv array (pointers to strings)
-    // pv[pc-1], pv[pc-2], ..., pv[0]
     const pv_size = pc * 8;
     stack_top -= pv_size;
     stack_top &= ~@as(u64, 0x7);
 
     const pv_addr = stack_top;
 
-    // Write pointers
     var i: usize = 0;
     while (i < pc) : (i += 1) {
         const ptr_phys = paging.virt_to_phys(kata.page_table, pv_addr + i * 8) orelse return error.StackNotMapped;
         const ptr_dest = @as(*u64, @ptrFromInt(ptr_phys + system.constants.HIGHER_HALF_START));
         ptr_dest.* = string_addrs[i];
     }
+
+    // Align to 16 bytes BEFORE pushing pc and pv pointer
+    stack_top &= ~@as(u64, 0xF);
 
     // Phase 3: Push pv pointer
     stack_top -= 8;
@@ -170,9 +165,7 @@ fn setup_user_stack_args(kata: *kata_mod.Kata, args: []const []const u8) !u64 {
     const pc_phys = paging.virt_to_phys(kata.page_table, stack_top) orelse return error.StackNotMapped;
     @as(*u64, @ptrFromInt(pc_phys + system.constants.HIGHER_HALF_START)).* = pc;
 
-    // Ensure 16-byte alignment for ABI compliance
-    stack_top &= ~@as(u64, 0xF);
-
+    // Stack is now 16-byte aligned with RSP pointing at pc
     return stack_top;
 }
 

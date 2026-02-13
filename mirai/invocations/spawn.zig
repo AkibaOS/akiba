@@ -45,16 +45,18 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const path = path_buf[0..path_len];
 
     // Build argument list
-    // First argument is always the program path
+    // argv[0] = program path (replaces command name from shell)
+    // argv[1...] = arguments from shell's argv[1...]
     var args: [system.limits.MAX_ARGS][]const u8 = undefined;
     var arg_count: usize = 1;
-    args[0] = path;
+    args[0] = path; // argv[0] is always the program path
 
-    // Copy additional arguments if provided
-    if (argc > 0 and argv_ptr != 0 and system.is_valid_user_pointer(argv_ptr)) {
+    // Copy additional arguments if provided (skip argv[0] from shell, start at argv[1])
+    if (argc > 1 and argv_ptr != 0 and system.is_valid_user_pointer(argv_ptr)) {
         const user_argv = @as([*]const u64, @ptrFromInt(argv_ptr));
 
-        var i: usize = 0;
+        // Start from index 1 to skip the command name (already replaced with full path)
+        var i: usize = 1;
         while (i < argc and arg_count < system.limits.MAX_ARGS) : (i += 1) {
             const arg_ptr = user_argv[i];
             if (!system.is_valid_user_pointer(arg_ptr)) break;

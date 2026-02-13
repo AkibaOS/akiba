@@ -12,15 +12,15 @@ pub fn exit(code: u64) noreturn {
 }
 
 pub fn spawn(path: []const u8) !u32 {
-    const result = sys.syscall(.spawn, .{ @intFromPtr(path.ptr), path.len });
+    const result = sys.syscall(.spawn, .{ @intFromPtr(path.ptr), path.len, @as(u64, 0), @as(u64, 0) });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return error.SpawnFailed;
     }
     return @truncate(result);
 }
 
-pub fn spawn_with_args(path: []const u8, argv: []const [*:0]const u8) !u32 {
-    const result = sys.spawn_with_args(path, argv);
+pub fn spawn_with_args(path: []const u8, argv: [][*:0]const u8) !u32 {
+    const result = sys.syscall(.spawn, .{ @intFromPtr(path.ptr), path.len, @intFromPtr(argv.ptr), argv.len });
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
         return error.SpawnFailed;
     }
@@ -28,13 +28,11 @@ pub fn spawn_with_args(path: []const u8, argv: []const [*:0]const u8) !u32 {
 }
 
 pub fn wait(pid: u32) !u64 {
-    // Retry loop: keep checking until the target exits
     while (true) {
         const result = sys.syscall(.wait, .{pid});
         if (result != @as(u64, @bitCast(@as(i64, -1)))) {
             return result;
         }
-        // Target still running, yield and try again
         yield();
     }
 }

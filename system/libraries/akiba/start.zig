@@ -1,24 +1,31 @@
 //! Akiba Runtime Entry Point
 //! Provides _start that calls user's main(pc, pv) and handles exit
 
-const kata = @import("kata.zig");
-
 // User must provide this
 extern fn main(pc: u32, pv: [*]const [*:0]const u8) u8;
 
-export fn _start() callconv(.c) noreturn {
-    // Stack layout at entry:
-    //   [RSP + 0]  = pc (parameter count)
+export fn _start() callconv(.naked) noreturn {
+    // At entry, stack layout is:
+    //   [RSP + 0]  = pc (parameter count, 64-bit but only low 32 used)
     //   [RSP + 8]  = pv (pointer to parameter vector)
+    //
+    // x86-64 calling convention:
+    //   First arg (u32) -> EDI
+    //   Second arg (ptr) -> RSI
 
-    const stack_ptr = asm volatile ("mov %%rsp, %[result]"
-        : [result] "=r" (-> u64),
+    asm volatile (
+    // Load arguments for main(pc, pv)
+        \\mov (%%rsp), %%edi      
+        \\mov 8(%%rsp), %%rsi     
+        // Align stack to 16 bytes before call (required by ABI)
+        \\and $-16, %%rsp
+        \\call main
+        // main returned exit code in AL, zero-extend to RDI for exit syscall
+        \\movzbl %%al, %%edi
+        // exit syscall (0x01)
+        \\mov $0x01, %%eax
+        \\syscall
+        // Should never reach here
+        \\ud2
     );
-
-    const pc: u32 = @intCast(@as(*const u64, @ptrFromInt(stack_ptr)).*);
-    const pv: [*]const [*:0]const u8 = @ptrFromInt(@as(*const u64, @ptrFromInt(stack_ptr + 8)).*);
-
-    const exit_code = main(pc, pv);
-
-    kata.exit(exit_code);
 }

@@ -76,12 +76,20 @@ pub fn println(text: []const u8) Error!void {
     _ = try mark(stream, "\n", 0x00FFFFFF);
 }
 
-pub fn viewstack(path: []const u8, entries: []StackEntry) Error!usize {
-    const result = sys.syscall(.viewstack, .{ @intFromPtr(path.ptr), path.len, @intFromPtr(entries.ptr), entries.len });
+pub fn viewstack(path: []const u8, entries: []StackEntry) !usize {
+    const result = sys.syscall(.viewstack, .{
+        @intFromPtr(path.ptr),
+        path.len,
+        @intFromPtr(entries.ptr),
+        entries.len,
+    });
+
+    // Check for error (-1)
     if (result == @as(u64, @bitCast(@as(i64, -1)))) {
-        return Error.ReadFailed;
+        return error.InvalidPath;
     }
-    return result;
+
+    return @intCast(result);
 }
 
 pub const StackEntry = extern struct {

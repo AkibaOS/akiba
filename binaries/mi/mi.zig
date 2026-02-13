@@ -39,7 +39,20 @@ export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
 
 fn display_stack(path: []const u8) !void {
     var entries: [128]akiba.io.StackEntry = undefined;
-    const count = akiba.io.viewstack(path, &entries) catch 0;
+    const count = akiba.io.viewstack(path, &entries) catch {
+        // Path doesn't exist or isn't a directory
+        _ = akiba.io.mark(akiba.io.stream, "mi: cannot access '", Color.red) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, path, Color.white) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, "': No such stack.\n", Color.red) catch 0;
+        return;
+    };
+
+    // Check for empty directory (valid directory with 0 entries)
+    if (count == 0) {
+        _ = akiba.io.mark(akiba.io.stream, path, Color.cyan) catch 0;
+        _ = akiba.io.mark(akiba.io.stream, " is empty.\n", Color.gray) catch 0;
+        return;
+    }
 
     // Calculate max widths for each column
     var max_access_len: usize = 6;
@@ -64,7 +77,7 @@ fn display_stack(path: []const u8) !void {
     }
 
     // Print header
-    _ = akiba.io.mark(akiba.io.stream, "\nAccess", Color.white) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, "Access", Color.white) catch 0;
     print_padding(max_access_len - 6 + 2);
     _ = akiba.io.mark(akiba.io.stream, "Size", Color.white) catch 0;
     print_padding(max_size_len - 4 + 2);
@@ -111,17 +124,16 @@ fn display_stack(path: []const u8) !void {
         _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
     }
 
-    if (count > 0) {
-        _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
-        var buf: [16]u8 = undefined;
-        _ = akiba.io.mark(akiba.io.stream, int_to_str(stack_count, &buf), Color.gray) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, " stacks  ", Color.gray) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, int_to_str(unit_count, &buf), Color.gray) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, " units  ", Color.gray) catch 0;
-        var size_buf: [32]u8 = undefined;
-        _ = akiba.io.mark(akiba.io.stream, format_size(total_size, &size_buf), Color.gray) catch 0;
-        _ = akiba.io.mark(akiba.io.stream, "\n\n", Color.white) catch 0;
-    }
+    _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
+    // Summary
+    var buf: [16]u8 = undefined;
+    _ = akiba.io.mark(akiba.io.stream, int_to_str(stack_count, &buf), Color.gray) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, " stacks  ", Color.gray) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, int_to_str(unit_count, &buf), Color.gray) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, " units  ", Color.gray) catch 0;
+    var size_buf: [32]u8 = undefined;
+    _ = akiba.io.mark(akiba.io.stream, format_size(total_size, &size_buf), Color.gray) catch 0;
+    _ = akiba.io.mark(akiba.io.stream, "\n", Color.white) catch 0;
 }
 
 fn get_permissions(perm_type: u8) []const u8 {
