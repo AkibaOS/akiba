@@ -1,8 +1,19 @@
 #!/bin/bash
 
-UEFI_FW="/opt/homebrew/share/qemu/edk2-x86_64-code.fd"
-if [ ! -f "$UEFI_FW" ]; then
-    UEFI_FW="/usr/share/edk2/x64/OVMF_CODE.fd"
+for fw in \
+    /opt/homebrew/share/qemu/edk2-x86_64-code.fd \
+    /usr/share/edk2/x64/OVMF_CODE.fd \
+    /usr/share/edk2/x64/OVMF_CODE.4m.fd
+do
+    if [ -f "$fw" ]; then
+        UEFI_FW="$fw"
+        break
+    fi
+done
+
+if [ -z "$UEFI_FW" ]; then
+    echo "UEFI firmware not found."
+    exit 1
 fi
 
 qemu-system-x86_64 \
