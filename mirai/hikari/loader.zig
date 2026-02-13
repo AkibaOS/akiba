@@ -30,10 +30,21 @@ pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
         return error.EmptyFile;
     }
 
-    return load_program(fs, init_path);
+    // Load init with just its path as argument
+    var args: [1][]const u8 = .{init_path};
+    return load_program_with_args(fs, init_path, &args);
 }
 
 pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
+    var args: [1][]const u8 = .{path};
+    return load_program_with_args(fs, path, &args);
+}
+
+pub fn load_program_with_args(
+    fs: *afs.AFS(ahci.BlockDevice),
+    path: []const u8,
+    args: []const []const u8,
+) !u32 {
     // Validate path
     if (path.len == 0 or path.len > system.limits.MAX_PATH_LENGTH) {
         return error.InvalidPath;
@@ -45,6 +56,7 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
     // Validate file size (programs should be reasonable size)
     if (file_size == 0) return error.EmptyFile;
     if (file_size > system.limits.MAX_FILE_SIZE) return error.FileTooLarge;
+
     const buffer_ptr = heap.alloc(@intCast(file_size)) orelse return error.OutOfMemory;
     defer heap.free(buffer_ptr, @intCast(file_size));
     const buffer = buffer_ptr[0..@intCast(file_size)];
@@ -87,8 +99,11 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
         }
     }
 
-    // Setup execution context
-    setup_kata_context(kata, elf_info.entry_point);
+    // Setup arguments on user stack
+    const adjusted_stack = try setup_user_stack_args(kata, args);
+
+    // Setup execution context with adjusted stack pointer
+    setup_kata_context(kata, elf_info.entry_point, adjusted_stack);
 
     // Add kata to scheduler
     sensei.enqueue_kata(kata);
@@ -96,9 +111,74 @@ pub fn load_program(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
     return kata.id;
 }
 
-fn setup_kata_context(kata: *kata_mod.Kata, entry_point: u64) void {
+/// Setup argument strings and pointers on the user stack
+/// Returns the new stack pointer (pointing to pc)
+fn setup_user_stack_args(kata: *kata_mod.Kata, args: []const []const u8) !u64 {
+    const paging = @import("../memory/paging.zig");
+
+    var stack_top = kata.user_stack_top;
+    const pc: u64 = args.len;
+
+    // Phase 1: Copy argument strings to stack (with null terminators)
+    // Store where each string starts
+    var string_addrs: [system.limits.MAX_ARGS]u64 = undefined;
+
+    for (args, 0..) |arg, i| {
+        // Align down and make room for string + null terminator
+        const str_len = arg.len + 1; // Include null terminator
+        stack_top -= str_len;
+        stack_top &= ~@as(u64, 0x7); // Align to 8 bytes
+
+        string_addrs[i] = stack_top;
+
+        // Copy string to user stack via page table translation
+        const phys_addr = paging.virt_to_phys(kata.page_table, stack_top) orelse return error.StackNotMapped;
+        const dest = @as([*]u8, @ptrFromInt(phys_addr + system.constants.HIGHER_HALF_START));
+
+        for (arg, 0..) |c, j| {
+            dest[j] = c;
+        }
+        dest[arg.len] = 0; // Null terminator
+    }
+
+    // Align stack to 8 bytes
+    stack_top &= ~@as(u64, 0x7);
+
+    // Phase 2: Build pv array (pointers to strings)
+    // pv[pc-1], pv[pc-2], ..., pv[0]
+    const pv_size = pc * 8;
+    stack_top -= pv_size;
+    stack_top &= ~@as(u64, 0x7);
+
+    const pv_addr = stack_top;
+
+    // Write pointers
+    var i: usize = 0;
+    while (i < pc) : (i += 1) {
+        const ptr_phys = paging.virt_to_phys(kata.page_table, pv_addr + i * 8) orelse return error.StackNotMapped;
+        const ptr_dest = @as(*u64, @ptrFromInt(ptr_phys + system.constants.HIGHER_HALF_START));
+        ptr_dest.* = string_addrs[i];
+    }
+
+    // Phase 3: Push pv pointer
+    stack_top -= 8;
+    const pv_ptr_phys = paging.virt_to_phys(kata.page_table, stack_top) orelse return error.StackNotMapped;
+    @as(*u64, @ptrFromInt(pv_ptr_phys + system.constants.HIGHER_HALF_START)).* = pv_addr;
+
+    // Phase 4: Push pc (parameter count)
+    stack_top -= 8;
+    const pc_phys = paging.virt_to_phys(kata.page_table, stack_top) orelse return error.StackNotMapped;
+    @as(*u64, @ptrFromInt(pc_phys + system.constants.HIGHER_HALF_START)).* = pc;
+
+    // Ensure 16-byte alignment for ABI compliance
+    stack_top &= ~@as(u64, 0xF);
+
+    return stack_top;
+}
+
+fn setup_kata_context(kata: *kata_mod.Kata, entry_point: u64, stack_pointer: u64) void {
     kata.context.rip = entry_point;
-    kata.context.rsp = kata.user_stack_top;
+    kata.context.rsp = stack_pointer;
     kata.context.rflags = 0x3202;
     kata.context.cs = gdt.USER_CODE | 3;
     kata.context.ss = gdt.USER_DATA | 3;

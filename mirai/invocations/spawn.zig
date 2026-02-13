@@ -6,7 +6,6 @@ const handler = @import("handler.zig");
 const hikari = @import("../hikari/loader.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
-const string_utils = @import("../utils/string.zig");
 const system = @import("../system/system.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
@@ -23,6 +22,8 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const path_ptr = ctx.rdi;
     const path_len = ctx.rsi;
+    const argv_ptr = ctx.rdx; // Optional: pointer to argument array
+    const argc = ctx.r10; // Optional: argument count (0 if no args)
 
     // Validate user pointer is in valid userspace range
     if (!system.is_valid_user_pointer(path_ptr)) {
@@ -41,9 +42,35 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     for (0..path_len) |i| {
         path_buf[i] = path_src[i];
     }
+    const path = path_buf[0..path_len];
 
-    // Load and create new Kata
-    const kata_id = hikari.load_program(fs, path_buf[0..path_len]) catch {
+    // Build argument list
+    // First argument is always the program path
+    var args: [system.limits.MAX_ARGS][]const u8 = undefined;
+    var arg_count: usize = 1;
+    args[0] = path;
+
+    // Copy additional arguments if provided
+    if (argc > 0 and argv_ptr != 0 and system.is_valid_user_pointer(argv_ptr)) {
+        const user_argv = @as([*]const u64, @ptrFromInt(argv_ptr));
+
+        var i: usize = 0;
+        while (i < argc and arg_count < system.limits.MAX_ARGS) : (i += 1) {
+            const arg_ptr = user_argv[i];
+            if (!system.is_valid_user_pointer(arg_ptr)) break;
+
+            // Find string length (null-terminated)
+            const arg_str = @as([*:0]const u8, @ptrFromInt(arg_ptr));
+            var len: usize = 0;
+            while (arg_str[len] != 0 and len < 256) : (len += 1) {}
+
+            args[arg_count] = arg_str[0..len];
+            arg_count += 1;
+        }
+    }
+
+    // Load and create new Kata with arguments
+    const kata_id = hikari.load_program_with_args(fs, path, args[0..arg_count]) catch {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };

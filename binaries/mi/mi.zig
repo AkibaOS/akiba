@@ -13,17 +13,28 @@ const Color = struct {
     const red: u32 = 0x00FF4444;
 };
 
-const PERM_OWNER: u8 = 1; // OA - Owner All
-const PERM_WORLD: u8 = 2; // WA - World All
-const PERM_READ_ONLY: u8 = 3; // WR - World Read
+const PERM_OWNER: u8 = 1;
+const PERM_WORLD: u8 = 2;
+const PERM_READ_ONLY: u8 = 3;
 
-export fn _start() noreturn {
-    const target_path: []const u8 = "/";
+export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
+    // Use first argument as path, or default to "/"
+    var target_path: []const u8 = "/";
+
+    if (pc > 1) {
+        // Get pv[1] as the target path
+        const arg = pv[1];
+        var len: usize = 0;
+        while (arg[len] != 0) : (len += 1) {}
+        target_path = arg[0..len];
+    }
+
     display_stack(target_path) catch |err| {
         mark_error(@errorName(err));
-        akiba.kata.exit(1);
+        return 1;
     };
-    akiba.kata.exit(0);
+
+    return 0;
 }
 
 fn display_stack(path: []const u8) !void {
@@ -31,11 +42,11 @@ fn display_stack(path: []const u8) !void {
     const count = akiba.io.viewstack(path, &entries) catch 0;
 
     // Calculate max widths for each column
-    var max_access_len: usize = 6; // "Access" header
-    var max_size_len: usize = 4; // "Size" header
-    var max_owner_len: usize = 7; // "Persona" header
-    var max_date_len: usize = 8; // "Modified" header
-    const formatted_date_len: usize = 19; // All dates format to " 1 Jan 1970 00:00  "
+    var max_access_len: usize = 6;
+    var max_size_len: usize = 4;
+    var max_owner_len: usize = 7;
+    var max_date_len: usize = 8;
+    const formatted_date_len: usize = 19;
     if (formatted_date_len > max_date_len) max_date_len = formatted_date_len;
 
     for (0..count) |i| {

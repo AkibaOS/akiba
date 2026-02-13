@@ -52,3 +52,14 @@ pub fn syscall(inv: Invocation, params: anytype) u64 {
         : .{ .rcx = true, .r11 = true, .memory = true });
     return result;
 }
+
+/// Spawn a new process with arguments
+/// argv should be an array of null-terminated string pointers
+pub fn spawn_with_args(path: []const u8, argv: []const [*:0]const u8) u64 {
+    return syscall(.spawn, .{
+        @intFromPtr(path.ptr),
+        path.len,
+        @intFromPtr(argv.ptr),
+        argv.len,
+    });
+}

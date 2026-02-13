@@ -3,7 +3,10 @@
 
 const akiba = @import("akiba");
 
-export fn _start() noreturn {
+export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
+    _ = pc;
+    _ = pv;
+
     // Init loop - respawn shell when it exits
     while (true) {
         const shell_pid = akiba.kata.spawn("/system/ash/ash.akiba") catch {
@@ -22,4 +25,6 @@ export fn _start() noreturn {
         // Shell exited, respawn
         akiba.io.println("\nPulse: Shell exited, respawning...\n") catch {};
     }
+
+    return 0;
 }

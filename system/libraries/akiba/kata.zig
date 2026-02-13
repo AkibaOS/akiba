@@ -19,6 +19,14 @@ pub fn spawn(path: []const u8) !u32 {
     return @truncate(result);
 }
 
+pub fn spawn_with_args(path: []const u8, argv: []const [*:0]const u8) !u32 {
+    const result = sys.spawn_with_args(path, argv);
+    if (result == @as(u64, @bitCast(@as(i64, -1)))) {
+        return error.SpawnFailed;
+    }
+    return @truncate(result);
+}
+
 pub fn wait(pid: u32) !u64 {
     // Retry loop: keep checking until the target exits
     while (true) {
