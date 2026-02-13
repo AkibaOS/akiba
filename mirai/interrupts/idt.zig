@@ -1,10 +1,14 @@
 //! Interrupt Descriptor Table - IDT setup and IRQ routing
 
 const cpu = @import("../asm/cpu.zig");
-const exceptions = @import("../crimson/exceptions.zig");
 const io = @import("../asm/io.zig");
+const isr = @import("../asm/isr.zig");
 const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial.zig");
+
+comptime {
+    _ = @import("../crimson/exceptions.zig");
+}
 
 const IDTEntry = packed struct {
     offset_low: u16,
@@ -31,131 +35,35 @@ var idt: [256]IDTEntry align(16) = [_]IDTEntry{.{
     .reserved = 0,
 }} ** 256;
 
-var tick_count: u64 = 0;
-
-// Assembly IRQ handlers
-comptime {
-    asm (
-        \\.global irq0_handler
-        \\irq0_handler:
-        \\  push %rax
-        \\  push %rbx
-        \\  push %rcx
-        \\  push %rdx
-        \\  push %rsi
-        \\  push %rdi
-        \\  push %rbp
-        \\  push %r8
-        \\  push %r9
-        \\  push %r10
-        \\  push %r11
-        \\  push %r12
-        \\  push %r13
-        \\  push %r14
-        \\  push %r15
-        \\  call timer_handler
-        \\  pop %r15
-        \\  pop %r14
-        \\  pop %r13
-        \\  pop %r12
-        \\  pop %r11
-        \\  pop %r10
-        \\  pop %r9
-        \\  pop %r8
-        \\  pop %rbp
-        \\  pop %rdi
-        \\  pop %rsi
-        \\  pop %rdx
-        \\  pop %rcx
-        \\  pop %rbx
-        \\  pop %rax
-        \\  iretq
-        \\
-        \\.global irq1_handler
-        \\irq1_handler:
-        \\  push %rax
-        \\  push %rbx
-        \\  push %rcx
-        \\  push %rdx
-        \\  push %rsi
-        \\  push %rdi
-        \\  push %rbp
-        \\  push %r8
-        \\  push %r9
-        \\  push %r10
-        \\  push %r11
-        \\  push %r12
-        \\  push %r13
-        \\  push %r14
-        \\  push %r15
-        \\  call keyboard_handler
-        \\  pop %r15
-        \\  pop %r14
-        \\  pop %r13
-        \\  pop %r12
-        \\  pop %r11
-        \\  pop %r10
-        \\  pop %r9
-        \\  pop %r8
-        \\  pop %rbp
-        \\  pop %rdi
-        \\  pop %rsi
-        \\  pop %rdx
-        \\  pop %rcx
-        \\  pop %rbx
-        \\  pop %rax
-        \\  iretq
-    );
-}
-
-extern fn irq0_handler() void;
-extern fn irq1_handler() void;
-extern fn keyboard_handler() void;
-
-export fn timer_handler() void {
-    tick_count += 1;
-
-    // Send EOI to PIC FIRST, before on_tick()
-    // This is important because on_tick() might call schedule() which
-    // calls shift_to_kata() which does iretq and never returns here.
-    // Without early EOI, no more timer interrupts would fire.
-    io.write_port_byte(0x20, 0x20);
-
-    // Let Sensei schedule Kata on each tick
-    sensei.on_tick();
-}
-
-pub fn get_ticks() u64 {
-    return tick_count;
-}
+var idt_ptr: IDTPointer = undefined;
 
 pub fn init() void {
     serial.print("\n=== Interrupt Descriptor Table ===\n");
 
-    // Set up exception handlers (0-31) from Crimson
-    const exception_handlers = exceptions.get_isr_handlers();
-    for (exception_handlers, 0..) |handler_addr, i| {
-        set_handler(@intCast(i), handler_addr, 0x8E);
+    // Setup exception handlers (0-31)
+    var i: u8 = 0;
+    while (i < 32) : (i += 1) {
+        const handler_addr = @intFromPtr(isr.get_exception_handler(i));
+        set_gate(i, handler_addr, 0x08, 0x8E);
     }
 
-    // Set up IRQ handlers (32-47)
-    set_handler(32, @intFromPtr(&irq0_handler), 0x8E); // Timer
-    set_handler(33, @intFromPtr(&irq1_handler), 0x8E); // Keyboard
+    // Setup IRQ handlers
+    // IRQ 0 = Timer (vector 32)
+    set_gate(32, @intFromPtr(isr.get_irq_handler(0)), 0x08, 0x8E);
+    // IRQ 1 = Keyboard (vector 33)
+    set_gate(33, @intFromPtr(isr.get_irq_handler(1)), 0x08, 0x8E);
 
-    // Load IDT
-    const idtr = IDTPointer{
+    // Setup IDT pointer
+    idt_ptr = IDTPointer{
         .limit = @sizeOf(@TypeOf(idt)) - 1,
         .base = @intFromPtr(&idt),
     };
 
-    cpu.load_interrupt_descriptor_table(@intFromPtr(&idtr));
+    // Load IDT
+    cpu.load_interrupt_descriptor_table(@intFromPtr(&idt_ptr));
 
     // Remap PIC
     remap_pic();
-
-    // Unmask timer (IRQ0) and keyboard (IRQ1)
-    unmask_irq(0);
-    unmask_irq(1);
 
     // Enable interrupts
     cpu.enable_interrupts();
@@ -163,40 +71,45 @@ pub fn init() void {
     serial.print("IDT loaded, interrupts enabled\n");
 }
 
-fn set_handler(vector: u16, handler_addr: u64, flags: u8) void {
-    idt[vector] = .{
-        .offset_low = @truncate(handler_addr),
-        .selector = 0x08, // Kernel code segment
+fn set_gate(num: u8, handler: u64, selector: u16, type_attr: u8) void {
+    idt[num] = IDTEntry{
+        .offset_low = @truncate(handler & 0xFFFF),
+        .selector = selector,
         .ist = 0,
-        .type_attr = flags,
-        .offset_mid = @truncate(handler_addr >> 16),
-        .offset_high = @truncate(handler_addr >> 32),
+        .type_attr = type_attr,
+        .offset_mid = @truncate((handler >> 16) & 0xFFFF),
+        .offset_high = @truncate(handler >> 32),
         .reserved = 0,
     };
 }
 
 fn remap_pic() void {
-    const mask1 = io.read_port_byte(0x21);
-    const mask2 = io.read_port_byte(0xA1);
-
+    // ICW1: Initialize + ICW4 needed
     io.write_port_byte(0x20, 0x11);
     io.write_port_byte(0xA0, 0x11);
 
-    io.write_port_byte(0x21, 32);
-    io.write_port_byte(0xA1, 40);
+    // ICW2: Vector offsets
+    io.write_port_byte(0x21, 0x20); // Master PIC: IRQ 0-7 -> vectors 32-39
+    io.write_port_byte(0xA1, 0x28); // Slave PIC: IRQ 8-15 -> vectors 40-47
 
-    io.write_port_byte(0x21, 0x04);
-    io.write_port_byte(0xA1, 0x02);
+    // ICW3: Cascade setup
+    io.write_port_byte(0x21, 0x04); // Master: slave on IRQ2
+    io.write_port_byte(0xA1, 0x02); // Slave: cascade identity
 
+    // ICW4: 8086 mode
     io.write_port_byte(0x21, 0x01);
     io.write_port_byte(0xA1, 0x01);
 
-    io.write_port_byte(0x21, mask1);
-    io.write_port_byte(0xA1, mask2);
+    // Mask all interrupts except IRQ0 (timer) and IRQ1 (keyboard)
+    io.write_port_byte(0x21, 0xFC); // 11111100 - enable IRQ0, IRQ1
+    io.write_port_byte(0xA1, 0xFF); // Mask all slave IRQs
 }
 
-fn unmask_irq(irq: u8) void {
-    const port: u16 = if (irq < 8) 0x21 else 0xA1;
-    const mask = io.read_port_byte(port) & ~(@as(u8, 1) << @truncate(irq % 8));
-    io.write_port_byte(port, mask);
+// Timer interrupt handler
+export fn timer_handler() void {
+    // Send EOI to PIC
+    io.write_port_byte(0x20, 0x20);
+
+    // Update scheduler
+    sensei.on_tick();
 }

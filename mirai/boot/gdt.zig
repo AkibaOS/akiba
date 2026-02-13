@@ -184,25 +184,8 @@ fn create_tss_descriptor(base: u64, limit: u64) void {
 
 fn load_gdt() void {
     cpu.load_global_descriptor_table(@intFromPtr(&gdt_ptr));
-
-    // Reload segment registers with new kernel data segment
-    asm volatile (
-        \\mov $0x10, %%ax
-        \\mov %%ax, %%ds
-        \\mov %%ax, %%es
-        \\mov %%ax, %%fs
-        \\mov %%ax, %%gs
-        \\mov %%ax, %%ss
-        ::: .{ .rax = true });
-
-    // Far return to reload CS
-    asm volatile (
-        \\pushq $0x08
-        \\leaq 1f(%%rip), %%rax
-        \\pushq %%rax
-        \\lretq
-        \\1:
-        ::: .{ .rax = true });
+    cpu.reload_segment_registers(KERNEL_DATA);
+    cpu.reload_code_segment(KERNEL_CODE);
 }
 
 fn load_tss() void {

@@ -194,7 +194,7 @@ pub fn schedule() void {
 
     clear_current_kata();
     while (true) {
-        asm volatile ("hlt");
+        cpu.halt_processor();
     }
 }
 

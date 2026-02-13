@@ -1,13 +1,13 @@
-//! CPU Exception Handlers (0-31)
-//! Called when CPU encounters fatal errors
+//! Exception Handler - Crimson panic for CPU exceptions
 
 const memory = @import("../asm/memory.zig");
 const panic = @import("panic.zig");
 const serial = @import("../drivers/serial.zig");
-const std = @import("std");
 
-// Exception frame pushed by CPU and our ISR stubs
-const InterruptFrame = packed struct {
+// ISR stubs are defined in mirai/asm/isr.zig
+// The comptime assembly block has been moved there
+
+const ExceptionFrame = packed struct {
     r15: u64,
     r14: u64,
     r13: u64,
@@ -67,275 +67,122 @@ const EXCEPTION_NAMES = [_][]const u8{
     "Reserved",
 };
 
-// Assembly ISR stubs - generate handlers for all 32 exceptions
-comptime {
-    var i: u32 = 0;
-    while (i < 32) : (i += 1) {
-        if (i == 8 or (i >= 10 and i <= 14) or i == 17 or i == 21) {
-            // Exceptions with error code
-            asm (std.fmt.comptimePrint(
-                    \\.global isr{d}
-                    \\isr{d}:
-                    \\  push ${d}
-                    \\  jmp common_exception_handler
-                , .{ i, i, i }));
-        } else {
-            // Exceptions without error code - push dummy 0
-            asm (std.fmt.comptimePrint(
-                    \\.global isr{d}
-                    \\isr{d}:
-                    \\  push $0
-                    \\  push ${d}
-                    \\  jmp common_exception_handler
-                , .{ i, i, i }));
-        }
+export fn exception_handler(frame_ptr: u64) void {
+    const frame = @as(*ExceptionFrame, @ptrFromInt(frame_ptr));
+
+    serial.print("\n!!! EXCEPTION: ");
+    if (frame.int_num < EXCEPTION_NAMES.len) {
+        serial.print(EXCEPTION_NAMES[frame.int_num]);
+    } else {
+        serial.print("Unknown");
     }
-
-    // Common exception handler - saves all registers
-    asm (
-        \\common_exception_handler:
-        \\  push %rax
-        \\  push %rbx
-        \\  push %rcx
-        \\  push %rdx
-        \\  push %rsi
-        \\  push %rdi
-        \\  push %rbp
-        \\  push %r8
-        \\  push %r9
-        \\  push %r10
-        \\  push %r11
-        \\  push %r12
-        \\  push %r13
-        \\  push %r14
-        \\  push %r15
-        \\  mov %rsp, %rdi
-        \\  call exception_handler
-        \\  pop %r15
-        \\  pop %r14
-        \\  pop %r13
-        \\  pop %r12
-        \\  pop %r11
-        \\  pop %r10
-        \\  pop %r9
-        \\  pop %r8
-        \\  pop %rbp
-        \\  pop %rdi
-        \\  pop %rsi
-        \\  pop %rdx
-        \\  pop %rcx
-        \\  pop %rbx
-        \\  pop %rax
-        \\  add $16, %rsp
-        \\  iretq
-    );
-}
-
-// Declare ISR symbols for IDT setup
-pub extern fn isr0() void;
-pub extern fn isr1() void;
-pub extern fn isr2() void;
-pub extern fn isr3() void;
-pub extern fn isr4() void;
-pub extern fn isr5() void;
-pub extern fn isr6() void;
-pub extern fn isr7() void;
-pub extern fn isr8() void;
-pub extern fn isr9() void;
-pub extern fn isr10() void;
-pub extern fn isr11() void;
-pub extern fn isr12() void;
-pub extern fn isr13() void;
-pub extern fn isr14() void;
-pub extern fn isr15() void;
-pub extern fn isr16() void;
-pub extern fn isr17() void;
-pub extern fn isr18() void;
-pub extern fn isr19() void;
-pub extern fn isr20() void;
-pub extern fn isr21() void;
-pub extern fn isr22() void;
-pub extern fn isr23() void;
-pub extern fn isr24() void;
-pub extern fn isr25() void;
-pub extern fn isr26() void;
-pub extern fn isr27() void;
-pub extern fn isr28() void;
-pub extern fn isr29() void;
-pub extern fn isr30() void;
-pub extern fn isr31() void;
-
-// Get all ISR addresses as array (for IDT setup)
-pub fn get_isr_handlers() [32]u64 {
-    return [_]u64{
-        @intFromPtr(&isr0),  @intFromPtr(&isr1),  @intFromPtr(&isr2),  @intFromPtr(&isr3),
-        @intFromPtr(&isr4),  @intFromPtr(&isr5),  @intFromPtr(&isr6),  @intFromPtr(&isr7),
-        @intFromPtr(&isr8),  @intFromPtr(&isr9),  @intFromPtr(&isr10), @intFromPtr(&isr11),
-        @intFromPtr(&isr12), @intFromPtr(&isr13), @intFromPtr(&isr14), @intFromPtr(&isr15),
-        @intFromPtr(&isr16), @intFromPtr(&isr17), @intFromPtr(&isr18), @intFromPtr(&isr19),
-        @intFromPtr(&isr20), @intFromPtr(&isr21), @intFromPtr(&isr22), @intFromPtr(&isr23),
-        @intFromPtr(&isr24), @intFromPtr(&isr25), @intFromPtr(&isr26), @intFromPtr(&isr27),
-        @intFromPtr(&isr28), @intFromPtr(&isr29), @intFromPtr(&isr30), @intFromPtr(&isr31),
-    };
-}
-
-// Main exception handler - called from assembly stub
-export fn exception_handler(frame: *InterruptFrame) void {
-    // Read control registers
-    const cr2 = memory.read_page_fault_address();
-    const cr3 = memory.read_page_table_base();
-
-    const int_num = frame.int_num;
-
-    // Immediate debug output
-    serial.write('E');
-    serial.write('X');
-    serial.write('C');
-    serial.write('!');
-    serial.write('\n');
-
-    serial.print("\n!!! EXCEPTION ");
-    serial.print_hex(int_num);
-    serial.print(" at RIP ");
-    serial.print_hex(frame.rip);
     serial.print(" !!!\n");
 
-    // Build context for Crimson
-    var context = panic.Context{
-        .rax = frame.rax,
-        .rbx = frame.rbx,
-        .rcx = frame.rcx,
-        .rdx = frame.rdx,
-        .rsi = frame.rsi,
-        .rdi = frame.rdi,
-        .rbp = frame.rbp,
-        .rsp = frame.rsp,
-        .r8 = frame.r8,
-        .r9 = frame.r9,
-        .r10 = frame.r10,
-        .r11 = frame.r11,
-        .r12 = frame.r12,
-        .r13 = frame.r13,
-        .r14 = frame.r14,
-        .r15 = frame.r15,
-        .rip = frame.rip,
-        .rflags = frame.rflags,
-        .error_code = frame.error_code,
-        .cr2 = cr2,
-        .cr3 = cr3,
-    };
+    serial.print("Vector: ");
+    serial.print_hex(frame.int_num);
+    serial.print("\n");
 
-    // Format error message
-    var message_buffer: [256]u8 = undefined;
-    const message = format_exception_message(int_num, &context, &message_buffer);
+    serial.print("Error Code: ");
+    serial.print_hex(frame.error_code);
+    serial.print("\n");
 
-    // Trigger Crimson
-    panic.collapse(message, &context);
-}
+    serial.print("RIP: ");
+    serial.print_hex(frame.rip);
+    serial.print("\n");
 
-fn format_exception_message(int_num: u64, context: *const panic.Context, buffer: []u8) []const u8 {
-    var pos: usize = 0;
+    serial.print("CS: ");
+    serial.print_hex(frame.cs);
+    serial.print("\n");
 
-    // Exception name
-    if (int_num < 32) {
-        const name = EXCEPTION_NAMES[int_num];
-        for (name) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
+    serial.print("RFLAGS: ");
+    serial.print_hex(frame.rflags);
+    serial.print("\n");
+
+    serial.print("RSP: ");
+    serial.print_hex(frame.rsp);
+    serial.print("\n");
+
+    serial.print("SS: ");
+    serial.print_hex(frame.ss);
+    serial.print("\n");
+
+    // Page fault specific info
+    if (frame.int_num == 14) {
+        const cr2 = memory.read_page_fault_address();
+        serial.print("CR2 (fault addr): ");
+        serial.print_hex(cr2);
+        serial.print("\n");
+
+        serial.print("Fault type: ");
+        if ((frame.error_code & 1) == 0) {
+            serial.print("Page not present");
+        } else {
+            serial.print("Protection violation");
         }
+        if ((frame.error_code & 2) != 0) {
+            serial.print(", Write");
+        } else {
+            serial.print(", Read");
+        }
+        if ((frame.error_code & 4) != 0) {
+            serial.print(", User mode");
+        } else {
+            serial.print(", Kernel mode");
+        }
+        serial.print("\n");
+
+        const cr3 = memory.read_page_table_base();
+        serial.print("CR3 (page table): ");
+        serial.print_hex(cr3);
+        serial.print("\n");
+    }
+
+    serial.print("\nRegisters:\n");
+    serial.print("RAX: ");
+    serial.print_hex(frame.rax);
+    serial.print("  RBX: ");
+    serial.print_hex(frame.rbx);
+    serial.print("\n");
+    serial.print("RCX: ");
+    serial.print_hex(frame.rcx);
+    serial.print("  RDX: ");
+    serial.print_hex(frame.rdx);
+    serial.print("\n");
+    serial.print("RSI: ");
+    serial.print_hex(frame.rsi);
+    serial.print("  RDI: ");
+    serial.print_hex(frame.rdi);
+    serial.print("\n");
+    serial.print("RBP: ");
+    serial.print_hex(frame.rbp);
+    serial.print("\n");
+    serial.print("R8:  ");
+    serial.print_hex(frame.r8);
+    serial.print("  R9:  ");
+    serial.print_hex(frame.r9);
+    serial.print("\n");
+    serial.print("R10: ");
+    serial.print_hex(frame.r10);
+    serial.print("  R11: ");
+    serial.print_hex(frame.r11);
+    serial.print("\n");
+    serial.print("R12: ");
+    serial.print_hex(frame.r12);
+    serial.print("  R13: ");
+    serial.print_hex(frame.r13);
+    serial.print("\n");
+    serial.print("R14: ");
+    serial.print_hex(frame.r14);
+    serial.print("  R15: ");
+    serial.print_hex(frame.r15);
+    serial.print("\n");
+
+    // Trigger Crimson panic
+    // Note: We pass null for context since ExceptionFrame layout differs from panic.Context
+    // All register info has already been printed to serial above
+    if (frame.int_num < EXCEPTION_NAMES.len) {
+        panic.collapse(EXCEPTION_NAMES[frame.int_num], null);
     } else {
-        const unknown = "Unknown Exception";
-        for (unknown) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
+        panic.collapse("Unknown Exception", null);
     }
-
-    // Add special info for page faults
-    if (int_num == 14) {
-        const pf_info = format_page_fault_info(context.error_code, buffer[pos..]);
-        pos += pf_info.len;
-    }
-
-    return buffer[0..pos];
-}
-
-fn format_page_fault_info(error_code: u64, buffer: []u8) []const u8 {
-    var pos: usize = 0;
-
-    const info = " (";
-    for (info) |c| {
-        if (pos < buffer.len) {
-            buffer[pos] = c;
-            pos += 1;
-        }
-    }
-
-    // Present or not present
-    if ((error_code & 1) != 0) {
-        const present = "protection";
-        for (present) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    } else {
-        const not_present = "not present";
-        for (not_present) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    }
-
-    // Read or write
-    if ((error_code & 2) != 0) {
-        const write_str = ", write";
-        for (write_str) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    } else {
-        const read_str = ", read";
-        for (read_str) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    }
-
-    // User or kernel
-    if ((error_code & 4) != 0) {
-        const user_str = ", user";
-        for (user_str) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    } else {
-        const kernel_str = ", kernel";
-        for (kernel_str) |c| {
-            if (pos < buffer.len) {
-                buffer[pos] = c;
-                pos += 1;
-            }
-        }
-    }
-
-    if (pos < buffer.len) {
-        buffer[pos] = ')';
-        pos += 1;
-    }
-
-    return buffer[0..pos];
 }

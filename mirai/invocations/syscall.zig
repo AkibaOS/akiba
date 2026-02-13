@@ -1,5 +1,6 @@
-//! SYSCALL/SYSRET implementation - Invocation mechanism using MSRs (Model Specific Registers)
+//! SYSCALL/SYSRET implementation - Invocation mechanism using MSRs
 
+const entry = @import("../asm/entry.zig");
 const gdt = @import("../boot/gdt.zig");
 const handler = @import("handler.zig");
 const msr = @import("../asm/msr.zig");
@@ -7,162 +8,60 @@ const serial = @import("../drivers/serial.zig");
 const tss = @import("../boot/tss.zig");
 
 // MSR addresses
-const IA32_STAR: u32 = 0xC0000081; // Segment selectors
-const IA32_LSTAR: u32 = 0xC0000082; // Syscall entry point (64-bit)
-const IA32_FMASK: u32 = 0xC0000084; // RFLAGS mask
+const IA32_STAR: u32 = 0xC0000081;
+const IA32_LSTAR: u32 = 0xC0000082;
+const IA32_FMASK: u32 = 0xC0000084;
+const IA32_EFER: u32 = 0xC0000080;
+
+// Context saved on kernel stack
+const SyscallContext = packed struct {
+    rax: u64,
+    rbx: u64,
+    rcx: u64,
+    rdx: u64,
+    rsi: u64,
+    rdi: u64,
+    rbp: u64,
+    r8: u64,
+    r9: u64,
+    r10: u64,
+    r11: u64,
+    r12: u64,
+    r13: u64,
+    r14: u64,
+    r15: u64,
+    user_cs: u64,
+    user_rip: u64,
+    user_ss: u64,
+    user_rflags: u64,
+    user_rsp: u64,
+};
 
 pub fn init() void {
     // STAR: Segment selectors
     // Bits 47:32 = Kernel CS (SYSCALL loads this)
     // Bits 63:48 = User base selector (SYSRET adds 16 for CS, 8 for SS)
-    // For SYSRET: CS = (STAR[63:48] + 16) | 3, SS = (STAR[63:48] + 8) | 3
-    // We have USER_DATA=0x18, USER_CODE=0x20
-    // So SYSRET needs base = USER_DATA, which gives:
-    //   CS = 0x18 + 16 = 0x28 (WRONG! We want 0x20)
-    // FIX: Use (USER_CODE - 16) as base so SYSRET adds 16 to get USER_CODE
-    const user_base = gdt.USER_CODE - 16; // 0x20 - 16 = 0x10
+    const user_base = gdt.USER_CODE - 16;
     const star_value: u64 =
         (@as(u64, gdt.KERNEL_CODE) << 32) |
         (@as(u64, user_base) << 48);
     msr.write_msr(IA32_STAR, star_value);
 
     // LSTAR: Syscall entry point
-    const entry_addr = @intFromPtr(&syscall_entry_asm);
-    msr.write_msr(IA32_LSTAR, entry_addr);
+    msr.write_msr(IA32_LSTAR, entry.get_entry_address());
 
     // FMASK: Mask interrupts during syscall entry
-    const fmask: u64 = 0x200;
-    msr.write_msr(IA32_FMASK, fmask);
+    msr.write_msr(IA32_FMASK, 0x200);
 
     // Enable SYSCALL/SYSRET in EFER
-    const IA32_EFER: u32 = 0xC0000080;
     const efer = msr.read_msr(IA32_EFER);
     msr.write_msr(IA32_EFER, efer | (1 << 0));
 }
 
-// Assembly syscall entry point
-comptime {
-    asm (
-        \\.global syscall_entry_asm
-        \\syscall_entry_asm:
-        \\  # SYSCALL has already:
-        \\  #   - Saved RIP to RCX
-        \\  #   - Saved RFLAGS to R11
-        \\  #   - Loaded CS/SS from STAR
-        \\  #   - Jumped here (LSTAR)
-        \\  #   - Masked RFLAGS per FMASK
-        \\  #
-        \\  # We need to:
-        \\  #   - Save user RSP
-        \\  #   - Switch to kernel stack (from TSS)
-        \\  #   - Save all registers
-        \\  #   - Call handler
-        \\  #   - Restore registers
-        \\  #   - Use sysret to return
-        \\
-        \\  # At entry: RCX = user RIP, R11 = user RFLAGS, RSP = user RSP, RAX = syscall#
-        \\  
-        \\  # Strategy: Use SWAPGS-like approach but with stack
-        \\  # Save everything on user stack, switch to kernel stack, copy over
-        \\  
-        \\  # First, save user RSP by pushing all regs then calculating
-        \\  push %rax
-        \\  push %rbx
-        \\  push %rcx
-        \\  push %rdx
-        \\  push %rsi
-        \\  push %rdi
-        \\  push %rbp
-        \\  push %r8
-        \\  push %r9
-        \\  push %r10
-        \\  push %r11
-        \\  push %r12
-        \\  push %r13
-        \\  push %r14
-        \\  push %r15
-        \\  
-        \\  # Get kernel stack (returns in RAX, RSP unchanged after ret)
-        \\  call get_kernel_stack
-        \\  
-        \\  # RAX now has kernel stack pointer
-        \\  # RSP points to saved R15 (call/ret balanced)
-        \\  mov %rsp, %r15         # R15 = pointer to saved registers
-        \\  lea 120(%r15), %r14    # R14 = original user RSP (before 15 pushes)
-        \\  mov %rax, %rsp         # Switch to kernel stack
-        \\  
-        \\  # Build struct on kernel stack by reading from user stack (via R15)
-        \\  # User stack has (from low to high addr): [rax][rbx][rcx][rdx][rsi][rdi][rbp][r8-r15]
-        \\  # We push in REVERSE order so struct layout matches (stack grows down)
-        \\  # NOTE: RCX and R11 already have user_rip and user_rflags from SYSCALL!
-        \\  push %r14              # user_rsp (last in struct, push first)
-        \\  push %r11              # user_rflags (R11 saved by SYSCALL)
-        \\  push $0x1B             # user_ss
-        \\  push %rcx              # user_rip (RCX saved by SYSCALL)
-        \\  push $0x23             # user_cs
-        \\  push 0(%r15)           # r15
-        \\  push 8(%r15)           # r14
-        \\  push 16(%r15)          # r13
-        \\  push 24(%r15)          # r12
-        \\  push 32(%r15)          # r11 (value before syscall)
-        \\  push 40(%r15)          # r10
-        \\  push 48(%r15)          # r9
-        \\  push 56(%r15)          # r8
-        \\  push 64(%r15)          # rbp
-        \\  push 72(%r15)          # rdi
-        \\  push 80(%r15)          # rsi
-        \\  push 88(%r15)          # rdx
-        \\  push 96(%r15)          # rcx (value before syscall)
-        \\  push 104(%r15)         # rbx
-        \\  push 112(%r15)         # rax (first in struct, push last)
-        \\
-        \\  # Re-enable interrupts (we're on kernel stack now)
-        \\  sti
-        \\
-        \\  # Call invocation handler
-        \\  mov %rsp, %rdi        # Pass context pointer
-        \\  call handle_syscall
-        \\
-        \\  # Disable interrupts before returning to user
-        \\  cli
-        \\
-        \\  # Restore registers (RAX might be modified with return value)
-        \\  # NOTE: Don't restore RCX and R11 - they're needed for sysret!
-        \\  pop %rax
-        \\  pop %rbx
-        \\  add $8, %rsp           # Skip RCX (will be loaded from saved RIP)
-        \\  pop %rdx
-        \\  pop %rsi
-        \\  pop %rdi
-        \\  pop %rbp
-        \\  pop %r8
-        \\  pop %r9
-        \\  pop %r10
-        \\  add $8, %rsp           # Skip R11 (will be loaded from saved RFLAGS)
-        \\  pop %r12
-        \\  pop %r13
-        \\  pop %r14
-        \\  pop %r15
-        \\
-        \\  # Pop saved context
-        \\  add $8, %rsp           # Skip user CS (sysret will set it)
-        \\  pop %rcx               # User RIP for sysret
-        \\  add $8, %rsp           # Skip user SS (sysret will set it)
-        \\  pop %r11               # User RFLAGS for sysret
-        \\  pop %rsp               # Restore user RSP
-        \\
-        \\  # Return to userspace
-        \\  sysretq
-    );
-}
-
-extern fn syscall_entry_asm() void;
-
-// Handler called from syscall_entry
+// Handler called from syscall entry assembly
 export fn handle_syscall(ctx_ptr: u64) void {
     const regs = @as(*SyscallContext, @ptrFromInt(ctx_ptr));
 
-    // Build invocation context
     var inv_ctx = handler.InvocationContext{
         .rax = regs.rax,
         .rbx = regs.rbx,
@@ -186,38 +85,11 @@ export fn handle_syscall(ctx_ptr: u64) void {
         .ss = regs.user_ss,
     };
 
-    // Handle the invocation
     handler.handle_invocation(&inv_ctx);
-
-    // Write back return value (RAX)
     regs.rax = inv_ctx.rax;
 }
 
-// Context saved on kernel stack
-const SyscallContext = packed struct {
-    rax: u64, // 0
-    rbx: u64, // 8
-    rcx: u64, // 16
-    rdx: u64, // 24
-    rsi: u64, // 32
-    rdi: u64, // 40
-    rbp: u64, // 48
-    r8: u64, // 56
-    r9: u64, // 64
-    r10: u64, // 72
-    r11: u64, // 80
-    r12: u64, // 88
-    r13: u64, // 96
-    r14: u64, // 104
-    r15: u64, // 112
-    user_cs: u64, // 120
-    user_rip: u64, // 128
-    user_ss: u64, // 136
-    user_rflags: u64, // 144
-    user_rsp: u64, // 152
-};
-
-// Export for assembly to call - gets kernel stack from TSS
+// Export for assembly to call
 export fn get_kernel_stack() u64 {
     return tss.get_kernel_stack();
 }
