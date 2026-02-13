@@ -95,17 +95,26 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
 /// Resolve a path to its directory cluster
 fn resolve_path_to_cluster(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) ?u32 {
-    // Empty path or "/" means root
+    // Get current kata for relative path resolution
+    const kata = sensei.get_current_kata();
+
+    // Empty path means current directory
     if (path.len == 0) {
+        if (kata) |k| {
+            return if (k.current_cluster == 0) fs.root_cluster else @as(u32, @intCast(k.current_cluster));
+        }
         return fs.root_cluster;
     }
 
     var cluster = fs.root_cluster;
     var start: usize = 0;
 
-    // Skip leading slash
+    // Check if absolute or relative
     if (path[0] == '/') {
         start = 1;
+    } else if (kata) |k| {
+        // Relative path - start from current location
+        cluster = if (k.current_cluster == 0) fs.root_cluster else @as(u32, @intCast(k.current_cluster));
     }
 
     // If path is just "/", return root
@@ -122,17 +131,20 @@ fn resolve_path_to_cluster(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) ?u3
             if (i > start) {
                 const component = path[start..i];
 
-                // Find this component in current directory
-                const entry = fs.find_file(cluster, component) orelse {
-                    return null;
-                };
+                // Handle ^ as parent
+                if (component.len == 1 and component[0] == '^') {
+                    cluster = fs.get_parent_cluster(cluster) orelse fs.root_cluster;
+                } else {
+                    const entry = fs.find_file(cluster, component) orelse {
+                        return null;
+                    };
 
-                // Must be a directory
-                if (entry.entry_type != afs.ENTRY_TYPE_DIR) {
-                    return null;
+                    if (entry.entry_type != afs.ENTRY_TYPE_DIR) {
+                        return null;
+                    }
+
+                    cluster = entry.first_cluster;
                 }
-
-                cluster = entry.first_cluster;
             }
             start = i + 1;
         }

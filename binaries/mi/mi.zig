@@ -18,8 +18,8 @@ const PERM_WORLD: u8 = 2;
 const PERM_READ_ONLY: u8 = 3;
 
 export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
-    // Use first argument as path, or default to "/"
-    var target_path: []const u8 = "/";
+    // Use first argument as path, or default to ""
+    var target_path: []const u8 = "";
 
     if (pc > 1) {
         // Get pv[1] as the target path

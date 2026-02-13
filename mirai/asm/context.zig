@@ -35,22 +35,24 @@ pub fn switch_to_context(ctx: *const kata_mod.Context, page_table: u64, kernel_s
         // Switch to user page table
         \\mov %%rsi, %%cr3
         \\
-        // Zero all registers for clean userspace entry
-        \\xor %%rax, %%rax
-        \\xor %%rbx, %%rbx
-        \\xor %%rcx, %%rcx
-        \\xor %%rdx, %%rdx
-        \\xor %%rsi, %%rsi
-        \\xor %%rdi, %%rdi
-        \\xor %%rbp, %%rbp
-        \\xor %%r8, %%r8
-        \\xor %%r9, %%r9
-        \\xor %%r10, %%r10
-        \\xor %%r11, %%r11
-        \\xor %%r12, %%r12
-        \\xor %%r13, %%r13
-        \\xor %%r14, %%r14
-        \\xor %%r15, %%r15
+        // Restore registers from context (offsets from Context struct)
+        // rax=0, rbx=8, rcx=16, rdx=24, rsi=32, rdi=40, rbp=48
+        // r8=64, r9=72, r10=80, r11=88, r12=96, r13=104, r14=112, r15=120
+        \\mov 8(%%rdi), %%rbx
+        \\mov 16(%%rdi), %%rcx
+        \\mov 24(%%rdi), %%rdx
+        \\mov 32(%%rdi), %%rsi
+        \\mov 48(%%rdi), %%rbp
+        \\mov 64(%%rdi), %%r8
+        \\mov 72(%%rdi), %%r9
+        \\mov 80(%%rdi), %%r10
+        \\mov 88(%%rdi), %%r11
+        \\mov 96(%%rdi), %%r12
+        \\mov 104(%%rdi), %%r13
+        \\mov 112(%%rdi), %%r14
+        \\mov 120(%%rdi), %%r15
+        \\mov 0(%%rdi), %%rax
+        \\mov 40(%%rdi), %%rdi
         \\
         // Jump to userspace
         \\iretq

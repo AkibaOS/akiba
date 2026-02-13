@@ -68,6 +68,9 @@ pub const MAX_STRING_LENGTH: usize = 4096;
 /// Maximum working directory path length
 pub const MAX_CWD_LENGTH: usize = 256;
 
+// Maximum postman letter length
+pub const MAX_LETTER_LENGTH: usize = 256;
+
 // ============================================================================
 // Validation Helpers
 // ============================================================================

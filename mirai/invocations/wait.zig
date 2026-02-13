@@ -3,24 +3,20 @@
 const handler = @import("handler.zig");
 const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
-const serial = @import("../drivers/serial.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {
     const target_id = @as(u32, @truncate(ctx.rdi));
 
-    // Find the target Kata
     const target = kata_mod.get_kata(target_id) orelse {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
     };
 
-    // If already exited, return immediately
     if (target.state == .Dissolved) {
         ctx.rax = target.exit_code;
         return;
     }
 
-    // Target is still running - block this kata
     const current = sensei.get_current_kata() orelse {
         ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
         return;
@@ -29,13 +25,27 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     current.state = .Waiting;
     current.waiting_for = target_id;
 
-    // Schedule another kata
-    sensei.schedule();
+    // Save context before scheduling
+    current.context.rax = 0;
+    current.context.rbx = ctx.rbx;
+    current.context.rcx = ctx.rcx;
+    current.context.rdx = ctx.rdx;
+    current.context.rsi = ctx.rsi;
+    current.context.rdi = ctx.rdi;
+    current.context.rbp = ctx.rbp;
+    current.context.rsp = ctx.rsp;
+    current.context.r8 = ctx.r8;
+    current.context.r9 = ctx.r9;
+    current.context.r10 = ctx.r10;
+    current.context.r11 = ctx.r11;
+    current.context.r12 = ctx.r12;
+    current.context.r13 = ctx.r13;
+    current.context.r14 = ctx.r14;
+    current.context.r15 = ctx.r15;
+    current.context.rip = ctx.rip;
+    current.context.rflags = ctx.rflags;
+    current.context.cs = ctx.cs;
+    current.context.ss = ctx.ss;
 
-    // When we return here, check if target has exited
-    if (target.state == .Dissolved) {
-        ctx.rax = target.exit_code;
-    } else {
-        ctx.rax = @as(u64, @bitCast(@as(i64, -1)));
-    }
+    sensei.schedule();
 }

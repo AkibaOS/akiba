@@ -6,9 +6,12 @@ const ahci = @import("../drivers/ahci.zig");
 const attach = @import("attach.zig");
 const exit = @import("exit.zig");
 const getkeychar = @import("getkeychar.zig");
+const getlocation = @import("getlocation.zig");
 const mark = @import("mark.zig");
+const postman = @import("postman.zig");
 const seal = @import("seal.zig");
 const serial = @import("../drivers/serial.zig");
+const setlocation = @import("setlocation.zig");
 const spawn = @import("spawn.zig");
 const syscall = @import("syscall.zig");
 const view = @import("view.zig");
@@ -23,6 +26,7 @@ pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     seal.set_afs_instance(fs);
     spawn.set_afs_instance(fs);
     viewstack.set_afs_instance(fs);
+    setlocation.set_afs_instance(fs);
 
     syscall.init();
 }
@@ -41,6 +45,9 @@ pub fn handle_invocation(context: *InvocationContext) void {
         0x08 => yield.invoke(context),
         0x09 => getkeychar.invoke(context),
         0x0A => viewstack.invoke(context),
+        0x0B => getlocation.invoke(context),
+        0x0C => setlocation.invoke(context),
+        0x0D => postman.invoke(context),
         else => {
             context.rax = @as(u64, @bitCast(@as(i64, -1)));
         },

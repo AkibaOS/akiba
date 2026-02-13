@@ -78,6 +78,18 @@ pub fn load_program_with_args(
     const kata = try kata_mod.create_kata();
     errdefer kata_mod.dissolve_kata(kata.id);
 
+    // Set parent to current kata (if any)
+    if (sensei.get_current_kata()) |parent| {
+        kata.parent_id = parent.id;
+
+        // Inherit parent's current location
+        for (0..parent.current_location_len) |i| {
+            kata.current_location[i] = parent.current_location[i];
+        }
+        kata.current_location_len = parent.current_location_len;
+        kata.current_cluster = parent.current_cluster;
+    }
+
     // Setup kata memory (page table, stacks, framebuffer)
     const fb_info = boot.get_framebuffer();
     const fb_phys = if (fb_info) |fb| fb.addr else 0;

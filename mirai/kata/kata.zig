@@ -37,6 +37,11 @@ pub const Kata = struct {
     // Process hierarchy
     parent_id: u32,
 
+    // Postman - for Signals to parent
+    letter_type: u8,
+    letter_data: [system.limits.MAX_LETTER_LENGTH]u8,
+    letter_len: u8,
+
     // Scheduling
     vruntime: u64,
     weight: u32,
@@ -122,6 +127,9 @@ pub fn init() void {
             .current_location_len = 1,
             .current_cluster = 0,
             .parent_id = 0,
+            .letter_type = 0,
+            .letter_data = undefined,
+            .letter_len = 0,
             .vruntime = 0,
             .weight = 1024,
             .last_run = 0,
@@ -154,6 +162,9 @@ pub fn create_kata() !*Kata {
                 .current_location_len = 1,
                 .current_cluster = 0,
                 .parent_id = 0,
+                .letter_type = 0,
+                .letter_data = undefined,
+                .letter_len = 0,
                 .vruntime = 0,
                 .weight = 1024,
                 .last_run = 0,
