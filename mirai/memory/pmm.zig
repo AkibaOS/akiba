@@ -2,7 +2,7 @@
 
 const memory = @import("../asm/memory.zig");
 const multiboot = @import("../boot/multiboot2.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 const PAGE_SIZE = system.constants.PAGE_SIZE;

@@ -4,8 +4,8 @@
 const cpu = @import("../asm/cpu.zig");
 const idt = @import("../interrupts/idt.zig");
 const kata_mod = @import("kata.zig");
-const keyboard = @import("../drivers/keyboard.zig");
-const serial = @import("../drivers/serial.zig");
+const keyboard = @import("../drivers/keyboard/keyboard.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const shift = @import("shift.zig");
 const system = @import("../system/system.zig");
 

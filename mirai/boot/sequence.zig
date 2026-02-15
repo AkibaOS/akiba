@@ -1,26 +1,26 @@
-const afs = @import("../fs/afs.zig");
-const ahci = @import("../drivers/ahci.zig");
-const ata = @import("../drivers/ata.zig");
+const afs = @import("../fs/afs/afs.zig");
+const ahci = @import("../drivers/ahci/ahci.zig");
+const ata = @import("../drivers/ata/ata.zig");
 const cpu = @import("../asm/cpu.zig");
 const crimson = @import("../crimson/panic.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const gdt = @import("gdt.zig");
-const gpt = @import("../fs/gpt.zig");
+const gpt = @import("../fs/gpt/gpt.zig");
 const heap = @import("../memory/heap.zig");
 const hikari = @import("../hikari/loader.zig");
 const idt = @import("../interrupts/idt.zig");
 const invocations = @import("../invocations/handler.zig");
 const kata = @import("../kata/kata.zig");
-const keyboard = @import("../drivers/keyboard.zig");
+const keyboard = @import("../drivers/keyboard/keyboard.zig");
 const multiboot = @import("multiboot2.zig");
 const paging = @import("../memory/paging.zig");
-const pci = @import("../drivers/pci.zig");
+const pci = @import("../drivers/pci/pci.zig");
 const pmm = @import("../memory/pmm.zig");
 const sensei = @import("../kata/sensei.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const shift = @import("../kata/shift.zig");
 const system = @import("../system/system.zig");
-const terminal = @import("../terminal.zig");
+const terminal = @import("../graphics/terminal/terminal.zig");
 const tss = @import("tss.zig");
 
 pub const COLOR_OK: u32 = 0x0000FF00;
@@ -135,7 +135,7 @@ pub fn run(multiboot_info_addr: u64) void {
     // Initialize terminal BEFORE loading Pulse
     boot_print("Loading font from filesystem... ");
     var font_buffer: [8192]u8 = undefined;
-    const bytes_read = fs.read_file_by_path("/system/fonts/Akiba.psf", &font_buffer) catch |err| {
+    const bytes_read = fs.view_unit_at("/system/fonts/Akiba.psf", &font_buffer) catch |err| {
         boot_fail();
         boot_print("ERROR: ");
         boot_print(@errorName(err));

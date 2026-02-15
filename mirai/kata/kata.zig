@@ -3,7 +3,7 @@
 
 const fd_mod = @import("fd.zig");
 const paging = @import("../memory/paging.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 pub const KataState = enum {

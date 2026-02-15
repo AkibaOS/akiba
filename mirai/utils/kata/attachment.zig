@@ -1,7 +1,7 @@
 //! Attachment utilities
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const fd_mod = @import("../../kata/fd.zig");
 const heap = @import("../../memory/heap.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
@@ -26,7 +26,7 @@ pub fn seal(kata: *kata_mod.Kata, fd: u32, fs: ?*afs.AFS(ahci.BlockDevice)) void
             if (fs) |filesystem| {
                 var full_location_buf: [512]u8 = undefined;
                 const full_location = path.resolve(kata, entry.path[0..entry.path_len], &full_location_buf);
-                filesystem.write_file(full_location, buffer) catch {};
+                filesystem.mark_unit(full_location, buffer) catch {};
             }
             heap.free(@ptrCast(buffer.ptr), buffer.len);
         }

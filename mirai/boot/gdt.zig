@@ -2,7 +2,7 @@
 
 const cpu = @import("../asm/cpu.zig");
 const io = @import("../asm/io.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const tss = @import("tss.zig");
 
 // GDT Entry structure
@@ -102,8 +102,8 @@ pub fn init() void {
 
     // Mask all IRQs on both PICs
     serial.print("Masking all hardware interrupts...\n");
-    io.write_port_byte(0x21, 0xFF); // Master PIC
-    io.write_port_byte(0xA1, 0xFF); // Slave PIC
+    io.out_byte(0x21, 0xFF); // Master PIC
+    io.out_byte(0xA1, 0xFF); // Slave PIC
 }
 
 fn create_code_descriptor(dpl: u8, long_mode: bool, is_user: bool) u64 {

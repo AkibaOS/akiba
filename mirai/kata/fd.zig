@@ -1,9 +1,9 @@
 //! File Descriptor Management for Kata
 //! Tracks open files and device access for each running Kata
 
-const afs = @import("../fs/afs.zig");
-const serial = @import("../drivers/serial.zig");
-const terminal = @import("../terminal.zig");
+const afs = @import("../fs/afs/afs.zig");
+const serial = @import("../drivers/serial/serial.zig");
+const terminal = @import("../graphics/terminal/terminal.zig");
 
 pub const FDType = enum {
     Regular, // Normal AFS file

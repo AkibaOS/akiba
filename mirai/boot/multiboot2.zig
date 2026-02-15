@@ -1,6 +1,6 @@
 //! Multiboot2 boot protocol parser
 
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 
 pub const MemoryEntry = struct {
     base: u64,

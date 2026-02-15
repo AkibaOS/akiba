@@ -1,7 +1,7 @@
 //! Exit invocation - Dissolve Kata
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const attachment = @import("../../utils/kata/attachment.zig");
 const handler = @import("../handler.zig");
 const kata_limits = @import("../../common/limits/kata.zig");

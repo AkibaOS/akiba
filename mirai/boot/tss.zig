@@ -1,6 +1,6 @@
 //! Task State Segment - For stack switching between layers
 
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 
 // TSS structure for x64
 const TSS = packed struct {

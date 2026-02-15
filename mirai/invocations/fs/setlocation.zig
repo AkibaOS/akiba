@@ -1,7 +1,7 @@
 //! Setlocation invocation - Change current stack location
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const copy = @import("../../utils/mem/copy.zig");
 const fs_limits = @import("../../common/limits/fs.zig");
 const handler = @import("../handler.zig");

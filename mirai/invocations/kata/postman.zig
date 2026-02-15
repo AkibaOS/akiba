@@ -4,6 +4,7 @@ const copy = @import("../../utils/mem/copy.zig");
 const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_constants = @import("../../common/constants/kata.zig");
+const kata_limits = @import("../../common/limits/kata.zig");
 const kata_mod = @import("../../kata/kata.zig");
 const memory_limits = @import("../../common/limits/memory.zig");
 const result = @import("../../utils/types/result.zig");
@@ -23,7 +24,7 @@ fn send_letter(ctx: *handler.InvocationContext) void {
     const data_ptr = ctx.rdx;
     const data_len = ctx.r10;
 
-    if (data_len > kata_constants.MAX_LETTER_LENGTH) return result.set_error(ctx);
+    if (data_len > kata_limits.MAX_LETTER_LENGTH) return result.set_error(ctx);
     if (data_len > 0 and !memory_limits.is_valid_kata_pointer(data_ptr)) return result.set_error(ctx);
 
     const sender = sensei.get_current_kata() orelse return result.set_error(ctx);

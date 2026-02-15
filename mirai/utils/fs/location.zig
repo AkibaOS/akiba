@@ -1,7 +1,7 @@
 //! Location utilities
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const compare = @import("../string/compare.zig");
 const fs_limits = @import("../../common/limits/fs.zig");
 
@@ -42,7 +42,7 @@ pub fn resolve_to_cluster(
                 if (compare.equals(component, "^")) {
                     cluster = fs.get_parent_cluster(cluster) orelse fs.root_cluster;
                 } else {
-                    const entry = fs.find_file(cluster, component) orelse return null;
+                    const entry = fs.find_entry(cluster, component) orelse return null;
                     if (entry.entry_type != afs.ENTRY_TYPE_DIR) return null;
                     cluster = entry.first_cluster;
                 }

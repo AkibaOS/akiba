@@ -4,7 +4,7 @@ const cpu = @import("../asm/cpu.zig");
 const io = @import("../asm/io.zig");
 const isr = @import("../asm/isr.zig");
 const sensei = @import("../kata/sensei.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 
 comptime {
     _ = @import("../crimson/exceptions.zig");
@@ -85,30 +85,30 @@ fn set_gate(num: u8, handler: u64, selector: u16, type_attr: u8) void {
 
 fn remap_pic() void {
     // ICW1: Initialize + ICW4 needed
-    io.write_port_byte(0x20, 0x11);
-    io.write_port_byte(0xA0, 0x11);
+    io.out_byte(0x20, 0x11);
+    io.out_byte(0xA0, 0x11);
 
     // ICW2: Vector offsets
-    io.write_port_byte(0x21, 0x20); // Master PIC: IRQ 0-7 -> vectors 32-39
-    io.write_port_byte(0xA1, 0x28); // Slave PIC: IRQ 8-15 -> vectors 40-47
+    io.out_byte(0x21, 0x20); // Master PIC: IRQ 0-7 -> vectors 32-39
+    io.out_byte(0xA1, 0x28); // Slave PIC: IRQ 8-15 -> vectors 40-47
 
     // ICW3: Cascade setup
-    io.write_port_byte(0x21, 0x04); // Master: slave on IRQ2
-    io.write_port_byte(0xA1, 0x02); // Slave: cascade identity
+    io.out_byte(0x21, 0x04); // Master: slave on IRQ2
+    io.out_byte(0xA1, 0x02); // Slave: cascade identity
 
     // ICW4: 8086 mode
-    io.write_port_byte(0x21, 0x01);
-    io.write_port_byte(0xA1, 0x01);
+    io.out_byte(0x21, 0x01);
+    io.out_byte(0xA1, 0x01);
 
     // Mask all interrupts except IRQ0 (timer) and IRQ1 (keyboard)
-    io.write_port_byte(0x21, 0xFC); // 11111100 - enable IRQ0, IRQ1
-    io.write_port_byte(0xA1, 0xFF); // Mask all slave IRQs
+    io.out_byte(0x21, 0xFC); // 11111100 - enable IRQ0, IRQ1
+    io.out_byte(0xA1, 0xFF); // Mask all slave IRQs
 }
 
 // Timer interrupt handler
 export fn timer_handler() void {
     // Send EOI to PIC
-    io.write_port_byte(0x20, 0x20);
+    io.out_byte(0x20, 0x20);
 
     // Update scheduler
     sensei.on_tick();

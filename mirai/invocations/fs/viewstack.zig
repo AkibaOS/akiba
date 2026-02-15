@@ -1,7 +1,7 @@
 //! Viewstack invocation - List contents of a stack
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const copy = @import("../../utils/mem/copy.zig");
 const fs_limits = @import("../../common/limits/fs.zig");
 const handler = @import("../handler.zig");
@@ -55,7 +55,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return result.set_error(ctx);
     };
 
-    var mirai_entries: [32]afs.ListEntry = undefined;
+    var mirai_entries: [32]afs.StackItem = undefined;
     const entry_count = fs.list_directory(target_cluster, &mirai_entries) catch return result.set_error(ctx);
 
     const kata_entries = slice.typed_ptr(StackEntry, entries_ptr);

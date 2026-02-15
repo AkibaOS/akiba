@@ -3,7 +3,7 @@
 const boot = @import("../boot/multiboot2.zig");
 const cpu = @import("../asm/cpu.zig");
 const font = @import("../graphics/fonts/psf.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 
 // Crimson color scheme
 const CRIMSON_BG: u32 = 0x00DC143C; // Crimson red

@@ -1,7 +1,7 @@
 //! Invocation Handler - Entry point for Kata programs calling Mirai
 
-const afs = @import("../fs/afs.zig");
-const ahci = @import("../drivers/ahci.zig");
+const afs = @import("../fs/afs/afs.zig");
+const ahci = @import("../drivers/ahci/ahci.zig");
 const invocations = @import("../common/constants/invocations.zig");
 const result = @import("../utils/types/result.zig");
 const syscall = @import("syscall.zig");

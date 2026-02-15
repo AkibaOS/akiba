@@ -1,7 +1,7 @@
 //! Attach invocation - Open attachment
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const attachment = @import("../../utils/kata/attachment.zig");
 const compare = @import("../../utils/string/compare.zig");
 const copy = @import("../../utils/mem/copy.zig");
@@ -65,7 +65,7 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     const fd = try attachment.allocate(kata);
 
     var unit_buffer: [1024 * 1024]u8 = undefined;
-    const bytes_read = fs.read_file_by_path(full_location, &unit_buffer) catch {
+    const bytes_read = fs.view_unit_at(full_location, &unit_buffer) catch {
         if (flags & fd_mod.CREATE != 0) {
             fs.create_file(full_location) catch return error.CannotCreate;
 

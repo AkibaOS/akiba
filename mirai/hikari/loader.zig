@@ -1,8 +1,8 @@
 //! Hikari - The ELF loader
 //! Hikari (光) = Light - illuminates programs into execution
 
-const afs = @import("../fs/afs.zig");
-const ahci = @import("../drivers/ahci.zig");
+const afs = @import("../fs/afs/afs.zig");
+const ahci = @import("../drivers/ahci/ahci.zig");
 const boot = @import("../boot/multiboot2.zig");
 const elf = @import("elf.zig");
 const format = @import("format.zig");
@@ -11,14 +11,14 @@ const heap = @import("../memory/heap.zig");
 const kata_memory = @import("../kata/memory.zig");
 const kata_mod = @import("../kata/kata.zig");
 const sensei = @import("../kata/sensei.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
     const init_path = "/system/akiba/pulse.akibainit";
 
     // Validate init binary exists before attempting to load
-    const init_size = fs.get_file_size_by_path(init_path) catch |err| {
+    const init_size = fs.get_unit_size(init_path) catch |err| {
         serial.print("FATAL: Cannot find init system at ");
         serial.print(init_path);
         serial.print("\n");
@@ -51,7 +51,7 @@ pub fn load_program_with_args(
     }
 
     // Get actual file size from filesystem
-    const file_size = try fs.get_file_size_by_path(path);
+    const file_size = try fs.get_unit_size(path);
 
     // Validate file size (programs should be reasonable size)
     if (file_size == 0) return error.EmptyFile;
@@ -61,7 +61,7 @@ pub fn load_program_with_args(
     defer heap.free(buffer_ptr, @intCast(file_size));
     const buffer = buffer_ptr[0..@intCast(file_size)];
 
-    const bytes_read = try fs.read_file_by_path(path, buffer);
+    const bytes_read = try fs.view_unit_at(path, buffer);
 
     // Verify we read the expected amount
     if (bytes_read != file_size) {

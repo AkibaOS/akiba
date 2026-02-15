@@ -2,7 +2,7 @@
 //! Size-segregated allocator with object caching
 
 const pmm = @import("pmm.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 const PAGE_SIZE = system.constants.PAGE_SIZE;

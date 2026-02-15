@@ -6,7 +6,7 @@ const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
 const kata_mod = @import("../../kata/kata.zig");
-const keyboard = @import("../../drivers/keyboard.zig");
+const keyboard = @import("../../drivers/keyboard/keyboard.zig");
 const random = @import("../../utils/random/xorshift.zig");
 const result = @import("../../utils/types/result.zig");
 const sensei = @import("../../kata/sensei.zig");
@@ -41,7 +41,7 @@ fn view_from_attachment(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u
 
     if (to_view == 0) return 0;
 
-    const src = slice.from_ptr_const(u8, int.u64_of(unit_buffer.ptr) + entry.position, to_view);
+    const src = slice.from_ptr_const(u8, int.from_ptr(unit_buffer.ptr) + entry.position, to_view);
     const dest = slice.from_ptr(u8, buffer_ptr, to_view);
     copy.bytes(dest, src);
 

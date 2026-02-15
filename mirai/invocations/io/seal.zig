@@ -1,7 +1,7 @@
 //! Seal invocation - Close attachment
 
-const afs = @import("../../fs/afs.zig");
-const ahci = @import("../../drivers/ahci.zig");
+const afs = @import("../../fs/afs/afs.zig");
+const ahci = @import("../../drivers/ahci/ahci.zig");
 const attachment = @import("../../utils/kata/attachment.zig");
 const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");

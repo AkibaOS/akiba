@@ -2,7 +2,7 @@
 
 const memory = @import("../asm/memory.zig");
 const panic = @import("panic.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 
 // ISR stubs are defined in mirai/asm/isr.zig
 // The comptime assembly block has been moved there

@@ -3,7 +3,7 @@
 const context = @import("../asm/context.zig");
 const gdt = @import("../boot/gdt.zig");
 const kata_mod = @import("kata.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const tss = @import("../boot/tss.zig");
 
 const Kata = kata_mod.Kata;

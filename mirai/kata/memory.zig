@@ -4,7 +4,7 @@
 const kata_mod = @import("kata.zig");
 const paging = @import("../memory/paging.zig");
 const pmm = @import("../memory/pmm.zig");
-const serial = @import("../drivers/serial.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 const HIGHER_HALF = system.constants.HIGHER_HALF_START;
