@@ -1,68 +1,46 @@
-//! Filesystem Constants - Storage, AFS, and stack/unit related constants
+//! Filesystem constants
 
-// ============================================================================
-// Sector and Cluster Sizes
-// ============================================================================
-
-/// Standard disk sector size
+// Sector and cluster
 pub const SECTOR_SIZE: usize = 512;
+pub const SECTOR_ALIGN: u8 = 16;
 
-/// Standard cluster size for AFS
-pub const CLUSTER_SIZE: usize = 4096;
+// AFS signatures
+pub const AFS_SIGNATURE = "AKIBAFS!";
+pub const AFS_BOOT_SIG: u16 = 0xAA55;
 
-/// Sectors per cluster
-pub const SECTORS_PER_CLUSTER: usize = CLUSTER_SIZE / SECTOR_SIZE;
-
-// ============================================================================
-// AFS (Akiba File System) Constants
-// ============================================================================
-
-/// AFS magic number "AFS1"
-pub const AFS_MAGIC: u32 = 0x31534641;
-
-/// AFS version
-pub const AFS_VERSION: u32 = 1;
-
-/// Entry type: Unit (regular file)
+// AFS entry types
+pub const ENTRY_TYPE_END: u8 = 0x00;
 pub const ENTRY_TYPE_UNIT: u8 = 0x01;
-
-/// Entry type: Stack (directory)
 pub const ENTRY_TYPE_STACK: u8 = 0x02;
 
-/// Entry type: Link (symlink)
-pub const ENTRY_TYPE_LINK: u8 = 0x03;
-
-// ============================================================================
-// Permission Types
-// ============================================================================
-
-/// Owner-only access
+// AFS permissions
 pub const PERM_OWNER: u8 = 1;
-
-/// World-accessible
 pub const PERM_WORLD: u8 = 2;
-
-/// Read-only (immutable)
 pub const PERM_READ_ONLY: u8 = 3;
 
-// ============================================================================
-// Attachment (File Descriptor) Flags
-// ============================================================================
+// AFS cluster markers
+pub const CLUSTER_FREE: u32 = 0x00000000;
+pub const CLUSTER_END: u32 = 0xFFFFFFFF;
+pub const CLUSTER_MIN: u32 = 2;
 
-/// View (read) only access
-pub const VIEW_ONLY: u32 = 0x01;
+// AFS limits
+pub const MAX_IDENTITY_LEN: usize = 255;
+pub const MAX_OWNER_NAME_LEN: usize = 64;
+pub const MAX_LOCATION_LENGTH: usize = 256;
+pub const PARENT_CACHE_SIZE: usize = 256;
 
-/// Mark (write) only access
-pub const MARK_ONLY: u32 = 0x02;
+// GPT
+pub const GPT_SIGNATURE = "EFI PART";
+pub const GPT_HEADER_SECTOR: u64 = 1;
+pub const GPT_PARTITION_ENTRIES_MAX: usize = 4;
+pub const GPT_ENTRY_SIZE: usize = 128;
+pub const GPT_HEADER_PARTITION_LBA_OFFSET: usize = 72;
+pub const GPT_ENTRY_TYPE_GUID_SIZE: usize = 16;
+pub const GPT_ENTRY_START_LBA_OFFSET: usize = 32;
+pub const GPT_ENTRY_END_LBA_OFFSET: usize = 40;
 
-/// Both view and mark access
-pub const BOTH: u32 = 0x03;
-
-/// Create unit if doesn't exist
-pub const CREATE: u32 = 0x0100;
-
-/// Clear (truncate) on attach
-pub const CLEAR: u32 = 0x0200;
-
-/// Extend (start at end) on attach
-pub const EXTEND: u32 = 0x0400;
+// AFS partition GUID
+pub const AFS_PARTITION_GUID = [_]u8{
+    0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6, 0x07, 0x18,
+    0x29, 0x3A, 0x4B, 0x5C, 0x6D, 0x7E, 0x8F, 0x90,
+};

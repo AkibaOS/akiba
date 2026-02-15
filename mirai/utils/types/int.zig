@@ -8,6 +8,10 @@ pub inline fn u8_of(value: anytype) u8 {
     return @as(u8, @truncate(value));
 }
 
+pub inline fn u16_of(value: anytype) u16 {
+    return @as(u16, @truncate(value));
+}
+
 pub inline fn u32_of(value: anytype) u32 {
     return @as(u32, @truncate(value));
 }
