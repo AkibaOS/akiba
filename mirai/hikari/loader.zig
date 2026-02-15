@@ -3,10 +3,10 @@
 
 const afs = @import("../fs/afs/afs.zig");
 const ahci = @import("../drivers/ahci/ahci.zig");
-const boot = @import("../boot/multiboot2.zig");
+const boot = @import("../boot/multiboot/multiboot.zig");
 const elf = @import("elf.zig");
 const format = @import("format.zig");
-const gdt = @import("../boot/gdt.zig");
+const gdt = @import("../boot/gdt/gdt.zig");
 const heap = @import("../memory/heap.zig");
 const kata_memory = @import("../kata/memory.zig");
 const kata_mod = @import("../kata/kata.zig");

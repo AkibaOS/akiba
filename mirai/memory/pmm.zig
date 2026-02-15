@@ -1,7 +1,7 @@
 //! Physical Memory Manager - Tracks free/used 4KB pages using a bitmap
 
 const memory = @import("../asm/memory.zig");
-const multiboot = @import("../boot/multiboot2.zig");
+const multiboot = @import("../boot/multiboot/multiboot.zig");
 const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 

@@ -1,13 +1,13 @@
 //! SYSCALL/SYSRET implementation - Invocation mechanism using MSRs
 
 const entry = @import("../asm/entry.zig");
-const gdt = @import("../boot/gdt.zig");
+const gdt = @import("../boot/gdt/gdt.zig");
 const handler = @import("handler.zig");
 const int = @import("../utils/types/int.zig");
 const msr_const = @import("../common/constants/msr.zig");
 const msr = @import("../asm/msr.zig");
 const ptr = @import("../utils/types/ptr.zig");
-const tss = @import("../boot/tss.zig");
+const tss = @import("../boot/tss/tss.zig");
 
 const SYSRET_USER_BASE_OFFSET: u64 = 16;
 

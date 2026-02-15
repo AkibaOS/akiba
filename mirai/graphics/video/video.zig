@@ -1,6 +1,6 @@
 //! Framebuffer video operations
 
-const boot = @import("../../boot/multiboot2.zig");
+const boot = @import("../../boot/multiboot/multiboot.zig");
 const pixel = @import("../../utils/graphics/pixel.zig");
 
 var fb: ?boot.FramebufferInfo = null;

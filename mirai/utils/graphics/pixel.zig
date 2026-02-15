@@ -1,8 +1,8 @@
 //! Pixel and framebuffer utilities
 
-const boot = @import("../../boot/multiboot2.zig");
+const boot = @import("../../boot/multiboot/multiboot.zig");
 const color = @import("color.zig");
-const gfx = @import("../../common/constants/graphics.zig");
+const video = @import("../../common/constants/video.zig");
 
 pub inline fn ptr_32(addr: u64) [*]volatile u32 {
     return @as([*]volatile u32, @ptrFromInt(addr));
@@ -13,23 +13,23 @@ pub inline fn ptr_8(addr: u64) [*]volatile u8 {
 }
 
 pub inline fn offset_32(fb: boot.FramebufferInfo, x: u32, y: u32) usize {
-    return y * (fb.pitch / gfx.BYTES_PER_PIXEL_32) + x;
+    return y * (fb.pitch / video.BYTES_PER_PIXEL_32) + x;
 }
 
 pub inline fn offset_24(fb: boot.FramebufferInfo, x: u32, y: u32) usize {
-    return y * fb.pitch + x * gfx.BYTES_PER_PIXEL_24;
+    return y * fb.pitch + x * video.BYTES_PER_PIXEL_24;
 }
 
 pub inline fn pixels_per_row(fb: boot.FramebufferInfo) u32 {
-    return fb.pitch / gfx.BYTES_PER_PIXEL_32;
+    return fb.pitch / video.BYTES_PER_PIXEL_32;
 }
 
 pub fn put(fb: boot.FramebufferInfo, x: u32, y: u32, c: u32) void {
     if (x >= fb.width or y >= fb.height) return;
 
-    if (fb.bpp == gfx.BPP_32) {
+    if (fb.bpp == video.BPP_32) {
         put_32(fb, x, y, c);
-    } else if (fb.bpp == gfx.BPP_24) {
+    } else if (fb.bpp == video.BPP_24) {
         put_24(fb, x, y, c);
     }
 }
@@ -49,9 +49,9 @@ pub fn put_24(fb: boot.FramebufferInfo, x: u32, y: u32, c: u32) void {
 }
 
 pub fn fill(fb: boot.FramebufferInfo, c: u32) void {
-    if (fb.bpp == gfx.BPP_32) {
+    if (fb.bpp == video.BPP_32) {
         fill_32(fb, c);
-    } else if (fb.bpp == gfx.BPP_24) {
+    } else if (fb.bpp == video.BPP_24) {
         fill_24(fb, c);
     }
 }
@@ -82,9 +82,9 @@ pub fn fill_24(fb: boot.FramebufferInfo, c: u32) void {
 }
 
 pub fn fill_rect(fb: boot.FramebufferInfo, x: u32, y: u32, w: u32, h: u32, c: u32) void {
-    if (fb.bpp == gfx.BPP_32) {
+    if (fb.bpp == video.BPP_32) {
         fill_rect_32(fb, x, y, w, h, c);
-    } else if (fb.bpp == gfx.BPP_24) {
+    } else if (fb.bpp == video.BPP_24) {
         fill_rect_24(fb, x, y, w, h, c);
     }
 }
@@ -126,9 +126,9 @@ pub fn fill_rect_24(fb: boot.FramebufferInfo, x: u32, y: u32, w: u32, h: u32, c:
 }
 
 pub fn copy_row(fb: boot.FramebufferInfo, dst_y: u32, src_y: u32) void {
-    if (fb.bpp == gfx.BPP_32) {
+    if (fb.bpp == video.BPP_32) {
         copy_row_32(fb, dst_y, src_y);
-    } else if (fb.bpp == gfx.BPP_24) {
+    } else if (fb.bpp == video.BPP_24) {
         copy_row_24(fb, dst_y, src_y);
     }
 }
@@ -157,9 +157,9 @@ pub fn copy_row_24(fb: boot.FramebufferInfo, dst_y: u32, src_y: u32) void {
 }
 
 pub fn clear_row(fb: boot.FramebufferInfo, y: u32, c: u32) void {
-    if (fb.bpp == gfx.BPP_32) {
+    if (fb.bpp == video.BPP_32) {
         clear_row_32(fb, y, c);
-    } else if (fb.bpp == gfx.BPP_24) {
+    } else if (fb.bpp == video.BPP_24) {
         clear_row_24(fb, y, c);
     }
 }
@@ -188,10 +188,10 @@ pub fn clear_row_24(fb: boot.FramebufferInfo, y: u32, c: u32) void {
 }
 
 pub fn line_width(fb: boot.FramebufferInfo) u32 {
-    if (fb.bpp == gfx.BPP_32) {
-        return fb.pitch / gfx.BYTES_PER_PIXEL_32;
-    } else if (fb.bpp == gfx.BPP_24) {
-        return fb.pitch / gfx.BYTES_PER_PIXEL_24;
+    if (fb.bpp == video.BPP_32) {
+        return fb.pitch / video.BYTES_PER_PIXEL_32;
+    } else if (fb.bpp == video.BPP_24) {
+        return fb.pitch / video.BYTES_PER_PIXEL_24;
     }
     return fb.width;
 }

@@ -1,10 +1,11 @@
 //! PSF font loading and rendering
 
-const boot = @import("../../boot/multiboot2.zig");
-const gfx = @import("../../common/constants/graphics.zig");
+const boot = @import("../../boot/multiboot/multiboot.zig");
+const psf = @import("../../common/constants/psf.zig");
 const int = @import("../../utils/types/int.zig");
 const pixel = @import("../../utils/graphics/pixel.zig");
 const ptr = @import("../../utils/types/ptr.zig");
+const terminal_limits = @import("../../common/limits/terminal.zig");
 
 const PSF1Header = packed struct {
     magic: u16,
@@ -47,15 +48,15 @@ fn try_init_psf1(data: []const u8) bool {
     if (data.len < @sizeOf(PSF1Header)) return false;
 
     const hdr = ptr.of_const(PSF1Header, @intFromPtr(data.ptr));
-    if (hdr.magic != gfx.PSF1_MAGIC) return false;
+    if (hdr.magic != psf.PSF1_MAGIC) return false;
 
-    const num_glyphs = if ((hdr.mode & gfx.PSF1_MODE_512) != 0)
-        gfx.PSF1_GLYPHS_512
+    const num_glyphs = if ((hdr.mode & psf.PSF1_MODE_512) != 0)
+        psf.PSF1_GLYPHS_512
     else
-        gfx.PSF1_GLYPHS_256;
+        psf.PSF1_GLYPHS_256;
 
     font_info = FontInfo{
-        .width = gfx.DEFAULT_CHAR_WIDTH,
+        .width = terminal_limits.DEFAULT_CHAR_WIDTH,
         .height = hdr.charsize,
         .num_glyphs = num_glyphs,
         .bytes_per_glyph = hdr.charsize,
@@ -70,7 +71,7 @@ fn try_init_psf2(data: []const u8) bool {
     if (data.len < @sizeOf(PSF2Header)) return false;
 
     const hdr = ptr.of_const(PSF2Header, @intFromPtr(data.ptr));
-    if (hdr.magic != gfx.PSF2_MAGIC) return false;
+    if (hdr.magic != psf.PSF2_MAGIC) return false;
 
     font_info = FontInfo{
         .width = hdr.width,
@@ -127,10 +128,10 @@ pub fn render_text(text: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, c
 
 pub fn get_width() u32 {
     if (font_info) |info| return info.width;
-    return gfx.DEFAULT_CHAR_WIDTH;
+    return terminal_limits.DEFAULT_CHAR_WIDTH;
 }
 
 pub fn get_height() u32 {
     if (font_info) |info| return info.height;
-    return gfx.DEFAULT_CHAR_HEIGHT;
+    return terminal_limits.DEFAULT_CHAR_HEIGHT;
 }

@@ -1,6 +1,6 @@
 //! Crimson Panic Handler - "Hey! You finally met Crimson!"
 
-const boot = @import("../boot/multiboot2.zig");
+const boot = @import("../boot/multiboot/multiboot.zig");
 const cpu = @import("../asm/cpu.zig");
 const font = @import("../graphics/fonts/psf.zig");
 const serial = @import("../drivers/serial/serial.zig");
