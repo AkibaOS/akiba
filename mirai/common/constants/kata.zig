@@ -21,3 +21,7 @@ pub const LETTER_NAVIGATE: u8 = 1;
 
 pub const POSTMAN_SEND: u64 = 0;
 pub const POSTMAN_READ: u64 = 1;
+
+pub const DEFAULT_WEIGHT: u32 = 1024;
+pub const KERNEL_RFLAGS: u64 = 0x202;
+pub const USER_RFLAGS: u64 = 0x3202;

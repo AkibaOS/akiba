@@ -1,77 +1,44 @@
-//! Context Shifting - Save and restore Kata execution state
+//! Context shifting
 
 const context = @import("../asm/context.zig");
 const gdt = @import("../boot/gdt/gdt.zig");
-const kata_mod = @import("kata.zig");
-const serial = @import("../drivers/serial/serial.zig");
 const tss = @import("../boot/tss/tss.zig");
+const types = @import("types.zig");
 
-const Kata = kata_mod.Kata;
-const Context = kata_mod.Context;
+var current_context: ?*types.Context = null;
 
-pub const InterruptContext = packed struct {
-    r15: u64,
-    r14: u64,
-    r13: u64,
-    r12: u64,
-    r11: u64,
-    r10: u64,
-    r9: u64,
-    r8: u64,
-    rbp: u64,
-    rdi: u64,
-    rsi: u64,
-    rdx: u64,
-    rcx: u64,
-    rbx: u64,
-    rax: u64,
-    int_num: u64,
-    error_code: u64,
-    rip: u64,
-    cs: u64,
-    rflags: u64,
-    rsp: u64,
-    ss: u64,
-};
+pub fn to_kata(kata: *types.Kata) void {
+    tss.set_kernel_stack(kata.stack_top);
+    current_context = &kata.context;
 
-var current_context: ?*Context = null;
-
-pub fn shift_to_kata(target_kata: *Kata) void {
-    // Update TSS kernel stack for this Kata
-    tss.set_kernel_stack(target_kata.stack_top);
-
-    // Set current context pointer for interrupt handling
-    current_context = &target_kata.context;
-
-    // Perform context switch - never returns
     context.switch_to_context(
-        &target_kata.context,
-        target_kata.page_table,
-        target_kata.stack_top,
+        &kata.context,
+        kata.page_table,
+        kata.stack_top,
     );
 }
 
-pub fn save_current_context(int_context: *const InterruptContext) void {
+pub fn save_current(int_ctx: *const types.InterruptContext) void {
     if (current_context) |ctx| {
-        ctx.rax = int_context.rax;
-        ctx.rbx = int_context.rbx;
-        ctx.rcx = int_context.rcx;
-        ctx.rdx = int_context.rdx;
-        ctx.rsi = int_context.rsi;
-        ctx.rdi = int_context.rdi;
-        ctx.rbp = int_context.rbp;
-        ctx.rsp = int_context.rsp;
-        ctx.r8 = int_context.r8;
-        ctx.r9 = int_context.r9;
-        ctx.r10 = int_context.r10;
-        ctx.r11 = int_context.r11;
-        ctx.r12 = int_context.r12;
-        ctx.r13 = int_context.r13;
-        ctx.r14 = int_context.r14;
-        ctx.r15 = int_context.r15;
-        ctx.rip = int_context.rip;
-        ctx.rflags = int_context.rflags;
-        ctx.cs = int_context.cs;
-        ctx.ss = int_context.ss;
+        ctx.rax = int_ctx.rax;
+        ctx.rbx = int_ctx.rbx;
+        ctx.rcx = int_ctx.rcx;
+        ctx.rdx = int_ctx.rdx;
+        ctx.rsi = int_ctx.rsi;
+        ctx.rdi = int_ctx.rdi;
+        ctx.rbp = int_ctx.rbp;
+        ctx.rsp = int_ctx.rsp;
+        ctx.r8 = int_ctx.r8;
+        ctx.r9 = int_ctx.r9;
+        ctx.r10 = int_ctx.r10;
+        ctx.r11 = int_ctx.r11;
+        ctx.r12 = int_ctx.r12;
+        ctx.r13 = int_ctx.r13;
+        ctx.r14 = int_ctx.r14;
+        ctx.r15 = int_ctx.r15;
+        ctx.rip = int_ctx.rip;
+        ctx.rflags = int_ctx.rflags;
+        ctx.cs = int_ctx.cs;
+        ctx.ss = int_ctx.ss;
     }
 }

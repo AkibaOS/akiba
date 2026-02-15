@@ -10,7 +10,7 @@ const location = @import("../../utils/fs/location.zig");
 const memory_limits = @import("../../common/limits/memory.zig");
 const ptr = @import("../../utils/types/ptr.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 const slice = @import("../../utils/mem/slice.zig");
 
 const MAX_ENTRY_IDENTITY: usize = 64;

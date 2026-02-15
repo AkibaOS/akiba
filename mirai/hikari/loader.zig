@@ -7,18 +7,18 @@ const elf_const = @import("../common/constants/elf.zig");
 const format = @import("format/format.zig");
 const gdt = @import("../boot/gdt/gdt.zig");
 const heap = @import("../memory/heap.zig");
+const kata_const = @import("../common/constants/kata.zig");
 const kata_limits = @import("../common/limits/kata.zig");
 const kata_memory = @import("../kata/memory.zig");
 const kata_mod = @import("../kata/kata.zig");
 const memory_const = @import("../common/constants/memory.zig");
 const multiboot = @import("../boot/multiboot/multiboot.zig");
 const paging = @import("../memory/paging.zig");
-const sensei = @import("../kata/sensei.zig");
+const sensei = @import("../kata/sensei/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
 const system = @import("../system/system.zig");
 
 const INIT_PATH = "/system/akiba/pulse.akibainit";
-const RFLAGS_DEFAULT: u64 = 0x3202;
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
     const init_size = fs.get_unit_size(INIT_PATH) catch |err| {
@@ -85,7 +85,7 @@ pub fn load_with_args(
     const fb_info = multiboot.get_framebuffer();
     const fb_phys = if (fb_info) |fb| fb.addr else 0;
     const fb_size = if (fb_info) |fb| fb.height * fb.pitch else 0;
-    try kata_memory.setup_kata_memory(kata, fb_phys, fb_size);
+    try kata_memory.setup(kata, fb_phys, fb_size);
 
     for (elf_info.program_headers) |phdr| {
         if (phdr.type == elf_const.PT_LOAD) {
@@ -159,7 +159,7 @@ fn setup_stack_args(kata: *kata_mod.Kata, args: []const []const u8) !u64 {
 fn setup_context(kata: *kata_mod.Kata, entry_point: u64, stack_pointer: u64) void {
     kata.context.rip = entry_point;
     kata.context.rsp = stack_pointer;
-    kata.context.rflags = RFLAGS_DEFAULT;
+    kata.context.rflags = kata_const.USER_RFLAGS;
     kata.context.cs = gdt.USER_CODE | 3;
     kata.context.ss = gdt.USER_DATA | 3;
 

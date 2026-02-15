@@ -6,7 +6,7 @@ const attachment = @import("../../utils/kata/attachment.zig");
 const handler = @import("../handler.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
 const kata_mod = @import("../../kata/kata.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 
@@ -20,7 +20,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     var i: u32 = 0;
     while (i < kata_limits.MAX_ATTACHMENTS) : (i += 1) {
-        if (kata.fd_table[i].fd_type == .Regular) {
+        if (kata.attachments[i].attachment_type == .Unit) {
             attachment.seal(kata, i, afs_instance);
         }
     }

@@ -6,7 +6,7 @@ const kb_const = @import("../../common/constants/keyboard.zig");
 const kb_limits = @import("../../common/limits/keyboard.zig");
 const ports = @import("../../common/constants/ports.zig");
 const scancode = @import("scancode.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 const serial = @import("../serial/serial.zig");
 
 var shift_pressed = false;

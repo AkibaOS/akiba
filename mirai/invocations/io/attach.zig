@@ -2,17 +2,18 @@
 
 const afs = @import("../../fs/afs/afs.zig");
 const ahci = @import("../../drivers/ahci/ahci.zig");
-const attachment = @import("../../utils/kata/attachment.zig");
+const attachment_const = @import("../../common/constants/attachment.zig");
+const attachment_util = @import("../../utils/kata/attachment.zig");
 const compare = @import("../../utils/string/compare.zig");
 const copy = @import("../../utils/mem/copy.zig");
-const fd_mod = @import("../../kata/fd.zig");
 const handler = @import("../handler.zig");
 const heap = @import("../../memory/heap.zig");
 const int = @import("../../utils/types/int.zig");
+const kata_attachment = @import("../../kata/attachment.zig");
 const kata_mod = @import("../../kata/kata.zig");
 const path = @import("../../utils/fs/path.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 const string_copy = @import("../../utils/string/copy.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
@@ -43,12 +44,12 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 fn open_device(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     const name = path.device_name(location);
 
-    const device_type: fd_mod.DeviceType =
+    const device_type: kata_attachment.DeviceType =
         if (compare.equals(name, "source")) .Source else if (compare.equals(name, "stream")) .Stream else if (compare.equals(name, "trace")) .Trace else if (compare.equals(name, "void")) .Void else if (compare.equals(name, "chaos")) .Chaos else if (compare.equals(name, "zero")) .Zero else if (compare.equals(name, "console")) .Console else return error.UnknownDevice;
 
-    const fd = try attachment.allocate(kata);
-    kata.fd_table[fd] = fd_mod.FileDescriptor{
-        .fd_type = .Device,
+    const fd = try attachment_util.allocate(kata);
+    kata.attachments[fd] = kata_attachment.Attachment{
+        .attachment_type = .Device,
         .device_type = device_type,
         .flags = flags,
     };
@@ -62,21 +63,21 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     var full_location_buf: [512]u8 = undefined;
     const full_location = path.resolve(kata, location, &full_location_buf);
 
-    const fd = try attachment.allocate(kata);
+    const fd = try attachment_util.allocate(kata);
 
     var unit_buffer: [1024 * 1024]u8 = undefined;
     const bytes_read = fs.view_unit_at(full_location, &unit_buffer) catch {
-        if (flags & fd_mod.CREATE != 0) {
+        if (flags & attachment_const.CREATE != 0) {
             fs.create_unit(full_location) catch return error.CannotCreate;
 
-            kata.fd_table[fd] = fd_mod.FileDescriptor{
-                .fd_type = .Regular,
-                .file_size = 0,
+            kata.attachments[fd] = kata_attachment.Attachment{
+                .attachment_type = .Unit,
+                .unit_size = 0,
                 .position = 0,
                 .flags = flags,
                 .path_len = location.len,
             };
-            copy.bytes(kata.fd_table[fd].path[0..location.len], location);
+            copy.bytes(kata.attachments[fd].path[0..location.len], location);
             return fd;
         }
         return error.UnitNotFound;
@@ -85,15 +86,15 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     const unit_data = heap.alloc(bytes_read) orelse return error.OutOfMemory;
     copy.bytes(unit_data[0..bytes_read], unit_buffer[0..bytes_read]);
 
-    kata.fd_table[fd] = fd_mod.FileDescriptor{
-        .fd_type = .Regular,
+    kata.attachments[fd] = kata_attachment.Attachment{
+        .attachment_type = .Unit,
         .buffer = unit_data[0..bytes_read],
-        .file_size = bytes_read,
-        .position = if (flags & fd_mod.EXTEND != 0) bytes_read else 0,
+        .unit_size = bytes_read,
+        .position = if (flags & attachment_const.EXTEND != 0) bytes_read else 0,
         .flags = flags,
         .path_len = location.len,
     };
-    copy.bytes(kata.fd_table[fd].path[0..location.len], location);
+    copy.bytes(kata.attachments[fd].path[0..location.len], location);
 
     return fd;
 }

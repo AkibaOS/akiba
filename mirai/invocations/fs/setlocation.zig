@@ -9,7 +9,7 @@ const kata_mod = @import("../../kata/kata.zig");
 const location = @import("../../utils/fs/location.zig");
 const memory_limits = @import("../../common/limits/memory.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 

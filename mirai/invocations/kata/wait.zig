@@ -4,7 +4,7 @@ const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_mod = @import("../../kata/kata.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {
     const target_id = int.u32_of(ctx.rdi);

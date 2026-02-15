@@ -3,7 +3,7 @@
 const cpu = @import("../asm/cpu.zig");
 const io = @import("../asm/io.zig");
 const isr = @import("../asm/isr.zig");
-const sensei = @import("../kata/sensei.zig");
+const sensei = @import("../kata/sensei/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
 
 comptime {

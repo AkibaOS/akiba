@@ -5,7 +5,7 @@ const handler = @import("../handler.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
 const memory_limits = @import("../../common/limits/memory.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 const slice = @import("../../utils/mem/slice.zig");
 
 pub fn invoke(ctx: *handler.InvocationContext) void {

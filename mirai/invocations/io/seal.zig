@@ -7,7 +7,7 @@ const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
 const result = @import("../../utils/types/result.zig");
-const sensei = @import("../../kata/sensei.zig");
+const sensei = @import("../../kata/sensei/sensei.zig");
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
 
@@ -20,7 +20,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const fd = int.u32_of(ctx.rdi);
 
-    if (fd >= kata_limits.MAX_ATTACHMENTS or kata.fd_table[fd].fd_type == .Closed) {
+    if (fd >= kata_limits.MAX_ATTACHMENTS or kata.attachments[fd].attachment_type == .Closed) {
         return result.set_error(ctx);
     }
 
