@@ -53,7 +53,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         }
     }
 
-    const kata_id = hikari.load_program_with_args(fs, location, params[0..param_count]) catch {
+    const kata_id = hikari.load_with_args(fs, location, params[0..param_count]) catch {
         return result.set_error(ctx);
     };
 
