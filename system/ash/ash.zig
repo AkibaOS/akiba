@@ -26,8 +26,11 @@ export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
 
     while (true) {
         const location = akiba.io.getlocation(&location_buffer) catch "/";
-        _ = akiba.io.mark(akiba.io.stream, location, Color.green) catch {};
-        _ = akiba.io.mark(akiba.io.stream, " >>> ", Color.white) catch {};
+        const stack_name = get_stack_name(location);
+
+        _ = akiba.io.mark(akiba.io.stream, "(", Color.white) catch {};
+        _ = akiba.io.mark(akiba.io.stream, stack_name, Color.green) catch {};
+        _ = akiba.io.mark(akiba.io.stream, ") >>> ", Color.white) catch {};
 
         input_len = 0;
         while (true) {
@@ -146,4 +149,37 @@ fn build_path(buf: []u8, prefix: []const u8, name: []const u8, suffix: []const u
         pos += 1;
     }
     return buf[0..pos];
+}
+
+fn get_stack_name(location: []const u8) []const u8 {
+    // Root case
+    if (location.len == 0 or (location.len == 1 and location[0] == '/')) {
+        return "/";
+    }
+
+    // Find last '/' and return everything after it
+    var last_slash: usize = 0;
+    for (location, 0..) |c, i| {
+        if (c == '/') {
+            last_slash = i;
+        }
+    }
+
+    // If path ends with '/', look for second-to-last slash
+    if (last_slash == location.len - 1 and location.len > 1) {
+        var i: usize = location.len - 2;
+        while (i > 0) : (i -= 1) {
+            if (location[i] == '/') {
+                return location[i + 1 .. location.len - 1];
+            }
+        }
+        return location[1 .. location.len - 1];
+    }
+
+    // Return part after last slash
+    if (last_slash + 1 < location.len) {
+        return location[last_slash + 1 ..];
+    }
+
+    return location;
 }
