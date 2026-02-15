@@ -13,15 +13,18 @@ const result = @import("../../utils/types/result.zig");
 const sensei = @import("../../kata/sensei.zig");
 const slice = @import("../../utils/mem/slice.zig");
 
-const StackEntry = extern struct {
-    identity: [64]u8,
+const MAX_ENTRY_IDENTITY: usize = 64;
+const MAX_ENTRY_OWNER: usize = 64;
+
+const UserStackEntry = extern struct {
+    identity: [MAX_ENTRY_IDENTITY]u8,
     identity_len: u8,
     is_stack: bool,
     owner_name_len: u8,
     permission_type: u8,
     size: u32,
     modified_time: u64,
-    owner_name: [64]u8,
+    owner_name: [MAX_ENTRY_OWNER]u8,
 };
 
 var afs_instance: ?*afs.AFS(ahci.BlockDevice) = null;
@@ -55,27 +58,29 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         return result.set_error(ctx);
     };
 
-    var mirai_entries: [32]afs.StackItem = undefined;
-    const entry_count = fs.list_directory(target_cluster, &mirai_entries) catch return result.set_error(ctx);
+    var items: [fs_limits.MAX_STACK_ITEMS]afs.StackItem = undefined;
+    const item_count = fs.list_stack(target_cluster, &items) catch return result.set_error(ctx);
 
-    const kata_entries = slice.typed_ptr(StackEntry, entries_ptr);
-    const copy_count = @min(entry_count, max_entries);
+    const user_entries = slice.typed_ptr(UserStackEntry, entries_ptr);
+    const copy_count = @min(item_count, max_entries);
 
     for (0..copy_count) |i| {
-        const entry = &mirai_entries[i];
-        var kata_entry = &kata_entries[i];
+        const item = &items[i];
+        var user_entry = &user_entries[i];
 
-        const name_len = @min(entry.name_len, 63);
-        copy.bytes(kata_entry.identity[0..name_len], entry.name[0..name_len]);
-        kata_entry.identity_len = int.u8_of(name_len);
-        kata_entry.size = entry.file_size;
-        kata_entry.is_stack = entry.is_directory;
-        kata_entry.modified_time = entry.modified_time;
+        const identity = item.get_identity();
+        const id_len = @min(identity.len, MAX_ENTRY_IDENTITY - 1);
+        copy.bytes(user_entry.identity[0..id_len], identity[0..id_len]);
+        user_entry.identity_len = @intCast(id_len);
+        user_entry.size = item.size;
+        user_entry.is_stack = item.is_stack;
+        user_entry.modified_time = item.modified_time;
 
-        const owner_len = @min(entry.owner_name_len, 63);
-        copy.bytes(kata_entry.owner_name[0..owner_len], entry.owner_name[0..owner_len]);
-        kata_entry.owner_name_len = int.u8_of(owner_len);
-        kata_entry.permission_type = entry.permission_type;
+        const owner = item.get_owner();
+        const owner_len = @min(owner.len, MAX_ENTRY_OWNER - 1);
+        copy.bytes(user_entry.owner_name[0..owner_len], owner[0..owner_len]);
+        user_entry.owner_name_len = @intCast(owner_len);
+        user_entry.permission_type = item.permission_type;
     }
 
     result.set_value(ctx, copy_count);

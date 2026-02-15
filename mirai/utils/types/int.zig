@@ -13,7 +13,11 @@ pub inline fn u8_of(value: anytype) u8 {
 }
 
 pub inline fn u16_of(value: anytype) u16 {
-    return @as(u16, @truncate(value));
+    const T = @TypeOf(value);
+    if (@typeInfo(T) == .int and @typeInfo(T).int.bits > 16) {
+        return @as(u16, @truncate(value));
+    }
+    return @as(u16, @intCast(value));
 }
 
 pub inline fn u32_of(value: anytype) u32 {
@@ -30,4 +34,8 @@ pub inline fn u64_of(value: anytype) u64 {
 
 pub inline fn usize_of(value: anytype) usize {
     return @as(usize, @intCast(value));
+}
+
+pub inline fn from_ptr(ptr: anytype) u64 {
+    return @intFromPtr(ptr);
 }

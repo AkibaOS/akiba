@@ -43,7 +43,7 @@ pub fn resolve_to_cluster(
                     cluster = fs.get_parent_cluster(cluster) orelse fs.root_cluster;
                 } else {
                     const entry = fs.find_entry(cluster, component) orelse return null;
-                    if (entry.entry_type != afs.ENTRY_TYPE_DIR) return null;
+                    if (!entry.is_stack()) return null;
                     cluster = entry.first_cluster;
                 }
             }

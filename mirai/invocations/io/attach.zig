@@ -67,7 +67,7 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     var unit_buffer: [1024 * 1024]u8 = undefined;
     const bytes_read = fs.view_unit_at(full_location, &unit_buffer) catch {
         if (flags & fd_mod.CREATE != 0) {
-            fs.create_file(full_location) catch return error.CannotCreate;
+            fs.create_unit(full_location) catch return error.CannotCreate;
 
             kata.fd_table[fd] = fd_mod.FileDescriptor{
                 .fd_type = .Regular,
