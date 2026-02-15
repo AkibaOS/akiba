@@ -1,0 +1,6 @@
+.{
+    .name = "colors",
+    .version = "1.0.0",
+    .type = .library,
+    .entry = "colors.zig",
+}

@@ -1,0 +1,6 @@
+.{
+    .name = "mem",
+    .version = "1.0.0",
+    .type = .library,
+    .entry = "mem.zig",
+}

@@ -1,0 +1,10 @@
+.{
+    .name = "format",
+    .version = "1.0.0",
+    .type = .library,
+    .entry = "format.zig",
+    .dependencies = .{
+        .io = .{ .path = "../io" },
+        .colors = .{ .path = "../colors" },
+    },
+}
