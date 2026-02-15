@@ -1,10 +1,10 @@
 //! PSF font loading and rendering
 
 const boot = @import("../../boot/multiboot2.zig");
-const serial = @import("../../drivers/serial.zig");
-
-const PSF1_MAGIC: u16 = 0x0436;
-const PSF2_MAGIC: u32 = 0x864ab572;
+const gfx = @import("../../common/constants/graphics.zig");
+const int = @import("../../utils/types/int.zig");
+const pixel = @import("../../utils/graphics/pixel.zig");
+const ptr = @import("../../utils/types/ptr.zig");
 
 const PSF1Header = packed struct {
     magic: u16,
@@ -37,164 +37,100 @@ var font_info: ?FontInfo = null;
 pub fn init(data: []const u8) !void {
     if (data.len < 4) return error.InvalidFont;
 
-    const magic16 = @as(*const u16, @ptrCast(@alignCast(&data[0]))).*;
-
-    if (magic16 == PSF1_MAGIC) {
-        if (data.len < @sizeOf(PSF1Header)) return error.InvalidFont;
-
-        const hdr = @as(*const PSF1Header, @ptrCast(@alignCast(&data[0])));
-        const num_glyphs: u32 = if ((hdr.mode & 0x01) != 0) 512 else 256;
-
-        font_info = FontInfo{
-            .width = 8,
-            .height = hdr.charsize,
-            .num_glyphs = num_glyphs,
-            .bytes_per_glyph = hdr.charsize,
-            .glyph_data_offset = @sizeOf(PSF1Header),
-        };
-
-        font_data = data;
-        return;
-    }
-
-    const magic32 = @as(*const u32, @ptrCast(@alignCast(&data[0]))).*;
-
-    if (magic32 == PSF2_MAGIC) {
-        if (data.len < @sizeOf(PSF2Header)) return error.InvalidFont;
-
-        const hdr = @as(*const PSF2Header, @ptrCast(@alignCast(&data[0])));
-
-        font_info = FontInfo{
-            .width = hdr.width,
-            .height = hdr.height,
-            .num_glyphs = hdr.num_glyphs,
-            .bytes_per_glyph = hdr.bytes_per_glyph,
-            .glyph_data_offset = hdr.header_size,
-        };
-
-        font_data = data;
-        return;
-    }
+    if (try_init_psf1(data)) return;
+    if (try_init_psf2(data)) return;
 
     return error.InvalidFont;
 }
 
-fn get_char_bitmap(char: u8) ?[]const u8 {
-    if (font_data == null or font_info == null) return null;
+fn try_init_psf1(data: []const u8) bool {
+    if (data.len < @sizeOf(PSF1Header)) return false;
 
-    const info = font_info.?;
-    const data = font_data.?;
+    const hdr = ptr.of_const(PSF1Header, @intFromPtr(data.ptr));
+    if (hdr.magic != gfx.PSF1_MAGIC) return false;
+
+    const num_glyphs = if ((hdr.mode & gfx.PSF1_MODE_512) != 0)
+        gfx.PSF1_GLYPHS_512
+    else
+        gfx.PSF1_GLYPHS_256;
+
+    font_info = FontInfo{
+        .width = gfx.DEFAULT_CHAR_WIDTH,
+        .height = hdr.charsize,
+        .num_glyphs = num_glyphs,
+        .bytes_per_glyph = hdr.charsize,
+        .glyph_data_offset = @sizeOf(PSF1Header),
+    };
+
+    font_data = data;
+    return true;
+}
+
+fn try_init_psf2(data: []const u8) bool {
+    if (data.len < @sizeOf(PSF2Header)) return false;
+
+    const hdr = ptr.of_const(PSF2Header, @intFromPtr(data.ptr));
+    if (hdr.magic != gfx.PSF2_MAGIC) return false;
+
+    font_info = FontInfo{
+        .width = hdr.width,
+        .height = hdr.height,
+        .num_glyphs = hdr.num_glyphs,
+        .bytes_per_glyph = hdr.bytes_per_glyph,
+        .glyph_data_offset = hdr.header_size,
+    };
+
+    font_data = data;
+    return true;
+}
+
+fn get_glyph(char: u8) ?[]const u8 {
+    const info = font_info orelse return null;
+    const data = font_data orelse return null;
 
     if (char >= info.num_glyphs) return null;
 
-    const glyph_offset = info.glyph_data_offset + (char * info.bytes_per_glyph);
-    if (glyph_offset + info.bytes_per_glyph > data.len) return null;
+    const offset = info.glyph_data_offset + (char * info.bytes_per_glyph);
+    if (offset + info.bytes_per_glyph > data.len) return null;
 
-    return data[glyph_offset .. glyph_offset + info.bytes_per_glyph];
+    return data[offset .. offset + info.bytes_per_glyph];
 }
 
-pub fn render_text(text: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
-    if (font_info == null) return;
+pub fn render_char(char: u8, x: u32, y: u32, fb: boot.FramebufferInfo, c: u32) void {
+    const glyph = get_glyph(char) orelse return;
+    const info = font_info orelse return;
 
-    const info = font_info.?;
+    var row: u32 = 0;
+    while (row < info.height) : (row += 1) {
+        if (row >= glyph.len) break;
+
+        const byte = glyph[row];
+        var col: u32 = 0;
+        while (col < 8) : (col += 1) {
+            const bit = 7 - int.u3_of(col);
+            if ((byte & (@as(u8, 1) << bit)) != 0) {
+                pixel.put(fb, x + col, y + row, c);
+            }
+        }
+    }
+}
+
+pub fn render_text(text: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, c: u32) void {
+    const info = font_info orelse return;
     var current_x = x;
 
     for (text) |char| {
-        if (get_char_bitmap(char)) |glyph| {
-            render_glyph(glyph, current_x, y, fb, color);
-            current_x += info.width;
-        }
-    }
-}
-
-fn render_glyph(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
-    if (font_info == null) return;
-
-    // Handle different bit depths
-    if (fb.bpp == 32) {
-        render_glyph_32bit(glyph, x, y, fb, color);
-    } else if (fb.bpp == 24) {
-        render_glyph_24bit(glyph, x, y, fb, color);
-    } else {
-        // Fallback to 32-bit for other modes
-        render_glyph_32bit(glyph, x, y, fb, color);
-    }
-}
-
-fn render_glyph_32bit(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
-    if (font_info == null) return;
-
-    const info = font_info.?;
-    const pixels = @as([*]volatile u32, @ptrFromInt(fb.addr));
-
-    var row: u32 = 0;
-    while (row < info.height) : (row += 1) {
-        const byte_index = row;
-        if (byte_index >= glyph.len) break;
-
-        const byte = glyph[byte_index];
-
-        var col: u32 = 0;
-        while (col < 8) : (col += 1) {
-            const bit = 7 - col;
-            if ((byte & (@as(u8, 1) << @as(u3, @truncate(bit)))) != 0) {
-                const px = x + col;
-                const py = y + row;
-                if (px < fb.width and py < fb.height) {
-                    const offset = py * (fb.pitch / 4) + px;
-                    pixels[offset] = color;
-                }
-            }
-        }
-    }
-}
-
-fn render_glyph_24bit(glyph: []const u8, x: u32, y: u32, fb: boot.FramebufferInfo, color: u32) void {
-    if (font_info == null) return;
-
-    const info = font_info.?;
-    const pixels = @as([*]volatile u8, @ptrFromInt(fb.addr));
-
-    // Extract RGB components
-    const r = @as(u8, @truncate((color >> 16) & 0xFF));
-    const g = @as(u8, @truncate((color >> 8) & 0xFF));
-    const b = @as(u8, @truncate(color & 0xFF));
-
-    var row: u32 = 0;
-    while (row < info.height) : (row += 1) {
-        const byte_index = row;
-        if (byte_index >= glyph.len) break;
-
-        const byte = glyph[byte_index];
-
-        var col: u32 = 0;
-        while (col < 8) : (col += 1) {
-            const bit = 7 - col;
-            if ((byte & (@as(u8, 1) << @as(u3, @truncate(bit)))) != 0) {
-                const px = x + col;
-                const py = y + row;
-                if (px < fb.width and py < fb.height) {
-                    // 24-bit mode: 3 bytes per pixel (BGR order)
-                    const offset = py * fb.pitch + px * 3;
-                    pixels[offset] = b; // Blue
-                    pixels[offset + 1] = g; // Green
-                    pixels[offset + 2] = r; // Red
-                }
-            }
-        }
+        render_char(char, current_x, y, fb, c);
+        current_x += info.width;
     }
 }
 
 pub fn get_width() u32 {
-    if (font_info) |info| {
-        return info.width;
-    }
-    return 8;
+    if (font_info) |info| return info.width;
+    return gfx.DEFAULT_CHAR_WIDTH;
 }
 
 pub fn get_height() u32 {
-    if (font_info) |info| {
-        return info.height;
-    }
-    return 16;
+    if (font_info) |info| return info.height;
+    return gfx.DEFAULT_CHAR_HEIGHT;
 }
