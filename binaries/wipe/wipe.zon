@@ -2,9 +2,8 @@
     .name = "wipe",
     .version = "0.1.0",
     .dependencies = .{
-        .akiba = .{ .path = "../../system/libraries/akiba" },
+        .sys,
+        .io,
     },
-    .paths = .{
-        "wipe.zig",
-    },
+    .entry = "wipe.zig",
 }

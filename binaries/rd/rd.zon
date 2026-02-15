@@ -2,9 +2,10 @@
     .name = "rd",
     .version = "0.1.0",
     .dependencies = .{
-        .akiba = .{ .path = "../../system/libraries/akiba" },
+        .sys,
+        .io,
+        .colors,
+        .format,
     },
-    .paths = .{
-        "rd.zig",
-    },
+    .entry = "rd.zig",
 }

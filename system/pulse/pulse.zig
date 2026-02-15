@@ -1,29 +1,27 @@
 //! Pulse - Akiba OS Init System
-//! First Kata to run (PID 1), manages system lifecycle
 
-const akiba = @import("akiba");
+const format = @import("format");
+const kata = @import("kata");
+const sys = @import("sys");
 
 export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
     _ = pc;
     _ = pv;
 
-    // Init loop - respawn shell when it exits
     while (true) {
-        const shell_pid = akiba.kata.spawn("/system/ash/ash.akiba") catch {
-            akiba.io.println("Pulse: Failed to spawn shell") catch {};
-            akiba.kata.yield();
+        const shell_pid = kata.spawn("/system/ash/ash.akiba") catch {
+            format.println("Pulse: Failed to spawn shell");
+            kata.yield();
             continue;
         };
 
-        // Wait for shell to exit
-        _ = akiba.kata.wait(shell_pid) catch {
-            akiba.io.println("Pulse: Shell wait failed") catch {};
-            akiba.kata.yield();
+        _ = kata.wait(shell_pid) catch {
+            format.println("Pulse: Shell wait failed");
+            kata.yield();
             continue;
         };
 
-        // Shell exited, respawn
-        akiba.io.println("\nPulse: Shell exited, respawning...\n") catch {};
+        format.println("\nPulse: Shell exited, respawning...\n");
     }
 
     return 0;

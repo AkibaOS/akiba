@@ -1,8 +1,13 @@
 .{
     .name = "ash",
     .version = "0.1.0",
-    .paths = .{""},
     .dependencies = .{
-        .akiba = .{ .path = "../libraries/akiba" },
+        .sys,
+        .io,
+        .kata,
+        .colors,
+        .string,
+        .format,
     },
+    .entry = "ash.zig",
 }

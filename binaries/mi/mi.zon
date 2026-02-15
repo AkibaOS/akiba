@@ -2,9 +2,10 @@
     .name = "mi",
     .version = "0.1.0",
     .dependencies = .{
-        .akiba = .{ .path = "../../system/libraries/akiba" },
+        .sys,
+        .io,
+        .colors,
+        .format,
     },
-    .paths = .{
-        "mi.zig",
-    },
+    .entry = "mi.zig",
 }

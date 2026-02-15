@@ -1,8 +1,10 @@
 .{
     .name = "pulse",
-    .version = "1.0.0",
-    .type = .init,
+    .version = "0.1.0",
     .dependencies = .{
-        "akiba",
+        .sys,
+        .kata,
+        .format,
     },
+    .entry = "pulse.zig",
 }
