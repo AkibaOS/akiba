@@ -1,60 +1,27 @@
-//! Invocation Handler - Entry point for Layer 3 programs calling kernel
-//! Handles the Akiba Invocation Table
+//! Invocation Handler - Entry point for Kata programs calling Mirai
 
 const afs = @import("../fs/afs.zig");
 const ahci = @import("../drivers/ahci.zig");
-const attach = @import("attach.zig");
-const exit = @import("exit.zig");
-const getkeychar = @import("getkeychar.zig");
-const getlocation = @import("getlocation.zig");
-const mark = @import("mark.zig");
-const postman = @import("postman.zig");
-const seal = @import("seal.zig");
-const serial = @import("../drivers/serial.zig");
-const setlocation = @import("setlocation.zig");
-const spawn = @import("spawn.zig");
+const invocations = @import("../common/constants/invocations.zig");
+const result = @import("../utils/types/result.zig");
 const syscall = @import("syscall.zig");
-const view = @import("view.zig");
-const viewstack = @import("viewstack.zig");
-const wait = @import("wait.zig");
-const wipe = @import("wipe.zig");
-const yield = @import("yield.zig");
 
-pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
-    // Set AFS instance for all invocations that need it
-    exit.set_afs_instance(fs);
-    attach.set_afs_instance(fs);
-    seal.set_afs_instance(fs);
-    spawn.set_afs_instance(fs);
-    viewstack.set_afs_instance(fs);
-    setlocation.set_afs_instance(fs);
+const attach = @import("io/attach.zig");
+const getkeychar = @import("io/getkeychar.zig");
+const mark = @import("io/mark.zig");
+const seal = @import("io/seal.zig");
+const view = @import("io/view.zig");
+const wipe = @import("io/wipe.zig");
 
-    syscall.init();
-}
+const getlocation = @import("fs/getlocation.zig");
+const setlocation = @import("fs/setlocation.zig");
+const viewstack = @import("fs/viewstack.zig");
 
-pub fn handle_invocation(context: *InvocationContext) void {
-    const invocation_num = context.rax;
-
-    switch (invocation_num) {
-        0x01 => exit.invoke(context),
-        0x02 => attach.invoke(context),
-        0x03 => seal.invoke(context),
-        0x04 => view.invoke(context),
-        0x05 => mark.invoke(context),
-        0x06 => spawn.invoke(context),
-        0x07 => wait.invoke(context),
-        0x08 => yield.invoke(context),
-        0x09 => getkeychar.invoke(context),
-        0x0A => viewstack.invoke(context),
-        0x0B => getlocation.invoke(context),
-        0x0C => setlocation.invoke(context),
-        0x0D => postman.invoke(context),
-        0x0E => wipe.invoke(context),
-        else => {
-            context.rax = @as(u64, @bitCast(@as(i64, -1)));
-        },
-    }
-}
+const exit = @import("kata/exit.zig");
+const postman = @import("kata/postman.zig");
+const spawn = @import("kata/spawn.zig");
+const wait = @import("kata/wait.zig");
+const yield = @import("kata/yield.zig");
 
 pub const InvocationContext = struct {
     rax: u64,
@@ -78,3 +45,34 @@ pub const InvocationContext = struct {
     cs: u64,
     ss: u64,
 };
+
+pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
+    exit.set_afs_instance(fs);
+    attach.set_afs_instance(fs);
+    seal.set_afs_instance(fs);
+    spawn.set_afs_instance(fs);
+    viewstack.set_afs_instance(fs);
+    setlocation.set_afs_instance(fs);
+
+    syscall.init();
+}
+
+pub fn handle(ctx: *InvocationContext) void {
+    switch (ctx.rax) {
+        invocations.EXIT => exit.invoke(ctx),
+        invocations.ATTACH => attach.invoke(ctx),
+        invocations.SEAL => seal.invoke(ctx),
+        invocations.VIEW => view.invoke(ctx),
+        invocations.MARK => mark.invoke(ctx),
+        invocations.SPAWN => spawn.invoke(ctx),
+        invocations.WAIT => wait.invoke(ctx),
+        invocations.YIELD => yield.invoke(ctx),
+        invocations.GETKEYCHAR => getkeychar.invoke(ctx),
+        invocations.VIEWSTACK => viewstack.invoke(ctx),
+        invocations.GETLOCATION => getlocation.invoke(ctx),
+        invocations.SETLOCATION => setlocation.invoke(ctx),
+        invocations.POSTMAN => postman.invoke(ctx),
+        invocations.WIPE => wipe.invoke(ctx),
+        else => result.set_error(ctx),
+    }
+}

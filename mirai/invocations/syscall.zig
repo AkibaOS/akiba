@@ -3,17 +3,14 @@
 const entry = @import("../asm/entry.zig");
 const gdt = @import("../boot/gdt.zig");
 const handler = @import("handler.zig");
+const int = @import("../utils/types/int.zig");
+const msr_const = @import("../common/constants/msr.zig");
 const msr = @import("../asm/msr.zig");
-const serial = @import("../drivers/serial.zig");
+const ptr = @import("../utils/types/ptr.zig");
 const tss = @import("../boot/tss.zig");
 
-// MSR addresses
-const IA32_STAR: u32 = 0xC0000081;
-const IA32_LSTAR: u32 = 0xC0000082;
-const IA32_FMASK: u32 = 0xC0000084;
-const IA32_EFER: u32 = 0xC0000080;
+const SYSRET_USER_BASE_OFFSET: u64 = 16;
 
-// Context saved on kernel stack
 const SyscallContext = packed struct {
     rax: u64,
     rbx: u64,
@@ -38,31 +35,25 @@ const SyscallContext = packed struct {
 };
 
 pub fn init() void {
-    // STAR: Segment selectors
-    // Bits 47:32 = Kernel CS (SYSCALL loads this)
-    // Bits 63:48 = User base selector (SYSRET adds 16 for CS, 8 for SS)
-    const user_base = gdt.USER_CODE - 16;
-    const star_value: u64 =
-        (@as(u64, gdt.KERNEL_CODE) << 32) |
-        (@as(u64, user_base) << 48);
-    msr.write_msr(IA32_STAR, star_value);
+    const kernel_cs = int.u64_of(gdt.KERNEL_CODE);
+    const user_base = int.u64_of(gdt.USER_CODE) - SYSRET_USER_BASE_OFFSET;
 
-    // LSTAR: Syscall entry point
-    msr.write_msr(IA32_LSTAR, entry.get_entry_address());
+    const star_value =
+        (kernel_cs << msr_const.STAR_KERNEL_CS_SHIFT) |
+        (user_base << msr_const.STAR_USER_BASE_SHIFT);
 
-    // FMASK: Mask interrupts during syscall entry
-    msr.write_msr(IA32_FMASK, 0x200);
+    msr.write(msr_const.IA32_STAR, star_value);
+    msr.write(msr_const.IA32_LSTAR, entry.get_entry_address());
+    msr.write(msr_const.IA32_FMASK, msr_const.FMASK_IF);
 
-    // Enable SYSCALL/SYSRET in EFER
-    const efer = msr.read_msr(IA32_EFER);
-    msr.write_msr(IA32_EFER, efer | (1 << 0));
+    const efer = msr.read(msr_const.IA32_EFER);
+    msr.write(msr_const.IA32_EFER, efer | msr_const.EFER_SCE);
 }
 
-// Handler called from syscall entry assembly
 export fn handle_syscall(ctx_ptr: u64) void {
-    const regs = @as(*SyscallContext, @ptrFromInt(ctx_ptr));
+    const regs = ptr.of(SyscallContext, ctx_ptr);
 
-    var inv_ctx = handler.InvocationContext{
+    var ctx = handler.InvocationContext{
         .rax = regs.rax,
         .rbx = regs.rbx,
         .rcx = regs.rcx,
@@ -85,11 +76,10 @@ export fn handle_syscall(ctx_ptr: u64) void {
         .ss = regs.user_ss,
     };
 
-    handler.handle_invocation(&inv_ctx);
-    regs.rax = inv_ctx.rax;
+    handler.handle(&ctx);
+    regs.rax = ctx.rax;
 }
 
-// Export for assembly to call
 export fn get_kernel_stack() u64 {
     return tss.get_kernel_stack();
 }

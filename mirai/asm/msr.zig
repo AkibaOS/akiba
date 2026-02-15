@@ -2,7 +2,7 @@
 //! Wrappers for reading and writing CPU-specific registers
 
 /// Read model specific register
-pub inline fn read_msr(register: u32) u64 {
+pub inline fn read(register: u32) u64 {
     var low: u32 = undefined;
     var high: u32 = undefined;
     asm volatile ("rdmsr"
@@ -14,7 +14,7 @@ pub inline fn read_msr(register: u32) u64 {
 }
 
 /// Write model specific register
-pub inline fn write_msr(register: u32, value: u64) void {
+pub inline fn write(register: u32, value: u64) void {
     const low: u32 = @truncate(value);
     const high: u32 = @truncate(value >> 32);
     asm volatile ("wrmsr"
