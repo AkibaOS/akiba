@@ -1,15 +1,12 @@
 //! Kernel Heap Allocator
-//! Size-segregated allocator with object caching
 
+const heap_const = @import("../common/constants/heap.zig");
+const memory_const = @import("../common/constants/memory.zig");
 const pmm = @import("pmm.zig");
 const serial = @import("../drivers/serial/serial.zig");
-const system = @import("../system/system.zig");
 
-const PAGE_SIZE = system.constants.PAGE_SIZE;
-const HIGHER_HALF_START = system.constants.HIGHER_HALF_START;
-
-const SIZE_CLASSES = [_]usize{ 16, 32, 64, 128, 256, 512, 1024, 2048 };
-const NUM_CACHES = SIZE_CLASSES.len;
+const PAGE_SIZE = memory_const.PAGE_SIZE;
+const HIGHER_HALF = memory_const.HIGHER_HALF_START;
 
 const SlabHeader = struct {
     free_count: usize,
@@ -30,15 +27,14 @@ const SlabCache = struct {
     slab_list: ?*SlabHeader,
 };
 
-var caches: [NUM_CACHES]SlabCache = undefined;
+var caches: [heap_const.NUM_CACHES]SlabCache = undefined;
 var initialized: bool = false;
 
 pub fn init() void {
-    serial.print("\n=== Heap Allocator ===\n");
+    serial.print("\n=== Heap ===\n");
 
-    var i: usize = 0;
-    while (i < NUM_CACHES) : (i += 1) {
-        const size = SIZE_CLASSES[i];
+    for (0..heap_const.NUM_CACHES) |i| {
+        const size = heap_const.SIZE_CLASSES[i];
         const usable_space = PAGE_SIZE - @sizeOf(SlabHeader);
         const objects_per_slab = usable_space / size;
 
@@ -48,11 +44,7 @@ pub fn init() void {
             .slab_list = null,
         };
 
-        serial.print("  Cache ");
-        serial.print_hex(size);
-        serial.print("B: ");
-        serial.print_hex(objects_per_slab);
-        serial.print(" objects/slab\n");
+        serial.printf("Cache {}B: {} objects/slab\n", .{ size, objects_per_slab });
     }
 
     initialized = true;
@@ -63,7 +55,7 @@ pub fn alloc(size: usize) ?[*]u8 {
     if (!initialized) return null;
     if (size == 0) return null;
 
-    if (size > 2048) {
+    if (size > heap_const.LARGE_ALLOC_THRESHOLD) {
         return alloc_large(size);
     }
 
@@ -75,7 +67,7 @@ pub fn free(ptr: [*]u8, size: usize) void {
     if (!initialized) return;
     if (size == 0) return;
 
-    if (size > 2048) {
+    if (size > heap_const.LARGE_ALLOC_THRESHOLD) {
         free_large(ptr, size);
         return;
     }
@@ -85,13 +77,12 @@ pub fn free(ptr: [*]u8, size: usize) void {
 }
 
 fn find_cache_index(size: usize) usize {
-    var i: usize = 0;
-    while (i < NUM_CACHES) : (i += 1) {
-        if (size <= SIZE_CLASSES[i]) {
+    for (0..heap_const.NUM_CACHES) |i| {
+        if (size <= heap_const.SIZE_CLASSES[i]) {
             return i;
         }
     }
-    return NUM_CACHES - 1;
+    return heap_const.NUM_CACHES - 1;
 }
 
 fn alloc_from_cache(cache: *SlabCache) ?[*]u8 {
@@ -118,14 +109,10 @@ fn alloc_from_cache(cache: *SlabCache) ?[*]u8 {
 
 fn create_slab(cache: *SlabCache) ?*SlabHeader {
     const phys_page = pmm.alloc_page() orelse return null;
+    const virt_addr = phys_page + HIGHER_HALF;
 
-    // Physical 0-4GB already mapped to 0xFFFF800000000000+ by boot.s
-    const virt_addr = phys_page + HIGHER_HALF_START;
-
-    // Zero the page
     const page_ptr: [*]volatile u8 = @ptrFromInt(virt_addr);
-    var i: usize = 0;
-    while (i < PAGE_SIZE) : (i += 1) {
+    for (0..PAGE_SIZE) |i| {
         page_ptr[i] = 0;
     }
 
@@ -136,10 +123,8 @@ fn create_slab(cache: *SlabCache) ?*SlabHeader {
     slab.next_slab = null;
     slab.prev_slab = null;
 
-    // Initialize freelist
     const first_obj_addr = virt_addr + @sizeOf(SlabHeader);
-    var j: usize = 0;
-    while (j < cache.objects_per_slab) : (j += 1) {
+    for (0..cache.objects_per_slab) |j| {
         const obj_addr = first_obj_addr + (j * cache.object_size);
         const obj: *FreeObject = @ptrFromInt(obj_addr);
 
@@ -177,7 +162,6 @@ fn free_to_cache(cache: *SlabCache, ptr: [*]u8) void {
     slab.first_free = obj;
     slab.free_count += 1;
 
-    // If slab is completely free and not the only slab, return to PMM
     if (slab.free_count == slab.total_count) {
         if (slab.next_slab != null or slab.prev_slab != null) {
             return_slab_to_pmm(cache, slab);
@@ -186,7 +170,6 @@ fn free_to_cache(cache: *SlabCache, ptr: [*]u8) void {
 }
 
 fn return_slab_to_pmm(cache: *SlabCache, slab: *SlabHeader) void {
-    // Unlink from cache
     if (slab.prev_slab) |prev| {
         prev.next_slab = slab.next_slab;
     } else {
@@ -197,99 +180,36 @@ fn return_slab_to_pmm(cache: *SlabCache, slab: *SlabHeader) void {
         next.prev_slab = slab.prev_slab;
     }
 
-    // Free the page
     const slab_addr = @intFromPtr(slab);
-    const phys_addr = slab_addr - HIGHER_HALF_START;
+    const phys_addr = slab_addr - HIGHER_HALF;
     pmm.free_page(phys_addr);
 }
 
 fn alloc_large(size: usize) ?[*]u8 {
     const num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 
-    // Try to allocate contiguous pages
-    var pages: [64]u64 = undefined; // Max 256KB allocation
-    if (num_pages > 64) return null;
+    var pages: [heap_const.MAX_LARGE_PAGES]u64 = undefined;
+    if (num_pages > heap_const.MAX_LARGE_PAGES) return null;
 
-    var i: usize = 0;
-    while (i < num_pages) : (i += 1) {
+    for (0..num_pages) |i| {
         pages[i] = pmm.alloc_page() orelse {
-            // Allocation failed - free what we got
-            var j: usize = 0;
-            while (j < i) : (j += 1) {
+            for (0..i) |j| {
                 pmm.free_page(pages[j]);
             }
             return null;
         };
     }
 
-    // Return first page as virtual address
-    const result: [*]u8 = @ptrFromInt(pages[0] + HIGHER_HALF_START);
+    const result: [*]u8 = @ptrFromInt(pages[0] + HIGHER_HALF);
     return result;
 }
 
 fn free_large(ptr: [*]u8, size: usize) void {
     const num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     const base_virt = @intFromPtr(ptr);
-    const base_phys = base_virt - HIGHER_HALF_START;
+    const base_phys = base_virt - HIGHER_HALF;
 
-    // Free each page
-    var i: usize = 0;
-    while (i < num_pages) : (i += 1) {
+    for (0..num_pages) |i| {
         pmm.free_page(base_phys + (i * PAGE_SIZE));
     }
-}
-
-pub fn print_stats() void {
-    if (!initialized) {
-        serial.print("Heap not initialized\n");
-        return;
-    }
-
-    serial.print("\n=== Heap Statistics ===\n");
-
-    var total_slabs: usize = 0;
-    var total_used: usize = 0;
-    var total_free: usize = 0;
-
-    var i: usize = 0;
-    while (i < NUM_CACHES) : (i += 1) {
-        const cache = &caches[i];
-
-        var cache_total: usize = 0;
-        var cache_free: usize = 0;
-        var slab_count: usize = 0;
-
-        var current = cache.slab_list;
-        while (current) |slab| {
-            slab_count += 1;
-            cache_total += slab.total_count;
-            cache_free += slab.free_count;
-            current = slab.next_slab;
-        }
-
-        if (slab_count > 0) {
-            const used = cache_total - cache_free;
-            total_slabs += slab_count;
-            total_used += used * cache.object_size;
-            total_free += cache_free * cache.object_size;
-
-            serial.print("Cache ");
-            serial.print_hex(cache.object_size);
-            serial.print("B: ");
-            serial.print_hex(slab_count);
-            serial.print(" slabs, ");
-            serial.print_hex(used);
-            serial.print("/");
-            serial.print_hex(cache_total);
-            serial.print(" objects\n");
-        }
-    }
-
-    serial.print("\nTotal: ");
-    serial.print_hex(total_slabs);
-    serial.print(" slabs, ");
-    serial.print_hex(total_used);
-    serial.print(" bytes used, ");
-    serial.print_hex(total_free);
-    serial.print(" bytes free\n");
 }
