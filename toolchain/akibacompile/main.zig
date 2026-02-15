@@ -30,10 +30,39 @@ pub fn main() !void {
     };
     defer allocator.free(zon_content);
 
-    var parts: [100][]const u8 = undefined;
-    var parts_count: usize = 0;
+    // Collect all libraries and their dependencies
+    var all_libs = std.StringHashMap([]const u8).init(allocator);
+    defer {
+        var it = all_libs.iterator();
+        while (it.next()) |entry| {
+            allocator.free(entry.value_ptr.*);
+        }
+        all_libs.deinit();
+    }
 
-    parts[parts_count] =
+    // First pass: find direct dependencies from binary's zon
+    var lib_dir = try std.fs.cwd().openDir(libraries_dir, .{ .iterate = true });
+    defer lib_dir.close();
+
+    var lib_iter = lib_dir.iterate();
+    while (try lib_iter.next()) |entry| {
+        if (entry.kind != .directory) continue;
+        if (std.mem.indexOf(u8, zon_content, entry.name) != null) {
+            try collectLibraryDeps(allocator, libraries_dir, entry.name, &all_libs);
+        }
+    }
+
+    // Generate build.zig content
+    var parts = std.ArrayList([]const u8).init(allocator);
+    defer {
+        for (parts.items) |part| {
+            allocator.free(part);
+        }
+        parts.deinit();
+    }
+
+    // Header
+    try parts.append(try allocator.dupe(u8,
         \\const std = @import("std");
         \\pub fn build(b: *std.Build) void {
         \\    const target = b.resolveTargetQuery(.{
@@ -42,30 +71,44 @@ pub fn main() !void {
         \\        .abi = .none,
         \\    });
         \\
-    ;
-    parts_count += 1;
+    ));
 
-    var lib_iter_dir = try std.fs.cwd().openDir(libraries_dir, .{ .iterate = true });
-    defer lib_iter_dir.close();
+    // Create modules for all libraries
+    var lib_it = all_libs.iterator();
+    while (lib_it.next()) |entry| {
+        const lib_name = entry.key_ptr.*;
+        try parts.append(try std.fmt.allocPrint(allocator,
+            \\    const {s}_module = b.addModule("{s}", .{{
+            \\        .root_source_file = b.path("../{s}/{s}/{s}.zig"),
+            \\        .target = target,
+            \\        .optimize = .ReleaseSmall,
+            \\    }});
+            \\
+        , .{ lib_name, lib_name, libraries_dir, lib_name, lib_name }));
+        std.debug.print("  + Library: {s}\n", .{lib_name});
+    }
 
-    var lib_iter = lib_iter_dir.iterate();
-    while (try lib_iter.next()) |entry| {
-        if (entry.kind != .directory) continue;
-        if (std.mem.indexOf(u8, zon_content, entry.name) != null) {
-            parts[parts_count] = try std.fmt.allocPrint(allocator,
-                \\    const {s}_module = b.addModule("{s}", .{{
-                \\        .root_source_file = b.path("../{s}/{s}/{s}.zig"),
-                \\        .target = target,
-                \\        .optimize = .ReleaseSmall,
-                \\    }});
-                \\
-            , .{ entry.name, entry.name, libraries_dir, entry.name, entry.name });
-            parts_count += 1;
-            std.debug.print("  + Library: {s}\n", .{entry.name});
+    // Add library-to-library dependencies
+    lib_it = all_libs.iterator();
+    while (lib_it.next()) |entry| {
+        const lib_name = entry.key_ptr.*;
+        const lib_deps = entry.value_ptr.*;
+
+        // Parse deps string and add imports
+        var dep_iter = std.mem.splitScalar(u8, lib_deps, ',');
+        while (dep_iter.next()) |dep| {
+            const trimmed = std.mem.trim(u8, dep, " ");
+            if (trimmed.len > 0) {
+                try parts.append(try std.fmt.allocPrint(allocator,
+                    \\    {s}_module.addImport("{s}", {s}_module);
+                    \\
+                , .{ lib_name, trimmed, trimmed }));
+            }
         }
     }
 
-    parts[parts_count] = try std.fmt.allocPrint(allocator,
+    // Create executable
+    try parts.append(try std.fmt.allocPrint(allocator,
         \\    const exe = b.addExecutable(.{{
         \\        .name = "{s}",
         \\        .root_module = b.createModule(.{{
@@ -76,37 +119,30 @@ pub fn main() !void {
         \\    }});
         \\    exe.setLinkerScript(b.path("../toolchain/linker/akiba.binary.linker"));
         \\
-    , .{ bin_name, zig_file });
-    parts_count += 1;
+    , .{ bin_name, zig_file }));
 
-    lib_iter_dir = try std.fs.cwd().openDir(libraries_dir, .{ .iterate = true });
-    lib_iter = lib_iter_dir.iterate();
-    while (try lib_iter.next()) |entry| {
-        if (entry.kind != .directory) continue;
-        if (std.mem.indexOf(u8, zon_content, entry.name) != null) {
-            parts[parts_count] = try std.fmt.allocPrint(allocator,
-                \\    exe.root_module.addImport("{s}", {s}_module);
-                \\
-            , .{ entry.name, entry.name });
-            parts_count += 1;
-        }
+    // Add library imports to executable
+    lib_it = all_libs.iterator();
+    while (lib_it.next()) |entry| {
+        const lib_name = entry.key_ptr.*;
+        try parts.append(try std.fmt.allocPrint(allocator,
+            \\    exe.root_module.addImport("{s}", {s}_module);
+            \\
+        , .{ lib_name, lib_name }));
     }
 
-    parts[parts_count] =
+    // Footer
+    try parts.append(try allocator.dupe(u8,
         \\    b.installArtifact(exe);
         \\}
         \\
-    ;
-    parts_count += 1;
+    ));
 
-    const build_content = try std.mem.concat(allocator, u8, parts[0..parts_count]);
+    // Concatenate all parts
+    const build_content = try std.mem.concat(allocator, u8, parts.items);
     defer allocator.free(build_content);
 
-    // Free allocated strings
-    for (parts[1 .. parts_count - 1]) |part| {
-        allocator.free(part);
-    }
-
+    // Create temp directory and build
     const temp_dir = try std.fmt.allocPrint(allocator, ".akiba-build-{s}", .{bin_name});
     defer allocator.free(temp_dir);
 
@@ -136,4 +172,54 @@ pub fn main() !void {
 
     try std.fs.cwd().rename(built_exe, output_path);
     std.debug.print("✓ Compiled {s}\n", .{bin_name});
+}
+
+fn collectLibraryDeps(
+    allocator: std.mem.Allocator,
+    libraries_dir: []const u8,
+    lib_name: []const u8,
+    all_libs: *std.StringHashMap([]const u8),
+) !void {
+    // Skip if already processed
+    if (all_libs.contains(lib_name)) return;
+
+    const lib_zon_path = try std.fmt.allocPrint(allocator, "{s}/{s}/{s}.zon", .{ libraries_dir, lib_name, lib_name });
+    defer allocator.free(lib_zon_path);
+
+    const lib_zon = std.fs.cwd().readFileAlloc(allocator, lib_zon_path, 4096) catch {
+        // No zon file, add with empty deps
+        const key = try allocator.dupe(u8, lib_name);
+        const val = try allocator.dupe(u8, "");
+        try all_libs.put(key, val);
+        return;
+    };
+    defer allocator.free(lib_zon);
+
+    // Extract dependencies from zon
+    var deps_list = std.ArrayList(u8).init(allocator);
+    defer deps_list.deinit();
+
+    // Scan for other library names in the zon file
+    var lib_dir = try std.fs.cwd().openDir(libraries_dir, .{ .iterate = true });
+    defer lib_dir.close();
+
+    var lib_iter = lib_dir.iterate();
+    while (try lib_iter.next()) |entry| {
+        if (entry.kind != .directory) continue;
+        if (std.mem.eql(u8, entry.name, lib_name)) continue; // Skip self
+
+        if (std.mem.indexOf(u8, lib_zon, entry.name) != null) {
+            if (deps_list.items.len > 0) {
+                try deps_list.append(',');
+            }
+            try deps_list.appendSlice(entry.name);
+
+            // Recursively collect this dependency's deps
+            try collectLibraryDeps(allocator, libraries_dir, entry.name, all_libs);
+        }
+    }
+
+    const key = try allocator.dupe(u8, lib_name);
+    const val = try allocator.toOwnedSlice(deps_list);
+    try all_libs.put(key, val);
 }
