@@ -2,9 +2,9 @@
     .name = "io",
     .version = "1.0.0",
     .type = .library,
-    .entry = "io.zig",
     .dependencies = .{
-        .sys = .{ .path = "../sys" },
-        .kata = .{ .path = "../kata" },
+        .sys,
+        .kata,
     },
+    .entry = "io.zig",
 }

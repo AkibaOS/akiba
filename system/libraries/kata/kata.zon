@@ -2,8 +2,8 @@
     .name = "kata",
     .version = "1.0.0",
     .type = .library,
-    .entry = "kata.zig",
     .dependencies = .{
-        .sys = .{ .path = "../sys" },
+        .sys,
     },
+    .entry = "kata.zig",
 }
