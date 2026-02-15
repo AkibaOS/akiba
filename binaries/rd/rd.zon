@@ -1,0 +1,10 @@
+.{
+    .name = "rd",
+    .version = "0.1.0",
+    .dependencies = .{
+        .akiba = .{ .path = "../../system/libraries/akiba" },
+    },
+    .paths = .{
+        "rd.zig",
+    },
+}
