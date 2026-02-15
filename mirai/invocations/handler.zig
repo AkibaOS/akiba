@@ -17,6 +17,7 @@ const syscall = @import("syscall.zig");
 const view = @import("view.zig");
 const viewstack = @import("viewstack.zig");
 const wait = @import("wait.zig");
+const wipe = @import("wipe.zig");
 const yield = @import("yield.zig");
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
@@ -48,6 +49,7 @@ pub fn handle_invocation(context: *InvocationContext) void {
         0x0B => getlocation.invoke(context),
         0x0C => setlocation.invoke(context),
         0x0D => postman.invoke(context),
+        0x0E => wipe.invoke(context),
         else => {
             context.rax = @as(u64, @bitCast(@as(i64, -1)));
         },

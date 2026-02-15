@@ -154,6 +154,10 @@ pub fn read_letter(buffer: []u8) !u8 {
     return @intCast(result);
 }
 
+pub fn wipe() void {
+    _ = sys.syscall(.wipe, .{});
+}
+
 pub fn print(text: []const u8) Error!void {
     _ = try mark(stream, text, 0x00FFFFFF);
 }

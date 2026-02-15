@@ -1,20 +1,6 @@
 //! Low-level invocation interface
 
-pub const Invocation = enum(u64) {
-    exit = 0x01,
-    attach = 0x02,
-    seal = 0x03,
-    view = 0x04,
-    mark = 0x05,
-    spawn = 0x06,
-    wait = 0x07,
-    yield = 0x08,
-    getkeychar = 0x09,
-    viewstack = 0x0A,
-    getlocation = 0x0B,
-    setlocation = 0x0C,
-    postman = 0x0D,
-};
+pub const Invocation = enum(u64) { exit = 0x01, attach = 0x02, seal = 0x03, view = 0x04, mark = 0x05, spawn = 0x06, wait = 0x07, yield = 0x08, getkeychar = 0x09, viewstack = 0x0A, getlocation = 0x0B, setlocation = 0x0C, postman = 0x0D, wipe = 0x0E };
 
 /// Perform a system invocation with variable arguments
 /// Uses comptime to handle different argument counts

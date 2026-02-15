@@ -1,0 +1,10 @@
+.{
+    .name = "wipe",
+    .version = "0.1.0",
+    .dependencies = .{
+        .akiba = .{ .path = "../../system/libraries/akiba" },
+    },
+    .paths = .{
+        "wipe.zig",
+    },
+}
