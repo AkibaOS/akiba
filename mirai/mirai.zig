@@ -1,5 +1,5 @@
 const cpu = @import("asm/cpu.zig");
-const crimson = @import("crimson/panic.zig");
+const crimson = @import("crimson/crimson.zig");
 const sequence = @import("boot/sequence/sequence.zig");
 const serial = @import("drivers/serial/serial.zig");
 

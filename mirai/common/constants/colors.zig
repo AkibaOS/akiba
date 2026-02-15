@@ -1,5 +1,7 @@
 //! Display colors
 
+pub const AKIBA_PINK: u32 = 0x00FF6B9D;
+
 pub const WHITE: u32 = 0x00FFFFFF;
 pub const BLACK: u32 = 0x00000000;
 pub const RED: u32 = 0x00FF0000;
@@ -9,5 +11,4 @@ pub const YELLOW: u32 = 0x00FFFF00;
 pub const CYAN: u32 = 0x0000FFFF;
 pub const MAGENTA: u32 = 0x00FF00FF;
 pub const GRAY: u32 = 0x00808080;
-
-pub const AKIBA_PINK: u32 = 0x00FF6B9D;
+pub const CRIMSON: u32 = 0x00DC143C;

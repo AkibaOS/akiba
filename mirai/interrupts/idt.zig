@@ -7,7 +7,7 @@ const sensei = @import("../kata/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
 
 comptime {
-    _ = @import("../crimson/exceptions.zig");
+    _ = @import("../crimson/exception.zig");
 }
 
 const IDTEntry = packed struct {
