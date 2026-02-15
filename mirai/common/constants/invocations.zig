@@ -1,4 +1,4 @@
-//! Invocation numbers and constants
+//! Invocation numbers
 
 pub const EXIT: u64 = 0x01;
 pub const ATTACH: u64 = 0x02;
@@ -15,8 +15,5 @@ pub const SETLOCATION: u64 = 0x0C;
 pub const POSTMAN: u64 = 0x0D;
 pub const WIPE: u64 = 0x0E;
 
-/// Error return value for invocations (-1 as unsigned)
 pub const ERROR: u64 = @as(u64, @bitCast(@as(i64, -1)));
-
-/// No data available (used by getkeychar)
 pub const NO_DATA: u64 = @as(u64, @bitCast(@as(i64, -2)));
