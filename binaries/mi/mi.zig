@@ -61,73 +61,52 @@ fn display_stack(path: []const u8) !void {
         return;
     }
 
-    var max_access_len: usize = 6;
-    var max_size_len: usize = 4;
-    var max_owner_len: usize = 7;
-    const max_date_len: usize = 19;
-
-    for (0..count) |i| {
-        const entry = &entries[i];
-        const perms = get_permissions(entry.permission_type);
-        if (perms.len > max_access_len) max_access_len = perms.len;
-
-        var size_buf: [32]u8 = undefined;
-        const size_str = format.formatSize(entry.size, &size_buf);
-        if (size_str.len > max_size_len) max_size_len = size_str.len;
-
-        if (entry.owner_name_len > max_owner_len) {
-            max_owner_len = entry.owner_name_len;
-        }
-    }
-
-    format.print("Access");
-    print_padding(max_access_len - 6 + 2);
-    format.print("Size");
-    print_padding(max_size_len - 4 + 2);
-    format.print("Persona");
-    print_padding(max_owner_len - 7 + 3);
-    format.print("Modified");
-    print_padding(max_date_len - 8 + 1);
-    format.println("Name");
+    var table = format.Table.init(&[_]format.Column{
+        .{ .name = "Access", .color = colors.cyan },
+        .{ .name = "Size", .color = colors.green },
+        .{ .name = "Persona", .color = colors.yellow },
+        .{ .name = "Modified", .color = colors.blue },
+        .{ .name = "Name", .color = colors.white },
+    });
 
     var stack_count: usize = 0;
     var unit_count: usize = 0;
     var total_size: u64 = 0;
 
+    var size_bufs: [128][32]u8 = undefined;
+    var date_bufs: [128][32]u8 = undefined;
+    var name_bufs: [128][65]u8 = undefined;
+
     for (0..count) |i| {
         const entry = &entries[i];
-        const identity = entry.identity[0..entry.identity_len];
-        const owner = entry.owner_name[0..entry.owner_name_len];
 
         const perms = get_permissions(entry.permission_type);
-        format.color(perms, colors.cyan);
-        print_padding(max_access_len - perms.len + 2);
+        const size_str = format.formatSize(entry.size, &size_bufs[i]);
+        const date_str = format.formatDate(entry.modified_time, &date_bufs[i]);
+        const owner = entry.owner_name[0..entry.owner_name_len];
+        const identity = entry.identity[0..entry.identity_len];
 
-        var size_buf: [32]u8 = undefined;
-        const size_str = format.formatSize(entry.size, &size_buf);
-        format.color(size_str, colors.green);
-        print_padding(max_size_len - size_str.len + 2);
-
-        format.color(owner, colors.yellow);
-        print_padding(max_owner_len - owner.len + 3);
-
-        var date_buf: [32]u8 = undefined;
-        const date_str = format.formatDate(entry.modified_time, &date_buf);
-        format.color(date_str, colors.blue);
-        print_padding(max_date_len - date_str.len + 2);
-
+        // Build name with optional /
+        var name_len: usize = identity.len;
+        @memcpy(name_bufs[i][0..identity.len], identity);
         if (entry.is_stack) {
+            name_bufs[i][name_len] = '/';
+            name_len += 1;
             stack_count += 1;
-            total_size += entry.size;
-            format.color(identity, colors.cyan);
-            format.color("/", colors.blue);
         } else {
             unit_count += 1;
-            total_size += entry.size;
-            format.print(identity);
         }
-        format.print("\n");
+        total_size += entry.size;
+
+        const name_color: u32 = if (entry.is_stack) colors.cyan else colors.white;
+
+        table.rowColored(
+            &[_][]const u8{ perms, size_str, owner, date_str, name_bufs[i][0..name_len] },
+            &[_]u32{ colors.cyan, colors.green, colors.yellow, colors.blue, name_color },
+        );
     }
+
+    table.print();
 
     format.print("\n");
 
@@ -147,11 +126,4 @@ fn get_permissions(perm_type: u8) []const u8 {
         PERM_READ_ONLY => "Read Only",
         else => "Owner",
     };
-}
-
-fn print_padding(count: usize) void {
-    var i: usize = 0;
-    while (i < count) : (i += 1) {
-        format.print(" ");
-    }
 }
