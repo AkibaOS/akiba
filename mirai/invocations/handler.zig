@@ -23,6 +23,12 @@ const spawn = @import("kata/spawn.zig");
 const wait = @import("kata/wait.zig");
 const yield = @import("kata/yield.zig");
 
+const cpuinfo = @import("os/cpuinfo.zig");
+const diskinfo = @import("os/diskinfo.zig");
+const gettime = @import("os/gettime.zig");
+const meminfo = @import("os/meminfo.zig");
+const uptime = @import("os/uptime.zig");
+
 pub const InvocationContext = struct {
     rax: u64,
     rdi: u64,
@@ -53,6 +59,7 @@ pub fn init(fs: *afs.AFS(ahci.BlockDevice)) void {
     spawn.set_afs_instance(fs);
     viewstack.set_afs_instance(fs);
     setlocation.set_afs_instance(fs);
+    diskinfo.set_afs_instance(fs);
 
     syscall.init();
 }
@@ -73,6 +80,11 @@ pub fn handle(ctx: *InvocationContext) void {
         invocations.SETLOCATION => setlocation.invoke(ctx),
         invocations.POSTMAN => postman.invoke(ctx),
         invocations.WIPE => wipe.invoke(ctx),
+        invocations.CPUINFO => cpuinfo.invoke(ctx),
+        invocations.MEMINFO => meminfo.invoke(ctx),
+        invocations.UPTIME => uptime.invoke(ctx),
+        invocations.GETTIME => gettime.invoke(ctx),
+        invocations.DISKINFO => diskinfo.invoke(ctx),
         else => result.set_error(ctx),
     }
 }
