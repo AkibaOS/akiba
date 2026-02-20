@@ -1,13 +1,14 @@
 .{
-    .name = "mi",
+    .name = "sysinfo",
     .version = "0.1.0",
     .dependencies = .{
         .sys,
         .io,
+        .os,
+        .datetime,
         .colors,
         .format,
         .params,
-        .datetime,
     },
-    .entry = "mi.zig",
+    .entry = "sysinfo.zig",
 }

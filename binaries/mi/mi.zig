@@ -1,6 +1,7 @@
 //! mi - Stack viewer for Akiba OS
 
 const colors = @import("colors");
+const datetime = @import("datetime");
 const format = @import("format");
 const io = @import("io");
 const params = @import("params");
@@ -82,7 +83,7 @@ fn display_stack(path: []const u8) !void {
 
         const perms = get_permissions(entry.permission_type);
         const size_str = format.formatSize(entry.size, &size_bufs[i]);
-        const date_str = format.formatDate(entry.modified_time, &date_bufs[i]);
+        const date_str = datetime.formatDate(entry.modified_time, &date_bufs[i]);
         const owner = entry.owner_name[0..entry.owner_name_len];
         const identity = entry.identity[0..entry.identity_len];
 
