@@ -15,21 +15,23 @@ const TICK_NS: u64 = 1_000_000;
 
 pub fn on_tick() void {
     tick_count += 1;
+}
 
-    if (current) |kata| {
-        const delta = (TICK_NS * 1024) / kata.weight;
-        kata.vruntime += delta;
-
-        if (queue.get_head()) |head| {
-            min_vruntime = head.vruntime;
-        } else {
-            min_vruntime = kata.vruntime;
-        }
-    }
+pub fn get_tick_count() u64 {
+    return tick_count;
 }
 
 pub fn schedule() void {
     waker.wake_all_waiting();
+
+    if (current) |kata| {
+        const elapsed = tick_count - kata.last_run;
+        if (elapsed > 0) {
+            const delta = (TICK_NS * 1024 * elapsed) / kata.weight;
+            kata.vruntime += delta;
+            kata.last_run = tick_count;
+        }
+    }
 
     const next = pick_next();
 
@@ -53,6 +55,7 @@ pub fn schedule() void {
     if (next) |n| {
         queue.dequeue(n);
         n.state = .Running;
+        n.last_run = tick_count;
         current = n;
         shift.to_kata(n);
         unreachable;
@@ -111,7 +114,10 @@ fn pick_next() ?*types.Kata {
         curr = kata.next;
     }
 
-    if (chosen) |k| return k;
+    if (chosen) |k| {
+        min_vruntime = k.vruntime;
+        return k;
+    }
 
     if (current) |c| {
         if (c.state == .Running) return c;

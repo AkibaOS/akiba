@@ -14,6 +14,11 @@ pub const GETLOCATION: u64 = 0x0B;
 pub const SETLOCATION: u64 = 0x0C;
 pub const POSTMAN: u64 = 0x0D;
 pub const WIPE: u64 = 0x0E;
+pub const CPUINFO: u64 = 0x0F;
+pub const MEMINFO: u64 = 0x10;
+pub const UPTIME: u64 = 0x11;
+pub const GETTIME: u64 = 0x12;
+pub const DISKINFO: u64 = 0x13;
 
 pub const ERROR: u64 = @as(u64, @bitCast(@as(i64, -1)));
 pub const NO_DATA: u64 = @as(u64, @bitCast(@as(i64, -2)));

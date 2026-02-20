@@ -16,6 +16,11 @@ var total_pages: u64 = 0;
 var used_pages: u64 = 0;
 var initialized: bool = false;
 
+pub const MemoryInfo = struct {
+    total: u64,
+    used: u64,
+};
+
 pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     serial.print("\n=== PMM ===\n");
 
@@ -171,4 +176,11 @@ fn reserve_active_page_tables() void {
             }
         }
     }
+}
+
+pub fn get_info() MemoryInfo {
+    return MemoryInfo{
+        .total = total_pages,
+        .used = used_pages,
+    };
 }

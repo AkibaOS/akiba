@@ -26,3 +26,7 @@ pub const PCI_CONFIG_DATA: u16 = 0xCFC;
 
 // VGA
 pub const VGA_BUFFER_ADDR: usize = 0xB8000;
+
+// CMOS/RTC
+pub const CMOS_ADDRESS: u16 = 0x70;
+pub const CMOS_DATA: u16 = 0x71;

@@ -73,3 +73,8 @@ pub const ParentCacheEntry = struct {
     cluster: u32,
     parent: u32,
 };
+
+pub const DiskInfo = struct {
+    total_bytes: u64,
+    used_bytes: u64,
+};

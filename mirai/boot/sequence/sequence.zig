@@ -18,6 +18,7 @@ const keyboard = @import("../../drivers/keyboard/keyboard.zig");
 const message = @import("message.zig");
 const multiboot = @import("../multiboot/multiboot.zig");
 const pci = @import("../../drivers/pci/pci.zig");
+const pit = @import("../../drivers/pit/pit.zig");
 const pmm = @import("../../memory/pmm.zig");
 const sensei = @import("../../kata/sensei/sensei.zig");
 const serial = @import("../../drivers/serial/serial.zig");
@@ -60,6 +61,10 @@ pub fn run(multiboot_addr: u64) void {
 
     step("Setting up IDT");
     idt.init();
+    ok();
+
+    step("Setting up PIT");
+    pit.init();
     ok();
 
     step("Scanning PCI bus");

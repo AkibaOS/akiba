@@ -4,6 +4,7 @@ const cache = @import("cache.zig");
 const cluster_ops = @import("cluster.zig");
 const compare = @import("../../utils/string/compare.zig");
 const fs = @import("../../common/constants/fs.zig");
+const info = @import("info.zig");
 const ptr = @import("../../utils/types/ptr.zig");
 const read = @import("read.zig");
 const types = @import("types.zig");
@@ -12,6 +13,7 @@ const write = @import("write.zig");
 pub const BootSector = types.BootSector;
 pub const Entry = types.Entry;
 pub const StackItem = types.StackItem;
+pub const DiskInfo = types.DiskInfo;
 
 pub fn AFS(comptime BlockDeviceType: type) type {
     return struct {
@@ -102,6 +104,10 @@ pub fn AFS(comptime BlockDeviceType: type) type {
 
         pub fn mark_unit(self: *Self, location: []const u8, data: []const u8) !void {
             return write.mark_unit(self, location, data);
+        }
+
+        pub fn get_disk_info(self: *Self) DiskInfo {
+            return info.get_disk_info(self);
         }
     };
 }
