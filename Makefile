@@ -150,12 +150,19 @@ prepare-filesystem: build-grub
 	
 	@echo "→ Building libraries..."
 	@mkdir -p $(BUILD_DIR)/lib $(FS_ROOT)/system/libraries
-	@cd system/libraries && zig build --cache-dir ../../$(BUILD_DIR)/lib-cache --prefix ../../$(BUILD_DIR)
-	@for lib in $(BUILD_DIR)/lib/*.a; do \
-		if [ -f "$$lib" ]; then \
-			libname=$$(basename $$lib .a | sed 's/^lib//'); \
-			cp "$$lib" "$(FS_ROOT)/system/libraries/$$libname.arx"; \
-			echo "  ✓ $$libname.arx"; \
+	@for libdir in system/libraries/*/; do \
+		if [ -d "$$libdir" ]; then \
+			libname=$$(basename $$libdir); \
+			if [ -f "$$libdir$$libname.zig" ]; then \
+				zig build-obj \
+					-target x86_64-freestanding-none \
+					-O ReleaseSmall \
+					"$$libdir$$libname.zig" \
+					-femit-bin="$(BUILD_DIR)/lib/$$libname.o" 2>/dev/null && \
+				ar rcs "$(BUILD_DIR)/lib/lib$$libname.a" "$(BUILD_DIR)/lib/$$libname.o" && \
+				cp "$(BUILD_DIR)/lib/lib$$libname.a" "$(FS_ROOT)/system/libraries/$$libname.arx" && \
+				echo "  ✓ $$libname.arx"; \
+			fi; \
 		fi; \
 	done
 	

@@ -2,8 +2,11 @@
     .name = "wipe",
     .version = "0.1.0",
     .dependencies = .{
+        .colors,
+        .format,
         .sys,
         .io,
+        .params,
     },
     .entry = "wipe.zig",
 }

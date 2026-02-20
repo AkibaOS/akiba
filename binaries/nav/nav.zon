@@ -6,6 +6,7 @@
         .io,
         .colors,
         .format,
+        .params,
     },
     .entry = "nav.zig",
 }

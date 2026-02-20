@@ -14,9 +14,8 @@ pub fn build(b: *std.Build) void {
     while (lib_iter.next() catch null) |entry| {
         if (entry.kind != .directory) continue;
 
-        const lib_name = entry.name;
+        const lib_name = b.allocator.dupe(u8, entry.name) catch continue;
         const lib_file = std.fmt.allocPrint(b.allocator, "{s}/{s}.zig", .{ lib_name, lib_name }) catch continue;
-        defer b.allocator.free(lib_file);
 
         std.fs.cwd().access(lib_file, .{}) catch continue;
 

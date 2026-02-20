@@ -3,6 +3,7 @@
 const colors = @import("colors");
 const format = @import("format");
 const io = @import("io");
+const params = @import("params");
 const sys = @import("sys");
 
 const PERM_OWNER: u8 = 1;
@@ -10,19 +11,35 @@ const PERM_WORLD: u8 = 2;
 const PERM_READ_ONLY: u8 = 3;
 
 export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
+    const p = params.parse(pc, pv) catch |err| {
+        format.color("mi: ", colors.red);
+        format.println(@errorName(err));
+        return 1;
+    };
+
     var target_path: []const u8 = "";
 
-    if (pc > 1) {
-        const arg = pv[1];
-        var len: usize = 0;
-        while (arg[len] != 0) : (len += 1) {}
-        target_path = arg[0..len];
+    if (p.positionals.len > 1) {
+        format.colorln("mi: invalid number of positional parameters.", colors.red);
+        return 1;
     }
 
-    display_stack(target_path) catch |err| {
-        format.color("mi: ", colors.white);
-        format.color(@errorName(err), colors.red);
-        format.print("\n");
+    if (p.named.len > 0) {
+        format.colorln("mi: named parameters are not supported.", colors.red);
+        return 1;
+    }
+
+    if (p.positional(0)) |val| {
+        switch (val) {
+            .scalar => |s| target_path = s,
+            .list => {
+                format.colorln("mi: only one location allowed", colors.red);
+                return 1;
+            },
+        }
+    }
+
+    display_stack(target_path) catch {
         return 1;
     };
 
@@ -35,7 +52,7 @@ fn display_stack(path: []const u8) !void {
         format.color("mi: cannot access '", colors.red);
         format.print(path);
         format.colorln("': No such stack.", colors.red);
-        return;
+        return error.Failed;
     };
 
     if (count == 0) {
