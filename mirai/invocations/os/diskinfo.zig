@@ -2,6 +2,7 @@
 
 const afs = @import("../../fs/afs/afs.zig");
 const ahci = @import("../../drivers/ahci/ahci.zig");
+const cpu = @import("../../asm/cpu.zig");
 const handler = @import("../handler.zig");
 const result = @import("../../utils/types/result.zig");
 
@@ -16,7 +17,11 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const used_ptr: *u64 = @ptrFromInt(ctx.rsi);
 
     if (fs_instance) |fs| {
+        // Disable interrupts during disk read to prevent race conditions
+        cpu.disable_interrupts();
         const info = fs.get_disk_info();
+        cpu.enable_interrupts();
+
         total_ptr.* = info.total_bytes;
         used_ptr.* = info.used_bytes;
         result.set_ok(ctx);
