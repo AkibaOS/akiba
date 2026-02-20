@@ -34,7 +34,7 @@ GRUB_THEME_DIR = boot/grub/themes
 DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 BUILD_DIR = iso/build
-SYSTEM_DIRS = resources/fonts resources/test
+RESOURCES_DIR = resources
 BINARIES_DIR = binaries
 
 CONTENT_SIZE_KB := $(shell du -sk $(FS_ROOT) 2>/dev/null | awk '{sum += $$1} END {print sum + 10000}')
@@ -210,15 +210,6 @@ prepare-filesystem: build-grub
 		fi; \
 	done
 	
-	@echo "→ Copying system resources..."
-	@for dir in $(SYSTEM_DIRS); do \
-		if [ -d $$dir ]; then \
-			target_name=$$(basename $$dir); \
-			mkdir -p $(FS_ROOT)/system/$$target_name; \
-			cp -R $$dir/* $(FS_ROOT)/system/$$target_name/; \
-		fi; \
-	done
-	
 	@cp $(GRUB_CONFIG) $(FS_ROOT)/boot/grub/
 	@cp -R $(GRUB_THEME_DIR) $(FS_ROOT)/boot/grub/
 	
@@ -235,7 +226,17 @@ prepare-filesystem: build-grub
 	@echo "→ Copying AFS module to ESP structure..."
 	@mkdir -p $(FS_ROOT)/boot/grub/modules
 	@cp $(GRUB_BUILD)/lib/grub/x86_64-efi/afs.mod $(FS_ROOT)/boot/grub/modules/
-	
+
+	@echo "→ Copying resources..."
+	@for dir in $(RESOURCES_DIR)/*/; do \
+		if [ -d "$$dir" ]; then \
+			dirname=$$(basename $$dir); \
+			mkdir -p $(FS_ROOT)/$$dirname; \
+			cp -R $$dir* $(FS_ROOT)/$$dirname/; \
+			echo "  ✓ /$$dirname"; \
+		fi; \
+	done
+
 	@echo "✓ Build completed successfully"
 	@echo ""
 	@echo "Built artifacts:"

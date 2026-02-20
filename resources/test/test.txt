@@ -1,3 +1,0 @@
-Hello from Akiba OS!
-This is a test file.
-File I/O is working!

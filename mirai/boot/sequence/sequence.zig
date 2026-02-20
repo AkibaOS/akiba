@@ -96,7 +96,7 @@ pub fn run(multiboot_addr: u64) void {
 
     step("Loading font");
     var font_buffer: [boot_limits.FONT_BUFFER_SIZE]u8 = undefined;
-    const bytes_read = fs.view_unit_at("/system/fonts/Akiba.psf", &font_buffer) catch |err| {
+    const bytes_read = fs.view_unit_at("/system/fonts/akiba.psf", &font_buffer) catch |err| {
         fail();
         print_error(err);
         halt();
