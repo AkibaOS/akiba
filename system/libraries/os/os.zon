@@ -1,0 +1,9 @@
+.{
+    .name = "os",
+    .version = "1.0.0",
+    .type = .library,
+    .dependencies = .{
+        .sys,
+    },
+    .entry = "os.zig",
+}

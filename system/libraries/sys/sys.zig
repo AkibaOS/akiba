@@ -21,6 +21,11 @@ pub const Invocation = enum(u64) {
     setlocation = 0x0C,
     postman = 0x0D,
     wipe = 0x0E,
+    cpuinfo = 0x0F,
+    meminfo = 0x10,
+    uptime = 0x11,
+    gettime = 0x12,
+    diskinfo = 0x13,
 };
 
 pub inline fn syscall(invocation: Invocation, args: anytype) u64 {

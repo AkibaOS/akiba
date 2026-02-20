@@ -2,13 +2,13 @@
 
 pub const int = @import("int.zig");
 pub const size = @import("size.zig");
-pub const date = @import("date.zig");
+pub const bytes = @import("bytes.zig");
 pub const printmod = @import("print.zig");
 pub const tablemod = @import("table.zig");
 
 pub const intToStr = int.toStr;
 pub const formatSize = size.format;
-pub const formatDate = date.format;
+pub const formatBytes = bytes.format;
 
 pub const print = printmod.print;
 pub const println = printmod.println;
