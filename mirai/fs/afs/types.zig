@@ -12,7 +12,8 @@ pub const BootSector = extern struct {
     alloc_table_sector: u32,
     alloc_table_size: u32,
     data_area_sector: u32,
-    reserved: [466]u8,
+    used_clusters: u32,
+    reserved: [462]u8,
     boot_signature: u16,
 };
 

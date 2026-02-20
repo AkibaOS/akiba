@@ -56,9 +56,15 @@ pub fn allocate(afs: anytype) !u32 {
 
         if (endian.read_u32_le(sector[offset..]) == fs.CLUSTER_FREE) {
             try write_alloc(afs, cluster, fs.CLUSTER_END);
+            afs.increment_used();
             return cluster;
         }
     }
 
     return error.DiskFull;
+}
+
+pub fn free(afs: anytype, cluster: u32) !void {
+    try write_alloc(afs, cluster, fs.CLUSTER_FREE);
+    afs.decrement_used();
 }

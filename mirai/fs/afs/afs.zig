@@ -26,6 +26,7 @@ pub fn AFS(comptime BlockDeviceType: type) type {
         alloc_table_sector: u32,
         alloc_table_size: u32,
         data_area_sector: u32,
+        used_clusters: u32,
         parent_cache: [fs.PARENT_CACHE_SIZE]types.ParentCacheEntry,
         parent_cache_count: usize,
 
@@ -57,6 +58,7 @@ pub fn AFS(comptime BlockDeviceType: type) type {
                 .alloc_table_sector = boot.alloc_table_sector,
                 .alloc_table_size = boot.alloc_table_size,
                 .data_area_sector = boot.data_area_sector,
+                .used_clusters = boot.used_clusters,
                 .parent_cache = undefined,
                 .parent_cache_count = 0,
             };
@@ -66,6 +68,16 @@ pub fn AFS(comptime BlockDeviceType: type) type {
 
         pub fn cluster_to_lba(self: *Self, cluster: u32) u64 {
             return cluster_ops.to_lba(self, cluster);
+        }
+
+        pub fn increment_used(self: *Self) void {
+            self.used_clusters += 1;
+        }
+
+        pub fn decrement_used(self: *Self) void {
+            if (self.used_clusters > 0) {
+                self.used_clusters -= 1;
+            }
         }
 
         // Cache operations

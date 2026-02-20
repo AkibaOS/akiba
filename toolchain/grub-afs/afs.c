@@ -22,7 +22,8 @@ struct afs_boot_sector
   grub_uint32_t alloc_table_sector;
   grub_uint32_t alloc_table_size;
   grub_uint32_t data_area_sector;
-  grub_uint8_t reserved[466];
+  grub_uint32_t used_clusters;
+  grub_uint8_t reserved[462];
   grub_uint16_t boot_signature;
 } GRUB_PACKED;
 

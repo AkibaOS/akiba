@@ -14,7 +14,8 @@ const AFSBootSector = extern struct {
     alloc_table_sector: u32,
     alloc_table_size: u32,
     data_area_sector: u32,
-    reserved: [466]u8,
+    used_clusters: u32,
+    reserved: [462]u8,
     boot_signature: u16,
 };
 
@@ -629,6 +630,7 @@ fn createAFS(allocator: mem.Allocator, file: fs.File, source_dir: []const u8, pa
     boot.alloc_table_sector = 1;
     boot.alloc_table_size = alloc_table_size;
     boot.data_area_sector = data_area_start;
+    boot.used_clusters = 0;
     boot.boot_signature = 0xAA55;
 
     try file.seekTo(@as(u64, partition_start) * 512);
@@ -642,6 +644,10 @@ fn createAFS(allocator: mem.Allocator, file: fs.File, source_dir: []const u8, pa
     try copyDirectoryAFS(allocator, file, source_dir, partition_start, data_area_start, cluster_alloc, root_cluster);
 
     try writeAllocationTable(file, partition_start, alloc_table_size, cluster_alloc);
+    // Update used_clusters in boot sector
+    boot.used_clusters = cluster_alloc.next_cluster - 2; // Subtract reserved clusters
+    try file.seekTo(@as(u64, partition_start) * 512);
+    try file.writeAll(mem.asBytes(&boot));
     std.debug.print("  AFS partition created\n", .{});
 }
 
