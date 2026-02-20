@@ -95,10 +95,10 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
     const first_page = pmm.alloc_page() orelse return error.OutOfMemory;
     const kernel_stack_base = first_page;
 
-    // Identity map first page
+    // Identity map first page in kata's page table
     _ = try paging.map_page_in_table(kata.page_table, first_page, first_page, paging.PAGE_WRITABLE);
 
-    // Zero the page
+    // Zero the page (via higher-half which kernel always has mapped)
     var page_ptr: [*]volatile u8 = @ptrFromInt(first_page + HIGHER_HALF);
     for (0..PAGE_SIZE) |j| {
         page_ptr[j] = 0;
@@ -116,7 +116,7 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
             break;
         }
 
-        // Identity map this page
+        // Identity map this page in kata's page table
         _ = try paging.map_page_in_table(kata.page_table, page, page, paging.PAGE_WRITABLE);
 
         // Zero the page
@@ -126,9 +126,9 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
         }
     }
 
-    // Stack top is at the end of allocated contiguous pages
+    // Stack top uses IDENTITY address (not higher-half) since that's what we mapped
     const actual_stack_size = i * PAGE_SIZE;
-    kata.stack_top = kernel_stack_base + HIGHER_HALF + actual_stack_size;
+    kata.stack_top = kernel_stack_base + actual_stack_size;
 
     if (framebuffer_phys != 0 and framebuffer_size > 0) {
         const fb_pages = (framebuffer_size + PAGE_SIZE - 1) / PAGE_SIZE;

@@ -4,7 +4,7 @@ pub const MEMORY_AVAILABLE: u32 = 1;
 
 pub const FIRST_MB: u64 = 0x100000;
 pub const KERNEL_BASE: u64 = 0x100000;
-pub const KERNEL_MAP_END: u64 = 0x1000000;
+pub const KERNEL_MAP_END: u64 = 0x10000000; // 256MB
 
 pub const MMIO_FRAMEBUFFER_BASE: u64 = 0x80000000;
 pub const MMIO_FRAMEBUFFER_SIZE: u64 = 0x10000000;
