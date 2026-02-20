@@ -1,3 +1,5 @@
 //! Attachment limits
 
-pub const MAX_PATH_LENGTH: usize = 256;
+const fs_limits = @import("fs.zig");
+
+pub const MAX_LOCATION_LENGTH: usize = fs_limits.MAX_LOCATION_LENGTH;

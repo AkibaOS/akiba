@@ -22,7 +22,7 @@ const pit = @import("../../drivers/pit/pit.zig");
 const pmm = @import("../../memory/pmm.zig");
 const sensei = @import("../../kata/sensei/sensei.zig");
 const serial = @import("../../drivers/serial/serial.zig");
-const system = @import("../../system/system.zig");
+const memory_const = @import("../../common/constants/memory.zig");
 const terminal = @import("../../graphics/terminal/terminal.zig");
 const tss = @import("../tss/tss.zig");
 
@@ -40,7 +40,7 @@ pub fn run(multiboot_addr: u64) void {
     ok();
 
     step("Initializing physical memory");
-    pmm.init(system.constants.KERNEL_END(), memory_map);
+    pmm.init(memory_const.MIRAI_END(), memory_map);
     ok();
 
     step("Initializing heap");

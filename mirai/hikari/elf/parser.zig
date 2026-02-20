@@ -1,7 +1,7 @@
 //! ELF parser
 
 const elf_const = @import("../../common/constants/elf.zig");
-const system = @import("../../system/system.zig");
+const memory_limits = @import("../../common/limits/memory.zig");
 const types = @import("types.zig");
 
 pub fn parse(data: []const u8) !types.Info {
@@ -31,7 +31,7 @@ pub fn parse(data: []const u8) !types.Info {
         return error.NotExecutable;
     }
 
-    if (!system.is_valid_user_pointer(header.entry)) {
+    if (!memory_limits.is_valid_kata_pointer(header.entry)) {
         return error.InvalidEntryPoint;
     }
 
@@ -60,7 +60,7 @@ pub fn parse(data: []const u8) !types.Info {
             if (phdr.filesz > phdr.memsz) {
                 return error.InvalidSegmentSize;
             }
-            if (!system.is_userspace_range(phdr.vaddr, phdr.memsz)) {
+            if (!memory_limits.is_kata_range(phdr.vaddr, phdr.memsz)) {
                 return error.SegmentAddressOutOfRange;
             }
         }

@@ -21,8 +21,8 @@ pub const DeviceType = enum {
 pub const Attachment = struct {
     attachment_type: Type = .Closed,
 
-    path: [attachment_limits.MAX_PATH_LENGTH]u8 = undefined,
-    path_len: usize = 0,
+    location: [attachment_limits.MAX_LOCATION_LENGTH]u8 = undefined,
+    location_len: usize = 0,
     position: u64 = 0,
     unit_size: u64 = 0,
     buffer: ?[]u8 = null,

@@ -16,53 +16,53 @@ const multiboot = @import("../boot/multiboot/multiboot.zig");
 const paging = @import("../memory/paging.zig");
 const sensei = @import("../kata/sensei/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
-const system = @import("../system/system.zig");
+const fs_limits = @import("../common/limits/fs.zig");
 
-const INIT_PATH = "/system/akiba/pulse.akibainit";
+const INIT_LOCATION = "/system/akiba/pulse.akibainit";
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
-    const init_size = fs.get_unit_size(INIT_PATH) catch |err| {
+    const init_size = fs.get_unit_size(INIT_LOCATION) catch |err| {
         serial.print("FATAL: Cannot find init at ");
-        serial.print(INIT_PATH);
+        serial.print(INIT_LOCATION);
         serial.print("\n");
         return err;
     };
 
     if (init_size == 0) {
         serial.print("FATAL: Init is empty\n");
-        return error.EmptyFile;
+        return error.EmptyUnit;
     }
 
-    var args: [1][]const u8 = .{INIT_PATH};
-    return load_with_args(fs, INIT_PATH, &args);
+    var args: [1][]const u8 = .{INIT_LOCATION};
+    return load_with_args(fs, INIT_LOCATION, &args);
 }
 
-pub fn load(fs: *afs.AFS(ahci.BlockDevice), path: []const u8) !u32 {
-    var args: [1][]const u8 = .{path};
-    return load_with_args(fs, path, &args);
+pub fn load(fs: *afs.AFS(ahci.BlockDevice), location: []const u8) !u32 {
+    var args: [1][]const u8 = .{location};
+    return load_with_args(fs, location, &args);
 }
 
 pub fn load_with_args(
     fs: *afs.AFS(ahci.BlockDevice),
-    path: []const u8,
+    location: []const u8,
     args: []const []const u8,
 ) !u32 {
-    if (path.len == 0 or path.len > system.limits.MAX_PATH_LENGTH) {
-        return error.InvalidPath;
+    if (location.len == 0 or location.len > fs_limits.MAX_LOCATION_LENGTH) {
+        return error.InvalidLocation;
     }
 
-    const file_size = try fs.get_unit_size(path);
+    const unit_size = try fs.get_unit_size(location);
 
-    if (file_size == 0) return error.EmptyFile;
-    if (file_size > system.limits.MAX_FILE_SIZE) return error.FileTooLarge;
+    if (unit_size == 0) return error.EmptyUnit;
+    if (unit_size > fs_limits.MAX_UNIT_SIZE) return error.UnitTooLarge;
 
-    const buffer_ptr = heap.alloc(@intCast(file_size)) orelse return error.OutOfMemory;
-    defer heap.free(buffer_ptr, @intCast(file_size));
-    const buffer = buffer_ptr[0..@intCast(file_size)];
+    const buffer_ptr = heap.alloc(@intCast(unit_size)) orelse return error.OutOfMemory;
+    defer heap.free(buffer_ptr, @intCast(unit_size));
+    const buffer = buffer_ptr[0..@intCast(unit_size)];
 
-    const bytes_read = try fs.view_unit_at(path, buffer);
+    const bytes_read = try fs.view_unit_at(location, buffer);
 
-    if (bytes_read != file_size) {
+    if (bytes_read != unit_size) {
         return error.IncompleteRead;
     }
 
@@ -113,7 +113,7 @@ fn setup_stack_args(kata: *kata_mod.Kata, args: []const []const u8) !u64 {
     var stack_top = kata.user_stack_top;
     const pc: u64 = args.len;
 
-    var string_addrs: [kata_limits.MAX_ARGS]u64 = undefined;
+    var string_addrs: [kata_limits.MAX_PARAMETERS]u64 = undefined;
 
     for (args, 0..) |arg, i| {
         const str_len = arg.len + 1;

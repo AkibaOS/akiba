@@ -23,6 +23,13 @@ pub fn MIRAI_END() u64 {
 pub const KATA_SPACE_START: u64 = 0x1000;
 pub const KATA_SPACE_END: u64 = 0x0000800000000000;
 
+// Stack configuration
+pub const USER_STACK_TOP: u64 = 0x00007FFFFFF00000;
+pub const USER_STACK_PAGES: u64 = 512; // 2MB
+pub const USER_STACK_SIZE: u64 = USER_STACK_PAGES * PAGE_SIZE;
+pub const KERNEL_STACK_PAGES: u64 = 4; // 16KB
+pub const KERNEL_STACK_SIZE: u64 = KERNEL_STACK_PAGES * PAGE_SIZE;
+
 pub const PTE_PRESENT: u64 = 1 << 0;
 pub const PTE_WRITABLE: u64 = 1 << 1;
 pub const PTE_USER: u64 = 1 << 2;

@@ -18,13 +18,13 @@ pub fn get(buffer: []u8) types.Error![]u8 {
     return buffer[0..@intCast(result)];
 }
 
-pub fn set(path: []const u8) types.Error!void {
+pub fn set(location: []const u8) types.Error!void {
     const result = sys.syscall(.setlocation, .{
-        @intFromPtr(path.ptr),
-        path.len,
+        @intFromPtr(location.ptr),
+        location.len,
     });
 
     if (result == ERROR_RESULT) {
-        return types.Error.InvalidPath;
+        return types.Error.InvalidLocation;
     }
 }

@@ -32,7 +32,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     copy.from_ptr(&location_buf, location_ptr, location_len);
     const location = location_buf[0..location_len];
 
-    var params: [kata_limits.MAX_ARGS][]const u8 = undefined;
+    var params: [kata_limits.MAX_PARAMETERS][]const u8 = undefined;
     var param_count: usize = 1;
     params[0] = location;
 
@@ -40,7 +40,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
         const pv = slice.typed_ptr_const(u64, pv_ptr);
 
         var i: usize = 1;
-        while (i < pc and param_count < kata_limits.MAX_ARGS) : (i += 1) {
+        while (i < pc and param_count < kata_limits.MAX_PARAMETERS) : (i += 1) {
             const param_ptr = pv[i];
             if (!memory_limits.is_valid_kata_pointer(param_ptr)) break;
 

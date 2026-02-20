@@ -11,7 +11,7 @@ const heap = @import("../../memory/heap.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_attachment = @import("../../kata/attachment.zig");
 const kata_mod = @import("../../kata/kata.zig");
-const path = @import("../../utils/fs/path.zig");
+const location_util = @import("../../utils/fs/location.zig");
 const result = @import("../../utils/types/result.zig");
 const sensei = @import("../../kata/sensei/sensei.zig");
 const string_copy = @import("../../utils/string/copy.zig");
@@ -32,7 +32,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const location_len = string_copy.from_kata(&location_buf, location_ptr) catch return result.set_error(ctx);
     const location = location_buf[0..location_len];
 
-    if (path.is_device(location)) {
+    if (location_util.is_device(location)) {
         const fd = open_device(kata, location, flags) catch return result.set_error(ctx);
         return result.set_value(ctx, fd);
     }
@@ -42,7 +42,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 }
 
 fn open_device(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
-    const name = path.device_name(location);
+    const name = location_util.device_name(location);
 
     const device_type: kata_attachment.DeviceType =
         if (compare.equals(name, "source")) .Source else if (compare.equals(name, "stream")) .Stream else if (compare.equals(name, "trace")) .Trace else if (compare.equals(name, "void")) .Void else if (compare.equals(name, "chaos")) .Chaos else if (compare.equals(name, "zero")) .Zero else if (compare.equals(name, "console")) .Console else return error.UnknownDevice;
@@ -61,7 +61,7 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     const fs = afs_instance orelse return error.NoFilesystem;
 
     var full_location_buf: [512]u8 = undefined;
-    const full_location = path.resolve(kata, location, &full_location_buf);
+    const full_location = location_util.resolve(kata, location, &full_location_buf);
 
     const fd = try attachment_util.allocate(kata);
 
@@ -75,9 +75,9 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
                 .unit_size = 0,
                 .position = 0,
                 .flags = flags,
-                .path_len = location.len,
+                .location_len = location.len,
             };
-            copy.bytes(kata.attachments[fd].path[0..location.len], location);
+            copy.bytes(kata.attachments[fd].location[0..location.len], location);
             return fd;
         }
         return error.UnitNotFound;
@@ -92,9 +92,9 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
         .unit_size = bytes_read,
         .position = if (flags & attachment_const.EXTEND != 0) bytes_read else 0,
         .flags = flags,
-        .path_len = location.len,
+        .location_len = location.len,
     };
-    copy.bytes(kata.attachments[fd].path[0..location.len], location);
+    copy.bytes(kata.attachments[fd].location[0..location.len], location);
 
     return fd;
 }

@@ -11,12 +11,13 @@ const pci_const = @import("../../common/constants/pci.zig");
 const pmm = @import("../../memory/pmm.zig");
 const port_ops = @import("port.zig");
 const serial = @import("../serial/serial.zig");
-const system = @import("../../system/system.zig");
+const memory_const = @import("../../common/constants/memory.zig");
 const types = @import("types.zig");
 
 pub const SECTOR_SIZE = ata_limits.SECTOR_SIZE;
 
-const HIGHER_HALF = system.constants.HIGHER_HALF_START;
+const HIGHER_HALF = memory_const.HIGHER_HALF_START;
+const PAGE_SIZE = memory_const.PAGE_SIZE;
 
 var hba_mem: ?*volatile types.HBAMemory = null;
 var port_num: u8 = 0;
@@ -97,8 +98,8 @@ fn rebase_port(port: *volatile types.HBAPort) !void {
     const clb_virt = clb_phys + HIGHER_HALF;
     const fb_virt = fb_phys + HIGHER_HALF;
 
-    @memset(@as([*]u8, @ptrFromInt(clb_virt))[0..ahci_limits.PAGE_SIZE], 0);
-    @memset(@as([*]u8, @ptrFromInt(fb_virt))[0..ahci_limits.PAGE_SIZE], 0);
+    @memset(@as([*]u8, @ptrFromInt(clb_virt))[0..PAGE_SIZE], 0);
+    @memset(@as([*]u8, @ptrFromInt(fb_virt))[0..PAGE_SIZE], 0);
 
     const cmdheader = @as([*]volatile types.CmdHeader, @ptrFromInt(clb_virt));
 
@@ -109,7 +110,7 @@ fn rebase_port(port: *volatile types.HBAPort) !void {
         const cmdtable_phys = pmm.alloc_page() orelse return error.OutOfMemory;
         cmdheader[i].ctba = cmdtable_phys;
 
-        @memset(@as([*]u8, @ptrFromInt(cmdtable_phys + HIGHER_HALF))[0..ahci_limits.PAGE_SIZE], 0);
+        @memset(@as([*]u8, @ptrFromInt(cmdtable_phys + HIGHER_HALF))[0..PAGE_SIZE], 0);
     }
 
     port.serr = 0xFFFFFFFF;

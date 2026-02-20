@@ -1,10 +1,10 @@
 //! Kata memory management
 
 const memory_const = @import("../common/constants/memory.zig");
+const memory_limits = @import("../common/limits/memory.zig");
 const paging = @import("../memory/paging.zig");
 const pmm = @import("../memory/pmm.zig");
 const serial = @import("../drivers/serial/serial.zig");
-const system = @import("../system/system.zig");
 const types = @import("types.zig");
 
 const HIGHER_HALF = memory_const.HIGHER_HALF_START;
@@ -77,9 +77,9 @@ pub const VirtualBuffer = struct {
 pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !void {
     kata.page_table = try paging.create_page_table();
 
-    const user_stack_base = system.constants.USER_STACK_TOP - (system.constants.USER_STACK_PAGES * PAGE_SIZE);
+    const user_stack_base = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_PAGES * PAGE_SIZE);
 
-    for (0..system.constants.USER_STACK_PAGES) |i| {
+    for (0..memory_const.USER_STACK_PAGES) |i| {
         const page = pmm.alloc_page() orelse return error.OutOfMemory;
         const virt = user_stack_base + (i * PAGE_SIZE);
         _ = try paging.map_page_in_table(kata.page_table, virt, page, paging.PAGE_WRITABLE | paging.PAGE_USER);
@@ -89,15 +89,51 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
             page_ptr[j] = 0;
         }
     }
-    kata.user_stack_top = system.constants.USER_STACK_TOP;
+    kata.user_stack_top = memory_const.USER_STACK_TOP;
 
-    const kernel_stack_page = pmm.alloc_page() orelse return error.OutOfMemory;
-    kata.stack_top = kernel_stack_page + HIGHER_HALF + system.constants.KERNEL_STACK_SIZE;
+    // Allocate kernel stack pages - must be contiguous for identity mapping
+    const first_page = pmm.alloc_page() orelse return error.OutOfMemory;
+    const kernel_stack_base = first_page;
+
+    // Identity map first page
+    _ = try paging.map_page_in_table(kata.page_table, first_page, first_page, paging.PAGE_WRITABLE);
+
+    // Zero the page
+    var page_ptr: [*]volatile u8 = @ptrFromInt(first_page + HIGHER_HALF);
+    for (0..PAGE_SIZE) |j| {
+        page_ptr[j] = 0;
+    }
+
+    // Allocate remaining pages, checking for contiguity
+    var i: u64 = 1;
+    while (i < memory_const.KERNEL_STACK_PAGES) : (i += 1) {
+        const page = pmm.alloc_page() orelse return error.OutOfMemory;
+        const expected = first_page + (i * PAGE_SIZE);
+
+        if (page != expected) {
+            // Non-contiguous - free what we got and use smaller stack
+            pmm.free_page(page);
+            break;
+        }
+
+        // Identity map this page
+        _ = try paging.map_page_in_table(kata.page_table, page, page, paging.PAGE_WRITABLE);
+
+        // Zero the page
+        page_ptr = @ptrFromInt(page + HIGHER_HALF);
+        for (0..PAGE_SIZE) |j| {
+            page_ptr[j] = 0;
+        }
+    }
+
+    // Stack top is at the end of allocated contiguous pages
+    const actual_stack_size = i * PAGE_SIZE;
+    kata.stack_top = kernel_stack_base + HIGHER_HALF + actual_stack_size;
 
     if (framebuffer_phys != 0 and framebuffer_size > 0) {
         const fb_pages = (framebuffer_size + PAGE_SIZE - 1) / PAGE_SIZE;
-        for (0..fb_pages) |i| {
-            const phys = framebuffer_phys + (i * PAGE_SIZE);
+        for (0..fb_pages) |fi| {
+            const phys = framebuffer_phys + (fi * PAGE_SIZE);
             _ = try paging.map_page_in_table(
                 kata.page_table,
                 phys,
@@ -111,17 +147,17 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
 pub fn load_segment(
     kata: *types.Kata,
     vaddr: u64,
-    file_data: []const u8,
-    file_offset: u64,
-    file_size: u64,
+    elf_data: []const u8,
+    data_offset: u64,
+    data_size: u64,
     mem_size: u64,
     flags: u32,
 ) !void {
     if (mem_size == 0) return;
-    if (file_size > mem_size) return error.InvalidSegment;
-    if (file_offset + file_size > file_data.len) return error.SegmentOutOfBounds;
+    if (data_size > mem_size) return error.InvalidSegment;
+    if (data_offset + data_size > elf_data.len) return error.SegmentOutOfBounds;
 
-    if (!system.is_userspace_range(vaddr, mem_size)) {
+    if (!memory_limits.is_kata_range(vaddr, mem_size)) {
         return error.InvalidAddress;
     }
 
@@ -166,13 +202,13 @@ pub fn load_segment(
         const page_offset = if (i == 0) offset_in_page else 0;
         const segment_pos: u64 = if (i == 0) 0 else (i * PAGE_SIZE - offset_in_page);
 
-        if (segment_pos < file_size) {
-            const bytes_remaining = file_size - segment_pos;
+        if (segment_pos < data_size) {
+            const bytes_remaining = data_size - segment_pos;
             const bytes_to_copy = @min(PAGE_SIZE - page_offset, bytes_remaining);
-            const file_pos = file_offset + segment_pos;
+            const elf_pos = data_offset + segment_pos;
 
-            if (file_pos + bytes_to_copy <= file_data.len) {
-                const src = file_data[file_pos .. file_pos + bytes_to_copy];
+            if (elf_pos + bytes_to_copy <= elf_data.len) {
+                const src = elf_data[elf_pos .. elf_pos + bytes_to_copy];
 
                 for (0..bytes_to_copy) |k| {
                     dest_ptr[page_offset + k] = src[k];

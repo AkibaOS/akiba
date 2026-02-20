@@ -6,16 +6,16 @@ pub const Error = error{
     InvalidDescriptor,
     ReadFailed,
     WriteFailed,
-    InvalidPath,
+    InvalidLocation,
     SendFailed,
     GetLocationFailed,
 };
 
-pub const FileDescriptor = u32;
+pub const Descriptor = u32;
 
-pub const source: FileDescriptor = 0;
-pub const stream: FileDescriptor = 1;
-pub const trace: FileDescriptor = 2;
+pub const source: Descriptor = 0;
+pub const stream: Descriptor = 1;
+pub const trace: Descriptor = 2;
 
 pub const VIEW_ONLY: u32 = 0x01;
 pub const MARK_ONLY: u32 = 0x02;

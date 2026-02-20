@@ -8,7 +8,7 @@ const string = @import("string");
 const sys = @import("sys");
 
 const MAX_INPUT = 256;
-const MAX_ARGS = 16;
+const MAX_PARAMETERS = 16;
 
 var input_buffer: [MAX_INPUT]u8 = undefined;
 var input_len: usize = 0;
@@ -16,8 +16,8 @@ var char_buffer: [1]u8 = undefined;
 var location_buffer: [256]u8 = undefined;
 var letter_buffer: [256]u8 = undefined;
 
-var arg_ptrs: [MAX_ARGS][*:0]const u8 = undefined;
-var arg_storage: [MAX_ARGS][128]u8 = undefined;
+var param_ptrs: [MAX_PARAMETERS][*:0]const u8 = undefined;
+var param_storage: [MAX_PARAMETERS][128]u8 = undefined;
 
 export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
     _ = pc;
@@ -60,10 +60,10 @@ export fn main(pc: u32, pv: [*]const [*:0]const u8) u8 {
 }
 
 fn execute_command(input: []const u8) void {
-    var argc: usize = 0;
+    var param_count: usize = 0;
     var i: usize = 0;
 
-    while (i < input.len and argc < MAX_ARGS) {
+    while (i < input.len and param_count < MAX_PARAMETERS) {
         while (i < input.len and input[i] == ' ') : (i += 1) {}
         if (i >= input.len) break;
 
@@ -72,26 +72,26 @@ fn execute_command(input: []const u8) void {
         const end = i;
 
         if (end > start) {
-            const arg_len = end - start;
-            if (arg_len < 127) {
+            const param_len = end - start;
+            if (param_len < 127) {
                 for (input[start..end], 0..) |c, j| {
-                    arg_storage[argc][j] = c;
+                    param_storage[param_count][j] = c;
                 }
-                arg_storage[argc][arg_len] = 0;
-                arg_ptrs[argc] = @ptrCast(&arg_storage[argc]);
-                argc += 1;
+                param_storage[param_count][param_len] = 0;
+                param_ptrs[param_count] = @ptrCast(&param_storage[param_count]);
+                param_count += 1;
             }
         }
     }
 
-    if (argc == 0) return;
+    if (param_count == 0) return;
 
-    const cmd = arg_storage[0][0..string.findNull(&arg_storage[0])];
+    const cmd = param_storage[0][0..string.findNull(&param_storage[0])];
 
-    var path_buf: [512]u8 = undefined;
-    const path = string.concat3(&path_buf, "/binaries/", cmd, ".akiba");
+    var location_buf: [512]u8 = undefined;
+    const location = string.concat3(&location_buf, "/binaries/", cmd, ".akiba");
 
-    if (try_spawn_with_args(path, arg_ptrs[0..argc])) {
+    if (try_spawn_with_params(location, param_ptrs[0..param_count])) {
         process_letters();
         return;
     }
@@ -101,8 +101,8 @@ fn execute_command(input: []const u8) void {
     format.println(".");
 }
 
-fn try_spawn_with_args(path: []const u8, argv: [][*:0]const u8) bool {
-    const pid = kata.spawnWithArgs(path, argv) catch {
+fn try_spawn_with_params(location: []const u8, params: [][*:0]const u8) bool {
+    const pid = kata.spawnWithParams(location, params) catch {
         return false;
     };
 

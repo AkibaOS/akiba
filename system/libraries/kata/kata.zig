@@ -18,16 +18,16 @@ pub fn exit(code: u64) noreturn {
     unreachable;
 }
 
-pub fn spawn(path: []const u8) Error!u32 {
-    const result = sys.syscall(.spawn, .{ @intFromPtr(path.ptr), path.len, @as(u64, 0), @as(u64, 0) });
+pub fn spawn(location: []const u8) Error!u32 {
+    const result = sys.syscall(.spawn, .{ @intFromPtr(location.ptr), location.len, @as(u64, 0), @as(u64, 0) });
     if (result == ERROR_RESULT) {
         return Error.SpawnFailed;
     }
     return @truncate(result);
 }
 
-pub fn spawnWithArgs(path: []const u8, argv: [][*:0]const u8) Error!u32 {
-    const result = sys.syscall(.spawn, .{ @intFromPtr(path.ptr), path.len, @intFromPtr(argv.ptr), argv.len });
+pub fn spawnWithParams(location: []const u8, params: [][*:0]const u8) Error!u32 {
+    const result = sys.syscall(.spawn, .{ @intFromPtr(location.ptr), location.len, @intFromPtr(params.ptr), params.len });
     if (result == ERROR_RESULT) {
         return Error.SpawnFailed;
     }

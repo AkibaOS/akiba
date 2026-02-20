@@ -3,7 +3,10 @@
 const afs = @import("../../fs/afs/afs.zig");
 const ahci = @import("../../drivers/ahci/ahci.zig");
 const compare = @import("../string/compare.zig");
+const kata_mod = @import("../../kata/kata.zig");
 const fs_limits = @import("../../common/limits/fs.zig");
+
+const DEVICE_PREFIX = "/system/devices/";
 
 pub fn resolve_to_cluster(
     fs: *afs.AFS(ahci.BlockDevice),
@@ -126,4 +129,34 @@ fn process_components(result: *Canonical, location: []const u8) void {
             }
         }
     }
+}
+
+pub fn resolve(kata: *kata_mod.Kata, location: []const u8, buffer: []u8) []const u8 {
+    if (location.len > 0 and location[0] == '/') {
+        @memcpy(buffer[0..location.len], location);
+        return buffer[0..location.len];
+    }
+
+    const cwd = kata.current_location[0..kata.current_location_len];
+    var len: usize = cwd.len;
+
+    @memcpy(buffer[0..cwd.len], cwd);
+
+    if (cwd[cwd.len - 1] != '/') {
+        buffer[len] = '/';
+        len += 1;
+    }
+
+    @memcpy(buffer[len .. len + location.len], location);
+    len += location.len;
+
+    return buffer[0..len];
+}
+
+pub fn is_device(location: []const u8) bool {
+    return compare.starts_with(location, DEVICE_PREFIX);
+}
+
+pub fn device_name(location: []const u8) []const u8 {
+    return location[DEVICE_PREFIX.len..];
 }

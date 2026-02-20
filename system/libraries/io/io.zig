@@ -22,7 +22,7 @@ pub const sendLetter = letter.send;
 pub const readLetter = letter.read;
 
 pub const StackEntry = types.StackEntry;
-pub const FileDescriptor = types.FileDescriptor;
+pub const Descriptor = types.Descriptor;
 pub const Letter = types.Letter;
 pub const Error = types.Error;
 

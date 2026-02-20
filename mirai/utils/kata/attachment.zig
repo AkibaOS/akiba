@@ -7,7 +7,7 @@ const fd_mod = @import("../../kata/attachment.zig");
 const heap = @import("../../memory/heap.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
 const kata_mod = @import("../../kata/kata.zig");
-const path = @import("../fs/path.zig");
+const location_util = @import("../fs/location.zig");
 
 pub fn allocate(kata: *kata_mod.Kata) !u32 {
     var i: u32 = 3;
@@ -26,7 +26,7 @@ pub fn seal(kata: *kata_mod.Kata, fd: u32, fs: ?*afs.AFS(ahci.BlockDevice)) void
         if (entry.buffer) |buffer| {
             if (fs) |filesystem| {
                 var full_location_buf: [512]u8 = undefined;
-                const full_location = path.resolve(kata, entry.path[0..entry.path_len], &full_location_buf);
+                const full_location = location_util.resolve(kata, entry.location[0..entry.location_len], &full_location_buf);
                 filesystem.mark_unit(full_location, buffer) catch {};
             }
             heap.free(@ptrCast(buffer.ptr), buffer.len);
