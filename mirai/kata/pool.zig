@@ -67,9 +67,13 @@ pub fn get(id: u32) ?*types.Kata {
 
 pub fn dissolve(kata_id: u32) void {
     const waker = @import("sensei/waker.zig");
+    const memory = @import("memory.zig");
 
     for (&pool, 0..) |*kata, i| {
         if (used[i] and kata.id == kata_id) {
+            // Clean up all memory associated with this Kata
+            memory.cleanup(kata);
+
             kata.state = .Dissolved;
             used[i] = false;
             waker.wake_waiting(kata_id);

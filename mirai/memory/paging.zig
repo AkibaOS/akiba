@@ -245,3 +245,85 @@ pub fn virt_to_phys(cr3: u64, virt: u64) ?u64 {
 
     return phys_base + offset;
 }
+
+/// Check if a page should be freed based on virtual and physical address
+/// Returns true if the page should be freed, false if it's shared
+fn should_free_page(virt: u64, phys: u64) bool {
+    // Identity-mapped kernel region (kernel code, data, PMM bitmap)
+    // These physical pages are shared - don't free
+    if (virt < pmm_const.KERNEL_MAP_END) {
+        return false;
+    }
+    // Framebuffer region - hardware memory, not PMM managed
+    if (phys >= pmm_const.MMIO_FRAMEBUFFER_BASE and
+        phys < pmm_const.MMIO_FRAMEBUFFER_BASE + pmm_const.MMIO_FRAMEBUFFER_SIZE)
+    {
+        return false;
+    }
+    // Everything else (user stack, program segments, etc.) should be freed
+    return true;
+}
+
+/// Destroy a page table and free all associated memory
+/// Frees: user pages, page table structures
+/// Does NOT free: shared kernel pages, framebuffer
+pub fn destroy_page_table(page_table_phys: u64) void {
+    const pml4: [*]volatile u64 = @ptrFromInt(page_table_phys + HIGHER_HALF_START);
+
+    // Only walk user-space PML4 entries (0-255)
+    // Entries 256-511 are shared kernel mappings, don't touch
+    for (0..paging_const.KERNEL_PML4_START) |pml4_idx| {
+        const pml4_entry = pml4[pml4_idx];
+        if ((pml4_entry & PAGE_PRESENT) == 0) continue;
+
+        const pdpt_phys = pml4_entry & paging_const.PTE_MASK;
+        const pdpt: [*]volatile u64 = @ptrFromInt(pdpt_phys + HIGHER_HALF_START);
+
+        for (0..512) |pdpt_idx| {
+            const pdpt_entry = pdpt[pdpt_idx];
+            if ((pdpt_entry & PAGE_PRESENT) == 0) continue;
+
+            const pd_phys = pdpt_entry & paging_const.PTE_MASK;
+            const pd: [*]volatile u64 = @ptrFromInt(pd_phys + HIGHER_HALF_START);
+
+            for (0..512) |pd_idx| {
+                const pd_entry = pd[pd_idx];
+                if ((pd_entry & PAGE_PRESENT) == 0) continue;
+
+                const pt_phys = pd_entry & paging_const.PTE_MASK;
+                const pt: [*]volatile u64 = @ptrFromInt(pt_phys + HIGHER_HALF_START);
+
+                // Free all physical pages in this page table
+                for (0..512) |pt_idx| {
+                    const pt_entry = pt[pt_idx];
+                    if ((pt_entry & PAGE_PRESENT) == 0) continue;
+
+                    const page_phys = pt_entry & paging_const.PTE_MASK;
+
+                    // Compute virtual address from indices
+                    const virt: u64 = (@as(u64, pml4_idx) << 39) |
+                        (@as(u64, pdpt_idx) << 30) |
+                        (@as(u64, pd_idx) << 21) |
+                        (@as(u64, pt_idx) << 12);
+
+                    // Only free if not a shared page
+                    if (should_free_page(virt, page_phys)) {
+                        pmm.free_page(page_phys);
+                    }
+                }
+
+                // Free the PT page itself
+                pmm.free_page(pt_phys);
+            }
+
+            // Free the PD page itself
+            pmm.free_page(pd_phys);
+        }
+
+        // Free the PDPT page itself
+        pmm.free_page(pdpt_phys);
+    }
+
+    // Free the PML4 page itself
+    pmm.free_page(page_table_phys);
+}
