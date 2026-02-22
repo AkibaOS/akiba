@@ -218,17 +218,11 @@ pub fn load_segment(
     }
 }
 
-/// Clean up all memory associated with a Kata
-/// Called when a Kata is dissolved/exits
 pub fn cleanup(kata: *types.Kata) void {
     if (kata.page_table != 0) {
-        // Destroy the page table and free all associated pages
-        // This frees: user stack, program pages, page table structures
-        // Does NOT free: shared kernel pages, framebuffer
         paging.destroy_page_table(kata.page_table);
         kata.page_table = 0;
     }
-
     kata.stack_top = 0;
     kata.user_stack_top = 0;
 }
