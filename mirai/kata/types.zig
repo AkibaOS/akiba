@@ -78,8 +78,9 @@ pub const Kata = struct {
     parent_id: u32,
 
     letter_type: u8,
-    letter_data: [kata_limits.MAX_LETTER_LENGTH]u8,
-    letter_len: u8,
+    letter_data: ?[*]u8,
+    letter_len: u16,
+    letter_capacity: u16,
 
     vruntime: u64,
     weight: u32,

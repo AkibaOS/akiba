@@ -2,6 +2,7 @@
 
 const copy = @import("../../utils/mem/copy.zig");
 const handler = @import("../handler.zig");
+const heap = @import("../../memory/heap.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_constants = @import("../../common/constants/kata.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
@@ -22,7 +23,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 fn send_letter(ctx: *handler.InvocationContext) void {
     const letter_type = int.u8_of(ctx.rsi);
     const data_ptr = ctx.rdx;
-    const data_len = ctx.r10;
+    const data_len = int.u16_of(ctx.r10);
 
     if (data_len > kata_limits.MAX_LETTER_LENGTH) return result.set_error(ctx);
     if (data_len > 0 and !memory_limits.is_valid_kata_pointer(data_ptr)) return result.set_error(ctx);
@@ -31,10 +32,18 @@ fn send_letter(ctx: *handler.InvocationContext) void {
     const parent = kata_mod.get_kata(sender.parent_id) orelse return result.set_error(ctx);
 
     parent.letter_type = letter_type;
-    parent.letter_len = int.u8_of(data_len);
+    parent.letter_len = data_len;
 
     if (data_len > 0) {
-        copy.from_ptr(&parent.letter_data, data_ptr, data_len);
+        if (parent.letter_capacity < data_len) {
+            if (parent.letter_data) |old| {
+                heap.free(@ptrCast(old), parent.letter_capacity);
+            }
+            const new_buf = heap.alloc(data_len) orelse return result.set_error(ctx);
+            parent.letter_data = new_buf;
+            parent.letter_capacity = data_len;
+        }
+        copy.from_ptr(parent.letter_data.?[0..data_len], data_ptr, data_len);
     }
 
     result.set_ok(ctx);
@@ -54,7 +63,9 @@ fn read_letter(ctx: *handler.InvocationContext) void {
         if (!memory_limits.is_valid_kata_pointer(buffer_ptr)) return result.set_error(ctx);
         if (kata.letter_len > buffer_len) return result.set_error(ctx);
 
-        copy.to_ptr(buffer_ptr, kata.letter_data[0..kata.letter_len]);
+        if (kata.letter_data) |data| {
+            copy.to_ptr(buffer_ptr, data[0..kata.letter_len]);
+        }
 
         if (kata.letter_len < buffer_len) {
             slice.byte_ptr(buffer_ptr)[kata.letter_len] = 0;

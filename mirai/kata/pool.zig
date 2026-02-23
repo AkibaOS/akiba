@@ -2,6 +2,7 @@
 
 const attachment = @import("attachment.zig");
 const attachment_const = @import("../common/constants/attachment.zig");
+const heap = @import("../memory/heap.zig");
 const kata_const = @import("../common/constants/kata.zig");
 const kata_limits = @import("../common/limits/kata.zig");
 const types = @import("types.zig");
@@ -83,6 +84,11 @@ pub fn dissolve(kata_id: u32) void {
                     slot.* = null;
                 }
             }
+            if (kata.letter_data) |data| {
+                heap.free(@ptrCast(data), kata.letter_capacity);
+                kata.letter_data = null;
+                kata.letter_capacity = 0;
+            }
             memory.cleanup(kata);
             kata.state = .Dissolved;
             used[i] = false;
@@ -106,8 +112,9 @@ fn create_empty() types.Kata {
         .current_cluster = 0,
         .parent_id = 0,
         .letter_type = 0,
-        .letter_data = undefined,
+        .letter_data = null,
         .letter_len = 0,
+        .letter_capacity = 0,
         .vruntime = 0,
         .weight = kata_const.DEFAULT_WEIGHT,
         .last_run = 0,

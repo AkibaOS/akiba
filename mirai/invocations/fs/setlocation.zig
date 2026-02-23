@@ -5,6 +5,7 @@ const ahci = @import("../../drivers/ahci/ahci.zig");
 const copy = @import("../../utils/mem/copy.zig");
 const fs_limits = @import("../../common/limits/fs.zig");
 const handler = @import("../handler.zig");
+const heap = @import("../../memory/heap.zig");
 const kata_mod = @import("../../kata/kata.zig");
 const location = @import("../../utils/fs/location.zig");
 const memory_limits = @import("../../common/limits/memory.zig");
@@ -44,9 +45,18 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     if (kata.parent_id != 0) {
         if (kata_mod.get_kata(kata.parent_id)) |parent| {
+            const len: u16 = @intCast(canonical.len);
+            if (parent.letter_capacity < len) {
+                if (parent.letter_data) |old| {
+                    heap.free(@ptrCast(old), parent.letter_capacity);
+                }
+                const new_buf = heap.alloc(len) orelse return result.set_error(ctx);
+                parent.letter_data = new_buf;
+                parent.letter_capacity = len;
+            }
             parent.letter_type = 1;
-            parent.letter_len = @intCast(canonical.len);
-            copy.bytes(parent.letter_data[0..canonical.len], canonical.buf[0..canonical.len]);
+            parent.letter_len = len;
+            copy.bytes(parent.letter_data.?[0..len], canonical.buf[0..canonical.len]);
         }
     }
 
