@@ -5,11 +5,14 @@ const kata_const = @import("../common/constants/kata.zig");
 const kata_limits = @import("../common/limits/kata.zig");
 
 pub const State = enum {
-    Ready,
-    Running,
-    Waiting,
-    Blocked,
-    Dissolved,
+    Born, // Just created, being initialized
+    Alive, // Ready to run, waiting for scheduler
+    Flowing, // Currently executing
+    Stalled, // Waiting for child/event
+    Frozen, // Blocked on I/O
+    Dying, // Exit called, cleanup starting
+    Zombie, // Exited, awaiting Shinigami
+    Dissolved, // Gone, slot reusable
 };
 
 pub const Context = packed struct {

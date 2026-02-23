@@ -9,7 +9,7 @@ pub fn get_head() ?*types.Kata {
 }
 
 pub fn enqueue(kata: *types.Kata) void {
-    kata.state = .Ready;
+    kata.state = .Alive;
 
     if (head == null) {
         head = kata;

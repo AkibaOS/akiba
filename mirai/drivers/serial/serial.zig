@@ -64,9 +64,20 @@ pub fn printf(comptime fmt: []const u8, args: anytype) void {
             print_arg(arg);
             arg_index += 1;
             i += 2;
-        } else if (fmt[i] == '{' and i + 2 < fmt.len and fmt[i + 1] == 'x' and fmt[i + 2] == '}') {
+        } else if (fmt[i] == '{' and i + 2 < fmt.len and fmt[i + 2] == '}') {
+            const spec = fmt[i + 1];
             const arg = args[arg_index];
-            print_arg_hex(arg);
+            if (spec == 'x') {
+                print_arg_hex(arg);
+            } else if (spec == 'd') {
+                print_arg_decimal(arg);
+            } else if (spec == 's') {
+                print_arg_string(arg);
+            } else {
+                write('{');
+                write(spec);
+                write('}');
+            }
             arg_index += 1;
             i += 3;
         } else {
@@ -86,6 +97,44 @@ fn print_arg(arg: anytype) void {
         print_decimal(arg);
     } else {
         print("?");
+    }
+}
+
+fn print_arg_decimal(arg: anytype) void {
+    const T = @TypeOf(arg);
+    if (@typeInfo(T) == .int or @typeInfo(T) == .comptime_int) {
+        print_decimal(arg);
+    } else {
+        print("?");
+    }
+}
+
+fn print_arg_string(arg: anytype) void {
+    const T = @TypeOf(arg);
+    const info = @typeInfo(T);
+    if (T == []const u8) {
+        print(arg);
+    } else if (info == .pointer) {
+        const child = info.pointer.child;
+        const child_info = @typeInfo(child);
+        if (child == u8) {
+            // [*]const u8 - null-terminated string pointer
+            var p = arg;
+            while (p[0] != 0) : (p += 1) {
+                write(p[0]);
+            }
+        } else if (child_info == .array and child_info.array.child == u8) {
+            // *const [N]u8 or *const [N:0]u8 - pointer to string literal
+            const slice = arg.*;
+            for (slice) |c| {
+                if (c == 0) break;
+                write(c);
+            }
+        } else {
+            print("?ptr");
+        }
+    } else {
+        print("?type");
     }
 }
 

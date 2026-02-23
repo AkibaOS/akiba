@@ -5,7 +5,9 @@ const attachment_const = @import("../common/constants/attachment.zig");
 const heap = @import("../memory/heap.zig");
 const kata_const = @import("../common/constants/kata.zig");
 const kata_limits = @import("../common/limits/kata.zig");
+const memory = @import("memory.zig");
 const types = @import("types.zig");
+const waker = @import("sensei/waker.zig");
 
 pub var pool: [kata_limits.MAX_KATAS]types.Kata = undefined;
 pub var used: [kata_limits.MAX_KATAS]bool = [_]bool{false} ** kata_limits.MAX_KATAS;
@@ -28,7 +30,7 @@ pub fn create() !*types.Kata {
 
             kata.* = create_empty();
             kata.id = kata_id;
-            kata.state = .Ready;
+            kata.state = .Alive;
 
             kata.current_location[0] = '/';
 
@@ -73,9 +75,6 @@ pub fn get(id: u32) ?*types.Kata {
 }
 
 pub fn dissolve(kata_id: u32) void {
-    const waker = @import("sensei/waker.zig");
-    const memory = @import("memory.zig");
-
     for (&pool, 0..) |*kata, i| {
         if (used[i] and kata.id == kata_id) {
             for (&kata.attachments) |*slot| {

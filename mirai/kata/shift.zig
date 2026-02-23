@@ -2,12 +2,17 @@
 
 const context = @import("../asm/context.zig");
 const gdt = @import("../boot/gdt/gdt.zig");
+const kata_memory = @import("memory.zig");
 const tss = @import("../boot/tss/tss.zig");
 const types = @import("types.zig");
 
 var current_context: ?*types.Context = null;
 
 pub fn to_kata(kata: *types.Kata) void {
+    // Process any deferred page table cleanups before switching
+    // Exclude the target kata's page table from cleanup
+    kata_memory.process_deferred_cleanup(kata.page_table);
+
     tss.set_kernel_stack(kata.stack_top);
     current_context = &kata.context;
 

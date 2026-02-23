@@ -41,20 +41,20 @@ pub fn schedule() void {
 
     if (next == current and next != null) {
         queue.dequeue(next.?);
-        next.?.state = .Running;
+        next.?.state = .Flowing;
         return;
     }
 
     if (current) |curr| {
-        if (curr.state == .Running) {
-            curr.state = .Ready;
+        if (curr.state == .Flowing) {
+            curr.state = .Alive;
             queue.enqueue(curr);
         }
     }
 
     if (next) |n| {
         queue.dequeue(n);
-        n.state = .Running;
+        n.state = .Flowing;
         n.last_run = tick_count;
         current = n;
         shift.to_kata(n);
@@ -104,11 +104,11 @@ fn pick_next() ?*types.Kata {
     var fallback: ?*types.Kata = null;
 
     while (curr) |kata| {
-        if (kata.state == .Ready and kata.vruntime < local_min) {
+        if (kata.state == .Alive and kata.vruntime < local_min) {
             local_min = kata.vruntime;
             chosen = kata;
         }
-        if (kata.state == .Running) {
+        if (kata.state == .Flowing) {
             fallback = kata;
         }
         curr = kata.next;
@@ -120,7 +120,7 @@ fn pick_next() ?*types.Kata {
     }
 
     if (current) |c| {
-        if (c.state == .Running) return c;
+        if (c.state == .Flowing) return c;
     }
 
     if (fallback) |k| return k;

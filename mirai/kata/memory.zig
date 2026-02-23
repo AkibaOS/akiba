@@ -13,6 +13,39 @@ const PAGE_SIZE = memory_const.PAGE_SIZE;
 const KERNEL_VMALLOC_START: u64 = 0xFFFFFF8000000000;
 var next_vmalloc_addr: u64 = KERNEL_VMALLOC_START;
 
+// Deferred page table destruction queue
+const MAX_DEFERRED: usize = 16;
+var deferred_page_tables: [MAX_DEFERRED]u64 = [_]u64{0} ** MAX_DEFERRED;
+var deferred_count: usize = 0;
+
+/// Queue a page table for deferred destruction
+fn queue_deferred_destroy(page_table: u64) void {
+    if (deferred_count < MAX_DEFERRED) {
+        deferred_page_tables[deferred_count] = page_table;
+        deferred_count += 1;
+    }
+    // If queue full, leak the page table (shouldn't happen in practice)
+}
+
+/// Process deferred page table destructions.
+/// Safe to call when CR3 points to a page table we want to keep.
+pub fn process_deferred_cleanup(exclude_pt: u64) void {
+    const current_cr3 = asm_memory.read_page_table_base();
+    var write_idx: usize = 0;
+
+    for (0..deferred_count) |i| {
+        const pt = deferred_page_tables[i];
+        if (pt != 0 and pt != current_cr3 and pt != exclude_pt) {
+            paging.destroy_page_table(pt);
+        } else if (pt != 0) {
+            // Keep in queue
+            deferred_page_tables[write_idx] = pt;
+            write_idx += 1;
+        }
+    }
+    deferred_count = write_idx;
+}
+
 pub const VirtualBuffer = struct {
     data: []u8,
     virt_base: u64,
@@ -220,12 +253,13 @@ pub fn load_segment(
 
 pub fn cleanup(kata: *types.Kata) void {
     if (kata.page_table != 0) {
-        // CRITICAL: If we're currently using this kata's page table,
-        // we CANNOT destroy it - we'd be freeing pages while CR3 points to them.
-        // Skip destruction (memory leak) to prevent crash.
         const current_cr3 = asm_memory.read_page_table_base();
         if (current_cr3 != kata.page_table) {
+            // Safe to destroy immediately
             paging.destroy_page_table(kata.page_table);
+        } else {
+            // Queue for deferred destruction
+            queue_deferred_destroy(kata.page_table);
         }
         kata.page_table = 0;
     }

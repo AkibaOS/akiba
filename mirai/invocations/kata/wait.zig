@@ -17,7 +17,7 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const current = sensei.get_current_kata() orelse return result.set_error(ctx);
 
-    current.state = .Waiting;
+    current.state = .Stalled;
     current.waiting_for = target_id;
 
     current.context.rax = 0;

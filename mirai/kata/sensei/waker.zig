@@ -11,11 +11,11 @@ pub fn wake_all_waiting() void {
         if (!pool.used[i]) continue;
 
         const kata = &pool.pool[i];
-        if (kata.state != .Waiting) continue;
+        if (kata.state != .Stalled) continue;
 
         const target = pool.get(kata.waiting_for);
         if (target == null or target.?.state == .Dissolved) {
-            kata.state = .Ready;
+            kata.state = .Alive;
             queue.enqueue(kata);
             kata.waiting_for = 0;
         }
@@ -27,8 +27,8 @@ pub fn wake_waiting(target_id: u32) void {
         if (!pool.used[i]) continue;
 
         const kata = &pool.pool[i];
-        if (kata.state == .Waiting and kata.waiting_for == target_id) {
-            kata.state = .Ready;
+        if (kata.state == .Stalled and kata.waiting_for == target_id) {
+            kata.state = .Alive;
             queue.enqueue(kata);
             kata.waiting_for = 0;
         }
@@ -42,8 +42,8 @@ pub fn wake_blocked() void {
         if (!pool.used[i]) continue;
 
         const kata = &pool.pool[i];
-        if (kata.state == .Blocked) {
-            kata.state = .Ready;
+        if (kata.state == .Frozen) {
+            kata.state = .Alive;
             queue.enqueue(kata);
             return;
         }
@@ -55,8 +55,8 @@ pub fn wake_one_blocked() void {
         if (!pool.used[i]) continue;
 
         const kata = &pool.pool[i];
-        if (kata.state == .Blocked) {
-            kata.state = .Ready;
+        if (kata.state == .Frozen) {
+            kata.state = .Alive;
             queue.enqueue(kata);
             return;
         }
@@ -66,8 +66,8 @@ pub fn wake_one_blocked() void {
 pub fn wake(kata_id: u32) void {
     const kata = pool.get(kata_id) orelse return;
 
-    if (kata.state == .Blocked) {
-        kata.state = .Ready;
+    if (kata.state == .Frozen) {
+        kata.state = .Alive;
         queue.enqueue(kata);
     }
 }
