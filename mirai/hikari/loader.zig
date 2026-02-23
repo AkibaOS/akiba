@@ -18,7 +18,7 @@ const sensei = @import("../kata/sensei/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
 const fs_limits = @import("../common/limits/fs.zig");
 
-const INIT_LOCATION = "/system/akiba/pulse.akibainit";
+const INIT_LOCATION = "/system/akiba/pulse.gen";
 
 pub fn init(fs: *afs.AFS(ahci.BlockDevice)) !u32 {
     const init_size = fs.get_unit_size(INIT_LOCATION) catch |err| {

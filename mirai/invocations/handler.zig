@@ -19,6 +19,7 @@ const viewstack = @import("fs/viewstack.zig");
 
 const exit = @import("kata/exit.zig");
 const postman = @import("kata/postman.zig");
+const reap = @import("kata/reap.zig");
 const spawn = @import("kata/spawn.zig");
 const wait = @import("kata/wait.zig");
 const yield = @import("kata/yield.zig");
@@ -85,6 +86,7 @@ pub fn handle(ctx: *InvocationContext) void {
         invocations.UPTIME => uptime.invoke(ctx),
         invocations.GETTIME => gettime.invoke(ctx),
         invocations.DISKINFO => diskinfo.invoke(ctx),
+        invocations.REAP => reap.invoke(ctx),
         else => result.set_error(ctx),
     }
 }

@@ -19,6 +19,7 @@ pub const MEMINFO: u64 = 0x10;
 pub const UPTIME: u64 = 0x11;
 pub const GETTIME: u64 = 0x12;
 pub const DISKINFO: u64 = 0x13;
+pub const REAP: u64 = 0x14;
 
 pub const ERROR: u64 = @as(u64, @bitCast(@as(i64, -1)));
 pub const NO_DATA: u64 = @as(u64, @bitCast(@as(i64, -2)));

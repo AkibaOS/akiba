@@ -1,0 +1,9 @@
+.{
+    .name = "shinigami",
+    .version = "0.1.0",
+    .dependencies = .{
+        .sys,
+        .kata,
+    },
+    .entry = "shinigami.zig",
+}

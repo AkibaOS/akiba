@@ -12,6 +12,8 @@ const HIGHER_HALF = memory_const.HIGHER_HALF_START;
 
 var bitmap: [*]u8 = undefined;
 var bitmap_size: usize = 0;
+var bitmap_phys_start: u64 = 0;
+var bitmap_phys_end: u64 = 0;
 var total_pages: u64 = 0;
 var used_pages: u64 = 0;
 var initialized: bool = false;
@@ -20,6 +22,14 @@ pub const MemoryInfo = struct {
     total: u64,
     used: u64,
 };
+
+pub fn get_bitmap_range() struct { start: u64, end: u64 } {
+    return .{ .start = bitmap_phys_start, .end = bitmap_phys_end };
+}
+
+pub fn is_in_bitmap(phys: u64) bool {
+    return phys >= bitmap_phys_start and phys < bitmap_phys_end;
+}
 
 pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     serial.print("\n=== PMM ===\n");
@@ -39,8 +49,12 @@ pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
 
     serial.printf("Memory: {} MB, {} pages\n", .{ highest_addr / (1024 * 1024), total_pages });
 
-    const bitmap_phys = align_up(kernel_end_phys, PAGE_SIZE);
-    bitmap = @ptrFromInt(bitmap_phys + HIGHER_HALF);
+    bitmap_phys_start = align_up(kernel_end_phys, PAGE_SIZE);
+    bitmap = @ptrFromInt(bitmap_phys_start + HIGHER_HALF);
+
+    const bitmap_pages = (bitmap_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    bitmap_phys_end = bitmap_phys_start + bitmap_pages * PAGE_SIZE;
+    serial.printf("Bitmap: phys={x}-{x} size={x} pages={d}\n", .{ bitmap_phys_start, bitmap_phys_end, bitmap_size, bitmap_pages });
 
     for (0..bitmap_size) |i| {
         bitmap[i] = pmm_const.BITMAP_MARK_USED;
@@ -54,11 +68,10 @@ pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     }
 
     const kernel_size = kernel_end_phys - pmm_const.KERNEL_BASE;
-    const bitmap_pages = (bitmap_size + PAGE_SIZE - 1) / PAGE_SIZE;
 
     reserve_region(0, pmm_const.FIRST_MB);
     reserve_region(pmm_const.KERNEL_BASE, kernel_size);
-    reserve_region(bitmap_phys, bitmap_pages * PAGE_SIZE);
+    reserve_region(bitmap_phys_start, bitmap_phys_end - bitmap_phys_start);
 
     reserve_region(pmm_const.MMIO_PCI_BASE, pmm_const.MMIO_PCI_SIZE);
     reserve_region(pmm_const.MMIO_FRAMEBUFFER_BASE, pmm_const.MMIO_FRAMEBUFFER_SIZE);
@@ -70,13 +83,40 @@ pub fn init(kernel_end_phys: u64, memory_map: []multiboot.MemoryEntry) void {
     initialized = true;
 }
 
+pub var ash_pd_phys: u64 = 0;
+
+pub fn set_ash_pd(phys: u64) void {
+    ash_pd_phys = phys;
+    serial.printf("PMM: Tracking Ash PD at {x}\n", .{phys});
+
+    // Verify it's marked as used
+    const page = phys / PAGE_SIZE;
+    if (is_page_used(page)) {
+        serial.printf("PMM: Ash PD page {x} is correctly marked USED\n", .{phys});
+    } else {
+        serial.printf("PMM: BUG! Ash PD page {x} is marked FREE!\n", .{phys});
+    }
+}
+
+pub fn check_ash_pd_status() void {
+    if (ash_pd_phys == 0) return;
+    const page = ash_pd_phys / PAGE_SIZE;
+    if (!is_page_used(page)) {
+        serial.printf("PMM: Ash PD {x} became FREE!\n", .{ash_pd_phys});
+    }
+}
+
 pub fn alloc_page() ?u64 {
     if (!initialized) return null;
 
     for (0..total_pages) |i| {
         if (!is_page_used(i)) {
+            const phys = i * PAGE_SIZE;
+            if (ash_pd_phys != 0 and phys == ash_pd_phys) {
+                serial.printf("PMM: ALLOCATING Ash's PD {x}! BUG - should be marked used!\n", .{phys});
+            }
             set_page_used(i);
-            return i * PAGE_SIZE;
+            return phys;
         }
     }
     return null;
@@ -87,6 +127,9 @@ pub fn free_page(phys_addr: u64) void {
 
     const page = phys_addr / PAGE_SIZE;
     if (page < total_pages) {
+        if (ash_pd_phys != 0 and phys_addr == ash_pd_phys) {
+            serial.printf("PMM: FREEING Ash's PD {x}!\n", .{phys_addr});
+        }
         set_page_free(page);
     }
 }

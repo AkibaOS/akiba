@@ -4,6 +4,7 @@ const asm_memory = @import("../asm/memory.zig");
 const memory_const = @import("../common/constants/memory.zig");
 const memory_limits = @import("../common/limits/memory.zig");
 const paging = @import("../memory/paging.zig");
+const paging_const = @import("../common/constants/paging.zig");
 const pmm = @import("../memory/pmm.zig");
 const types = @import("types.zig");
 
@@ -12,39 +13,6 @@ const PAGE_SIZE = memory_const.PAGE_SIZE;
 
 const KERNEL_VMALLOC_START: u64 = 0xFFFFFF8000000000;
 var next_vmalloc_addr: u64 = KERNEL_VMALLOC_START;
-
-// Deferred page table destruction queue
-const MAX_DEFERRED: usize = 16;
-var deferred_page_tables: [MAX_DEFERRED]u64 = [_]u64{0} ** MAX_DEFERRED;
-var deferred_count: usize = 0;
-
-/// Queue a page table for deferred destruction
-fn queue_deferred_destroy(page_table: u64) void {
-    if (deferred_count < MAX_DEFERRED) {
-        deferred_page_tables[deferred_count] = page_table;
-        deferred_count += 1;
-    }
-    // If queue full, leak the page table (shouldn't happen in practice)
-}
-
-/// Process deferred page table destructions.
-/// Safe to call when CR3 points to a page table we want to keep.
-pub fn process_deferred_cleanup(exclude_pt: u64) void {
-    const current_cr3 = asm_memory.read_page_table_base();
-    var write_idx: usize = 0;
-
-    for (0..deferred_count) |i| {
-        const pt = deferred_page_tables[i];
-        if (pt != 0 and pt != current_cr3 and pt != exclude_pt) {
-            paging.destroy_page_table(pt);
-        } else if (pt != 0) {
-            // Keep in queue
-            deferred_page_tables[write_idx] = pt;
-            write_idx += 1;
-        }
-    }
-    deferred_count = write_idx;
-}
 
 pub const VirtualBuffer = struct {
     data: []u8,
@@ -114,8 +82,16 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
     kata.user_stack_bottom = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_MAX_PAGES * PAGE_SIZE);
     kata.user_stack_committed = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_INITIAL_PAGES * PAGE_SIZE);
 
+    const serial = @import("../drivers/serial/serial.zig");
+
     for (0..memory_const.USER_STACK_INITIAL_PAGES) |i| {
         const page = pmm.alloc_page() orelse return error.OutOfMemory;
+
+        // Check if we got Ash's PD
+        if (pmm.ash_pd_phys != 0 and page == pmm.ash_pd_phys) {
+            serial.printf("SETUP: Got Ash's PD {x} for user stack page!\n", .{page});
+        }
+
         const virt = kata.user_stack_committed + (i * PAGE_SIZE);
         _ = try paging.map_page_in_table(kata.page_table, virt, page, paging.PAGE_WRITABLE | paging.PAGE_USER);
 
@@ -126,6 +102,12 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
     }
 
     const first_page = pmm.alloc_page() orelse return error.OutOfMemory;
+
+    // Check if we got Ash's PD for kernel stack
+    if (pmm.ash_pd_phys != 0 and first_page == pmm.ash_pd_phys) {
+        serial.printf("SETUP: Got Ash's PD {x} for kernel stack!\n", .{first_page});
+    }
+
     const kernel_stack_base = first_page;
 
     // Identity map first page
@@ -222,6 +204,13 @@ pub fn load_segment(
             }
         } else {
             page_phys = pmm.alloc_page() orelse return error.OutOfMemory;
+
+            // Check if we got Ash's PD
+            if (pmm.ash_pd_phys != 0 and page_phys == pmm.ash_pd_phys) {
+                const serial = @import("../drivers/serial/serial.zig");
+                serial.printf("KATA-MEM: Got Ash's PD {x} for data page at vaddr {x}!\n", .{ page_phys, page_vaddr });
+            }
+
             _ = try paging.map_page_in_table(kata.page_table, page_vaddr, page_phys, page_flags);
 
             const zero_ptr: [*]volatile u8 = @ptrFromInt(page_phys + HIGHER_HALF);
@@ -255,18 +244,21 @@ pub fn cleanup(kata: *types.Kata) void {
     if (kata.page_table != 0) {
         const current_cr3 = asm_memory.read_page_table_base();
         if (current_cr3 != kata.page_table) {
-            // Safe to destroy immediately
             paging.destroy_page_table(kata.page_table);
-        } else {
-            // Queue for deferred destruction
-            queue_deferred_destroy(kata.page_table);
+            kata.page_table = 0;
         }
-        kata.page_table = 0;
+        // If CR3 == kata.page_table, leave page_table intact for Shinigami
     }
     kata.stack_top = 0;
     kata.user_stack_top = 0;
     kata.user_stack_bottom = 0;
     kata.user_stack_committed = 0;
+}
+
+/// Called by Shinigami to destroy a zombie's page table.
+/// Safe because Shinigami runs with its own page table.
+pub fn destroy_zombie_page_table(page_table: u64) void {
+    paging.destroy_page_table(page_table);
 }
 
 pub fn grow_stack(kata: *types.Kata, fault_addr: u64) bool {

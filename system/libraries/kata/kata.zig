@@ -43,3 +43,8 @@ pub fn wait(pid: u32) Error!u64 {
         yield();
     }
 }
+
+/// Reap zombie katas - returns number of zombies reaped
+pub fn reap() u64 {
+    return sys.syscall(.reap, .{});
+}

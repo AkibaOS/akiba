@@ -1,0 +1,17 @@
+world {
+    name = akiba
+    startup {
+        binary {
+            name = shinigami
+            path = "/system/shinigami/shinigami.gen"
+            mode = protected
+            respawn = true
+        }
+        binary {
+            name = ash
+            path = "/system/ash/ash.gen"
+            mode = protected
+            respawn = true
+        }
+    }
+}

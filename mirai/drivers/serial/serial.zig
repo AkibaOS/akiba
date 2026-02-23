@@ -119,9 +119,9 @@ fn print_arg_string(arg: anytype) void {
         const child_info = @typeInfo(child);
         if (child == u8) {
             // [*]const u8 - null-terminated string pointer
-            var p = arg;
-            while (p[0] != 0) : (p += 1) {
-                write(p[0]);
+            var i: usize = 0;
+            while (arg[i] != 0) : (i += 1) {
+                write(arg[i]);
             }
         } else if (child_info == .array and child_info.array.child == u8) {
             // *const [N]u8 or *const [N:0]u8 - pointer to string literal

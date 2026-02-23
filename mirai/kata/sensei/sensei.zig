@@ -3,6 +3,7 @@
 const cpu = @import("../../asm/cpu.zig");
 const pool = @import("../pool.zig");
 const queue = @import("queue.zig");
+const serial = @import("../../drivers/serial/serial.zig");
 const shift = @import("../shift.zig");
 const types = @import("../types.zig");
 const waker = @import("waker.zig");

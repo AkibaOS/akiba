@@ -26,6 +26,7 @@ pub const Invocation = enum(u64) {
     uptime = 0x11,
     gettime = 0x12,
     diskinfo = 0x13,
+    reap = 0x14,
 };
 
 pub inline fn syscall(invocation: Invocation, args: anytype) u64 {
@@ -48,8 +49,7 @@ pub inline fn syscall(invocation: Invocation, args: anytype) u64 {
           [arg3] "{r10}" (arg3),
           [arg4] "{r8}" (arg4),
           [arg5] "{r9}" (arg5),
-        : .{ .rcx = true, .r11 = true, .memory = true }
-    );
+        : .{ .rcx = true, .r11 = true, .memory = true });
 }
 
 inline fn toU64(value: anytype) u64 {

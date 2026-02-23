@@ -146,7 +146,7 @@ prepare-filesystem: build-grub
 	
 	@echo "→ Building kernel..."
 	@zig build --cache-dir $(BUILD_DIR)/cache --prefix $(BUILD_DIR)
-	@mv $(BUILD_DIR)/bin/mirai.akibakernel $(FS_ROOT)/system/akiba/
+	@mv $(BUILD_DIR)/bin/mirai.kernel $(FS_ROOT)/system/akiba/
 	
 	@echo "→ Building libraries..."
 	@mkdir -p $(BUILD_DIR)/lib $(FS_ROOT)/system/libraries
@@ -182,15 +182,12 @@ prepare-filesystem: build-grub
 				echo "  Compiling $$sysname..."; \
 				$(BUILD_DIR)/bin/akibacompile "$$sysdir" "$(BUILD_DIR)/system/$$sysname" "system/libraries" && \
 				if [ "$$sysname" = "pulse" ]; then \
-					echo "  Creating pulse.akibainit..."; \
-					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/akiba/pulse.akibainit" init && \
-					echo "  ✓ pulse.akibainit"; \
+					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/akiba/pulse.gen" init; \
 				else \
-					echo "  Wrapping $$sysname.akiba..."; \
 					mkdir -p "$(FS_ROOT)/system/$$sysname" && \
-					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/$$sysname/$$sysname.akiba" cli && \
-					echo "  ✓ system/$$sysname/$$sysname.akiba"; \
-				fi; \
+					$(BUILD_DIR)/bin/akibabuilder "$(BUILD_DIR)/system/$$sysname" "$(FS_ROOT)/system/$$sysname/$$sysname.gen" cli; \
+				fi && \
+				echo "  ✓ $$sysname.gen"; \
 			fi; \
 		fi; \
 	done

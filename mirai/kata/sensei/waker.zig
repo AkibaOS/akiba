@@ -14,7 +14,8 @@ pub fn wake_all_waiting() void {
         if (kata.state != .Stalled) continue;
 
         const target = pool.get(kata.waiting_for);
-        if (target == null or target.?.state == .Dissolved) {
+        // Wake if target doesn't exist, is zombie, or dissolved
+        if (target == null or target.?.state == .Zombie or target.?.state == .Dissolved) {
             kata.state = .Alive;
             queue.enqueue(kata);
             kata.waiting_for = 0;

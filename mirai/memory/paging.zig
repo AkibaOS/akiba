@@ -83,7 +83,15 @@ pub fn map_page(virt: u64, phys: u64, flags: u64) !void {
 }
 
 pub fn create_page_table() !u64 {
+    const serial = @import("../drivers/serial/serial.zig");
+
     const new_pml4_phys = pmm.alloc_page() orelse return error.OutOfMemory;
+
+    // Check if we're about to zero Ash's PD (used as PML4)
+    if (pmm.ash_pd_phys != 0 and new_pml4_phys == pmm.ash_pd_phys) {
+        serial.printf("PAGING: About to zero Ash's PD {x} (as PML4)!\n", .{new_pml4_phys});
+    }
+
     const new_pml4: [*]volatile u64 = @ptrFromInt(new_pml4_phys + HIGHER_HALF_START);
 
     for (0..paging_const.PML4_ENTRIES) |i| {
@@ -111,6 +119,9 @@ pub fn create_page_table() !u64 {
 }
 
 pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64) !struct { bool, u64 } {
+    const serial = @import("../drivers/serial/serial.zig");
+    const pool = @import("../kata/pool.zig");
+
     const pml4_index = (virt >> 39) & 0x1FF;
     const pdpt_index = (virt >> 30) & 0x1FF;
     const pd_index = (virt >> 21) & 0x1FF;
@@ -118,11 +129,38 @@ pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64)
 
     const pml4: [*]volatile u64 = @ptrFromInt(page_table_phys + HIGHER_HALF_START);
 
+    // Helper to check Ash's pd[256]
+    const ash_pd256 = struct {
+        fn get() u64 {
+            for (&pool.pool, 0..) |*k, i| {
+                if (pool.used[i] and k.id == 3 and k.page_table != 0) {
+                    const pml4_ptr: [*]volatile u64 = @ptrFromInt(k.page_table + HIGHER_HALF_START);
+                    if ((pml4_ptr[0] & 1) == 0) return 0xDEAD0001;
+                    const pdpt: [*]volatile u64 = @ptrFromInt((pml4_ptr[0] & paging_const.PTE_MASK) + HIGHER_HALF_START);
+                    if ((pdpt[0] & 1) == 0) return 0xDEAD0002;
+                    const pd: [*]volatile u64 = @ptrFromInt((pdpt[0] & paging_const.PTE_MASK) + HIGHER_HALF_START);
+                    return pd[256];
+                }
+            }
+            return 0;
+        }
+    };
+
+    const before = ash_pd256.get();
+
     var pdpt_phys: u64 = undefined;
     if ((pml4[pml4_index] & PAGE_PRESENT) == 0) {
         pdpt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
+        if (pmm.ash_pd_phys != 0 and pdpt_phys == pmm.ash_pd_phys) {
+            serial.printf("PAGING: About to zero Ash's PD {x} (as PDPT) for virt {x}!\n", .{ pdpt_phys, virt });
+        }
         zero_page(pdpt_phys + HIGHER_HALF_START);
         pml4[pml4_index] = pdpt_phys | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
+
+        const after = ash_pd256.get();
+        if (before != 0 and after != before) {
+            serial.printf("CORRUPTION after PDPT alloc! virt={x} pdpt={x} before={x} after={x}\n", .{ virt, pdpt_phys, before, after });
+        }
     } else {
         pdpt_phys = pml4[pml4_index] & paging_const.PTE_MASK;
     }
@@ -132,8 +170,16 @@ pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64)
     var pd_phys: u64 = undefined;
     if ((pdpt[pdpt_index] & PAGE_PRESENT) == 0) {
         pd_phys = pmm.alloc_page() orelse return error.OutOfMemory;
+        if (pmm.ash_pd_phys != 0 and pd_phys == pmm.ash_pd_phys) {
+            serial.printf("PAGING: About to zero Ash's PD {x} for virt {x}!\n", .{ pd_phys, virt });
+        }
         zero_page(pd_phys + HIGHER_HALF_START);
         pdpt[pdpt_index] = pd_phys | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
+
+        const after = ash_pd256.get();
+        if (before != 0 and after != before) {
+            serial.printf("CORRUPTION after PD alloc! virt={x} pd={x} before={x} after={x}\n", .{ virt, pd_phys, before, after });
+        }
     } else {
         pd_phys = pdpt[pdpt_index] & paging_const.PTE_MASK;
     }
@@ -143,8 +189,16 @@ pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64)
     var pt_phys: u64 = undefined;
     if ((pd[pd_index] & PAGE_PRESENT) == 0) {
         pt_phys = pmm.alloc_page() orelse return error.OutOfMemory;
+        if (pmm.ash_pd_phys != 0 and pt_phys == pmm.ash_pd_phys) {
+            serial.printf("PAGING: About to zero Ash's PD {x} (as PT) for virt {x}!\n", .{ pt_phys, virt });
+        }
         zero_page(pt_phys + HIGHER_HALF_START);
         pd[pd_index] = pt_phys | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
+
+        const after = ash_pd256.get();
+        if (before != 0 and after != before) {
+            serial.printf("CORRUPTION after PT alloc! virt={x} pt={x} pd_idx={d} before={x} after={x}\n", .{ virt, pt_phys, pd_index, before, after });
+        }
     } else {
         pt_phys = pd[pd_index] & paging_const.PTE_MASK;
     }
@@ -154,6 +208,12 @@ pub fn map_page_in_table(page_table_phys: u64, virt: u64, phys: u64, flags: u64)
     const was_mapped = (pt[pt_index] & PAGE_PRESENT) != 0;
     if (!was_mapped) {
         pt[pt_index] = phys | flags | PAGE_PRESENT;
+
+        const after = ash_pd256.get();
+        if (before != 0 and after != before) {
+            serial.printf("CORRUPTION after PT entry write! virt={x} pt={x} pt_idx={d} before={x} after={x}\n", .{ virt, pt_phys, pt_index, before, after });
+        }
+
         return .{ false, phys };
     } else {
         const existing_phys = pt[pt_index] & paging_const.PTE_MASK;
@@ -254,6 +314,53 @@ fn should_free_page(virt: u64, phys: u64) bool {
         return false;
     }
     return true;
+}
+
+pub fn dump_pt_structure(page_table_phys: u64, label: []const u8) void {
+    const serial = @import("../drivers/serial/serial.zig");
+    serial.print("PT dump: ");
+    serial.print(label);
+    serial.printf(" pml4={x}\n", .{page_table_phys});
+
+    const pml4: [*]volatile u64 = @ptrFromInt(page_table_phys + HIGHER_HALF_START);
+
+    // Just dump PML4[0] chain since that's where user code is
+    const pml4_entry = pml4[0];
+    if ((pml4_entry & PAGE_PRESENT) == 0) {
+        serial.print("PT dump: pml4[0] not present\n");
+        return;
+    }
+
+    const pdpt_phys = pml4_entry & paging_const.PTE_MASK;
+    serial.printf("PT dump: pml4[0]={x} -> pdpt={x}\n", .{ pml4_entry, pdpt_phys });
+
+    const pdpt: [*]volatile u64 = @ptrFromInt(pdpt_phys + HIGHER_HALF_START);
+    const pdpt_entry = pdpt[0];
+    if ((pdpt_entry & PAGE_PRESENT) == 0) {
+        serial.print("PT dump: pdpt[0] not present\n");
+        return;
+    }
+
+    const pd_phys = pdpt_entry & paging_const.PTE_MASK;
+    serial.printf("PT dump: pdpt[0]={x} -> pd={x}\n", .{ pdpt_entry, pd_phys });
+
+    // Check PD[256] which is where 0x20000000 maps (256 = 0x20000000 >> 21 & 0x1FF)
+    const pd: [*]volatile u64 = @ptrFromInt(pd_phys + HIGHER_HALF_START);
+    const pd_entry = pd[256];
+    if ((pd_entry & PAGE_PRESENT) == 0) {
+        serial.print("PT dump: pd[256] not present\n");
+        return;
+    }
+
+    const pt_phys = pd_entry & paging_const.PTE_MASK;
+    serial.printf("PT dump: pd[256]={x} -> pt={x}\n", .{ pd_entry, pt_phys });
+}
+
+pub fn set_shinigami_pt_addrs(pdpt: u64, pd: u64, pt: u64) void {
+    // No longer used, kept for compatibility
+    _ = pdpt;
+    _ = pd;
+    _ = pt;
 }
 
 pub fn destroy_page_table(page_table_phys: u64) void {

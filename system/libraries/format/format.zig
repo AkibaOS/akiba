@@ -20,3 +20,10 @@ pub const colorf = printmod.colorf;
 pub const Table = tablemod.Table;
 pub const Column = tablemod.Column;
 pub const Alignment = tablemod.Alignment;
+
+/// Print a u64 value as decimal
+pub fn print_u64(num: u64) void {
+    var buf: [20]u8 = undefined;
+    const str = int.toStr(num, &buf);
+    print(str);
+}

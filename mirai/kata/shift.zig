@@ -2,16 +2,20 @@
 
 const context = @import("../asm/context.zig");
 const gdt = @import("../boot/gdt/gdt.zig");
-const kata_memory = @import("memory.zig");
+const paging = @import("../memory/paging.zig");
+const serial = @import("../drivers/serial/serial.zig");
 const tss = @import("../boot/tss/tss.zig");
 const types = @import("types.zig");
 
 var current_context: ?*types.Context = null;
 
 pub fn to_kata(kata: *types.Kata) void {
-    // Process any deferred page table cleanups before switching
-    // Exclude the target kata's page table from cleanup
-    kata_memory.process_deferred_cleanup(kata.page_table);
+    // Validate that the target RIP is mapped in the page table
+    if (paging.virt_to_phys(kata.page_table, kata.context.rip) == null) {
+        serial.printf("shift: FATAL - kata {d} rip {x} not mapped!\n", .{ kata.id, kata.context.rip });
+        paging.dump_pt_structure(kata.page_table, "corrupted");
+        while (true) {}
+    }
 
     tss.set_kernel_stack(kata.stack_top);
     current_context = &kata.context;

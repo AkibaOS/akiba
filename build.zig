@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const kernel = b.addExecutable(.{
-        .name = "mirai.akibakernel",
+        .name = "mirai.kernel",
         .root_module = mirai_module,
     });
 

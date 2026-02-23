@@ -15,6 +15,11 @@ pub const State = enum {
     Dissolved, // Gone, slot reusable
 };
 
+pub const Mode = enum {
+    Persona, // Normal user process - can be reaped
+    Protected, // System process - page tables are protected
+};
+
 pub const Context = packed struct {
     rax: u64,
     rbx: u64,
@@ -66,6 +71,7 @@ pub const Context = packed struct {
 pub const Kata = struct {
     id: u32,
     state: State,
+    mode: Mode,
     context: Context,
 
     page_table: u64,

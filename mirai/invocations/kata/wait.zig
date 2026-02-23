@@ -11,7 +11,8 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const target = kata_mod.get_kata(target_id) orelse return result.set_error(ctx);
 
-    if (target.state == .Dissolved) {
+    // Zombie or Dissolved means the child has exited
+    if (target.state == .Zombie or target.state == .Dissolved) {
         return result.set_value(ctx, target.exit_code);
     }
 

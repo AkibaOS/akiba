@@ -77,20 +77,38 @@ pub fn get(id: u32) ?*types.Kata {
 pub fn dissolve(kata_id: u32) void {
     for (&pool, 0..) |*kata, i| {
         if (used[i] and kata.id == kata_id) {
+            // Mark as dying
+            kata.state = .Dying;
+
+            // Clean up attachments
             for (&kata.attachments) |*slot| {
                 if (slot.*) |ptr| {
                     attachment.free(ptr);
                     slot.* = null;
                 }
             }
+
+            // Clean up letter data
             if (kata.letter_data) |data| {
                 heap.free(@ptrCast(data), kata.letter_capacity);
                 kata.letter_data = null;
                 kata.letter_capacity = 0;
             }
+
+            // Try to clean up memory
             memory.cleanup(kata);
-            kata.state = .Dissolved;
-            used[i] = false;
+
+            // Check if page table was destroyed or needs Shinigami
+            if (kata.page_table != 0) {
+                // Page table still exists - become zombie for Shinigami to reap
+                kata.state = .Zombie;
+                // Keep used[i] = true so slot isn't reused yet
+            } else {
+                // Fully cleaned up
+                kata.state = .Dissolved;
+                used[i] = false;
+            }
+
             waker.wake_waiting(kata_id);
             return;
         }
@@ -101,6 +119,7 @@ fn create_empty() types.Kata {
     return types.Kata{
         .id = 0,
         .state = .Dissolved,
+        .mode = .Persona,
         .context = types.Context.init(),
         .page_table = 0,
         .stack_top = 0,
