@@ -1,9 +1,8 @@
-//! Kata Limits - Kata-related limits
+//! Kata Limits
 
-pub const MAX_KATAS: usize = 1024;
-pub const MAX_ATTACHMENTS: usize = 256;
-pub const MAX_PARAMETERS: usize = 256;
-pub const MAX_ENV_VARS: usize = 256;
-/// Maximum location (current stack) length
-pub const MAX_LOCATION_LENGTH: usize = 256;
-pub const MAX_LETTER_LENGTH: usize = 4096; // Maximum postman letter length
+pub const MAX_KATAS: usize = 64;
+pub const MAX_ATTACHMENTS: usize = 16;
+pub const MAX_PARAMETERS: usize = 64;
+pub const MAX_ENV_VARS: usize = 64;
+pub const MAX_LOCATION_LENGTH: usize = 128;
+pub const MAX_LETTER_LENGTH: usize = 256;
