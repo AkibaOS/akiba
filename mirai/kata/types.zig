@@ -68,6 +68,8 @@ pub const Kata = struct {
     page_table: u64,
     stack_top: u64,
     user_stack_top: u64,
+    user_stack_bottom: u64,
+    user_stack_committed: u64,
 
     attachments: [kata_limits.MAX_ATTACHMENTS]?*attachment.Attachment,
 

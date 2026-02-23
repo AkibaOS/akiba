@@ -106,6 +106,8 @@ fn create_empty() types.Kata {
         .page_table = 0,
         .stack_top = 0,
         .user_stack_top = 0,
+        .user_stack_bottom = 0,
+        .user_stack_committed = 0,
         .attachments = [_]?*attachment.Attachment{null} ** kata_limits.MAX_ATTACHMENTS,
         .current_location = undefined,
         .current_location_len = 1,

@@ -4,7 +4,6 @@ const memory_const = @import("../common/constants/memory.zig");
 const memory_limits = @import("../common/limits/memory.zig");
 const paging = @import("../memory/paging.zig");
 const pmm = @import("../memory/pmm.zig");
-const serial = @import("../drivers/serial/serial.zig");
 const types = @import("types.zig");
 
 const HIGHER_HALF = memory_const.HIGHER_HALF_START;
@@ -77,11 +76,13 @@ pub const VirtualBuffer = struct {
 pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !void {
     kata.page_table = try paging.create_page_table();
 
-    const user_stack_base = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_PAGES * PAGE_SIZE);
+    kata.user_stack_top = memory_const.USER_STACK_TOP;
+    kata.user_stack_bottom = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_MAX_PAGES * PAGE_SIZE);
+    kata.user_stack_committed = memory_const.USER_STACK_TOP - (memory_const.USER_STACK_INITIAL_PAGES * PAGE_SIZE);
 
-    for (0..memory_const.USER_STACK_PAGES) |i| {
+    for (0..memory_const.USER_STACK_INITIAL_PAGES) |i| {
         const page = pmm.alloc_page() orelse return error.OutOfMemory;
-        const virt = user_stack_base + (i * PAGE_SIZE);
+        const virt = kata.user_stack_committed + (i * PAGE_SIZE);
         _ = try paging.map_page_in_table(kata.page_table, virt, page, paging.PAGE_WRITABLE | paging.PAGE_USER);
 
         const page_ptr: [*]volatile u8 = @ptrFromInt(page + HIGHER_HALF);
@@ -89,9 +90,7 @@ pub fn setup(kata: *types.Kata, framebuffer_phys: u64, framebuffer_size: u64) !v
             page_ptr[j] = 0;
         }
     }
-    kata.user_stack_top = memory_const.USER_STACK_TOP;
 
-    // Allocate kernel stack pages - must be contiguous for identity mapping
     const first_page = pmm.alloc_page() orelse return error.OutOfMemory;
     const kernel_stack_base = first_page;
 
@@ -225,4 +224,33 @@ pub fn cleanup(kata: *types.Kata) void {
     }
     kata.stack_top = 0;
     kata.user_stack_top = 0;
+    kata.user_stack_bottom = 0;
+    kata.user_stack_committed = 0;
+}
+
+pub fn grow_stack(kata: *types.Kata, fault_addr: u64) bool {
+    const asm_memory = @import("../asm/memory.zig");
+    const page_addr = fault_addr & ~@as(u64, 0xFFF);
+
+    if (page_addr >= kata.user_stack_committed or page_addr < kata.user_stack_bottom) {
+        return false;
+    }
+
+    var addr = kata.user_stack_committed - PAGE_SIZE;
+    while (addr >= page_addr) : (addr -= PAGE_SIZE) {
+        const page = pmm.alloc_page() orelse return false;
+        _ = paging.map_page_in_table(kata.page_table, addr, page, paging.PAGE_WRITABLE | paging.PAGE_USER) catch return false;
+
+        const page_ptr: [*]volatile u8 = @ptrFromInt(page + HIGHER_HALF);
+        for (0..PAGE_SIZE) |j| {
+            page_ptr[j] = 0;
+        }
+
+        asm_memory.invalidate_page(addr);
+
+        if (addr == 0) break;
+    }
+
+    kata.user_stack_committed = page_addr;
+    return true;
 }

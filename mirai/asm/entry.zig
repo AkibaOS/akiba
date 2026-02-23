@@ -67,9 +67,9 @@ comptime {
         \\  # We push in REVERSE order so struct layout matches (stack grows down)
         \\  # NOTE: RCX and R11 already have user_rip and user_rflags from SYSCALL!
         \\  push %r14              # user_rsp (last in struct, push first)
-        \\  push %r11              # user_rflags (R11 saved by SYSCALL)
+        \\  push 32(%r15)          # user_rflags (R11 value before syscall)
         \\  push $0x1B             # user_ss
-        \\  push %rcx              # user_rip (RCX saved by SYSCALL)
+        \\  push 96(%r15)          # user_rip (RCX value before syscall)
         \\  push $0x23             # user_cs
         \\  push 0(%r15)           # r15
         \\  push 8(%r15)           # r14

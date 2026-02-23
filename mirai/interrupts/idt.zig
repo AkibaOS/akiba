@@ -30,7 +30,12 @@ pub fn init() void {
 
     for (0..idt_const.NUM_EXCEPTIONS) |i| {
         const handler_addr = @intFromPtr(isr.get_exception_handler(@intCast(i)));
-        set_gate(@intCast(i), handler_addr, gdt_const.KERNEL_CODE, idt_const.GATE_INTERRUPT);
+        // Use IST1 for double fault (8) and page fault (14)
+        if (i == 8 or i == 14) {
+            set_gate_with_ist(@intCast(i), handler_addr, gdt_const.KERNEL_CODE, idt_const.GATE_INTERRUPT, 1);
+        } else {
+            set_gate(@intCast(i), handler_addr, gdt_const.KERNEL_CODE, idt_const.GATE_INTERRUPT);
+        }
     }
 
     set_gate(idt_const.VECTOR_TIMER, @intFromPtr(isr.get_irq_handler(0)), gdt_const.KERNEL_CODE, idt_const.GATE_INTERRUPT);
@@ -51,10 +56,14 @@ pub fn init() void {
 }
 
 fn set_gate(num: u8, handler: u64, selector: u16, type_attr: u8) void {
+    set_gate_with_ist(num, handler, selector, type_attr, 0);
+}
+
+fn set_gate_with_ist(num: u8, handler: u64, selector: u16, type_attr: u8, ist: u8) void {
     table[num] = types.Entry{
         .offset_low = @truncate(handler & 0xFFFF),
         .selector = selector,
-        .ist = 0,
+        .ist = ist,
         .type_attr = type_attr,
         .offset_mid = @truncate((handler >> 16) & 0xFFFF),
         .offset_high = @truncate(handler >> 32),

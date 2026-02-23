@@ -1,7 +1,9 @@
 //! CPU exception handler
 
+const kata_memory = @import("../kata/memory.zig");
 const memory = @import("../asm/memory.zig");
 const panic = @import("panic.zig");
+const sensei = @import("../kata/sensei/sensei.zig");
 const serial = @import("../drivers/serial/serial.zig");
 const types = @import("types.zig");
 
@@ -43,6 +45,21 @@ const NAMES = [_][]const u8{
 export fn exception_handler(frame_ptr: u64) void {
     const frame = @as(*types.ExceptionFrame, @ptrFromInt(frame_ptr));
 
+    // Handle page faults - check for stack growth
+    if (frame.int_num == 14) {
+        const cr2 = memory.read_page_fault_address();
+        const is_not_present = (frame.error_code & 1) == 0;
+
+        // Check if fault is in user stack region (demand paging)
+        if (sensei.get_current_kata()) |kata| {
+            if (cr2 >= kata.user_stack_bottom and cr2 < kata.user_stack_top and is_not_present) {
+                if (kata_memory.grow_stack(kata, cr2)) {
+                    return;
+                }
+            }
+        }
+    }
+
     serial.print("\n!!! EXCEPTION: ");
     if (frame.int_num < NAMES.len) {
         serial.print(NAMES[frame.int_num]);
@@ -62,6 +79,10 @@ export fn exception_handler(frame_ptr: u64) void {
     if (frame.int_num == 14) {
         const cr2 = memory.read_page_fault_address();
         serial.printf("CR2 (fault addr): {x}\n", .{cr2});
+
+        if (sensei.get_current_kata()) |kata| {
+            serial.printf("Stack: bottom={x} committed={x} top={x}\n", .{ kata.user_stack_bottom, kata.user_stack_committed, kata.user_stack_top });
+        }
 
         serial.print("Fault type: ");
         if ((frame.error_code & 1) == 0) {

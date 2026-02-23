@@ -23,6 +23,7 @@ const TSS = packed struct {
 
 var tss: TSS align(16) = undefined;
 var kernel_stack: [boot_limits.KERNEL_STACK_SIZE]u8 align(16) = undefined;
+var ist1_stack: [65536]u8 align(16) = undefined; // 64KB for double fault/page fault
 
 pub fn init() void {
     const tss_bytes = @as([*]u8, @ptrCast(&tss));
@@ -31,8 +32,9 @@ pub fn init() void {
     }
 
     tss.rsp0 = @intFromPtr(&kernel_stack) + kernel_stack.len;
+    tss.ist1 = @intFromPtr(&ist1_stack) + ist1_stack.len;
 
-    serial.printf("TSS: addr={x} rsp0={x}\n", .{ @intFromPtr(&tss), tss.rsp0 });
+    serial.printf("TSS: addr={x} rsp0={x} ist1={x}\n", .{ @intFromPtr(&tss), tss.rsp0, tss.ist1 });
 }
 
 pub fn get_address() u64 {

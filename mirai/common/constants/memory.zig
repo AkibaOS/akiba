@@ -25,8 +25,9 @@ pub const KATA_SPACE_END: u64 = 0x0000800000000000;
 
 // Stack configuration
 pub const USER_STACK_TOP: u64 = 0x00007FFFFFF00000;
-pub const USER_STACK_PAGES: u64 = 512; // 2MB
-pub const USER_STACK_SIZE: u64 = USER_STACK_PAGES * PAGE_SIZE;
+pub const USER_STACK_MAX_PAGES: u64 = 512; // 2MB max
+pub const USER_STACK_INITIAL_PAGES: u64 = 16; // 64KB initial, grows on demand
+pub const USER_STACK_SIZE: u64 = USER_STACK_MAX_PAGES * PAGE_SIZE;
 pub const KERNEL_STACK_PAGES: u64 = 4; // 16KB
 pub const KERNEL_STACK_SIZE: u64 = KERNEL_STACK_PAGES * PAGE_SIZE;
 
