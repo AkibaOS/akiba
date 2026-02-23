@@ -1,5 +1,6 @@
 //! Kata memory management
 
+const asm_memory = @import("../asm/memory.zig");
 const memory_const = @import("../common/constants/memory.zig");
 const memory_limits = @import("../common/limits/memory.zig");
 const paging = @import("../memory/paging.zig");
@@ -219,7 +220,13 @@ pub fn load_segment(
 
 pub fn cleanup(kata: *types.Kata) void {
     if (kata.page_table != 0) {
-        paging.destroy_page_table(kata.page_table);
+        // CRITICAL: If we're currently using this kata's page table,
+        // we CANNOT destroy it - we'd be freeing pages while CR3 points to them.
+        // Skip destruction (memory leak) to prevent crash.
+        const current_cr3 = asm_memory.read_page_table_base();
+        if (current_cr3 != kata.page_table) {
+            paging.destroy_page_table(kata.page_table);
+        }
         kata.page_table = 0;
     }
     kata.stack_top = 0;
@@ -229,7 +236,6 @@ pub fn cleanup(kata: *types.Kata) void {
 }
 
 pub fn grow_stack(kata: *types.Kata, fault_addr: u64) bool {
-    const asm_memory = @import("../asm/memory.zig");
     const page_addr = fault_addr & ~@as(u64, 0xFFF);
 
     if (page_addr >= kata.user_stack_committed or page_addr < kata.user_stack_bottom) {

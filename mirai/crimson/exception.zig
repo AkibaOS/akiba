@@ -42,18 +42,31 @@ const NAMES = [_][]const u8{
     "Reserved",
 };
 
+var in_exception: bool = false;
+
 export fn exception_handler(frame_ptr: u64) void {
     const frame = @as(*types.ExceptionFrame, @ptrFromInt(frame_ptr));
+
+    // Prevent infinite recursion if exception handler itself faults
+    if (in_exception) {
+        serial.print("NESTED EXCEPTION - HALTING\n");
+        while (true) {
+            asm volatile ("cli; hlt");
+        }
+    }
+    in_exception = true;
 
     // Handle page faults - check for stack growth
     if (frame.int_num == 14) {
         const cr2 = memory.read_page_fault_address();
         const is_not_present = (frame.error_code & 1) == 0;
+        const is_rsvd = (frame.error_code & 8) != 0;
 
         // Check if fault is in user stack region (demand paging)
         if (sensei.get_current_kata()) |kata| {
-            if (cr2 >= kata.user_stack_bottom and cr2 < kata.user_stack_top and is_not_present) {
+            if (cr2 >= kata.user_stack_bottom and cr2 < kata.user_stack_top and is_not_present and !is_rsvd) {
                 if (kata_memory.grow_stack(kata, cr2)) {
+                    in_exception = false;
                     return;
                 }
             }
@@ -82,6 +95,7 @@ export fn exception_handler(frame_ptr: u64) void {
 
         if (sensei.get_current_kata()) |kata| {
             serial.printf("Stack: bottom={x} committed={x} top={x}\n", .{ kata.user_stack_bottom, kata.user_stack_committed, kata.user_stack_top });
+            serial.printf("Kata: id={x} PT={x}\n", .{ kata.id, kata.page_table });
         }
 
         serial.print("Fault type: ");
@@ -100,6 +114,9 @@ export fn exception_handler(frame_ptr: u64) void {
         } else {
             serial.print(", Kernel mode");
         }
+        if ((frame.error_code & 8) != 0) {
+            serial.print(", RESERVED BIT SET");
+        }
         serial.print("\n");
 
         serial.printf("CR3 (page table): {x}\n", .{memory.read_page_table_base()});
@@ -115,9 +132,5 @@ export fn exception_handler(frame_ptr: u64) void {
     serial.printf("R12: {x}  R13: {x}\n", .{ frame.r12, frame.r13 });
     serial.printf("R14: {x}  R15: {x}\n", .{ frame.r14, frame.r15 });
 
-    if (frame.int_num < NAMES.len) {
-        panic.collapse(NAMES[frame.int_num], null);
-    } else {
-        panic.collapse("Unknown Exception", null);
-    }
+    panic.collapse(if (frame.int_num < NAMES.len) NAMES[frame.int_num] else "Unknown Exception", null);
 }
