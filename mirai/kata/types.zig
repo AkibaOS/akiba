@@ -69,7 +69,7 @@ pub const Kata = struct {
     stack_top: u64,
     user_stack_top: u64,
 
-    attachments: [kata_limits.MAX_ATTACHMENTS]attachment.Attachment,
+    attachments: [kata_limits.MAX_ATTACHMENTS]?*attachment.Attachment,
 
     current_location: [kata_limits.MAX_LOCATION_LENGTH]u8,
     current_location_len: usize,

@@ -5,7 +5,6 @@ const handler = @import("../handler.zig");
 const int = @import("../../utils/types/int.zig");
 const kata_attachment = @import("../../kata/attachment.zig");
 const kata_limits = @import("../../common/limits/kata.zig");
-const kata_mod = @import("../../kata/kata.zig");
 const keyboard = @import("../../drivers/keyboard/keyboard.zig");
 const random = @import("../../utils/random/xorshift.zig");
 const result = @import("../../utils/types/result.zig");
@@ -19,17 +18,14 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
     const buffer_ptr = ctx.rsi;
     const count = ctx.rdx;
 
-    if (fd >= kata_limits.MAX_ATTACHMENTS or kata.attachments[fd].attachment_type == .Closed) {
-        return result.set_error(ctx);
-    }
+    if (fd >= kata_limits.MAX_ATTACHMENTS) return result.set_error(ctx);
+    const entry = kata.attachments[fd] orelse return result.set_error(ctx);
 
-    const bytes = view_from_attachment(kata, fd, buffer_ptr, count) catch return result.set_error(ctx);
+    const bytes = view_from_attachment(entry, buffer_ptr, count) catch return result.set_error(ctx);
     result.set_value(ctx, bytes);
 }
 
-fn view_from_attachment(kata: *kata_mod.Kata, fd: u32, buffer_ptr: u64, count: u64) !u64 {
-    const entry = &kata.attachments[fd];
-
+fn view_from_attachment(entry: *kata_attachment.Attachment, buffer_ptr: u64, count: u64) !u64 {
     if (entry.attachment_type == .Device) {
         const device = entry.device_type orelse return error.InvalidDevice;
         return view_from_device(device, buffer_ptr, count);

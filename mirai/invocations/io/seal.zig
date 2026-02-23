@@ -20,9 +20,8 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     const fd = int.u32_of(ctx.rdi);
 
-    if (fd >= kata_limits.MAX_ATTACHMENTS or kata.attachments[fd].attachment_type == .Closed) {
-        return result.set_error(ctx);
-    }
+    if (fd >= kata_limits.MAX_ATTACHMENTS) return result.set_error(ctx);
+    if (kata.attachments[fd] == null) return result.set_error(ctx);
 
     attachment.seal(kata, fd, afs_instance);
     result.set_ok(ctx);

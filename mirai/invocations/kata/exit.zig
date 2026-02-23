@@ -20,8 +20,10 @@ pub fn invoke(ctx: *handler.InvocationContext) void {
 
     var i: u32 = 0;
     while (i < kata_limits.MAX_ATTACHMENTS) : (i += 1) {
-        if (kata.attachments[i].attachment_type == .Unit) {
-            attachment.seal(kata, i, afs_instance);
+        if (kata.attachments[i]) |entry| {
+            if (entry.attachment_type == .Unit) {
+                attachment.seal(kata, i, afs_instance);
+            }
         }
     }
 

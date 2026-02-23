@@ -31,23 +31,29 @@ pub fn create() !*types.Kata {
 
             kata.current_location[0] = '/';
 
-            kata.attachments[0] = attachment.Attachment{
+            const stdin = attachment.alloc() orelse return error.OutOfMemory;
+            stdin.* = .{
                 .attachment_type = .Device,
                 .device_type = .Source,
                 .flags = attachment_const.VIEW_ONLY,
             };
+            kata.attachments[0] = stdin;
 
-            kata.attachments[1] = attachment.Attachment{
+            const stdout = attachment.alloc() orelse return error.OutOfMemory;
+            stdout.* = .{
                 .attachment_type = .Device,
                 .device_type = .Stream,
                 .flags = attachment_const.MARK_ONLY,
             };
+            kata.attachments[1] = stdout;
 
-            kata.attachments[2] = attachment.Attachment{
+            const stderr = attachment.alloc() orelse return error.OutOfMemory;
+            stderr.* = .{
                 .attachment_type = .Device,
                 .device_type = .Trace,
                 .flags = attachment_const.MARK_ONLY,
             };
+            kata.attachments[2] = stderr;
 
             return kata;
         }
@@ -71,6 +77,12 @@ pub fn dissolve(kata_id: u32) void {
 
     for (&pool, 0..) |*kata, i| {
         if (used[i] and kata.id == kata_id) {
+            for (&kata.attachments) |*slot| {
+                if (slot.*) |ptr| {
+                    attachment.free(ptr);
+                    slot.* = null;
+                }
+            }
             memory.cleanup(kata);
             kata.state = .Dissolved;
             used[i] = false;
@@ -88,7 +100,7 @@ fn create_empty() types.Kata {
         .page_table = 0,
         .stack_top = 0,
         .user_stack_top = 0,
-        .attachments = [_]attachment.Attachment{.{}} ** kata_limits.MAX_ATTACHMENTS,
+        .attachments = [_]?*attachment.Attachment{null} ** kata_limits.MAX_ATTACHMENTS,
         .current_location = undefined,
         .current_location_len = 1,
         .current_cluster = 0,

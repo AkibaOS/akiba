@@ -48,11 +48,13 @@ fn open_device(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
         if (compare.equals(name, "source")) .Source else if (compare.equals(name, "stream")) .Stream else if (compare.equals(name, "trace")) .Trace else if (compare.equals(name, "void")) .Void else if (compare.equals(name, "chaos")) .Chaos else if (compare.equals(name, "zero")) .Zero else if (compare.equals(name, "console")) .Console else return error.UnknownDevice;
 
     const fd = try attachment_util.allocate(kata);
-    kata.attachments[fd] = kata_attachment.Attachment{
+    const entry = kata_attachment.alloc() orelse return error.OutOfMemory;
+    entry.* = .{
         .attachment_type = .Device,
         .device_type = device_type,
         .flags = flags,
     };
+    kata.attachments[fd] = entry;
 
     return fd;
 }
@@ -64,29 +66,38 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
     const full_location = location_util.resolve(kata, location, &full_location_buf);
 
     const fd = try attachment_util.allocate(kata);
+    const entry = kata_attachment.alloc() orelse return error.OutOfMemory;
 
     var unit_buffer: [1024 * 1024]u8 = undefined;
     const bytes_read = fs.view_unit_at(full_location, &unit_buffer) catch {
         if (flags & attachment_const.CREATE != 0) {
-            fs.create_unit(full_location) catch return error.CannotCreate;
+            fs.create_unit(full_location) catch {
+                kata_attachment.free(entry);
+                return error.CannotCreate;
+            };
 
-            kata.attachments[fd] = kata_attachment.Attachment{
+            entry.* = .{
                 .attachment_type = .Unit,
                 .unit_size = 0,
                 .position = 0,
                 .flags = flags,
                 .location_len = location.len,
             };
-            copy.bytes(kata.attachments[fd].location[0..location.len], location);
+            copy.bytes(entry.location[0..location.len], location);
+            kata.attachments[fd] = entry;
             return fd;
         }
+        kata_attachment.free(entry);
         return error.UnitNotFound;
     };
 
-    const unit_data = heap.alloc(bytes_read) orelse return error.OutOfMemory;
+    const unit_data = heap.alloc(bytes_read) orelse {
+        kata_attachment.free(entry);
+        return error.OutOfMemory;
+    };
     copy.bytes(unit_data[0..bytes_read], unit_buffer[0..bytes_read]);
 
-    kata.attachments[fd] = kata_attachment.Attachment{
+    entry.* = .{
         .attachment_type = .Unit,
         .buffer = unit_data[0..bytes_read],
         .unit_size = bytes_read,
@@ -94,7 +105,8 @@ fn open_unit(kata: *kata_mod.Kata, location: []const u8, flags: u32) !u32 {
         .flags = flags,
         .location_len = location.len,
     };
-    copy.bytes(kata.attachments[fd].location[0..location.len], location);
+    copy.bytes(entry.location[0..location.len], location);
+    kata.attachments[fd] = entry;
 
     return fd;
 }
