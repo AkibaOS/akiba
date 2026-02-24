@@ -213,7 +213,7 @@ fn hikari(image_handle: efi.types.Handle, system_table: *efi.services.SystemTabl
 
 fn print(console: *efi.protocols.SimpleTextOutputProtocol, msg: []const u8) void {
     for (msg) |c| {
-        var buf: [2]u16 = .{ c, 0 };
+        var buf = [2:0]u16{ c, 0 };
         _ = console.output_string(console, &buf);
     }
 }

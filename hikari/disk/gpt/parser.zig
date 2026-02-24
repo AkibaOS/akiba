@@ -165,7 +165,10 @@ pub const Parser = struct {
     }
 };
 
-const crc32_table: [256]u32 = generate_crc32_table();
+const crc32_table: [256]u32 = blk: {
+    @setEvalBranchQuota(10000);
+    break :blk generate_crc32_table();
+};
 
 fn generate_crc32_table() [256]u32 {
     var table: [256]u32 = undefined;
