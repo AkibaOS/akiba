@@ -4,7 +4,7 @@
 
 const paging = @import("../paging/paging.zig");
 
-pub const boot_params_magic: u64 = 0x4152494D41424B41; // "AKBAMIRA"
+pub const boot_params_magic: u64 = 0x494152494D424B41; // "AKBMIRAI"
 pub const boot_params_version: u32 = 1;
 
 pub const BootParams = extern struct {
