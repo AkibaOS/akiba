@@ -15,9 +15,9 @@ iso/
 *.log
 
 # Grub AFS build artifacts
-toolchain/grub-afs/build
-toolchain/grub-afs/grub-*
-toolchain/grub-afs/grub.*
+toolchain*/grub-afs/build
+toolchain*/grub-afs/grub-*
+toolchain*/grub-afs/grub.*
 
 # OS System files
 .DS_Store
