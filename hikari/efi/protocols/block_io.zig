@@ -1,5 +1,6 @@
 //! Hikari EFI Block I/O Protocol
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 const block = @import("../types/block.zig");
 
@@ -10,7 +11,7 @@ pub const BlockIoProtocol = extern struct {
     reset: *const fn (
         self: *BlockIoProtocol,
         extended_verification: bool,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     read_blocks: *const fn (
         self: *BlockIoProtocol,
@@ -18,7 +19,7 @@ pub const BlockIoProtocol = extern struct {
         lba: types.Lba,
         buffer_size: usize,
         buffer: [*]u8,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     write_blocks: *const fn (
         self: *BlockIoProtocol,
@@ -26,11 +27,11 @@ pub const BlockIoProtocol = extern struct {
         lba: types.Lba,
         buffer_size: usize,
         buffer: [*]const u8,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     flush_blocks: *const fn (
         self: *BlockIoProtocol,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 };
 
 pub const block_io_protocol_revision1: u64 = 0x00010000;

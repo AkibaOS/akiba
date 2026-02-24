@@ -3,6 +3,7 @@
 //! Hikari loads the Mirai kernel from the AFS partition and
 //! transfers control with boot parameters.
 
+const std = @import("std");
 const efi = @import("efi/efi.zig");
 const disk = @import("disk/disk.zig");
 const fs = @import("fs/fs.zig");
@@ -16,7 +17,13 @@ const asm_ops = @import("asm/asm.zig");
 const kernel_location = "/system/akiba/mirai.kernel";
 const font_location = "/system/akiba/fonts/akiba.psf";
 
-pub fn hikari(image_handle: efi.types.Handle, system_table: *efi.services.SystemTable) callconv(.C) efi.types.Status {
+pub fn main() void {
+    const image_handle: efi.types.Handle = @ptrCast(std.os.uefi.handle);
+    const system_table: *efi.services.SystemTable = @ptrCast(std.os.uefi.system_table);
+    _ = hikari(image_handle, system_table);
+}
+
+fn hikari(image_handle: efi.types.Handle, system_table: *efi.services.SystemTable) efi.types.Status {
     const boot_services = system_table.boot_services;
     const console = system_table.console_output;
 

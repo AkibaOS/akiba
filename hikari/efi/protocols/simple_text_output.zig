@@ -1,54 +1,55 @@
 //! Hikari EFI Simple Text Output Protocol
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 
 pub const SimpleTextOutputProtocol = extern struct {
     reset: *const fn (
         self: *SimpleTextOutputProtocol,
         extended_verification: bool,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     output_string: *const fn (
         self: *SimpleTextOutputProtocol,
         string: [*:0]const types.Char16,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     test_string: *const fn (
         self: *SimpleTextOutputProtocol,
         string: [*:0]const types.Char16,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     query_mode: *const fn (
         self: *SimpleTextOutputProtocol,
         mode_number: usize,
         columns: *usize,
         rows: *usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_mode: *const fn (
         self: *SimpleTextOutputProtocol,
         mode_number: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_attribute: *const fn (
         self: *SimpleTextOutputProtocol,
         attribute: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     clear_screen: *const fn (
         self: *SimpleTextOutputProtocol,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_cursor_position: *const fn (
         self: *SimpleTextOutputProtocol,
         column: usize,
         row: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     enable_cursor: *const fn (
         self: *SimpleTextOutputProtocol,
         visible: bool,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     mode: *SimpleTextOutputMode,
 };

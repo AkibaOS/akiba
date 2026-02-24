@@ -1,5 +1,6 @@
 //! Hikari EFI Boot Services
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 const table = @import("../types/table.zig");
 const memory = @import("../types/memory.zig");
@@ -7,20 +8,20 @@ const memory = @import("../types/memory.zig");
 pub const BootServices = extern struct {
     header: table.TableHeader,
 
-    raise_tpl: *const fn (new_tpl: usize) callconv(.C) usize,
-    restore_tpl: *const fn (old_tpl: usize) callconv(.C) void,
+    raise_tpl: *const fn (new_tpl: usize) callconv(efi.akiba) usize,
+    restore_tpl: *const fn (old_tpl: usize) callconv(efi.akiba) void,
 
     allocate_pages: *const fn (
         allocate_type: memory.AllocateType,
         memory_type: memory.MemoryType,
         pages: usize,
         physical_address: *types.PhysicalAddress,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     free_pages: *const fn (
         physical_address: types.PhysicalAddress,
         pages: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     get_memory_map: *const fn (
         memory_map_size: *usize,
@@ -28,75 +29,75 @@ pub const BootServices = extern struct {
         map_key: *usize,
         descriptor_size: *usize,
         descriptor_version: *u32,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     allocate_pool: *const fn (
         pool_type: memory.MemoryType,
         size: usize,
         buffer: *[*]align(8) u8,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     free_pool: *const fn (
         buffer: [*]align(8) u8,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     create_event: *const fn (
         event_type: u32,
         notify_tpl: usize,
-        notify_function: ?*const fn (types.Event, ?*anyopaque) callconv(.C) void,
+        notify_function: ?*const fn (types.Event, ?*anyopaque) callconv(efi.akiba) void,
         notify_context: ?*anyopaque,
         event: *types.Event,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_timer: *const fn (
         event: types.Event,
         timer_type: TimerDelay,
         trigger_time: u64,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     wait_for_event: *const fn (
         number_of_events: usize,
         events: [*]const types.Event,
         index: *usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     signal_event: *const fn (
         event: types.Event,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     close_event: *const fn (
         event: types.Event,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     check_event: *const fn (
         event: types.Event,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     install_protocol_interface: *const fn (
         handle: *types.Handle,
         protocol: *align(8) const types.Guid,
         interface_type: InterfaceType,
         interface: ?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     reinstall_protocol_interface: *const fn (
         handle: types.Handle,
         protocol: *align(8) const types.Guid,
         old_interface: ?*anyopaque,
         new_interface: ?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     uninstall_protocol_interface: *const fn (
         handle: types.Handle,
         protocol: *align(8) const types.Guid,
         interface: ?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     handle_protocol: *const fn (
         handle: types.Handle,
         protocol: *align(8) const types.Guid,
         interface: *?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     reserved: *anyopaque,
 
@@ -104,7 +105,7 @@ pub const BootServices = extern struct {
         protocol: *align(8) const types.Guid,
         event: types.Event,
         registration: **anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     locate_handle: *const fn (
         search_type: memory.LocateSearchType,
@@ -112,18 +113,18 @@ pub const BootServices = extern struct {
         search_key: ?*anyopaque,
         buffer_size: *usize,
         buffer: [*]types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     locate_device_location: *const fn (
         protocol: *align(8) const types.Guid,
         device_location: **anyopaque,
         device: *types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     install_configuration_table: *const fn (
         guid: *align(8) const types.Guid,
         table_ptr: ?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     load_image: *const fn (
         boot_policy: bool,
@@ -132,57 +133,57 @@ pub const BootServices = extern struct {
         source_buffer: ?[*]const u8,
         source_size: usize,
         image_handle: *types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     start_image: *const fn (
         image_handle: types.Handle,
         exit_data_size: *usize,
         exit_data: ?*[*]types.Char16,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     exit: *const fn (
         image_handle: types.Handle,
         exit_status: types.Status,
         exit_data_size: usize,
         exit_data: ?[*]const types.Char16,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     unload_image: *const fn (
         image_handle: types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     exit_boot_services: *const fn (
         image_handle: types.Handle,
         map_key: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     get_next_monotonic_count: *const fn (
         count: *u64,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     stall: *const fn (
         microseconds: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_watchdog_timer: *const fn (
         timeout: usize,
         watchdog_code: u64,
         data_size: usize,
         watchdog_data: ?[*]const types.Char16,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     connect_controller: *const fn (
         controller_handle: types.Handle,
         driver_image_handle: ?types.Handle,
         remaining_device_location: ?*anyopaque,
         recursive: bool,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     disconnect_controller: *const fn (
         controller_handle: types.Handle,
         driver_image_handle: ?types.Handle,
         child_handle: ?types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     open_protocol: *const fn (
         handle: types.Handle,
@@ -191,27 +192,27 @@ pub const BootServices = extern struct {
         agent_handle: ?types.Handle,
         controller_handle: ?types.Handle,
         attributes: u32,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     close_protocol: *const fn (
         handle: types.Handle,
         protocol: *align(8) const types.Guid,
         agent_handle: types.Handle,
         controller_handle: ?types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     open_protocol_information: *const fn (
         handle: types.Handle,
         protocol: *align(8) const types.Guid,
         entry_buffer: *[*]OpenProtocolInformationEntry,
         entry_count: *usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     protocols_per_handle: *const fn (
         handle: types.Handle,
         protocol_buffer: *[*]*align(8) types.Guid,
         protocol_buffer_count: *usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     locate_handle_buffer: *const fn (
         search_type: memory.LocateSearchType,
@@ -219,13 +220,13 @@ pub const BootServices = extern struct {
         search_key: ?*anyopaque,
         handle_count: *usize,
         buffer: *[*]types.Handle,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     locate_protocol: *const fn (
         protocol: *align(8) const types.Guid,
         registration: ?*anyopaque,
         interface: *?*anyopaque,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     install_multiple_protocol_interfaces: *const anyopaque,
     uninstall_multiple_protocol_interfaces: *const anyopaque,
@@ -234,28 +235,28 @@ pub const BootServices = extern struct {
         data: [*]const u8,
         data_size: usize,
         crc32: *u32,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     copy_memory: *const fn (
         destination: [*]u8,
         source: [*]const u8,
         length: usize,
-    ) callconv(.C) void,
+    ) callconv(efi.akiba) void,
 
     set_memory: *const fn (
         buffer: [*]u8,
         size: usize,
         value: u8,
-    ) callconv(.C) void,
+    ) callconv(efi.akiba) void,
 
     create_event_ex: *const fn (
         event_type: u32,
         notify_tpl: usize,
-        notify_function: ?*const fn (types.Event, ?*anyopaque) callconv(.C) void,
+        notify_function: ?*const fn (types.Event, ?*anyopaque) callconv(efi.akiba) void,
         notify_context: ?*const anyopaque,
         event_group: ?*align(8) const types.Guid,
         event: *types.Event,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 };
 
 pub const TimerDelay = enum(u32) {

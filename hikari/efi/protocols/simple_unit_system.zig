@@ -1,5 +1,6 @@
 //! Hikari EFI Simple Unit System Protocol
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 const unit = @import("unit.zig");
 
@@ -9,5 +10,5 @@ pub const SimpleUnitSystemProtocol = extern struct {
     open_volume: *const fn (
         self: *SimpleUnitSystemProtocol,
         root: **unit.UnitProtocol,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 };

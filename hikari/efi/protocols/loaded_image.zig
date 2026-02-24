@@ -1,5 +1,6 @@
 //! Hikari EFI Loaded Image Protocol
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 const memory = @import("../types/memory.zig");
 
@@ -16,7 +17,7 @@ pub const LoadedImageProtocol = extern struct {
     image_size: u64,
     image_code_type: memory.MemoryType,
     image_data_type: memory.MemoryType,
-    unload: *const fn (image_handle: types.Handle) callconv(.C) types.Status,
+    unload: *const fn (image_handle: types.Handle) callconv(efi.akiba) types.Status,
 };
 
 pub const loaded_image_protocol_revision: u32 = 0x1000;

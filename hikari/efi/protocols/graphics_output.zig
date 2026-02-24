@@ -1,5 +1,6 @@
 //! Hikari EFI Graphics Output Protocol
 
+const efi = @import("../efi.zig");
 const types = @import("../types/types.zig");
 const graphics = @import("../types/graphics.zig");
 
@@ -9,12 +10,12 @@ pub const GraphicsOutputProtocol = extern struct {
         mode_number: u32,
         size_of_info: *usize,
         info: **graphics.GraphicsOutputModeInformation,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     set_mode: *const fn (
         self: *GraphicsOutputProtocol,
         mode_number: u32,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     blt: *const fn (
         self: *GraphicsOutputProtocol,
@@ -27,7 +28,7 @@ pub const GraphicsOutputProtocol = extern struct {
         width: usize,
         height: usize,
         delta: usize,
-    ) callconv(.C) types.Status,
+    ) callconv(efi.akiba) types.Status,
 
     mode: *graphics.GraphicsOutputProtocolMode,
 };
