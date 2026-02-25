@@ -1,5 +1,7 @@
 //! Kagami Structure
 
+const state = @import("../state.zig");
+
 pub const Kagami = struct {
     pml4_physical: u64,
     reference_count: u32,
@@ -9,7 +11,7 @@ pub const Kagami = struct {
     lock: bool,
 
     pub fn is_kernel(self: *const Kagami) bool {
-        const kernel_kagami = @import("../state.zig").get_kernel_kagami();
+        const kernel_kagami = state.get_kernel_kagami();
         return self.pml4_physical == kernel_kagami.pml4_physical;
     }
 
