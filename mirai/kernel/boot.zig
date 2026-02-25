@@ -1,4 +1,4 @@
-//! Mirai Boot Parameters
+//! Boot Parameters
 //!
 //! This structure matches what Hikari bootloader passes to the kernel.
 

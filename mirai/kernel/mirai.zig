@@ -1,4 +1,4 @@
-//! Mirai - AkibaOS Kernel
+//! - AkibaOS Kernel
 //!
 //! The kernel receives boot parameters from Hikari bootloader
 //! and initializes the system.

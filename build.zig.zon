@@ -3,14 +3,5 @@
     .version = "1.0.0",
     .fingerprint = 0xa42f71a68564f824,
     .minimum_zig_version = "0.15.2",
-    .paths = .{
-        "build.zig",
-        "build.zig.zon",
-        "hikari",
-        "mirai",
-        "linker",
-        "toolchain",
-        "scripts",
-        "resources",
-    },
+    .paths = .{ "build.zig", "build.zig.zon", "hikari", "mirai", "linker", "toolchain", "scripts", "resources", "common" },
 }
