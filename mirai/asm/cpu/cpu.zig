@@ -2,6 +2,7 @@
 
 pub const control = @import("control.zig");
 pub const halt = @import("halt.zig");
+pub const state = @import("state.zig");
 
 pub const read_cr0 = control.read_cr0;
 pub const write_cr0 = control.write_cr0;
@@ -20,3 +21,12 @@ pub const disable_interrupts = halt.disable_interrupts;
 pub const are_interrupts_enabled = halt.are_interrupts_enabled;
 pub const read_flags = halt.read_flags;
 pub const pause = halt.pause;
+
+pub const read_rsp = state.read_rsp;
+pub const read_rbp = state.read_rbp;
+pub const rdtsc = state.rdtsc;
+pub const read_ds = state.read_ds;
+pub const read_es = state.read_es;
+pub const read_fs = state.read_fs;
+pub const read_gs = state.read_gs;
+pub const clear_task_switched = state.clear_task_switched;
