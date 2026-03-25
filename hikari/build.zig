@@ -26,8 +26,5 @@ pub fn build(b: *std.Build) void {
     );
     copy_step.step.dependOn(&hikari.step);
 
-    const install_step = b.step("install", "Build and install Hikari");
-    install_step.dependOn(&copy_step.step);
-
-    b.default_step = install_step;
+    b.getInstallStep().dependOn(&copy_step.step);
 }
