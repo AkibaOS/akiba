@@ -1,25 +1,32 @@
 //! Hikari FAT32 Reader
 
 const efi = @import("../../efi/efi.zig");
-const constants = @import("constants.zig");
-const types = @import("types.zig");
+const shared_fat32 = @import("../../../shared/fs/fat32/fat32.zig");
+
+// Import shared types
+const BootSector = shared_fat32.BootSector;
+const FsInfo = shared_fat32.FsInfo;
+const StackEntry = shared_fat32.StackEntry;
+
+const constants = shared_fat32.constants;
+const read_ops = shared_fat32.read;
 
 pub const ReadError = error{
-    invalid_boot_sector,
-    invalid_fs_info,
-    read_failed,
-    allocation_failed,
-    not_found,
-    not_a_stack,
-    invalid_cluster,
-    unit_too_large,
+    InvalidBootSector,
+    InvalidFsInfo,
+    ReadFailed,
+    AllocationFailed,
+    NotFound,
+    NotAStack,
+    InvalidCluster,
+    UnitTooLarge,
 };
 
 pub const Reader = struct {
     block_io: *efi.protocols.BlockIoProtocol,
     boot_services: *efi.services.BootServices,
     partition_start_lba: u64,
-    boot_sector: types.BootSector,
+    boot_sector: BootSector,
     bytes_per_sector: u32,
     sectors_per_cluster: u32,
     bytes_per_cluster: u32,
@@ -43,7 +50,7 @@ pub const Reader = struct {
             &sector_buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const read_status = block_io.read_blocks(
@@ -54,12 +61,12 @@ pub const Reader = struct {
             sector_buffer,
         );
         if (efi.types.is_error(read_status)) {
-            return ReadError.read_failed;
+            return ReadError.ReadFailed;
         }
 
-        const boot_sector: *const types.BootSector = @ptrCast(@alignCast(sector_buffer));
+        const boot_sector: *const BootSector = @ptrCast(@alignCast(sector_buffer));
         if (!boot_sector.is_valid()) {
-            return ReadError.invalid_boot_sector;
+            return ReadError.InvalidBootSector;
         }
 
         const bytes_per_sector: u32 = boot_sector.bytes_per_sector;
@@ -73,7 +80,7 @@ pub const Reader = struct {
             &cluster_buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const fat_start_lba = partition_start_lba + boot_sector.get_fat_start_sector();
@@ -89,18 +96,23 @@ pub const Reader = struct {
             .bytes_per_cluster = bytes_per_cluster,
             .fat_start_lba = fat_start_lba,
             .data_start_lba = data_start_lba,
-            .origin_cluster = boot_sector.origin_cluster,
+            .origin_cluster = boot_sector.root_cluster,
             .cluster_buffer = cluster_buffer,
             .sector_buffer = sector_buffer,
         };
     }
 
     pub fn read_cluster(self: *Reader, cluster: u32) ReadError!void {
-        if (cluster < 2) {
-            return ReadError.invalid_cluster;
+        if (!read_ops.is_valid_cluster(cluster)) {
+            return ReadError.InvalidCluster;
         }
 
-        const cluster_lba = self.data_start_lba + (@as(u64, cluster - 2) * self.sectors_per_cluster);
+        const cluster_lba = read_ops.cluster_to_lba(
+            cluster,
+            self.data_start_lba,
+            self.sectors_per_cluster,
+        );
+
         const read_status = self.block_io.read_blocks(
             self.block_io,
             self.block_io.media.media_id,
@@ -109,16 +121,14 @@ pub const Reader = struct {
             self.cluster_buffer,
         );
         if (efi.types.is_error(read_status)) {
-            return ReadError.read_failed;
+            return ReadError.ReadFailed;
         }
     }
 
     pub fn get_next_cluster(self: *Reader, cluster: u32) ReadError!?u32 {
-        const fat_offset = cluster * 4;
-        const fat_sector = fat_offset / self.bytes_per_sector;
-        const fat_offset_in_sector = fat_offset % self.bytes_per_sector;
+        const pos = read_ops.get_fat_position(cluster, self.bytes_per_sector);
+        const fat_sector_lba = self.fat_start_lba + pos.sector;
 
-        const fat_sector_lba = self.fat_start_lba + fat_sector;
         const read_status = self.block_io.read_blocks(
             self.block_io,
             self.block_io.media.media_id,
@@ -127,33 +137,26 @@ pub const Reader = struct {
             self.sector_buffer,
         );
         if (efi.types.is_error(read_status)) {
-            return ReadError.read_failed;
+            return ReadError.ReadFailed;
         }
 
-        const fat_entry_ptr: *align(1) const u32 = @ptrCast(self.sector_buffer + fat_offset_in_sector);
-        const next_cluster = fat_entry_ptr.* & constants.cluster_mask;
+        const fat_entry_ptr: *align(1) const u32 = @ptrCast(self.sector_buffer + pos.offset);
+        const fat_entry = fat_entry_ptr.*;
 
-        if (next_cluster >= constants.cluster_end_of_chain_start) {
-            return null;
-        }
-        if (next_cluster == constants.cluster_bad) {
-            return ReadError.invalid_cluster;
-        }
-        if (next_cluster < 2) {
-            return ReadError.invalid_cluster;
-        }
-
-        return next_cluster;
+        return read_ops.parse_fat_entry(fat_entry) catch |err| switch (err) {
+            read_ops.ClusterError.BadCluster, read_ops.ClusterError.InvalidCluster => return ReadError.InvalidCluster,
+            else => return ReadError.InvalidCluster,
+        };
     }
 
-    pub fn find_in_stack(self: *Reader, stack_cluster: u32, identity: []const u8) ReadError!?types.StackEntry {
+    pub fn find_in_stack(self: *Reader, stack_cluster: u32, identity: []const u8) ReadError!?StackEntry {
         var current_cluster = stack_cluster;
 
         while (true) {
             try self.read_cluster(current_cluster);
 
-            const entries_per_cluster = self.bytes_per_cluster / @sizeOf(types.StackEntry);
-            const entries: [*]const types.StackEntry = @ptrCast(@alignCast(self.cluster_buffer));
+            const entries_per_cluster = self.bytes_per_cluster / @sizeOf(StackEntry);
+            const entries: [*]const StackEntry = @ptrCast(@alignCast(self.cluster_buffer));
 
             var i: usize = 0;
             while (i < entries_per_cluster) : (i += 1) {
@@ -172,11 +175,7 @@ pub const Reader = struct {
                     continue;
                 }
 
-                var short_identity_buffer: [12]u8 = undefined;
-                const short_identity_len = entry.get_short_identity(&short_identity_buffer);
-                const short_identity = short_identity_buffer[0..short_identity_len];
-
-                if (case_insensitive_equal(short_identity, identity)) {
+                if (read_ops.entry_matches_identity(entry, identity)) {
                     return entry.*;
                 }
             }
@@ -190,55 +189,40 @@ pub const Reader = struct {
         }
     }
 
-    pub fn open_location(self: *Reader, location: []const u8) ReadError!types.StackEntry {
+    pub fn open_location(self: *Reader, location: []const u8) ReadError!StackEntry {
         var current_cluster = self.origin_cluster;
         var is_stack = true;
 
-        var start: usize = 0;
-        if (location.len > 0 and (location[0] == '/' or location[0] == '\\')) {
-            start = 1;
-        }
+        var iter = read_ops.LocationIterator.init(location);
+        var last_entry: ?StackEntry = null;
 
-        var iter_start = start;
-        while (iter_start < location.len) {
+        while (iter.next()) |component| {
             if (!is_stack) {
-                return ReadError.not_a_stack;
+                return ReadError.NotAStack;
             }
 
-            var iter_end = iter_start;
-            while (iter_end < location.len and location[iter_end] != '/' and location[iter_end] != '\\') {
-                iter_end += 1;
-            }
-
-            if (iter_end == iter_start) {
-                iter_start = iter_end + 1;
-                continue;
-            }
-
-            const component = location[iter_start..iter_end];
             const entry = try self.find_in_stack(current_cluster, component);
 
             if (entry) |found| {
                 current_cluster = found.get_first_cluster();
                 is_stack = found.is_stack();
-
-                if (iter_end >= location.len) {
-                    return found;
-                }
+                last_entry = found;
             } else {
-                return ReadError.not_found;
+                return ReadError.NotFound;
             }
-
-            iter_start = iter_end + 1;
         }
 
-        return ReadError.not_found;
+        if (last_entry) |entry| {
+            return entry;
+        }
+
+        return ReadError.NotFound;
     }
 
-    pub fn read_unit(self: *Reader, entry: *const types.StackEntry, buffer: [*]u8, max_size: u32) ReadError!u32 {
+    pub fn read_unit(self: *Reader, entry: *const StackEntry, buffer: [*]u8, max_size: u32) ReadError!u32 {
         const unit_size = entry.unit_size;
         if (unit_size > max_size) {
-            return ReadError.unit_too_large;
+            return ReadError.UnitTooLarge;
         }
 
         var current_cluster = entry.get_first_cluster();
@@ -270,7 +254,7 @@ pub const Reader = struct {
         return bytes_read;
     }
 
-    pub fn read_unit_to_allocated(self: *Reader, entry: *const types.StackEntry) ReadError!struct { buffer: [*]u8, size: u32 } {
+    pub fn read_unit_to_allocated(self: *Reader, entry: *const StackEntry) ReadError!struct { buffer: [*]u8, size: u32 } {
         const unit_size = entry.unit_size;
 
         var buffer: [*]align(8) u8 = undefined;
@@ -280,24 +264,10 @@ pub const Reader = struct {
             &buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const bytes_read = try self.read_unit(entry, buffer, unit_size);
         return .{ .buffer = buffer, .size = bytes_read };
     }
 };
-
-fn case_insensitive_equal(a: []const u8, b: []const u8) bool {
-    if (a.len != b.len) {
-        return false;
-    }
-    for (a, b) |char_a, char_b| {
-        const upper_a = if (char_a >= 'a' and char_a <= 'z') char_a - 32 else char_a;
-        const upper_b = if (char_b >= 'a' and char_b <= 'z') char_b - 32 else char_b;
-        if (upper_a != upper_b) {
-            return false;
-        }
-    }
-    return true;
-}

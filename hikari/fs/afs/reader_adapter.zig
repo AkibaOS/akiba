@@ -1,29 +1,41 @@
 //! Hikari AFS Reader
 
 const efi = @import("../../efi/efi.zig");
-const constants = @import("constants.zig");
-const types = @import("types.zig");
-const btree = @import("btree.zig");
+const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const btree_adapter = @import("btree_adapter.zig");
+
+// Import shared types
+const VolumeHeader = shared_afs.VolumeHeader;
+const SpanDescriptor = shared_afs.SpanDescriptor;
+const ChannelInfo = shared_afs.ChannelInfo;
+const UnitRecord = shared_afs.UnitRecord;
+const BTreeHeaderRecord = shared_afs.BTreeHeaderRecord;
+const BTreeNodeDescriptor = shared_afs.BTreeNodeDescriptor;
+
+const constants = shared_afs.constants;
+const read_ops = shared_afs.read;
+
+const BTree = btree_adapter.BTree;
 
 pub const ReadError = error{
-    invalid_volume_header,
-    read_failed,
-    allocation_failed,
-    not_found,
-    not_a_stack,
-    unit_too_large,
-    invalid_span,
-    btree_error,
+    InvalidVolumeHeader,
+    ReadFailed,
+    AllocationFailed,
+    NotFound,
+    NotAStack,
+    UnitTooLarge,
+    InvalidSpan,
+    BTreeError,
 };
 
 pub const Reader = struct {
     block_io: *efi.protocols.BlockIoProtocol,
     boot_services: *efi.services.BootServices,
     partition_start_lba: u64,
-    volume_header: types.VolumeHeader,
+    volume_header: VolumeHeader,
     cell_size: u32,
-    index: btree.BTree,
-    span_overflow: ?btree.BTree,
+    index: BTree,
+    span_overflow: ?BTree,
     cell_buffer: [*]u8,
 
     pub fn initialize(
@@ -40,7 +52,7 @@ pub const Reader = struct {
             &sector_buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const read_status = block_io.read_blocks(
@@ -51,12 +63,12 @@ pub const Reader = struct {
             sector_buffer,
         );
         if (efi.types.is_error(read_status)) {
-            return ReadError.read_failed;
+            return ReadError.ReadFailed;
         }
 
-        const volume_header: *const types.VolumeHeader = @ptrCast(@alignCast(sector_buffer));
+        const volume_header: *const VolumeHeader = @ptrCast(@alignCast(sector_buffer));
         if (!volume_header.is_valid()) {
-            return ReadError.invalid_volume_header;
+            return ReadError.InvalidVolumeHeader;
         }
 
         const cell_size = volume_header.cell_size;
@@ -68,7 +80,7 @@ pub const Reader = struct {
             &cell_buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const index_header = try read_btree_header(
@@ -79,7 +91,7 @@ pub const Reader = struct {
             volume_header.index_span,
         );
 
-        const index = btree.BTree.initialize(
+        const index = BTree.initialize(
             block_io,
             boot_services,
             partition_start_lba,
@@ -87,10 +99,10 @@ pub const Reader = struct {
             volume_header.index_span,
             index_header,
         ) catch {
-            return ReadError.btree_error;
+            return ReadError.BTreeError;
         };
 
-        var span_overflow: ?btree.BTree = null;
+        var span_overflow: ?BTree = null;
         if (!volume_header.span_overflow_span.is_empty()) {
             const span_overflow_header = try read_btree_header(
                 block_io,
@@ -100,7 +112,7 @@ pub const Reader = struct {
                 volume_header.span_overflow_span,
             );
 
-            span_overflow = btree.BTree.initialize(
+            span_overflow = BTree.initialize(
                 block_io,
                 boot_services,
                 partition_start_lba,
@@ -126,69 +138,48 @@ pub const Reader = struct {
         };
     }
 
-    pub fn open_location(self: *Reader, location: []const u8) ReadError!types.UnitRecord {
-        var current_node_id: u32 = constants.special_node_id_origin_stack;
+    pub fn open_location(self: *Reader, location: []const u8) ReadError!UnitRecord {
+        var current_node_id: u32 = constants.nodes.origin_stack;
 
-        var start: usize = 0;
-        if (location.len > 0 and (location[0] == '/' or location[0] == '\\')) {
-            start = 1;
-        }
+        var iter = read_ops.LocationIterator.init(location);
+        var last_unit: ?UnitRecord = null;
 
-        var iter_start = start;
-        var last_unit: ?types.UnitRecord = null;
-
-        while (iter_start < location.len) {
-            var iter_end = iter_start;
-            while (iter_end < location.len and location[iter_end] != '/' and location[iter_end] != '\\') {
-                iter_end += 1;
-            }
-
-            if (iter_end == iter_start) {
-                iter_start = iter_end + 1;
-                continue;
-            }
-
-            const component = location[iter_start..iter_end];
-
+        while (iter.next()) |component| {
             var identity_utf16: [constants.max_identity_length]u16 = undefined;
-            var identity_len: usize = 0;
-            for (component) |byte| {
-                identity_utf16[identity_len] = byte;
-                identity_len += 1;
-            }
+            const identity_len = read_ops.component_to_identity(component, &identity_utf16);
             const identity = identity_utf16[0..identity_len];
 
             const stack_record = self.index.search_index_for_stack(current_node_id, identity) catch {
-                return ReadError.btree_error;
+                return ReadError.BTreeError;
             };
 
             if (stack_record) |stack| {
                 current_node_id = stack.node_id;
-                iter_start = iter_end + 1;
                 continue;
             }
 
             const unit_record = self.index.search_index(current_node_id, identity) catch {
-                return ReadError.btree_error;
+                return ReadError.BTreeError;
             };
 
             if (unit_record) |unit| {
-                if (iter_end >= location.len) {
+                // Check if this is the last component
+                if (iter.next() == null) {
                     last_unit = unit.*;
                     break;
                 } else {
-                    return ReadError.not_a_stack;
+                    return ReadError.NotAStack;
                 }
             }
 
-            return ReadError.not_found;
+            return ReadError.NotFound;
         }
 
         if (last_unit) |unit| {
             return unit;
         }
 
-        return ReadError.not_found;
+        return ReadError.NotFound;
     }
 
     pub fn read_cell(self: *Reader, cell_number: u64) ReadError!void {
@@ -203,16 +194,16 @@ pub const Reader = struct {
             self.cell_buffer,
         );
         if (efi.types.is_error(read_status)) {
-            return ReadError.read_failed;
+            return ReadError.ReadFailed;
         }
     }
 
-    pub fn read_unit(self: *Reader, unit: *const types.UnitRecord, buffer: [*]u8, max_size: u64) ReadError!u64 {
+    pub fn read_unit(self: *Reader, unit: *const UnitRecord, buffer: [*]u8, max_size: u64) ReadError!u64 {
         const channel = &unit.data_channel;
         const unit_size = channel.logical_size;
 
         if (unit_size > max_size) {
-            return ReadError.unit_too_large;
+            return ReadError.UnitTooLarge;
         }
 
         var bytes_read: u64 = 0;
@@ -240,7 +231,7 @@ pub const Reader = struct {
         return bytes_read;
     }
 
-    fn read_span_data(self: *Reader, span: *const types.SpanDescriptor, buffer: [*]u8, size: u64) ReadError!void {
+    fn read_span_data(self: *Reader, span: *const SpanDescriptor, buffer: [*]u8, size: u64) ReadError!void {
         var bytes_read: u64 = 0;
         var current_cell = span.start_cell;
 
@@ -262,7 +253,7 @@ pub const Reader = struct {
 
     fn read_overflow_spans(
         self: *Reader,
-        unit: *const types.UnitRecord,
+        unit: *const UnitRecord,
         buffer: [*]u8,
         start_offset: u64,
         total_size: u64,
@@ -274,7 +265,7 @@ pub const Reader = struct {
         return total_size;
     }
 
-    pub fn read_unit_to_allocated(self: *Reader, unit: *const types.UnitRecord) ReadError!struct { buffer: [*]u8, size: u64 } {
+    pub fn read_unit_to_allocated(self: *Reader, unit: *const UnitRecord) ReadError!struct { buffer: [*]u8, size: u64 } {
         const unit_size = unit.data_channel.logical_size;
 
         var buffer: [*]align(8) u8 = undefined;
@@ -284,7 +275,7 @@ pub const Reader = struct {
             &buffer,
         );
         if (efi.types.is_error(alloc_status)) {
-            return ReadError.allocation_failed;
+            return ReadError.AllocationFailed;
         }
 
         const bytes_read = try self.read_unit(unit, buffer, unit_size);
@@ -297,8 +288,8 @@ fn read_btree_header(
     boot_services: *efi.services.BootServices,
     partition_start_lba: u64,
     cell_size: u32,
-    span: types.SpanDescriptor,
-) ReadError!*const types.BTreeHeaderRecord {
+    span: SpanDescriptor,
+) ReadError!*const BTreeHeaderRecord {
     var cell_buffer: [*]align(8) u8 = undefined;
     const alloc_status = boot_services.allocate_pool(
         .loader_data,
@@ -306,7 +297,7 @@ fn read_btree_header(
         &cell_buffer,
     );
     if (efi.types.is_error(alloc_status)) {
-        return ReadError.allocation_failed;
+        return ReadError.AllocationFailed;
     }
 
     const cell_lba = partition_start_lba +
@@ -320,14 +311,14 @@ fn read_btree_header(
         cell_buffer,
     );
     if (efi.types.is_error(read_status)) {
-        return ReadError.read_failed;
+        return ReadError.ReadFailed;
     }
 
-    const node_desc: *const types.BTreeNodeDescriptor = @ptrCast(@alignCast(cell_buffer));
+    const node_desc: *const BTreeNodeDescriptor = @ptrCast(@alignCast(cell_buffer));
     if (!node_desc.is_header()) {
-        return ReadError.read_failed;
+        return ReadError.ReadFailed;
     }
 
-    const header_offset = @sizeOf(types.BTreeNodeDescriptor);
+    const header_offset = @sizeOf(BTreeNodeDescriptor);
     return @ptrCast(@alignCast(cell_buffer + header_offset));
 }

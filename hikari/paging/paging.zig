@@ -6,16 +6,16 @@ pub const setup = @import("setup.zig");
 
 pub const PageTableEntry = types.PageTableEntry;
 pub const PageTable = types.PageTable;
-pub const PageMapLevel4 = types.PageMapLevel4;
-pub const PageDirectoryPointerTable = types.PageDirectoryPointerTable;
-pub const PageDirectory = types.PageDirectory;
-pub const PageTableLevel1 = types.PageTableLevel1;
+pub const TableL4 = types.TableL4;
+pub const TableL3 = types.TableL3;
+pub const TableL2 = types.TableL2;
+pub const TableL1 = types.TableL1;
 
 pub const PageTableSetup = setup.PageTableSetup;
 pub const SetupError = setup.SetupError;
 
-pub const get_pml4_index = types.get_pml4_index;
-pub const get_pdpt_index = types.get_pdpt_index;
-pub const get_pd_index = types.get_pd_index;
-pub const get_pt_index = types.get_pt_index;
+pub const get_l4_index = types.get_l4_index;
+pub const get_l3_index = types.get_l3_index;
+pub const get_l2_index = types.get_l2_index;
+pub const get_l1_index = types.get_l1_index;
 pub const get_page_offset = types.get_page_offset;

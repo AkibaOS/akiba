@@ -1,9 +1,24 @@
 //! AFS Writer for mkafsdisk
-//! Creates AFS filesystem structures on disk
+//! Creates AFS filesystem structures on disk using shared/afs types.
 
 const std = @import("std");
-const constants = @import("constants.zig");
-const types = @import("types.zig");
+const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+
+// Import shared types and constants
+const constants = shared_afs.constants;
+const types = shared_afs.types;
+const write_ops = shared_afs.write;
+
+const VolumeHeader = shared_afs.VolumeHeader;
+const SpanDescriptor = shared_afs.SpanDescriptor;
+const ChannelInfo = shared_afs.ChannelInfo;
+const StackRecord = shared_afs.StackRecord;
+const UnitRecord = shared_afs.UnitRecord;
+const IndexKey = shared_afs.IndexKey;
+const BTreeNodeDescriptor = shared_afs.BTreeNodeDescriptor;
+const BTreeHeaderRecord = shared_afs.BTreeHeaderRecord;
+const JournalInfoCell = types.JournalInfoCell;
+const JournalHeader = types.JournalHeader;
 
 pub const Writer = struct {
     file: std.fs.File,
@@ -75,7 +90,7 @@ pub const Writer = struct {
         };
     }
 
-    pub fn create_filesystem(self: *Self, source_directory: []const u8) !void {
+    pub fn create_filesystem(self: *Self, source_location: []const u8) !void {
         std.debug.print("  Creating AFS filesystem...\n", .{});
         std.debug.print("    Total cells: {d}\n", .{self.total_cells});
         std.debug.print("    Cell size: {d}\n", .{self.cell_size});
@@ -89,16 +104,16 @@ pub const Writer = struct {
 
         try self.write_index_header(index_buffer);
 
-        const origin_node_id = constants.special_node_id_origin_stack;
+        const origin_node_id = constants.nodes.origin_stack;
         try self.add_stack_to_index(
             index_buffer,
             origin_node_id,
-            constants.special_node_id_origin,
+            constants.nodes.origin,
             "",
         );
         self.stack_count += 1;
 
-        try self.copy_directory_recursive(source_directory, origin_node_id, index_buffer);
+        try self.copy_stack_recursive(source_location, origin_node_id, index_buffer);
 
         try self.write_index(index_buffer);
         try self.write_allocation_map();
@@ -109,19 +124,19 @@ pub const Writer = struct {
         std.debug.print("    Free cells: {d}\n", .{self.total_cells - self.next_cell});
     }
 
-    fn copy_directory_recursive(
+    fn copy_stack_recursive(
         self: *Self,
-        source_path: []const u8,
+        source_location: []const u8,
         parent_node_id: u32,
         index_buffer: []u8,
     ) !void {
-        var source_dir = std.fs.cwd().openDir(source_path, .{ .iterate = true }) catch |err| {
-            std.debug.print("    Warning: Cannot open {s}: {}\n", .{ source_path, err });
+        var host_stack = std.fs.cwd().openDir(source_location, .{ .iterate = true }) catch |err| {
+            std.debug.print("    Warning: Cannot open {s}: {}\n", .{ source_location, err });
             return;
         };
-        defer source_dir.close();
+        defer host_stack.close();
 
-        var iterator = source_dir.iterate();
+        var iterator = host_stack.iterate();
         while (try iterator.next()) |entry| {
             if (entry.name[0] == '.') continue;
 
@@ -132,16 +147,16 @@ pub const Writer = struct {
                 try self.add_stack_to_index(index_buffer, node_id, parent_node_id, entry.name);
                 self.stack_count += 1;
 
-                const sub_path = try std.fs.path.join(self.allocator, &.{ source_path, entry.name });
-                defer self.allocator.free(sub_path);
+                const sub_location = try std.fs.path.join(self.allocator, &.{ source_location, entry.name });
+                defer self.allocator.free(sub_location);
 
                 std.debug.print("    Added stack: {s}/\n", .{entry.name});
-                try self.copy_directory_recursive(sub_path, node_id, index_buffer);
+                try self.copy_stack_recursive(sub_location, node_id, index_buffer);
             } else {
-                const unit_path = try std.fs.path.join(self.allocator, &.{ source_path, entry.name });
-                defer self.allocator.free(unit_path);
+                const unit_location = try std.fs.path.join(self.allocator, &.{ source_location, entry.name });
+                defer self.allocator.free(unit_location);
 
-                try self.add_unit_to_index(index_buffer, node_id, parent_node_id, entry.name, unit_path);
+                try self.add_unit_to_index(index_buffer, node_id, parent_node_id, entry.name, unit_location);
                 self.unit_count += 1;
 
                 std.debug.print("    Added unit: {s}\n", .{entry.name});
@@ -158,9 +173,9 @@ pub const Writer = struct {
     ) !void {
         const timestamp = @as(u64, @intCast(std.time.timestamp()));
 
-        var record = types.StackRecord{
-            .record_type = constants.index_record_type_stack,
-            .flags = constants.unit_flag_has_thread,
+        var record = StackRecord{
+            .record_type = constants.records.index_stack,
+            .flags = constants.flags.unit_has_thread,
             .valence = 0,
             .node_id = node_id,
             .creation_timestamp = timestamp,
@@ -174,9 +189,9 @@ pub const Writer = struct {
                 .admin_flags = 0,
                 .owner_flags = 0,
                 .mode = 0o755,
-                .inode_or_link = 0,
+                .special = .{ .inode_number = 0 },
             },
-            .special = [_]u8{0} ** 16,
+            .special = .{ .raw = [_]u8{0} ** 16 },
             .text_encoding = 0,
             .reserved = 0,
         };
@@ -221,9 +236,9 @@ pub const Writer = struct {
 
         const timestamp = @as(u64, @intCast(std.time.timestamp()));
 
-        var record = types.UnitRecord{
-            .record_type = constants.index_record_type_unit,
-            .flags = constants.unit_flag_has_thread,
+        var record = UnitRecord{
+            .record_type = constants.records.index_unit,
+            .flags = constants.flags.unit_has_thread,
             .reserved1 = 0,
             .node_id = node_id,
             .creation_timestamp = timestamp,
@@ -237,9 +252,9 @@ pub const Writer = struct {
                 .admin_flags = 0,
                 .owner_flags = 0,
                 .mode = 0o644,
-                .inode_or_link = 0,
+                .special = .{ .inode_number = 0 },
             },
-            .special = [_]u8{0} ** 16,
+            .special = .{ .raw = [_]u8{0} ** 16 },
             .text_encoding = 0,
             .reserved2 = 0,
             .data_channel = .{
@@ -248,7 +263,7 @@ pub const Writer = struct {
                 .clump_size = self.cell_size,
                 .total_cells = cells_needed,
                 .spans = blk: {
-                    var spans: [constants.span_inline_count]types.SpanDescriptor = [_]types.SpanDescriptor{.{}} ** constants.span_inline_count;
+                    var spans: [constants.span_inline_count]SpanDescriptor = [_]SpanDescriptor{.{}} ** constants.span_inline_count;
                     if (cells_needed > 0) {
                         spans[0] = .{
                             .start_cell = start_cell,
@@ -265,16 +280,16 @@ pub const Writer = struct {
     }
 
     fn write_index_header(self: *Self, index_buffer: []u8) !void {
-        var node_descriptor = types.BTreeNodeDescriptor{
+        var node_descriptor = BTreeNodeDescriptor{
             .forward_link = 0,
             .backward_link = 0,
-            .node_type = constants.btree_node_type_header,
+            .node_type = constants.btree.node_type_header,
             .height = 0,
             .record_count = 3,
             .reserved = 0,
         };
 
-        const header_record = types.BTreeHeaderRecord{
+        const header_record = BTreeHeaderRecord{
             .depth = 1,
             .root_node = 1,
             .leaf_record_count = 0,
@@ -292,20 +307,20 @@ pub const Writer = struct {
             .reserved2 = [_]u8{0} ** 64,
         };
 
-        @memcpy(index_buffer[0..@sizeOf(types.BTreeNodeDescriptor)], std.mem.asBytes(&node_descriptor));
-        @memcpy(index_buffer[14 .. 14 + @sizeOf(types.BTreeHeaderRecord)], std.mem.asBytes(&header_record));
+        @memcpy(index_buffer[0..@sizeOf(BTreeNodeDescriptor)], std.mem.asBytes(&node_descriptor));
+        @memcpy(index_buffer[14 .. 14 + @sizeOf(BTreeHeaderRecord)], std.mem.asBytes(&header_record));
 
-        var leaf_node = types.BTreeNodeDescriptor{
+        var leaf_node = BTreeNodeDescriptor{
             .forward_link = 0,
             .backward_link = 0,
-            .node_type = constants.btree_node_type_leaf,
+            .node_type = constants.btree.node_type_leaf,
             .height = 1,
             .record_count = 0,
             .reserved = 0,
         };
 
         const leaf_offset = self.cell_size;
-        @memcpy(index_buffer[leaf_offset .. leaf_offset + @sizeOf(types.BTreeNodeDescriptor)], std.mem.asBytes(&leaf_node));
+        @memcpy(index_buffer[leaf_offset .. leaf_offset + @sizeOf(BTreeNodeDescriptor)], std.mem.asBytes(&leaf_node));
     }
 
     var index_record_offset: usize = 14;
@@ -322,7 +337,7 @@ pub const Writer = struct {
         const leaf_offset = constants.default_cell_size;
         const record_start = leaf_offset + 14 + index_record_offset;
 
-        var key = types.IndexKey{
+        var key = IndexKey{
             .key_length = @intCast(6 + identity.len * 2),
             .parent_node_id = parent_node_id,
             .identity = [_]u16{0} ** 256,
@@ -338,7 +353,7 @@ pub const Writer = struct {
 
         index_record_offset += key_size + record_data.len;
 
-        var node_desc: *types.BTreeNodeDescriptor = @ptrCast(@alignCast(&index_buffer[leaf_offset]));
+        var node_desc: *BTreeNodeDescriptor = @ptrCast(@alignCast(&index_buffer[leaf_offset]));
         node_desc.record_count += 1;
     }
 
@@ -355,7 +370,7 @@ pub const Writer = struct {
     }
 
     fn write_journal_info(self: *Self) !void {
-        var info = types.JournalInfoCell{
+        var info = JournalInfoCell{
             .flags = 0,
             .device_signature = [_]u32{0} ** 32,
             .offset = @as(u64, self.journal_start_cell) * self.cell_size,
@@ -364,7 +379,7 @@ pub const Writer = struct {
         };
 
         var buffer: [4096]u8 = [_]u8{0} ** 4096;
-        @memcpy(buffer[0..@sizeOf(types.JournalInfoCell)], std.mem.asBytes(&info));
+        @memcpy(buffer[0..@sizeOf(JournalInfoCell)], std.mem.asBytes(&info));
 
         try self.write_cell(2, &buffer);
     }
@@ -372,7 +387,7 @@ pub const Writer = struct {
     fn write_journal_header(self: *Self) !void {
         const journal_size = @as(u64, self.journal_cells) * self.cell_size;
 
-        var header = types.JournalHeader{
+        var header = JournalHeader{
             .magic = constants.journal_signature,
             .endian = 0x12345678,
             .start = 0,
@@ -385,7 +400,7 @@ pub const Writer = struct {
         };
 
         var buffer: [4096]u8 = [_]u8{0} ** 4096;
-        @memcpy(buffer[0..@sizeOf(types.JournalHeader)], std.mem.asBytes(&header));
+        @memcpy(buffer[0..@sizeOf(JournalHeader)], std.mem.asBytes(&header));
 
         try self.write_cell(self.journal_start_cell, &buffer);
     }
@@ -411,7 +426,7 @@ pub const Writer = struct {
     fn write_volume_header(self: *Self) !void {
         const timestamp = @as(u64, @intCast(std.time.timestamp()));
 
-        var header = types.VolumeHeader{
+        var header = VolumeHeader{
             .signature = constants.signature,
             .version = constants.version,
             .attributes = 0,
@@ -469,15 +484,15 @@ pub const Writer = struct {
             .span_overflow_span = .{},
             .attributes_span = .{},
             .startup_span = .{},
-            .journal_info_cell = constants.journal_info_cell,
-            .journal_info_size = constants.journal_header_size,
-            .compression_type = constants.compression_none,
-            .encryption_type = constants.encryption_none,
+            .journal_info_cell = constants.sizes.journal_info_cell,
+            .journal_info_size = constants.sizes.journal_header_size,
+            .compression_type = constants.flags.compression_none,
+            .encryption_type = constants.flags.encryption_none,
             .reserved = [_]u8{0} ** 64,
         };
 
         var buffer: [4096]u8 = [_]u8{0} ** 4096;
-        @memcpy(buffer[0..@sizeOf(types.VolumeHeader)], std.mem.asBytes(&header));
+        @memcpy(buffer[0..@sizeOf(VolumeHeader)], std.mem.asBytes(&header));
 
         try self.write_cell(0, &buffer);
     }

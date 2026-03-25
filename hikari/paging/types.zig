@@ -62,24 +62,25 @@ pub const PageTable = struct {
     }
 };
 
-pub const PageMapLevel4 = PageTable;
-pub const PageDirectoryPointerTable = PageTable;
-pub const PageDirectory = PageTable;
-pub const PageTableLevel1 = PageTable;
+// Page table levels (L4 = top, L1 = bottom)
+pub const TableL4 = PageTable; // PML4
+pub const TableL3 = PageTable; // PDPT
+pub const TableL2 = PageTable; // PD
+pub const TableL1 = PageTable; // PT
 
-pub fn get_pml4_index(address: u64) usize {
+pub fn get_l4_index(address: u64) usize {
     return @truncate((address >> constants.pml4_shift) & 0x1FF);
 }
 
-pub fn get_pdpt_index(address: u64) usize {
+pub fn get_l3_index(address: u64) usize {
     return @truncate((address >> constants.pdpt_shift) & 0x1FF);
 }
 
-pub fn get_pd_index(address: u64) usize {
+pub fn get_l2_index(address: u64) usize {
     return @truncate((address >> constants.pd_shift) & 0x1FF);
 }
 
-pub fn get_pt_index(address: u64) usize {
+pub fn get_l1_index(address: u64) usize {
     return @truncate((address >> constants.pt_shift) & 0x1FF);
 }
 

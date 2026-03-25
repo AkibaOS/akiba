@@ -27,26 +27,26 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     if (args.len != 4) {
-        std.debug.print("Usage: {s} <source_directory> <output_image> <size_mb>\n", .{args[0]});
+        std.debug.print("Usage: {s} <source_location> <output_image> <size_mb>\n", .{args[0]});
         return error.InvalidArgs;
     }
 
-    const source_directory = args[1];
+    const source_location = args[1];
     const output_image_path = args[2];
     const size_megabytes = try std.fmt.parseInt(u32, args[3], 10);
 
     std.debug.print("Creating disk image: {s}\n", .{output_image_path});
-    std.debug.print("  Source: {s}\n", .{source_directory});
+    std.debug.print("  Source: {s}\n", .{source_location});
     std.debug.print("  Size: {d} MB\n", .{size_megabytes});
 
-    try create_disk_image(allocator, source_directory, output_image_path, size_megabytes);
+    try create_disk_image(allocator, source_location, output_image_path, size_megabytes);
 
     std.debug.print("✓ Disk image created successfully\n", .{});
 }
 
 fn create_disk_image(
     allocator: std.mem.Allocator,
-    source_directory: []const u8,
+    source_location: []const u8,
     output_path: []const u8,
     size_megabytes: u32,
 ) !void {
@@ -76,8 +76,8 @@ fn create_disk_image(
 
     try write_protective_mbr(file, total_sectors);
     try write_gpt(file, esp_start_sector, esp_end_sector, afs_start_sector, afs_end_sector, total_sectors);
-    try create_esp(allocator, file, source_directory, esp_start_sector, ESP_SIZE_SECTORS);
-    try create_afs(allocator, file, source_directory, afs_start_sector, afs_end_sector - afs_start_sector + 1);
+    try create_esp(allocator, file, source_location, esp_start_sector, ESP_SIZE_SECTORS);
+    try create_afs(allocator, file, source_location, afs_start_sector, afs_end_sector - afs_start_sector + 1);
 }
 
 fn write_protective_mbr(file: std.fs.File, total_sectors: u32) !void {
@@ -200,7 +200,7 @@ fn write_gpt(
 fn create_esp(
     allocator: std.mem.Allocator,
     file: std.fs.File,
-    source_directory: []const u8,
+    source_location: []const u8,
     esp_start_sector: u32,
     esp_sector_count: u32,
 ) !void {
@@ -285,54 +285,54 @@ fn create_esp(
     // Copy EFI/BOOT/BOOTX64.EFI from source
     var current_cluster: u32 = 3;
 
-    // Root directory
-    var root_dir: [512]u8 = [_]u8{0} ** 512;
+    // Origin stack (root)
+    var origin_stack: [512]u8 = [_]u8{0} ** 512;
 
-    // EFI directory entry in root
-    @memcpy(root_dir[0..11], "EFI        ");
-    root_dir[11] = 0x10;
-    std.mem.writeInt(u16, root_dir[26..28], @intCast(current_cluster), .little);
+    // EFI stack entry in origin
+    @memcpy(origin_stack[0..11], "EFI        ");
+    origin_stack[11] = 0x10;
+    std.mem.writeInt(u16, origin_stack[26..28], @intCast(current_cluster), .little);
     const efi_cluster = current_cluster;
     current_cluster += 1;
 
-    // Write root directory at cluster 2
+    // Write origin stack at cluster 2
     try file.seekTo(data_start);
-    try file.writeAll(&root_dir);
+    try file.writeAll(&origin_stack);
 
-    // EFI directory
-    var efi_dir: [512]u8 = [_]u8{0} ** 512;
-    @memcpy(efi_dir[0..11], ".          ");
-    efi_dir[11] = 0x10;
-    std.mem.writeInt(u16, efi_dir[26..28], @intCast(efi_cluster), .little);
-    @memcpy(efi_dir[32..43], "..         ");
-    efi_dir[43] = 0x10;
-    @memcpy(efi_dir[64..75], "BOOT       ");
-    efi_dir[75] = 0x10;
-    std.mem.writeInt(u16, efi_dir[90..92], @intCast(current_cluster), .little);
+    // EFI stack
+    var efi_stack: [512]u8 = [_]u8{0} ** 512;
+    @memcpy(efi_stack[0..11], ".          ");
+    efi_stack[11] = 0x10;
+    std.mem.writeInt(u16, efi_stack[26..28], @intCast(efi_cluster), .little);
+    @memcpy(efi_stack[32..43], "..         ");
+    efi_stack[43] = 0x10;
+    @memcpy(efi_stack[64..75], "BOOT       ");
+    efi_stack[75] = 0x10;
+    std.mem.writeInt(u16, efi_stack[90..92], @intCast(current_cluster), .little);
     const boot_cluster = current_cluster;
     current_cluster += 1;
 
     try file.seekTo(data_start + (efi_cluster - 2) * SECTOR_SIZE);
-    try file.writeAll(&efi_dir);
+    try file.writeAll(&efi_stack);
     std.mem.writeInt(u32, fat_table[efi_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
 
-    // BOOT directory
-    var boot_dir: [512]u8 = [_]u8{0} ** 512;
-    @memcpy(boot_dir[0..11], ".          ");
-    boot_dir[11] = 0x10;
-    std.mem.writeInt(u16, boot_dir[26..28], @intCast(boot_cluster), .little);
-    @memcpy(boot_dir[32..43], "..         ");
-    boot_dir[43] = 0x10;
-    std.mem.writeInt(u16, boot_dir[58..60], @intCast(efi_cluster), .little);
+    // BOOT stack
+    var boot_stack: [512]u8 = [_]u8{0} ** 512;
+    @memcpy(boot_stack[0..11], ".          ");
+    boot_stack[11] = 0x10;
+    std.mem.writeInt(u16, boot_stack[26..28], @intCast(boot_cluster), .little);
+    @memcpy(boot_stack[32..43], "..         ");
+    boot_stack[43] = 0x10;
+    std.mem.writeInt(u16, boot_stack[58..60], @intCast(efi_cluster), .little);
 
     // Try to find and copy BOOTX64.EFI
-    const bootloader_path = try std.fs.path.join(allocator, &.{ source_directory, "EFI", "BOOT", "BOOTX64.EFI" });
-    defer allocator.free(bootloader_path);
+    const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, "EFI", "BOOT", "BOOTX64.EFI" });
+    defer allocator.free(bootloader_location);
 
-    const bootloader_file = std.fs.cwd().openFile(bootloader_path, .{}) catch |err| {
+    const bootloader_file = std.fs.cwd().openFile(bootloader_location, .{}) catch |err| {
         std.debug.print("    Warning: Cannot open bootloader: {}\n", .{err});
         try file.seekTo(data_start + (boot_cluster - 2) * SECTOR_SIZE);
-        try file.writeAll(&boot_dir);
+        try file.writeAll(&boot_stack);
         std.mem.writeInt(u32, fat_table[boot_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
         try file.seekTo(fat1_offset);
         try file.writeAll(fat_table);
@@ -348,14 +348,14 @@ fn create_esp(
     std.debug.print("    Adding BOOTX64.EFI ({d} bytes, {d} clusters)\n", .{ bootloader_size, bootloader_clusters });
 
     // Add BOOTX64.EFI entry
-    @memcpy(boot_dir[64..75], "BOOTX64 EFI");
-    boot_dir[75] = 0x20;
-    std.mem.writeInt(u16, boot_dir[90..92], @intCast(current_cluster), .little);
-    std.mem.writeInt(u32, boot_dir[92..96], @intCast(bootloader_size), .little);
+    @memcpy(boot_stack[64..75], "BOOTX64 EFI");
+    boot_stack[75] = 0x20;
+    std.mem.writeInt(u16, boot_stack[90..92], @intCast(current_cluster), .little);
+    std.mem.writeInt(u32, boot_stack[92..96], @intCast(bootloader_size), .little);
     const bootloader_start_cluster = current_cluster;
 
     try file.seekTo(data_start + (boot_cluster - 2) * SECTOR_SIZE);
-    try file.writeAll(&boot_dir);
+    try file.writeAll(&boot_stack);
     std.mem.writeInt(u32, fat_table[boot_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
 
     // Copy bootloader data
@@ -386,7 +386,7 @@ fn create_esp(
 fn create_afs(
     allocator: std.mem.Allocator,
     file: std.fs.File,
-    source_directory: []const u8,
+    source_location: []const u8,
     afs_start_sector: u32,
     afs_sector_count: u32,
 ) !void {
@@ -400,5 +400,5 @@ fn create_afs(
         allocator,
     );
 
-    try writer.create_filesystem(source_directory);
+    try writer.create_filesystem(source_location);
 }

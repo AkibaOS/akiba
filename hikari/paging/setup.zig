@@ -11,29 +11,29 @@ pub const SetupError = error{
 
 pub const PageTableSetup = struct {
     boot_services: *efi.services.BootServices,
-    pml4: *types.PageMapLevel4,
+    l4: *types.TableL4,
     allocated_tables: [64]*types.PageTable,
     allocated_count: usize,
 
     pub fn initialize(boot_services: *efi.services.BootServices) SetupError!PageTableSetup {
-        var pml4_addr: efi.types.PhysicalAddress = 0;
+        var l4_addr: efi.types.PhysicalAddress = 0;
         const status = boot_services.allocate_pages(
             .any_pages,
             .loader_data,
             1,
-            &pml4_addr,
+            &l4_addr,
         );
 
         if (efi.types.is_error(status)) {
             return SetupError.allocation_failed;
         }
 
-        const pml4: *types.PageMapLevel4 = @ptrFromInt(pml4_addr);
-        pml4.clear();
+        const l4: *types.TableL4 = @ptrFromInt(l4_addr);
+        l4.clear();
 
         return PageTableSetup{
             .boot_services = boot_services,
-            .pml4 = pml4,
+            .l4 = l4,
             .allocated_tables = undefined,
             .allocated_count = 0,
         };
@@ -77,13 +77,13 @@ pub const PageTableSetup = struct {
     }
 
     pub fn map_physmap(self: *PageTableSetup, max_physical: u64) SetupError!void {
-        const pdpt = try self.allocate_table();
+        const l3 = try self.allocate_table();
 
-        const pml4_entry = types.PageTableEntry.from_address(
-            @intFromPtr(pdpt),
+        const l4_entry = types.PageTableEntry.from_address(
+            @intFromPtr(l3),
             constants.flag_present | constants.flag_writable,
         );
-        self.pml4.set_entry(constants.pml4_index_physmap, pml4_entry);
+        self.l4.set_entry(constants.pml4_index_physmap, l4_entry);
 
         const size_to_map = if (max_physical > constants.physmap_size)
             constants.physmap_size
@@ -95,11 +95,11 @@ pub const PageTableSetup = struct {
         var i: u64 = 0;
         while (i < gb_count and i < 512) : (i += 1) {
             const physical_addr = i * constants.huge_page_size_1g;
-            const pdpt_entry = types.PageTableEntry.from_address(
+            const l3_entry = types.PageTableEntry.from_address(
                 physical_addr,
                 constants.flag_present | constants.flag_writable | constants.flag_huge_page | constants.flag_global,
             );
-            pdpt.set_entry(@truncate(i), pdpt_entry);
+            l3.set_entry(@truncate(i), l3_entry);
         }
     }
 
@@ -109,25 +109,25 @@ pub const PageTableSetup = struct {
         var remaining = size;
 
         while (remaining > 0) {
-            const pml4_idx = types.get_pml4_index(virt);
-            var pdpt: *types.PageDirectoryPointerTable = undefined;
+            const l4_idx = types.get_l4_index(virt);
+            var l3: *types.TableL3 = undefined;
 
-            if (self.pml4.get_entry(pml4_idx).is_present()) {
-                pdpt = @ptrFromInt(self.pml4.get_entry(pml4_idx).get_address());
+            if (self.l4.get_entry(l4_idx).is_present()) {
+                l3 = @ptrFromInt(self.l4.get_entry(l4_idx).get_address());
             } else {
-                pdpt = try self.allocate_table();
+                l3 = try self.allocate_table();
                 const entry = types.PageTableEntry.from_address(
-                    @intFromPtr(pdpt),
+                    @intFromPtr(l3),
                     constants.flag_present | constants.flag_writable,
                 );
-                self.pml4.set_entry(pml4_idx, entry);
+                self.l4.set_entry(l4_idx, entry);
             }
 
-            const pdpt_idx = types.get_pdpt_index(virt);
-            var pd: *types.PageDirectory = undefined;
+            const l3_idx = types.get_l3_index(virt);
+            var l2: *types.TableL2 = undefined;
 
-            if (pdpt.get_entry(pdpt_idx).is_present()) {
-                if (pdpt.get_entry(pdpt_idx).is_huge()) {
+            if (l3.get_entry(l3_idx).is_present()) {
+                if (l3.get_entry(l3_idx).is_huge()) {
                     virt += constants.huge_page_size_1g;
                     phys += constants.huge_page_size_1g;
                     if (remaining >= constants.huge_page_size_1g) {
@@ -137,17 +137,17 @@ pub const PageTableSetup = struct {
                     }
                     continue;
                 }
-                pd = @ptrFromInt(pdpt.get_entry(pdpt_idx).get_address());
+                l2 = @ptrFromInt(l3.get_entry(l3_idx).get_address());
             } else {
-                pd = try self.allocate_table();
+                l2 = try self.allocate_table();
                 const entry = types.PageTableEntry.from_address(
-                    @intFromPtr(pd),
+                    @intFromPtr(l2),
                     constants.flag_present | constants.flag_writable,
                 );
-                pdpt.set_entry(pdpt_idx, entry);
+                l3.set_entry(l3_idx, entry);
             }
 
-            const pd_idx = types.get_pd_index(virt);
+            const l2_idx = types.get_l2_index(virt);
 
             if (remaining >= constants.huge_page_size_2m and
                 (virt & (constants.huge_page_size_2m - 1)) == 0 and
@@ -157,7 +157,7 @@ pub const PageTableSetup = struct {
                     phys,
                     flags | constants.flag_huge_page,
                 );
-                pd.set_entry(pd_idx, entry);
+                l2.set_entry(l2_idx, entry);
 
                 virt += constants.huge_page_size_2m;
                 phys += constants.huge_page_size_2m;
@@ -165,10 +165,10 @@ pub const PageTableSetup = struct {
                 continue;
             }
 
-            var pt: *types.PageTableLevel1 = undefined;
+            var l1: *types.TableL1 = undefined;
 
-            if (pd.get_entry(pd_idx).is_present()) {
-                if (pd.get_entry(pd_idx).is_huge()) {
+            if (l2.get_entry(l2_idx).is_present()) {
+                if (l2.get_entry(l2_idx).is_huge()) {
                     virt += constants.huge_page_size_2m;
                     phys += constants.huge_page_size_2m;
                     if (remaining >= constants.huge_page_size_2m) {
@@ -178,19 +178,19 @@ pub const PageTableSetup = struct {
                     }
                     continue;
                 }
-                pt = @ptrFromInt(pd.get_entry(pd_idx).get_address());
+                l1 = @ptrFromInt(l2.get_entry(l2_idx).get_address());
             } else {
-                pt = try self.allocate_table();
+                l1 = try self.allocate_table();
                 const entry = types.PageTableEntry.from_address(
-                    @intFromPtr(pt),
+                    @intFromPtr(l1),
                     constants.flag_present | constants.flag_writable,
                 );
-                pd.set_entry(pd_idx, entry);
+                l2.set_entry(l2_idx, entry);
             }
 
-            const pt_idx = types.get_pt_index(virt);
+            const l1_idx = types.get_l1_index(virt);
             const entry = types.PageTableEntry.from_address(phys, flags);
-            pt.set_entry(pt_idx, entry);
+            l1.set_entry(l1_idx, entry);
 
             virt += constants.page_size;
             phys += constants.page_size;
@@ -202,7 +202,7 @@ pub const PageTableSetup = struct {
         }
     }
 
-    pub fn get_pml4_address(self: *PageTableSetup) u64 {
-        return @intFromPtr(self.pml4);
+    pub fn get_l4_address(self: *PageTableSetup) u64 {
+        return @intFromPtr(self.l4);
     }
 };
