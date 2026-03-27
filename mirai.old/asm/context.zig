@@ -60,7 +60,6 @@ pub fn switch_to_context(ctx: *const kata_mod.Context, page_table: u64, kernel_s
         : [ctx_addr] "r" (ctx_addr),
           [pt] "r" (page_table),
           [kstack] "r" (kernel_stack),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
     unreachable;
 }

@@ -9,8 +9,7 @@ pub fn reload_code_segment(code_selector: u16) void {
         \\1:
         :
         : [code_sel] "r" (@as(u64, code_selector)),
-        : .{ .rax = true, .memory = true }
-    );
+        : .{ .rax = true, .memory = true });
 }
 
 pub fn reload_data_segments(data_selector: u16) void {
@@ -23,8 +22,7 @@ pub fn reload_data_segments(data_selector: u16) void {
         \\mov %%ax, %%ss
         :
         : [data_sel] "r" (data_selector),
-        : .{ .rax = true, .memory = true }
-    );
+        : .{ .rax = true, .memory = true });
 }
 
 pub fn load_tss(tss_selector: u16) void {

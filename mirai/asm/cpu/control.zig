@@ -35,8 +35,7 @@ pub fn write_cr3(value: u64) void {
     asm volatile ("mov %[value], %%cr3"
         :
         : [value] "r" (value),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
 }
 
 pub fn read_cr4() u64 {
@@ -63,6 +62,5 @@ pub fn invalidate_page(virtual_address: u64) void {
     asm volatile ("invlpg (%[address])"
         :
         : [address] "r" (virtual_address),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
 }

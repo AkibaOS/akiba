@@ -27,16 +27,22 @@ pub const vectors = [_]Vector{
 };
 
 pub fn get_exception_type(vector_number: u8) ExceptionType {
-    for (vectors) |v| { if (v.number == vector_number) return v.exception_type; }
+    for (vectors) |v| {
+        if (v.number == vector_number) return v.exception_type;
+    }
     return .forbidden;
 }
 
 pub fn has_error_code(vector_number: u8) bool {
-    for (vectors) |v| { if (v.number == vector_number) return v.has_error_code; }
+    for (vectors) |v| {
+        if (v.number == vector_number) return v.has_error_code;
+    }
     return false;
 }
 
 pub fn get_name(vector_number: u8) []const u8 {
-    for (vectors) |v| { if (v.number == vector_number) return v.name; }
+    for (vectors) |v| {
+        if (v.number == vector_number) return v.name;
+    }
     return "Unknown";
 }

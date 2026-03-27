@@ -9,8 +9,7 @@ pub fn lgdt(gdtr: *const Gdtr) void {
     asm volatile ("lgdt (%[gdtr])"
         :
         : [gdtr] "r" (gdtr),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
 }
 
 pub fn sgdt() Gdtr {
@@ -18,7 +17,6 @@ pub fn sgdt() Gdtr {
     asm volatile ("sgdt (%[gdtr])"
         :
         : [gdtr] "r" (&gdtr),
-        : .{ .memory = true }
-    );
+        : .{ .memory = true });
     return gdtr;
 }

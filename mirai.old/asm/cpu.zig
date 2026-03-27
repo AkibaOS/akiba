@@ -63,6 +63,5 @@ pub inline fn reload_code_segment(selector: u16) void {
         \\1:
         :
         : [sel] "r" (@as(u64, selector)),
-        : .{ .rax = true }
-    );
+        : .{ .rax = true });
 }
