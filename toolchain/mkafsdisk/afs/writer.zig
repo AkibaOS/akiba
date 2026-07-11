@@ -2,6 +2,7 @@
 //! Creates AFS filesystem structures on disk using shared/afs types.
 
 const std = @import("std");
+const strings = @import("../strings/strings.zig");
 const shared_afs = @import("shared").afs;
 
 // Import shared types and constants
@@ -94,9 +95,9 @@ pub const Writer = struct {
     }
 
     pub fn create_filesystem(self: *Self, source_location: []const u8) !void {
-        std.debug.print("  Creating AFS filesystem...\n", .{});
-        std.debug.print("    Total cells: {d}\n", .{self.total_cells});
-        std.debug.print("    Cell size: {d}\n", .{self.cell_size});
+        std.debug.print(strings.messages.afs_creating, .{});
+        std.debug.print(strings.messages.afs_total_cells, .{self.total_cells});
+        std.debug.print(strings.messages.afs_cell_size, .{self.cell_size});
 
         try self.write_journal_info();
         try self.write_journal_header();
@@ -123,8 +124,8 @@ pub const Writer = struct {
         try self.write_volume_header();
         try self.write_alternate_volume_header();
 
-        std.debug.print("    Units: {d}, Stacks: {d}\n", .{ self.unit_count, self.stack_count });
-        std.debug.print("    Free cells: {d}\n", .{self.total_cells - self.next_cell});
+        std.debug.print(strings.messages.afs_counts, .{ self.unit_count, self.stack_count });
+        std.debug.print(strings.messages.afs_free_cells, .{self.total_cells - self.next_cell});
     }
 
     fn copy_stack_recursive(
@@ -134,7 +135,7 @@ pub const Writer = struct {
         index_buffer: []u8,
     ) !void {
         var host_stack = std.fs.cwd().openDir(source_location, .{ .iterate = true }) catch |err| {
-            std.debug.print("    Warning: Cannot open {s}: {}\n", .{ source_location, err });
+            std.debug.print(strings.messages.afs_open_warning, .{ source_location, err });
             return;
         };
         defer host_stack.close();
@@ -153,7 +154,7 @@ pub const Writer = struct {
                 const sub_location = try std.fs.path.join(self.allocator, &.{ source_location, entry.name });
                 defer self.allocator.free(sub_location);
 
-                std.debug.print("    Added stack: {s}/\n", .{entry.name});
+                std.debug.print(strings.messages.afs_added_stack, .{entry.name});
                 try self.copy_stack_recursive(sub_location, node_id, index_buffer);
             } else {
                 const unit_location = try std.fs.path.join(self.allocator, &.{ source_location, entry.name });
@@ -162,7 +163,7 @@ pub const Writer = struct {
                 try self.add_unit_to_index(index_buffer, node_id, parent_node_id, entry.name, unit_location);
                 self.unit_count += 1;
 
-                std.debug.print("    Added unit: {s}\n", .{entry.name});
+                std.debug.print(strings.messages.afs_added_unit, .{entry.name});
             }
         }
     }

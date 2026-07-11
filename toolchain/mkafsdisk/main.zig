@@ -5,6 +5,7 @@
 //! - Partition 2: AFS with /system/akiba/mirai.kernel
 
 const std = @import("std");
+const strings = @import("strings/strings.zig");
 const afs = @import("afs/afs.zig");
 
 const SECTOR_SIZE: u32 = 512;
@@ -28,7 +29,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     if (args.len != 4) {
-        std.debug.print("Usage: {s} <source_location> <output_image> <size_mb>\n", .{args[0]});
+        std.debug.print(strings.messages.usage, .{args[0]});
         return error.InvalidArgs;
     }
 
@@ -36,13 +37,13 @@ pub fn main() !void {
     const output_image_path = args[2];
     const size_megabytes = try std.fmt.parseInt(u32, args[3], 10);
 
-    std.debug.print("Creating disk image: {s}\n", .{output_image_path});
-    std.debug.print("  Source: {s}\n", .{source_location});
-    std.debug.print("  Size: {d} MB\n", .{size_megabytes});
+    std.debug.print(strings.messages.creating, .{output_image_path});
+    std.debug.print(strings.messages.source, .{source_location});
+    std.debug.print(strings.messages.size, .{size_megabytes});
 
     try create_disk_image(allocator, source_location, output_image_path, size_megabytes);
 
-    std.debug.print("✓ Disk image created successfully\n", .{});
+    std.debug.print(strings.messages.done, .{});
 }
 
 fn create_disk_image(
@@ -67,8 +68,8 @@ fn create_disk_image(
     const afs_start_sector: u32 = esp_end_sector + 1;
     const afs_end_sector: u32 = total_sectors - 34;
 
-    std.debug.print("  ESP: sectors {d}-{d}\n", .{ esp_start_sector, esp_end_sector });
-    std.debug.print("  AFS: sectors {d}-{d}\n", .{ afs_start_sector, afs_end_sector });
+    std.debug.print(strings.messages.esp_range, .{ esp_start_sector, esp_end_sector });
+    std.debug.print(strings.messages.afs_range, .{ afs_start_sector, afs_end_sector });
 
     const file = try std.fs.cwd().createFile(output_path, .{ .read = true });
     defer file.close();
@@ -132,8 +133,8 @@ fn write_gpt(
     @memcpy(partition_entries[16..32], &esp_unique_guid);
     std.mem.writeInt(u64, partition_entries[32..40], esp_start, .little);
     std.mem.writeInt(u64, partition_entries[40..48], esp_end, .little);
-    // Name: "EFI System"
-    const esp_name = "EFI System";
+    // Name: strings.names.esp_partition_name
+    const esp_name = strings.names.esp_partition_name;
     for (esp_name, 0..) |char, index| {
         partition_entries[56 + index * 2] = char;
     }
@@ -145,8 +146,8 @@ fn write_gpt(
     @memcpy(partition_entries[144..160], &afs_unique_guid);
     std.mem.writeInt(u64, partition_entries[160..168], afs_start, .little);
     std.mem.writeInt(u64, partition_entries[168..176], afs_end, .little);
-    // Name: "Akiba System"
-    const afs_name = "Akiba System";
+    // Name: strings.names.afs_partition_name
+    const afs_name = strings.names.afs_partition_name;
     for (afs_name, 0..) |char, index| {
         partition_entries[184 + index * 2] = char;
     }
@@ -155,7 +156,7 @@ fn write_gpt(
 
     // GPT Header
     var gpt_header: [512]u8 = [_]u8{0} ** 512;
-    @memcpy(gpt_header[0..8], "EFI PART");
+    @memcpy(gpt_header[0..8], strings.names.gpt_signature);
     std.mem.writeInt(u32, gpt_header[8..12], 0x00010000, .little); // Revision
     std.mem.writeInt(u32, gpt_header[12..16], 92, .little); // Header size
     // CRC at offset 16 - filled in later
@@ -205,7 +206,7 @@ fn create_esp(
     esp_start_sector: u32,
     esp_sector_count: u32,
 ) !void {
-    std.debug.print("  Creating FAT32 ESP...\n", .{});
+    std.debug.print(strings.messages.esp_creating, .{});
 
     const esp_start_byte: u64 = @as(u64, esp_start_sector) * SECTOR_SIZE;
 
@@ -224,7 +225,7 @@ fn create_esp(
     boot_sector[0] = 0xEB;
     boot_sector[1] = 0x58;
     boot_sector[2] = 0x90;
-    @memcpy(boot_sector[3..11], "MSWIN4.1");
+    @memcpy(boot_sector[3..11], strings.names.fat_oem_name);
     std.mem.writeInt(u16, boot_sector[11..13], 512, .little);
     boot_sector[13] = @intCast(sectors_per_cluster);
     std.mem.writeInt(u16, boot_sector[14..16], @intCast(reserved_sectors), .little);
@@ -246,8 +247,8 @@ fn create_esp(
     boot_sector[64] = 0x80;
     boot_sector[66] = 0x29;
     std.mem.writeInt(u32, boot_sector[67..71], 0x12345678, .little);
-    @memcpy(boot_sector[71..82], "AKIBAOS    ");
-    @memcpy(boot_sector[82..90], "FAT32   ");
+    @memcpy(boot_sector[71..82], strings.names.fat_volume_label);
+    @memcpy(boot_sector[82..90], strings.names.fat_filesystem_type);
     boot_sector[510] = 0x55;
     boot_sector[511] = 0xAA;
 
@@ -290,7 +291,7 @@ fn create_esp(
     var origin_stack: [512]u8 = [_]u8{0} ** 512;
 
     // EFI stack entry in origin
-    @memcpy(origin_stack[0..11], "EFI        ");
+    @memcpy(origin_stack[0..11], strings.names.dir_entry_efi);
     origin_stack[11] = 0x10;
     std.mem.writeInt(u16, origin_stack[26..28], @intCast(current_cluster), .little);
     const efi_cluster = current_cluster;
@@ -302,12 +303,12 @@ fn create_esp(
 
     // EFI stack
     var efi_stack: [512]u8 = [_]u8{0} ** 512;
-    @memcpy(efi_stack[0..11], ".          ");
+    @memcpy(efi_stack[0..11], strings.names.dir_entry_current);
     efi_stack[11] = 0x10;
     std.mem.writeInt(u16, efi_stack[26..28], @intCast(efi_cluster), .little);
-    @memcpy(efi_stack[32..43], "..         ");
+    @memcpy(efi_stack[32..43], strings.names.dir_entry_parent);
     efi_stack[43] = 0x10;
-    @memcpy(efi_stack[64..75], "BOOT       ");
+    @memcpy(efi_stack[64..75], strings.names.dir_entry_boot);
     efi_stack[75] = 0x10;
     std.mem.writeInt(u16, efi_stack[90..92], @intCast(current_cluster), .little);
     const boot_cluster = current_cluster;
@@ -319,19 +320,19 @@ fn create_esp(
 
     // BOOT stack
     var boot_stack: [512]u8 = [_]u8{0} ** 512;
-    @memcpy(boot_stack[0..11], ".          ");
+    @memcpy(boot_stack[0..11], strings.names.dir_entry_current);
     boot_stack[11] = 0x10;
     std.mem.writeInt(u16, boot_stack[26..28], @intCast(boot_cluster), .little);
-    @memcpy(boot_stack[32..43], "..         ");
+    @memcpy(boot_stack[32..43], strings.names.dir_entry_parent);
     boot_stack[43] = 0x10;
     std.mem.writeInt(u16, boot_stack[58..60], @intCast(efi_cluster), .little);
 
     // Try to find and copy BOOTX64.EFI
-    const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, "EFI", "BOOT", "BOOTX64.EFI" });
+    const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, strings.names.stack_efi, strings.names.stack_boot, strings.names.unit_bootloader });
     defer allocator.free(bootloader_location);
 
     const bootloader_file = std.fs.cwd().openFile(bootloader_location, .{}) catch |err| {
-        std.debug.print("    Warning: Cannot open bootloader: {}\n", .{err});
+        std.debug.print(strings.messages.bootloader_missing, .{err});
         try file.seekTo(data_start + (boot_cluster - 2) * SECTOR_SIZE);
         try file.writeAll(&boot_stack);
         std.mem.writeInt(u32, fat_table[boot_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
@@ -346,10 +347,10 @@ fn create_esp(
     const bootloader_size = try bootloader_file.getEndPos();
     const bootloader_clusters = @as(u32, @intCast((bootloader_size + SECTOR_SIZE - 1) / SECTOR_SIZE));
 
-    std.debug.print("    Adding BOOTX64.EFI ({d} bytes, {d} clusters)\n", .{ bootloader_size, bootloader_clusters });
+    std.debug.print(strings.messages.bootloader_adding, .{ bootloader_size, bootloader_clusters });
 
     // Add BOOTX64.EFI entry
-    @memcpy(boot_stack[64..75], "BOOTX64 EFI");
+    @memcpy(boot_stack[64..75], strings.names.dir_entry_bootloader);
     boot_stack[75] = 0x20;
     std.mem.writeInt(u16, boot_stack[90..92], @intCast(current_cluster), .little);
     std.mem.writeInt(u32, boot_stack[92..96], @intCast(bootloader_size), .little);
@@ -381,11 +382,11 @@ fn create_esp(
     try file.writeAll(fat_table);
 
     if (total_clusters < FAT32_MINIMUM_CLUSTERS) {
-        std.debug.print("    ESP too small for FAT32: {d} clusters (minimum {d})\n", .{ total_clusters, FAT32_MINIMUM_CLUSTERS });
+        std.debug.print(strings.messages.esp_too_small, .{ total_clusters, FAT32_MINIMUM_CLUSTERS });
         return error.EspTooSmall;
     }
 
-    std.debug.print("    FAT32 ESP created ({d} clusters)\n", .{total_clusters});
+    std.debug.print(strings.messages.esp_created, .{total_clusters});
 }
 
 fn create_afs(
