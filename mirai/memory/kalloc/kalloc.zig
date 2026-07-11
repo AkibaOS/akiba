@@ -6,6 +6,7 @@ const Zone = types.Zone;
 const create_mod = @import("../zone/create/create.zig");
 const alloc_mod = @import("../zone/alloc/alloc.zig");
 const bootstrap = @import("../zone/bootstrap/bootstrap.zig");
+const names = @import("strings/strings.zig").names;
 
 pub const sizes = [_]usize{ 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
 const zone_count = sizes.len;
@@ -61,15 +62,15 @@ fn get_zone_for_size(size: usize) ?*Zone {
 
 fn zone_name(comptime size: usize) []const u8 {
     return switch (size) {
-        16 => "kalloc.16",
-        32 => "kalloc.32",
-        64 => "kalloc.64",
-        128 => "kalloc.128",
-        256 => "kalloc.256",
-        512 => "kalloc.512",
-        1024 => "kalloc.1024",
-        2048 => "kalloc.2048",
-        4096 => "kalloc.4096",
-        else => "kalloc.unknown",
+        16 => names.zone_16,
+        32 => names.zone_32,
+        64 => names.zone_64,
+        128 => names.zone_128,
+        256 => names.zone_256,
+        512 => names.zone_512,
+        1024 => names.zone_1024,
+        2048 => names.zone_2048,
+        4096 => names.zone_4096,
+        else => names.zone_unknown,
     };
 }
