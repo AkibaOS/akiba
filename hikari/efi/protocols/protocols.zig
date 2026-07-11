@@ -1,14 +1,14 @@
 //! Hikari EFI Protocols
 
-pub const simple_text_input = @import("simple_text_input.zig");
-pub const simple_text_output = @import("simple_text_output.zig");
-pub const graphics_output = @import("graphics_output.zig");
+pub const simple_text_input = @import("input.zig");
+pub const simple_text_output = @import("output.zig");
+pub const graphics_output = @import("graphics.zig");
 pub const unit = @import("unit.zig");
-pub const simple_unit_system = @import("simple_unit_system.zig");
-pub const block_io = @import("block_io.zig");
-pub const disk_io = @import("disk_io.zig");
-pub const loaded_image = @import("loaded_image.zig");
-pub const device_location = @import("device_location.zig");
+pub const simple_unit_system = @import("filesystem.zig");
+pub const block_io = @import("block.zig");
+pub const disk_io = @import("disk.zig");
+pub const loaded_image = @import("image.zig");
+pub const device_location = @import("path.zig");
 
 pub const SimpleTextInputProtocol = simple_text_input.SimpleTextInputProtocol;
 pub const SimpleTextOutputProtocol = simple_text_output.SimpleTextOutputProtocol;

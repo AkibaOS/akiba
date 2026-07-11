@@ -2,7 +2,7 @@
 
 const efi = @import("../../efi/efi.zig");
 const shared_afs = @import("shared").afs;
-const block_io = @import("block_io.zig");
+const block_io = @import("block.zig");
 
 const EfiBlockContext = block_io.EfiBlockContext;
 

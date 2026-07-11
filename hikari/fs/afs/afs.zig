@@ -3,9 +3,9 @@
 const shared_afs = @import("shared").afs;
 
 // Adapters (EFI-specific)
-pub const btree = @import("btree_adapter.zig");
-pub const reader = @import("reader_adapter.zig");
-pub const block_io = @import("block_io.zig");
+pub const btree = @import("btree.zig");
+pub const reader = @import("reader.zig");
+pub const block_io = @import("block.zig");
 
 // Re-export shared types
 pub const constants = shared_afs.constants;

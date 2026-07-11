@@ -4,8 +4,8 @@ const types = @import("../types/types.zig");
 const table = @import("../types/table.zig");
 const boot = @import("boot.zig");
 const runtime = @import("runtime.zig");
-const simple_text_input = @import("../protocols/simple_text_input.zig");
-const simple_text_output = @import("../protocols/simple_text_output.zig");
+const simple_text_input = @import("../protocols/input.zig");
+const simple_text_output = @import("../protocols/output.zig");
 
 pub const SystemTable = extern struct {
     header: table.TableHeader,

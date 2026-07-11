@@ -1,7 +1,7 @@
 //! GDT Table Type
 
 const Entry = @import("entry.zig").Entry;
-const TssDescriptor = @import("tss_descriptor.zig").TssDescriptor;
+const TssDescriptor = @import("tss.zig").TssDescriptor;
 const Gdtr = @import("gdtr.zig").Gdtr;
 
 pub const Table = extern struct {

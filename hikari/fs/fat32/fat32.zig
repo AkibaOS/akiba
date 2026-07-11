@@ -15,6 +15,6 @@ pub const TimeFormat = shared_fat32.TimeFormat;
 pub const DateFormat = shared_fat32.DateFormat;
 
 // Reader adapter
-pub const reader = @import("reader_adapter.zig");
+pub const reader = @import("reader.zig");
 pub const Reader = reader.Reader;
 pub const ReadError = reader.ReadError;

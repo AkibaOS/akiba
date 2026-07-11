@@ -2,7 +2,7 @@
 
 const efi = @import("../../efi/efi.zig");
 const shared_afs = @import("shared").afs;
-const btree_adapter = @import("btree_adapter.zig");
+const btree_adapter = @import("btree.zig");
 
 // Import shared types
 const VolumeHeader = shared_afs.VolumeHeader;

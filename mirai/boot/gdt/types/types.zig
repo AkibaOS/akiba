@@ -1,7 +1,7 @@
 //! GDT Types
 
 pub const entry = @import("entry.zig");
-pub const tss_descriptor = @import("tss_descriptor.zig");
+pub const tss_descriptor = @import("tss.zig");
 pub const gdtr = @import("gdtr.zig");
 pub const table = @import("table.zig");
 
