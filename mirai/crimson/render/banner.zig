@@ -1,7 +1,7 @@
 //! Collapse Banner
 
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/strings.zig").messages;
 
 pub fn render() void {
     serial.printf("\n", .{});

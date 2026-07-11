@@ -1,7 +1,7 @@
 //! Render Loaded Modules
 
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/strings.zig").messages;
 
 pub const ModuleInfo = struct {
     name: [64]u8,

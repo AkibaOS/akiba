@@ -1,7 +1,7 @@
 //! Render Memory Around Fault
 
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/strings.zig").messages;
 
 pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usize) void {
     if (address == 0) return;

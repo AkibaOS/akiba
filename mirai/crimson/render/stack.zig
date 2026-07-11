@@ -2,7 +2,7 @@
 
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/strings.zig").messages;
 
 const Context = types.Context;
 

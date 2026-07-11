@@ -3,7 +3,7 @@
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
 const classify = @import("../classify/classify.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/strings.zig").messages;
 
 const Exception = types.Exception;
 const PageFaultError = classify.PageFaultError;

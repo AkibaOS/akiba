@@ -3,25 +3,26 @@
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
 const context_ops = @import("../context/context.zig");
+const messages = @import("../strings/strings.zig").messages;
 
 const Corpse = types.Corpse;
 const Context = types.Context;
 
 pub fn inspect(corpse: *const Corpse) void {
     if (!corpse.is_valid()) {
-        serial.printf("Invalid corpse\n", .{});
+        serial.printf(messages.corpse_invalid, .{});
         return;
     }
 
-    serial.printf("Corpse for Kata %d, Thread %d\n", .{ corpse.kata_id, corpse.thread_id });
-    serial.printf("Exception: %s (code=%x, subcode=%x)\n", .{
+    serial.printf(messages.corpse_header, .{ corpse.kata_id, corpse.thread_id });
+    serial.printf(messages.corpse_exception, .{
         corpse.exception_type.name(),
         corpse.exception_code,
         corpse.exception_subcode,
     });
 
     if (corpse.fault_address != 0) {
-        serial.printf("Fault address: %x\n", .{corpse.fault_address});
+        serial.printf(messages.corpse_fault_address, .{corpse.fault_address});
     }
 
     serial.printf("\n", .{});

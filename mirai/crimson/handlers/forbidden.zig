@@ -3,12 +3,13 @@
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
 const constants = @import("../constants/constants.zig");
+const messages = @import("../strings/strings.zig").messages;
 const Exception = types.Exception;
 const Action = constants.Action;
 
 pub fn handle(exception: *Exception) Action {
     if (exception.context.is_kernel_mode()) {
-        serial.printf("Kernel forbidden exception at %x (vector %d, error %x)\n", .{ exception.context.rip, exception.vector, exception.code });
+        serial.printf(messages.kernel_forbidden, .{ exception.context.rip, exception.vector, exception.code });
         return .collapse;
     }
     return .terminate;

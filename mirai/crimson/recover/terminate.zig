@@ -3,12 +3,13 @@
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
 const corpse_ops = @import("../corpse/corpse.zig");
+const messages = @import("../strings/strings.zig").messages;
 
 const Exception = types.Exception;
 const Corpse = types.Corpse;
 
 pub fn terminate(exception: *const Exception) void {
-    serial.printf("Terminating kata %d, thread %d due to unhandled exception\n", .{
+    serial.printf(messages.terminate_kata_thread, .{
         exception.kata_id,
         exception.thread_id,
     });
@@ -18,7 +19,7 @@ pub fn terminate(exception: *const Exception) void {
 }
 
 pub fn terminate_with_corpse(exception: *const Exception) ?*Corpse {
-    serial.printf("Terminating kata %d with corpse generation\n", .{exception.kata_id});
+    serial.printf(messages.terminate_kata_corpse, .{exception.kata_id});
 
     const corpse = corpse_ops.allocate();
     if (corpse) |c| {

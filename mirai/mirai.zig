@@ -15,6 +15,8 @@ pub const pmm = @import("pmm/pmm.zig");
 pub const common = @import("common");
 pub const shared = @import("shared");
 
+const crimson_strings = @import("crimson/strings/strings.zig");
+
 comptime {
     _ = @import("kernel/entry.zig");
 }
@@ -25,7 +27,7 @@ pub export fn mirai_entry(boot_params_ptr: *kernel.BootParams) callconv(.{ .x86_
 
 fn panic_handler(message: []const u8, first_trace_address: ?usize) noreturn {
     _ = first_trace_address;
-    drivers.serial.printf("\nKERNEL PANIC: %s\n", .{message});
+    drivers.serial.printf(crimson_strings.messages.kernel_panic, .{message});
     asm_ops.cpu.halt.halt_loop();
 }
 

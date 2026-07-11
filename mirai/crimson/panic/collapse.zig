@@ -5,6 +5,7 @@ const types = @import("../types/types.zig");
 const render = @import("../render/render.zig");
 const gather = @import("gather.zig");
 const halt_module = @import("halt.zig");
+const messages = @import("../strings/strings.zig").messages;
 
 const Exception = types.Exception;
 const Context = types.Context;
@@ -15,7 +16,7 @@ var collapse_message_len: usize = 0;
 
 pub fn collapse(message: []const u8, exception: ?*const Exception) noreturn {
     if (collapse_in_progress) {
-        serial.printf("\nDouble collapse detected, halting immediately\n", .{});
+        serial.printf(messages.double_collapse, .{});
         halt_module.halt_all();
     }
 
@@ -42,7 +43,7 @@ pub fn collapse(message: []const u8, exception: ?*const Exception) noreturn {
 
 pub fn collapse_with_context(message: []const u8, context: *const Context) noreturn {
     if (collapse_in_progress) {
-        serial.printf("\nDouble collapse detected, halting immediately\n", .{});
+        serial.printf(messages.double_collapse, .{});
         halt_module.halt_all();
     }
 
