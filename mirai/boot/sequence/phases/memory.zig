@@ -2,7 +2,9 @@
 
 const pmm = @import("../../../pmm/pmm.zig");
 const kagami = @import("../../../kagami/kagami.zig");
+const stack = @import("../../../memory/stack/stack.zig");
 const serial = @import("../../../drivers/serial/serial.zig");
+const tss = @import("../../tss/tss.zig");
 const types = @import("../types/types.zig");
 
 const BootInfo = types.BootInfo;
@@ -28,6 +30,14 @@ pub fn execute(boot_info: *const BootInfo) bool {
     serial.printf("Setting up Kagami page table abstraction\n", .{});
     kagami.initialize(boot_info.pml4_physical);
     serial.printf("  Using PML4 at physical address %x\n", .{boot_info.pml4_physical});
+
+    serial.printf("Provisioning boot kernel stack with guard pages\n", .{});
+    const boot_stack = stack.allocate() catch {
+        serial.printf("  Could not allocate boot kernel stack\n", .{});
+        return false;
+    };
+    tss.set_current_rsp0(0, boot_stack.top);
+    serial.printf("  Stack base %x, top %x\n", .{ boot_stack.base, boot_stack.top });
 
     return true;
 }

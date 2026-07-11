@@ -55,6 +55,34 @@ pub const MemoryMapInfo = extern struct {
     reserved: u32,
 };
 
+pub const UefiMemoryType = enum(u32) {
+    reserved = 0,
+    loader_code = 1,
+    loader_data = 2,
+    boot_services_code = 3,
+    boot_services_data = 4,
+    runtime_services_code = 5,
+    runtime_services_data = 6,
+    conventional = 7,
+    unusable = 8,
+    acpi_reclaim = 9,
+    acpi_nvs = 10,
+    mmio = 11,
+    mmio_port_space = 12,
+    pal_code = 13,
+    persistent = 14,
+    unaccepted = 15,
+    _,
+};
+
+pub const UefiMemoryDescriptor = extern struct {
+    memory_type: UefiMemoryType,
+    physical_start: u64,
+    virtual_start: u64,
+    number_of_pages: u64,
+    attribute: u64,
+};
+
 pub const MemoryRegion = extern struct {
     base: u64,
     size: u64,
