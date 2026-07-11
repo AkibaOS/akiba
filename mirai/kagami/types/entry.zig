@@ -1,6 +1,6 @@
 //! Page Table Entry Type
 
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 const paging_flags = common.constants.paging.flags;
 
 pub const Entry = packed struct {

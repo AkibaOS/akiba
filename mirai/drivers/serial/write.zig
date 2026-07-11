@@ -1,6 +1,6 @@
 //! Serial Write Operations
 
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 const asm_io = @import("../../asm/io/io.zig");
 
 const serial_constants = common.constants.serial;

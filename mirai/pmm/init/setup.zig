@@ -3,7 +3,7 @@
 const bitmap_ops = @import("../bitmap/bitmap.zig");
 const state = @import("../state.zig");
 const types = @import("../types/types.zig");
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 
 const memory_layout = common.constants.memory.layout;
 

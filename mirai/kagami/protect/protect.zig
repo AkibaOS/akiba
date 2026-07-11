@@ -1,6 +1,6 @@
 //! Change Protection
 
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 const types = @import("../types/types.zig");
 const tables = @import("../tables/tables.zig");
 const constants = @import("../constants/constants.zig");

@@ -1,7 +1,7 @@
 //! TSS Stack Allocation
 
 const pmm = @import("../../../pmm/pmm.zig");
-const common = @import("../../../../common/common.zig");
+const common = @import("root").common;
 const constants = @import("../constants/constants.zig");
 
 const memory_layout = common.constants.memory.layout;

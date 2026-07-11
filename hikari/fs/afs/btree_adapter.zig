@@ -1,7 +1,7 @@
 //! Hikari AFS B-Tree
 
 const efi = @import("../../efi/efi.zig");
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 const block_io = @import("block_io.zig");
 
 const EfiBlockContext = block_io.EfiBlockContext;

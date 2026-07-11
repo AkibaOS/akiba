@@ -2,7 +2,7 @@
 //!
 //! Uses shared/afs for types and constants, provides host file I/O writer.
 
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 
 pub const writer = @import("writer.zig");
 

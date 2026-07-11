@@ -1,7 +1,7 @@
 //! Hikari AFS Block I/O
 
 const efi = @import("../../efi/efi.zig");
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 
 const BlockReader = shared_afs.BlockReader;
 const BlockError = shared_afs.BlockError;

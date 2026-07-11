@@ -1,6 +1,6 @@
 //! Hikari AFS Adapter
 
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 
 // Adapters (EFI-specific)
 pub const btree = @import("btree_adapter.zig");

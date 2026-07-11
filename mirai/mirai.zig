@@ -10,8 +10,8 @@ pub const kernel = @import("kernel/kernel.zig");
 pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
 
-pub const common = @import("../common/common.zig");
-pub const shared = @import("../shared/shared.zig");
+pub const common = @import("common");
+pub const shared = @import("shared");
 
 comptime {
     _ = @import("kernel/entry.zig");

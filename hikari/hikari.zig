@@ -140,7 +140,7 @@ fn hikari(image_handle: efi.types.Handle, system_table: *efi.services.SystemTabl
         .virtual_base = paging.constants.kernel_base,
         .size = loaded_image.total_size(),
         .entry_point = loaded_image.entry_point,
-        .pml4_address = page_setup.get_pml4_address(),
+        .pml4_address = page_setup.get_l4_address(),
         .physmap_base = paging.constants.physmap_base,
         .physmap_size = paging.constants.physmap_size,
         .stack_top = stack_top,
@@ -207,7 +207,7 @@ fn hikari(image_handle: efi.types.Handle, system_table: *efi.services.SystemTabl
         loaded_image.entry_point,
         stack_top,
         params_addr,
-        page_setup.get_pml4_address(),
+        page_setup.get_l4_address(),
     );
 }
 

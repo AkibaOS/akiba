@@ -5,6 +5,15 @@ pub const kernel_location = "/system/akiba/mirai.kernel";
 pub const font_location = "/system/akiba/fonts/akiba.psf";
 
 pub fn build(b: *std.Build) void {
+    const common_module = b.createModule(.{
+        .root_source_file = b.path("common/common.zig"),
+    });
+
+    const shared_module = b.createModule(.{
+        .root_source_file = b.path("shared/shared.zig"),
+    });
+    shared_module.addImport("common", common_module);
+
     const hikari_target = b.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .os_tag = .uefi,
@@ -16,6 +25,8 @@ pub fn build(b: *std.Build) void {
         .target = hikari_target,
         .optimize = .ReleaseSafe,
     });
+    hikari_module.addImport("common", common_module);
+    hikari_module.addImport("shared", shared_module);
 
     const hikari = b.addExecutable(.{
         .name = "hikari",
@@ -44,6 +55,9 @@ pub fn build(b: *std.Build) void {
         .code_model = .kernel,
     });
 
+    mirai_module.addImport("common", common_module);
+    mirai_module.addImport("shared", shared_module);
+
     const mirai = b.addExecutable(.{
         .name = "mirai",
         .root_module = mirai_module,
@@ -69,6 +83,8 @@ pub fn build(b: *std.Build) void {
         .target = native_target,
         .optimize = native_optimize,
     });
+    mkafsdisk_module.addImport("common", common_module);
+    mkafsdisk_module.addImport("shared", shared_module);
 
     const mkafsdisk = b.addExecutable(.{
         .name = "mkafsdisk",

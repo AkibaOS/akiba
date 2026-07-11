@@ -3,7 +3,7 @@
 const types = @import("../types/types.zig");
 const constants = @import("../constants/constants.zig");
 const stacks = @import("../stacks/stacks.zig");
-const common = @import("../../../../common/common.zig");
+const common = @import("root").common;
 
 const CoreTss = types.CoreTss;
 const Tss = types.Tss;

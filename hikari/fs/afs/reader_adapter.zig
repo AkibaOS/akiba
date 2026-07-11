@@ -1,7 +1,7 @@
 //! Hikari AFS Reader
 
 const efi = @import("../../efi/efi.zig");
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 const btree_adapter = @import("btree_adapter.zig");
 
 // Import shared types

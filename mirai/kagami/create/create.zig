@@ -1,6 +1,6 @@
 //! Create Kagami
 
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 const pmm = @import("../../pmm/pmm.zig");
 const types = @import("../types/types.zig");
 const state = @import("../state.zig");

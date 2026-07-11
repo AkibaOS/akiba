@@ -1,6 +1,6 @@
 //! Physical-Virtual Address Conversion
 
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 const layout = common.constants.memory.layout;
 
 pub fn phys_to_virt(phys: u64) u64 {

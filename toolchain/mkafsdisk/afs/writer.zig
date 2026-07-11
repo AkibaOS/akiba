@@ -2,7 +2,7 @@
 //! Creates AFS filesystem structures on disk using shared/afs types.
 
 const std = @import("std");
-const shared_afs = @import("../../../shared/fs/afs/afs.zig");
+const shared_afs = @import("shared").afs;
 
 // Import shared types and constants
 const constants = shared_afs.constants;

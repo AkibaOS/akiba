@@ -17,7 +17,7 @@ pub const StackRecord = extern struct {
     access_timestamp: u64 = 0,
     backup_timestamp: u64 = 0,
     permissions: Permissions = .{},
-    special: SpecialInfo = .{},
+    special: SpecialInfo = .{ .raw = [_]u8{0} ** 16 },
     text_encoding: u32 = 0,
     reserved: u32 = 0,
 
@@ -37,7 +37,7 @@ pub const UnitRecord = extern struct {
     access_timestamp: u64 = 0,
     backup_timestamp: u64 = 0,
     permissions: Permissions = .{},
-    special: SpecialInfo = .{},
+    special: SpecialInfo = .{ .raw = [_]u8{0} ** 16 },
     text_encoding: u32 = 0,
     reserved2: u32 = 0,
     data_channel: ChannelInfo = .{},

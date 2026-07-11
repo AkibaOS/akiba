@@ -1,7 +1,7 @@
 //! Hikari FAT32 Adapter
 
 const efi = @import("../../efi/efi.zig");
-const shared_fat32 = @import("../../../shared/fs/fat32/fat32.zig");
+const shared_fat32 = @import("shared").fat32;
 
 // Re-export shared types
 pub const constants = shared_fat32.constants;

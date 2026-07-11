@@ -1,7 +1,7 @@
 //! Hikari FAT32 Reader
 
 const efi = @import("../../efi/efi.zig");
-const shared_fat32 = @import("../../../shared/fs/fat32/fat32.zig");
+const shared_fat32 = @import("shared").fat32;
 
 // Import shared types
 const BootSector = shared_fat32.BootSector;

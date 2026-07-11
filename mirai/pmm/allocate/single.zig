@@ -2,7 +2,7 @@
 
 const bitmap = @import("../bitmap/bitmap.zig");
 const state = @import("../state.zig");
-const common = @import("../../../common/common.zig");
+const common = @import("root").common;
 
 const AllocationError = common.errors.memory.AllocationError;
 
