@@ -2,6 +2,7 @@
 
 const asm_cpu = @import("../../asm/cpu/cpu.zig");
 const serial = @import("../../drivers/serial/serial.zig");
+const messages = @import("strings/strings.zig").messages;
 
 pub const constants = @import("constants/constants.zig");
 pub const types = @import("types/types.zig");
@@ -21,33 +22,33 @@ pub fn execute(boot_info: *const BootInfo) bool {
 
     message.print_banner();
 
-    serial.printf("Starting Akiba boot sequence\n", .{});
-    serial.printf("Powered by the Mirai kernel\n\n", .{});
+    serial.printf(messages.starting, .{});
+    serial.printf(messages.powered, .{});
 
     state.set_current_phase(Phase.cpu);
     if (!phases.execute_cpu()) {
-        serial.printf("\nCPU initialization failed, cannot continue\n", .{});
+        serial.printf(messages.cpu_failed, .{});
         return false;
     }
     state.advance_phase();
 
-    serial.printf("\n", .{});
+    serial.printf(messages.newline, .{});
 
     state.set_current_phase(Phase.memory);
     if (!phases.execute_memory(boot_info)) {
-        serial.printf("\nMemory initialization failed, cannot continue\n", .{});
+        serial.printf(messages.memory_failed, .{});
         return false;
     }
     state.advance_phase();
 
-    serial.printf("\nBoot sequence complete, Akiba is ready\n", .{});
+    serial.printf(messages.complete, .{});
     state.set_current_phase(Phase.complete);
 
     return true;
 }
 
 pub fn halt_on_failure() noreturn {
-    serial.printf("\nSystem halted due to unrecoverable error\n", .{});
+    serial.printf(messages.halted, .{});
     asm_cpu.halt_loop();
 }
 

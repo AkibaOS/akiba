@@ -6,15 +6,16 @@ const stack = @import("../../../memory/stack/stack.zig");
 const serial = @import("../../../drivers/serial/serial.zig");
 const tss = @import("../../tss/tss.zig");
 const types = @import("../types/types.zig");
+const messages = @import("../strings/strings.zig").messages;
 
 const BootInfo = types.BootInfo;
 
 pub fn execute(boot_info: *const BootInfo) bool {
-    serial.printf("Detecting physical memory from Hikari bootloader\n", .{});
+    serial.printf(messages.detecting, .{});
 
     const bitmap_location = find_bitmap_location(boot_info);
     if (bitmap_location == 0) {
-        serial.printf("  Could not find suitable location for page bitmap\n", .{});
+        serial.printf(messages.no_bitmap, .{});
         return false;
     }
 
@@ -24,20 +25,20 @@ pub fn execute(boot_info: *const BootInfo) bool {
     const total_mb = (stats.total_pages * 4096) / (1024 * 1024);
     const free_mb = (stats.free_pages * 4096) / (1024 * 1024);
 
-    serial.printf("  Found %d pages (%d MB total)\n", .{ stats.total_pages, total_mb });
-    serial.printf("  Available: %d pages (%d MB)\n", .{ stats.free_pages, free_mb });
+    serial.printf(messages.found_pages, .{ stats.total_pages, total_mb });
+    serial.printf(messages.available, .{ stats.free_pages, free_mb });
 
-    serial.printf("Setting up Kagami page table abstraction\n", .{});
+    serial.printf(messages.kagami_setup, .{});
     kagami.initialize(boot_info.pml4_physical);
-    serial.printf("  Using PML4 at physical address %x\n", .{boot_info.pml4_physical});
+    serial.printf(messages.pml4, .{boot_info.pml4_physical});
 
-    serial.printf("Provisioning boot kernel stack with guard pages\n", .{});
+    serial.printf(messages.provisioning_stack, .{});
     const boot_stack = stack.allocate() catch {
-        serial.printf("  Could not allocate boot kernel stack\n", .{});
+        serial.printf(messages.no_stack, .{});
         return false;
     };
     tss.set_current_rsp0(0, boot_stack.top);
-    serial.printf("  Stack base %x, top %x\n", .{ boot_stack.base, boot_stack.top });
+    serial.printf(messages.stack_info, .{ boot_stack.base, boot_stack.top });
 
     return true;
 }
