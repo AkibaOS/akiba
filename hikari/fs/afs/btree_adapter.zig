@@ -125,7 +125,7 @@ pub const BTree = struct {
         self: *BTree,
         parent_node_id: u32,
         identity: []const u16,
-    ) BTreeError!?*const UnitRecord {
+    ) BTreeError!?*align(1) const UnitRecord {
         if (self.depth == 0) {
             return BTreeError.TreeEmpty;
         }
@@ -168,7 +168,7 @@ pub const BTree = struct {
         self: *BTree,
         parent_node_id: u32,
         identity: []const u16,
-    ) BTreeError!?*const StackRecord {
+    ) BTreeError!?*align(1) const StackRecord {
         if (self.depth == 0) {
             return BTreeError.TreeEmpty;
         }
@@ -210,7 +210,7 @@ pub const BTree = struct {
     pub fn get_thread_record(
         self: *BTree,
         node_id: u32,
-    ) BTreeError!?*const ThreadRecord {
+    ) BTreeError!?*align(1) const ThreadRecord {
         var empty_identity: [0]u16 = undefined;
         return self.search_thread(node_id, &empty_identity);
     }
@@ -219,7 +219,7 @@ pub const BTree = struct {
         self: *BTree,
         node_id: u32,
         identity: []const u16,
-    ) BTreeError!?*const ThreadRecord {
+    ) BTreeError!?*align(1) const ThreadRecord {
         if (self.depth == 0) {
             return BTreeError.TreeEmpty;
         }

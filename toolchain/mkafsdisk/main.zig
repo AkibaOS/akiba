@@ -8,7 +8,8 @@ const std = @import("std");
 const afs = @import("afs/afs.zig");
 
 const SECTOR_SIZE: u32 = 512;
-const ESP_SIZE_SECTORS: u32 = 65536; // 32MB for ESP
+const ESP_SIZE_SECTORS: u32 = 69632; // 34MB so cluster count stays above the FAT32 minimum of 65525
+const FAT32_MINIMUM_CLUSTERS: u32 = 65525;
 
 // ESP partition type GUID: C12A7328-F81F-11D2-BA4B-00A0C93EC93B
 const ESP_TYPE_GUID = [16]u8{
@@ -379,8 +380,12 @@ fn create_esp(
     try file.seekTo(fat2_offset);
     try file.writeAll(fat_table);
 
-    _ = total_clusters;
-    std.debug.print("    FAT32 ESP created\n", .{});
+    if (total_clusters < FAT32_MINIMUM_CLUSTERS) {
+        std.debug.print("    ESP too small for FAT32: {d} clusters (minimum {d})\n", .{ total_clusters, FAT32_MINIMUM_CLUSTERS });
+        return error.EspTooSmall;
+    }
+
+    std.debug.print("    FAT32 ESP created ({d} clusters)\n", .{total_clusters});
 }
 
 fn create_afs(

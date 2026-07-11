@@ -10,7 +10,7 @@ pub const Table = extern struct {
     kernel_data: Entry,
     user_code: Entry,
     user_data: Entry,
-    tss: TssDescriptor,
+    tss: TssDescriptor align(8),
 
     pub fn get_gdtr(self: *Table) Gdtr {
         const base = @intFromPtr(self);

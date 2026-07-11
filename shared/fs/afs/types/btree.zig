@@ -50,11 +50,11 @@ pub const IndexKey = extern struct {
     parent_node_id: u32 = 0,
     identity: [256]u16 = [_]u16{0} ** 256,
 
-    pub fn get_identity_length(self: *const IndexKey) usize {
+    pub fn get_identity_length(self: *align(1) const IndexKey) usize {
         const total_key_len = self.key_length;
-        if (total_key_len <= 6) {
+        if (total_key_len <= 8) {
             return 0;
         }
-        return (total_key_len - 6) / 2;
+        return (total_key_len - 8) / 2;
     }
 };

@@ -1,5 +1,7 @@
 //! Mirai Kernel
 
+const std = @import("std");
+
 pub const asm_ops = @import("asm/asm.zig");
 pub const boot = @import("boot/boot.zig");
 pub const crimson = @import("crimson/crimson.zig");
@@ -21,9 +23,10 @@ pub export fn mirai_entry(boot_params_ptr: *kernel.BootParams) callconv(.{ .x86_
     kernel.main(boot_params_ptr);
 }
 
-pub fn panic(msg: []const u8, stack_trace: ?*@import("std").builtin.StackTrace, ret_addr: ?usize) noreturn {
-    _ = msg;
-    _ = stack_trace;
-    _ = ret_addr;
+fn panic_handler(message: []const u8, first_trace_address: ?usize) noreturn {
+    _ = first_trace_address;
+    drivers.serial.printf("\nKERNEL PANIC: %s\n", .{message});
     asm_ops.cpu.halt.halt_loop();
 }
+
+pub const panic = std.debug.FullPanic(panic_handler);

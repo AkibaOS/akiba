@@ -25,8 +25,10 @@ pub fn initialize_from_memory_map(
     }
 
     pmm_state.total_pages = highest_address >> 12;
-    pmm_state.bitmap = @ptrFromInt(bitmap_location + memory_layout.physmap_base);
     pmm_state.bitmap_size = (pmm_state.total_pages + 7) / 8;
+
+    const bitmap_pointer: [*]u8 = @ptrFromInt(bitmap_location + memory_layout.physmap_base);
+    pmm_state.bitmap = bitmap_pointer[0..pmm_state.bitmap_size];
 
     bitmap_ops.set_range(pmm_state.bitmap, 0, pmm_state.total_pages);
     pmm_state.free_pages = 0;

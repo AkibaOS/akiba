@@ -79,7 +79,7 @@ pub fn create_index_key(
     identity: []const u8,
 ) IndexKey {
     var key = IndexKey{
-        .key_length = @intCast(6 + identity.len * 2),
+        .key_length = @intCast(8 + identity.len * 2),
         .parent_node_id = parent_node_id,
         .identity = [_]u16{0} ** 256,
     };
@@ -93,5 +93,5 @@ pub fn create_index_key(
 
 /// Get the size of an index key in bytes
 pub fn index_key_size(identity_len: usize) usize {
-    return 6 + identity_len * 2;
+    return 8 + identity_len * 2;
 }

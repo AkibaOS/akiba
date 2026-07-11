@@ -41,6 +41,8 @@ pub const Writer = struct {
     journal_cells: u32,
     data_start_cell: u32,
 
+    index_record_offset: usize,
+
     const Self = @This();
 
     pub fn initialize(
@@ -87,6 +89,7 @@ pub const Writer = struct {
             .journal_start_cell = journal_start,
             .journal_cells = journal_cells,
             .data_start_cell = data_start,
+            .index_record_offset = @sizeOf(BTreeNodeDescriptor),
         };
     }
 
@@ -307,8 +310,9 @@ pub const Writer = struct {
             .reserved2 = [_]u8{0} ** 64,
         };
 
-        @memcpy(index_buffer[0..@sizeOf(BTreeNodeDescriptor)], std.mem.asBytes(&node_descriptor));
-        @memcpy(index_buffer[14 .. 14 + @sizeOf(BTreeHeaderRecord)], std.mem.asBytes(&header_record));
+        const descriptor_size = @sizeOf(BTreeNodeDescriptor);
+        @memcpy(index_buffer[0..descriptor_size], std.mem.asBytes(&node_descriptor));
+        @memcpy(index_buffer[descriptor_size .. descriptor_size + @sizeOf(BTreeHeaderRecord)], std.mem.asBytes(&header_record));
 
         var leaf_node = BTreeNodeDescriptor{
             .forward_link = 0,
@@ -323,8 +327,6 @@ pub const Writer = struct {
         @memcpy(index_buffer[leaf_offset .. leaf_offset + @sizeOf(BTreeNodeDescriptor)], std.mem.asBytes(&leaf_node));
     }
 
-    var index_record_offset: usize = 14;
-
     fn write_index_record(
         self: *Self,
         index_buffer: []u8,
@@ -332,13 +334,13 @@ pub const Writer = struct {
         identity: []const u8,
         record_data: []const u8,
     ) !void {
-        _ = self;
-
         const leaf_offset = constants.default_cell_size;
-        const record_start = leaf_offset + 14 + index_record_offset;
+        const node_size = constants.default_cell_size;
+        const record_offset_in_node = self.index_record_offset;
+        const record_start = leaf_offset + record_offset_in_node;
 
         var key = IndexKey{
-            .key_length = @intCast(6 + identity.len * 2),
+            .key_length = @intCast(8 + identity.len * 2),
             .parent_node_id = parent_node_id,
             .identity = [_]u16{0} ** 256,
         };
@@ -347,13 +349,17 @@ pub const Writer = struct {
             key.identity[i] = char;
         }
 
-        const key_size = 6 + identity.len * 2;
+        const key_size = 8 + identity.len * 2;
         @memcpy(index_buffer[record_start .. record_start + key_size], std.mem.asBytes(&key)[0..key_size]);
         @memcpy(index_buffer[record_start + key_size .. record_start + key_size + record_data.len], record_data);
 
-        index_record_offset += key_size + record_data.len;
-
         var node_desc: *BTreeNodeDescriptor = @ptrCast(@alignCast(&index_buffer[leaf_offset]));
+        const record_index = node_desc.record_count;
+
+        const offset_entry = leaf_offset + node_size - (@as(usize, record_index) + 1) * 2;
+        std.mem.writeInt(u16, index_buffer[offset_entry..][0..2], @intCast(record_offset_in_node), .little);
+
+        self.index_record_offset += key_size + record_data.len;
         node_desc.record_count += 1;
     }
 
