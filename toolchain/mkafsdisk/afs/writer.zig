@@ -1,11 +1,9 @@
 //! AFS Writer for mkafsdisk
-//! Creates AFS filesystem structures on disk using shared/afs types.
 
 const std = @import("std");
 const strings = @import("../strings/strings.zig");
 const shared_afs = @import("shared").afs;
 
-// Import shared types and constants
 const constants = shared_afs.constants;
 const types = shared_afs.types;
 const write_ops = shared_afs.write;
@@ -54,15 +52,6 @@ pub const Writer = struct {
     ) Self {
         const cell_size = constants.default_cell_size;
         const total_cells: u32 = @intCast(partition_size_bytes / cell_size);
-
-        // Layout:
-        // Cell 0: Volume Header
-        // Cell 1: Alternate Volume Header
-        // Cell 2: Journal Info
-        // Cells 3-10: Journal (8 cells = 32KB)
-        // Cells 11-14: Allocation Map (4 cells for up to 128K cells)
-        // Cells 15-30: Index B-tree (16 cells)
-        // Cells 31+: Data
 
         const allocation_map_start: u32 = 11;
         const allocation_map_cells: u32 = 4;

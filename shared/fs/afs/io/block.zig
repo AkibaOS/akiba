@@ -9,7 +9,6 @@ pub const BlockError = error{
     NotSupported,
 };
 
-/// Block reader interface - implemented by each consumer
 pub const BlockReader = struct {
     context: *anyopaque,
     read_fn: *const fn (context: *anyopaque, cell: u64, buffer: []u8) BlockError!void,
@@ -40,7 +39,6 @@ pub const BlockReader = struct {
     }
 };
 
-/// Block writer interface - implemented by each consumer
 pub const BlockWriter = struct {
     context: *anyopaque,
     write_fn: *const fn (context: *anyopaque, cell: u64, data: []const u8) BlockError!void,
@@ -71,7 +69,6 @@ pub const BlockWriter = struct {
     }
 };
 
-/// Combined reader/writer for read-write operations
 pub const BlockDevice = struct {
     reader: BlockReader,
     writer: BlockWriter,

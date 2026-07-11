@@ -1,18 +1,13 @@
 //! mkafsdisk - Creates bootable Akiba disk image
-//!
-//! Creates a GPT disk with:
-//! - Partition 1: ESP (FAT32) with /EFI/BOOT/BOOTX64.EFI
-//! - Partition 2: AFS with /system/akiba/mirai.kernel
 
 const std = @import("std");
 const strings = @import("strings/strings.zig");
 const afs = @import("afs/afs.zig");
 
 const SECTOR_SIZE: u32 = 512;
-const ESP_SIZE_SECTORS: u32 = 69632; // 34MB so cluster count stays above the FAT32 minimum of 65525
+const ESP_SIZE_SECTORS: u32 = 69632;
 const FAT32_MINIMUM_CLUSTERS: u32 = 65525;
 
-// ESP partition type GUID: C12A7328-F81F-11D2-BA4B-00A0C93EC93B
 const ESP_TYPE_GUID = [16]u8{
     0x28, 0x73, 0x2A, 0xC1,
     0x1F, 0xF8, 0xD2, 0x11,
@@ -55,14 +50,6 @@ fn create_disk_image(
     const total_bytes: u64 = @as(u64, size_megabytes) * 1024 * 1024;
     const total_sectors: u32 = @intCast(total_bytes / SECTOR_SIZE);
 
-    // Partition layout:
-    // Sector 0: Protective MBR
-    // Sector 1: GPT Header
-    // Sectors 2-33: GPT Partition Entries
-    // Sectors 2048-67583: ESP (FAT32)
-    // Sectors 67584+: AFS
-    // Last 33 sectors: Backup GPT
-
     const esp_start_sector: u32 = 2048;
     const esp_end_sector: u32 = esp_start_sector + ESP_SIZE_SECTORS - 1;
     const afs_start_sector: u32 = esp_end_sector + 1;
@@ -85,12 +72,10 @@ fn create_disk_image(
 fn write_protective_mbr(file: std.fs.File, total_sectors: u32) !void {
     var mbr: [512]u8 = [_]u8{0} ** 512;
 
-    // Protective MBR partition entry at offset 0x1BE
-    mbr[0x1BE + 4] = 0xEE; // GPT protective type
+    mbr[0x1BE + 4] = 0xEE;
     std.mem.writeInt(u32, mbr[0x1BE + 8 ..][0..4], 1, .little);
     std.mem.writeInt(u32, mbr[0x1BE + 12 ..][0..4], total_sectors - 1, .little);
 
-    // Boot signature
     mbr[510] = 0x55;
     mbr[511] = 0xAA;
 
@@ -123,30 +108,23 @@ fn write_gpt(
     afs_end: u32,
     total_sectors: u32,
 ) !void {
-    // Partition entries (128 entries * 128 bytes = 16KB)
     var partition_entries: [16384]u8 = [_]u8{0} ** 16384;
 
-    // ESP partition entry
     @memcpy(partition_entries[0..16], &ESP_TYPE_GUID);
-    // Unique partition GUID
     const esp_unique_guid = [16]u8{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10 };
     @memcpy(partition_entries[16..32], &esp_unique_guid);
     std.mem.writeInt(u64, partition_entries[32..40], esp_start, .little);
     std.mem.writeInt(u64, partition_entries[40..48], esp_end, .little);
-    // Name: strings.names.esp_partition_name
     const esp_name = strings.names.esp_partition_name;
     for (esp_name, 0..) |char, index| {
         partition_entries[56 + index * 2] = char;
     }
 
-    // AFS partition entry
     @memcpy(partition_entries[128..144], &afs.constants.partition_type_guid);
-    // Unique partition GUID
     const afs_unique_guid = [16]u8{ 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20 };
     @memcpy(partition_entries[144..160], &afs_unique_guid);
     std.mem.writeInt(u64, partition_entries[160..168], afs_start, .little);
     std.mem.writeInt(u64, partition_entries[168..176], afs_end, .little);
-    // Name: strings.names.afs_partition_name
     const afs_name = strings.names.afs_partition_name;
     for (afs_name, 0..) |char, index| {
         partition_entries[184 + index * 2] = char;
@@ -154,39 +132,33 @@ fn write_gpt(
 
     const entries_crc = calculate_crc32(&partition_entries);
 
-    // GPT Header
     var gpt_header: [512]u8 = [_]u8{0} ** 512;
     @memcpy(gpt_header[0..8], strings.names.gpt_signature);
-    std.mem.writeInt(u32, gpt_header[8..12], 0x00010000, .little); // Revision
-    std.mem.writeInt(u32, gpt_header[12..16], 92, .little); // Header size
-    // CRC at offset 16 - filled in later
-    std.mem.writeInt(u64, gpt_header[24..32], 1, .little); // Current LBA
-    std.mem.writeInt(u64, gpt_header[32..40], @as(u64, total_sectors) - 1, .little); // Backup LBA
-    std.mem.writeInt(u64, gpt_header[40..48], 34, .little); // First usable LBA
-    std.mem.writeInt(u64, gpt_header[48..56], @as(u64, total_sectors) - 34, .little); // Last usable LBA
-    // Disk GUID
+    std.mem.writeInt(u32, gpt_header[8..12], 0x00010000, .little);
+    std.mem.writeInt(u32, gpt_header[12..16], 92, .little);
+    std.mem.writeInt(u64, gpt_header[24..32], 1, .little);
+    std.mem.writeInt(u64, gpt_header[32..40], @as(u64, total_sectors) - 1, .little);
+    std.mem.writeInt(u64, gpt_header[40..48], 34, .little);
+    std.mem.writeInt(u64, gpt_header[48..56], @as(u64, total_sectors) - 34, .little);
     const disk_guid = [16]u8{ 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 };
     @memcpy(gpt_header[56..72], &disk_guid);
-    std.mem.writeInt(u64, gpt_header[72..80], 2, .little); // Partition entries LBA
-    std.mem.writeInt(u32, gpt_header[80..84], 128, .little); // Number of entries
-    std.mem.writeInt(u32, gpt_header[84..88], 128, .little); // Entry size
-    std.mem.writeInt(u32, gpt_header[88..92], entries_crc, .little); // Entries CRC
+    std.mem.writeInt(u64, gpt_header[72..80], 2, .little);
+    std.mem.writeInt(u32, gpt_header[80..84], 128, .little);
+    std.mem.writeInt(u32, gpt_header[84..88], 128, .little);
+    std.mem.writeInt(u32, gpt_header[88..92], entries_crc, .little);
 
     const header_crc = calculate_crc32(gpt_header[0..92]);
     std.mem.writeInt(u32, gpt_header[16..20], header_crc, .little);
 
-    // Write primary GPT
     try file.seekTo(SECTOR_SIZE);
     try file.writeAll(&gpt_header);
     try file.seekTo(2 * SECTOR_SIZE);
     try file.writeAll(&partition_entries);
 
-    // Write backup GPT (entries before header at end of disk)
     const backup_entries_lba = total_sectors - 33;
     try file.seekTo(@as(u64, backup_entries_lba) * SECTOR_SIZE);
     try file.writeAll(&partition_entries);
 
-    // Backup GPT header
     var backup_header = gpt_header;
     std.mem.writeInt(u64, backup_header[24..32], @as(u64, total_sectors) - 1, .little);
     std.mem.writeInt(u64, backup_header[32..40], 1, .little);
@@ -220,7 +192,6 @@ fn create_esp(
     const data_sectors = available_sectors - (fat_size_sectors * fat_count);
     const total_clusters = data_sectors / sectors_per_cluster;
 
-    // FAT32 Boot Sector
     var boot_sector: [512]u8 = [_]u8{0} ** 512;
     boot_sector[0] = 0xEB;
     boot_sector[1] = 0x58;
@@ -255,7 +226,6 @@ fn create_esp(
     try file.seekTo(esp_start_byte);
     try file.writeAll(&boot_sector);
 
-    // FSInfo
     var fsinfo: [512]u8 = [_]u8{0} ** 512;
     std.mem.writeInt(u32, fsinfo[0..4], 0x41615252, .little);
     std.mem.writeInt(u32, fsinfo[484..488], 0x61417272, .little);
@@ -266,11 +236,9 @@ fn create_esp(
     try file.seekTo(esp_start_byte + SECTOR_SIZE);
     try file.writeAll(&fsinfo);
 
-    // Backup boot sector
     try file.seekTo(esp_start_byte + 6 * SECTOR_SIZE);
     try file.writeAll(&boot_sector);
 
-    // FAT table
     const fat_bytes = fat_size_sectors * SECTOR_SIZE;
     var fat_table = try allocator.alloc(u8, fat_bytes);
     defer allocator.free(fat_table);
@@ -284,24 +252,19 @@ fn create_esp(
     const fat2_offset = fat1_offset + fat_bytes;
     const data_start = fat2_offset + fat_bytes;
 
-    // Copy EFI/BOOT/BOOTX64.EFI from source
     var current_cluster: u32 = 3;
 
-    // Origin stack (root)
     var origin_stack: [512]u8 = [_]u8{0} ** 512;
 
-    // EFI stack entry in origin
     @memcpy(origin_stack[0..11], strings.names.dir_entry_efi);
     origin_stack[11] = 0x10;
     std.mem.writeInt(u16, origin_stack[26..28], @intCast(current_cluster), .little);
     const efi_cluster = current_cluster;
     current_cluster += 1;
 
-    // Write origin stack at cluster 2
     try file.seekTo(data_start);
     try file.writeAll(&origin_stack);
 
-    // EFI stack
     var efi_stack: [512]u8 = [_]u8{0} ** 512;
     @memcpy(efi_stack[0..11], strings.names.dir_entry_current);
     efi_stack[11] = 0x10;
@@ -318,7 +281,6 @@ fn create_esp(
     try file.writeAll(&efi_stack);
     std.mem.writeInt(u32, fat_table[efi_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
 
-    // BOOT stack
     var boot_stack: [512]u8 = [_]u8{0} ** 512;
     @memcpy(boot_stack[0..11], strings.names.dir_entry_current);
     boot_stack[11] = 0x10;
@@ -327,7 +289,6 @@ fn create_esp(
     boot_stack[43] = 0x10;
     std.mem.writeInt(u16, boot_stack[58..60], @intCast(efi_cluster), .little);
 
-    // Try to find and copy BOOTX64.EFI
     const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, strings.names.stack_efi, strings.names.stack_boot, strings.names.unit_bootloader });
     defer allocator.free(bootloader_location);
 
@@ -349,7 +310,6 @@ fn create_esp(
 
     std.debug.print(strings.messages.bootloader_adding, .{ bootloader_size, bootloader_clusters });
 
-    // Add BOOTX64.EFI entry
     @memcpy(boot_stack[64..75], strings.names.dir_entry_bootloader);
     boot_stack[75] = 0x20;
     std.mem.writeInt(u16, boot_stack[90..92], @intCast(current_cluster), .little);
@@ -360,7 +320,6 @@ fn create_esp(
     try file.writeAll(&boot_stack);
     std.mem.writeInt(u32, fat_table[boot_cluster * 4 ..][0..4], 0x0FFFFFFF, .little);
 
-    // Copy bootloader data
     var cluster_index: u32 = 0;
     while (cluster_index < bootloader_clusters) : (cluster_index += 1) {
         var buffer: [512]u8 = [_]u8{0} ** 512;
@@ -375,7 +334,6 @@ fn create_esp(
         std.mem.writeInt(u32, fat_table[cluster_number * 4 ..][0..4], next_cluster, .little);
     }
 
-    // Write FAT tables
     try file.seekTo(fat1_offset);
     try file.writeAll(fat_table);
     try file.seekTo(fat2_offset);

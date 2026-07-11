@@ -1,6 +1,6 @@
 //! Exception Masks
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("../../constants/constants.zig");
 
 const ExceptionType = constants.ExceptionType;
 

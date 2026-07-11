@@ -1,6 +1,7 @@
 //! Render Loaded Modules
 
 const serial = @import("../../drivers/serial/serial.zig");
+const messages = @import("strings/strings.zig").messages;
 
 pub const ModuleInfo = struct {
     name: [64]u8,
@@ -35,15 +36,15 @@ pub fn register_module(name: []const u8, base_address: u64, size: u64) bool {
 
 pub fn render() void {
     if (module_count == 0) {
-        serial.printf("Loaded Modules: (none registered)\n\n", .{});
+        serial.printf(messages.modules_none, .{});
         return;
     }
 
-    serial.printf("Loaded Modules:\n", .{});
+    serial.printf(messages.modules_header, .{});
 
     for (0..module_count) |i| {
         const module = &loaded_modules[i];
-        serial.printf("  %s: %x - %x (%d bytes)\n", .{
+        serial.printf(messages.module_entry, .{
             module.name[0..module.name_len],
             module.base_address,
             module.base_address + module.size,

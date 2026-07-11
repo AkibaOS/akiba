@@ -1,12 +1,9 @@
 //! mkafsdisk AFS Adapter
-//!
-//! Uses shared/afs for types and constants, provides host file I/O writer.
 
 const shared_afs = @import("shared").afs;
 
 pub const writer = @import("writer.zig");
 
-// Re-export shared types and constants
 pub const constants = shared_afs.constants;
 pub const types = shared_afs.types;
 
@@ -22,5 +19,4 @@ pub const Permissions = shared_afs.Permissions;
 pub const JournalInfoCell = shared_afs.types.JournalInfoCell;
 pub const JournalHeader = shared_afs.types.JournalHeader;
 
-// Writer using shared types
 pub const Writer = writer.Writer;

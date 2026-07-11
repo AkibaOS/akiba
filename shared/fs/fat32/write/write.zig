@@ -3,7 +3,6 @@
 pub const boot = @import("boot.zig");
 pub const entry = @import("entry.zig");
 
-// Boot sector creation
 pub const CreateParams = boot.CreateParams;
 pub const calculate_fat_size = boot.calculate_fat_size;
 pub const create_boot_sector = boot.create_boot_sector;
@@ -12,7 +11,6 @@ pub const init_fat_table = boot.init_fat_table;
 pub const allocate_cluster = boot.allocate_cluster;
 pub const link_clusters = boot.link_clusters;
 
-// Entry creation
 pub const create_entry = entry.create_entry;
 pub const create_stack_entry = entry.create_stack_entry;
 pub const create_dot_entry = entry.create_dot_entry;

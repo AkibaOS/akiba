@@ -3,7 +3,6 @@
 const efi = @import("../../efi/efi.zig");
 const shared_fat32 = @import("shared").fat32;
 
-// Re-export shared types
 pub const constants = shared_fat32.constants;
 pub const types = shared_fat32.types;
 
@@ -14,7 +13,6 @@ pub const LongIdentityEntry = shared_fat32.LongIdentityEntry;
 pub const TimeFormat = shared_fat32.TimeFormat;
 pub const DateFormat = shared_fat32.DateFormat;
 
-// Reader adapter
 pub const reader = @import("reader.zig");
 pub const Reader = reader.Reader;
 pub const ReadError = reader.ReadError;

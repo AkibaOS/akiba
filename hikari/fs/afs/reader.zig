@@ -4,7 +4,6 @@ const efi = @import("../../efi/efi.zig");
 const shared_afs = @import("shared").afs;
 const btree_adapter = @import("btree.zig");
 
-// Import shared types
 const VolumeHeader = shared_afs.VolumeHeader;
 const SpanDescriptor = shared_afs.SpanDescriptor;
 const ChannelInfo = shared_afs.ChannelInfo;
@@ -163,7 +162,6 @@ pub const Reader = struct {
             };
 
             if (unit_record) |unit| {
-                // Check if this is the last component
                 if (iter.next() == null) {
                     last_unit = unit.*;
                     break;

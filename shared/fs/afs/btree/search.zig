@@ -10,8 +10,6 @@ const StackRecord = types.StackRecord;
 const UnitRecord = types.UnitRecord;
 const ThreadRecord = types.ThreadRecord;
 
-/// Compare search key against a B-tree key
-/// Returns: -1 if search < key, 0 if equal, 1 if search > key
 pub fn compare_keys(parent_node_id: u32, identity: []const u16, key: *align(1) const IndexKey) i32 {
     if (parent_node_id < key.parent_node_id) {
         return -1;
@@ -45,7 +43,6 @@ pub fn compare_keys(parent_node_id: u32, identity: []const u16, key: *align(1) c
     return 0;
 }
 
-/// Search an index node for the child pointer to follow
 pub fn search_index_node(
     node_buffer: [*]const u8,
     node_size: u32,
@@ -65,7 +62,6 @@ pub fn search_index_node(
         }
     }
 
-    // Return last child pointer if search key is greater than all keys
     if (record_count > 0) {
         const last_record = node_ops.get_record_ptr_const(node_buffer, node_size, record_count - 1);
         const last_key: *align(1) const IndexKey = @ptrCast(last_record);
@@ -76,7 +72,6 @@ pub fn search_index_node(
     return null;
 }
 
-/// Search a leaf node for a unit record
 pub fn search_leaf_for_unit(
     node_buffer: [*]const u8,
     node_size: u32,
@@ -104,7 +99,6 @@ pub fn search_leaf_for_unit(
     return null;
 }
 
-/// Search a leaf node for a stack record
 pub fn search_leaf_for_stack(
     node_buffer: [*]const u8,
     node_size: u32,
@@ -132,7 +126,6 @@ pub fn search_leaf_for_stack(
     return null;
 }
 
-/// Search a leaf node for a thread record
 pub fn search_leaf_for_thread(
     node_buffer: [*]const u8,
     node_size: u32,

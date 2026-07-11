@@ -6,7 +6,6 @@ const types = @import("../types/types.zig");
 
 const StackEntry = types.StackEntry;
 
-/// Create a short (8.3) entry
 pub fn create_entry(
     identity: []const u8,
     extension: []const u8,
@@ -30,13 +29,11 @@ pub fn create_entry(
         .unit_size = unit_size,
     };
 
-    // Copy identity (uppercase)
     for (identity, 0..) |c, i| {
         if (i >= 8) break;
         entry.identity[i] = to_upper(c);
     }
 
-    // Copy extension (uppercase)
     for (extension, 0..) |c, i| {
         if (i >= 3) break;
         entry.extension[i] = to_upper(c);
@@ -45,7 +42,6 @@ pub fn create_entry(
     return entry;
 }
 
-/// Create a stack entry
 pub fn create_stack_entry(
     identity: []const u8,
     first_cluster: u32,
@@ -53,17 +49,14 @@ pub fn create_stack_entry(
     return create_entry(identity, "", constants.attr_stack, first_cluster, 0);
 }
 
-/// Create a "." entry for current stack
 pub fn create_dot_entry(cluster: u32) StackEntry {
     return create_entry(".", "", constants.attr_stack, cluster, 0);
 }
 
-/// Create a ".." entry for parent stack
 pub fn create_dotdot_entry(parent_cluster: u32) StackEntry {
     return create_entry("..", "", constants.attr_stack, parent_cluster, 0);
 }
 
-/// Create a unit entry
 pub fn create_unit_entry(
     identity: []const u8,
     extension: []const u8,
@@ -73,7 +66,6 @@ pub fn create_unit_entry(
     return create_entry(identity, extension, constants.attr_archive, first_cluster, unit_size);
 }
 
-/// Convert character to uppercase
 fn to_upper(c: u8) u8 {
     if (c >= 'a' and c <= 'z') {
         return c - 32;
@@ -81,9 +73,7 @@ fn to_upper(c: u8) u8 {
     return c;
 }
 
-/// Parse identity into name and extension parts
 pub fn parse_identity(identity: []const u8) struct { name: []const u8, ext: []const u8 } {
-    // Find last dot
     var dot_pos: ?usize = null;
     var i: usize = identity.len;
     while (i > 0) {

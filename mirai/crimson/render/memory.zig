@@ -1,6 +1,7 @@
 //! Render Memory Around Fault
 
 const serial = @import("../../drivers/serial/serial.zig");
+const messages = @import("strings/strings.zig").messages;
 
 pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usize) void {
     if (address == 0) return;
@@ -8,7 +9,7 @@ pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usi
     const start = if (address >= bytes_before) address - bytes_before else 0;
     const total_bytes = bytes_before + bytes_after;
 
-    serial.printf("Memory around %x:\n", .{address});
+    serial.printf(messages.memory_around, .{address});
 
     const mem_ptr: [*]const u8 = @ptrFromInt(start);
 
@@ -44,7 +45,7 @@ pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usi
 }
 
 pub fn render_instruction_bytes(rip: u64, count: usize) void {
-    serial.printf("Instruction bytes at %x:\n  ", .{rip});
+    serial.printf(messages.instruction_bytes, .{rip});
 
     const code_ptr: [*]const u8 = @ptrFromInt(rip);
 

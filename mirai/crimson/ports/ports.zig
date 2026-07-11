@@ -2,7 +2,7 @@
 
 pub const port = @import("port.zig");
 pub const array = @import("array.zig");
-pub const masks = @import("masks.zig");
+pub const masks = @import("constants/masks.zig");
 pub const host = @import("host.zig");
 pub const kata = @import("kata.zig");
 pub const thread = @import("thread.zig");

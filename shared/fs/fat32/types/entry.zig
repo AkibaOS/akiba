@@ -2,7 +2,6 @@
 
 const constants = @import("../constants/constants.zig");
 
-/// Standard 32-byte entry - Stack or Unit
 pub const StackEntry = extern struct {
     identity: [8]u8,
     extension: [3]u8,
@@ -47,7 +46,6 @@ pub const StackEntry = extern struct {
         self.first_cluster_low = @intCast(cluster & 0xFFFF);
     }
 
-    /// Extract short identity (8.3 format) into buffer, returns length
     pub fn get_short_identity(self: *const StackEntry, buffer: *[12]u8) usize {
         var length: usize = 0;
 
@@ -56,7 +54,6 @@ pub const StackEntry = extern struct {
             first_byte = constants.entry_free;
         }
 
-        // Copy identity part (up to 8 chars, stop at space)
         var i: usize = 0;
         while (i < 8 and self.identity[i] != ' ') : (i += 1) {
             if (i == 0) {
@@ -67,7 +64,6 @@ pub const StackEntry = extern struct {
             length += 1;
         }
 
-        // Add extension if present
         if (self.extension[0] != ' ') {
             buffer[length] = '.';
             length += 1;
@@ -83,16 +79,15 @@ pub const StackEntry = extern struct {
     }
 };
 
-/// Long identity entry (LFN)
 pub const LongIdentityEntry = extern struct {
     sequence: u8,
-    identity_1: [10]u8, // 5 UTF-16 characters
+    identity_1: [10]u8,
     attributes: u8,
     entry_type: u8,
     checksum: u8,
-    identity_2: [12]u8, // 6 UTF-16 characters
-    first_cluster: u16 align(1), // Always 0
-    identity_3: [4]u8, // 2 UTF-16 characters
+    identity_2: [12]u8,
+    first_cluster: u16 align(1),
+    identity_3: [4]u8,
 
     pub fn is_last(self: *const LongIdentityEntry) bool {
         return (self.sequence & constants.lfn_last_entry) != 0;
@@ -102,25 +97,21 @@ pub const LongIdentityEntry = extern struct {
         return self.sequence & constants.lfn_sequence_mask;
     }
 
-    /// Extract 13 UTF-16 characters from this entry
     pub fn extract_chars(self: *const LongIdentityEntry, buffer: *[13]u16) void {
         var index: usize = 0;
 
-        // Extract from identity_1 (5 chars)
         var i: usize = 0;
         while (i < 10) : (i += 2) {
             buffer[index] = @as(u16, self.identity_1[i]) | (@as(u16, self.identity_1[i + 1]) << 8);
             index += 1;
         }
 
-        // Extract from identity_2 (6 chars)
         i = 0;
         while (i < 12) : (i += 2) {
             buffer[index] = @as(u16, self.identity_2[i]) | (@as(u16, self.identity_2[i + 1]) << 8);
             index += 1;
         }
 
-        // Extract from identity_3 (2 chars)
         i = 0;
         while (i < 4) : (i += 2) {
             buffer[index] = @as(u16, self.identity_3[i]) | (@as(u16, self.identity_3[i + 1]) << 8);
@@ -129,20 +120,17 @@ pub const LongIdentityEntry = extern struct {
     }
 };
 
-/// Time format (packed into 16 bits)
 pub const TimeFormat = packed struct(u16) {
     second_div_2: u5,
     minute: u6,
     hour: u5,
 };
 
-/// Date format (packed into 16 bits)
 pub const DateFormat = packed struct(u16) {
     day: u5,
     month: u4,
     year_from_1980: u7,
 };
 
-// FAT32 spec aliases (for external compatibility)
 pub const DirEntry = StackEntry;
 pub const LongNameEntry = LongIdentityEntry;

@@ -1,8 +1,8 @@
 //! Hikari EFI Table Signature Constants
 
-pub const system_table_signature: u64 = 0x5453595320494249; // "IBI SYST"
-pub const boot_services_signature: u64 = 0x56524553544f4f42; // "BOOTSERV"
-pub const runtime_services_signature: u64 = 0x56524553544e5552; // "RUNTSERV"
+pub const system_table_signature: u64 = 0x5453595320494249;
+pub const boot_services_signature: u64 = 0x56524553544f4f42;
+pub const runtime_services_signature: u64 = 0x56524553544e5552;
 
 pub const system_table_revision_2_100: u32 = (2 << 16) | 100;
 pub const system_table_revision_2_90: u32 = (2 << 16) | 90;

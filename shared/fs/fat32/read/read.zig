@@ -3,7 +3,6 @@
 pub const cluster = @import("cluster.zig");
 pub const stack = @import("stack.zig");
 
-// Cluster operations
 pub const ClusterError = cluster.ClusterError;
 pub const is_valid_cluster = cluster.is_valid_cluster;
 pub const is_end_of_chain = cluster.is_end_of_chain;
@@ -11,7 +10,6 @@ pub const get_fat_position = cluster.get_fat_position;
 pub const cluster_to_lba = cluster.cluster_to_lba;
 pub const parse_fat_entry = cluster.parse_fat_entry;
 
-// Stack operations
 pub const LocationError = stack.LocationError;
 pub const identities_equal = stack.identities_equal;
 pub const LocationIterator = stack.LocationIterator;

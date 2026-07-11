@@ -17,7 +17,6 @@ pub const ReadError = error{
     BufferTooSmall,
 };
 
-/// Read data from a span into a buffer
 pub fn read_span(
     reader: *const BlockReader,
     span: *const SpanDescriptor,
@@ -50,7 +49,6 @@ pub fn read_span(
     return bytes_read;
 }
 
-/// Read unit data using inline spans
 pub fn read_unit_inline_spans(
     reader: *const BlockReader,
     channel: *const ChannelInfo,
@@ -86,7 +84,6 @@ pub fn read_unit_inline_spans(
     return bytes_read;
 }
 
-/// Read entire unit data (inline spans only, no overflow support yet)
 pub fn read_unit(
     reader: *const BlockReader,
     unit: *const UnitRecord,

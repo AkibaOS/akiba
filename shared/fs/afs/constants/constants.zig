@@ -7,7 +7,6 @@ pub const records = @import("records.zig");
 pub const btree = @import("btree.zig");
 pub const flags = @import("flags.zig");
 
-// Re-export commonly used constants
 pub const signature = magic.signature;
 pub const version = magic.version;
 pub const journal_signature = magic.journal_signature;

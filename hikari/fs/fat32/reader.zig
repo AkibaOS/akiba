@@ -3,7 +3,6 @@
 const efi = @import("../../efi/efi.zig");
 const shared_fat32 = @import("shared").fat32;
 
-// Import shared types
 const BootSector = shared_fat32.BootSector;
 const FsInfo = shared_fat32.FsInfo;
 const StackEntry = shared_fat32.StackEntry;

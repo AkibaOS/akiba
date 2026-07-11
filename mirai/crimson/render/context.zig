@@ -2,20 +2,21 @@
 
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
+const messages = @import("strings/strings.zig").messages;
 
 const Context = types.Context;
 
 pub fn render(context: *const Context) void {
-    serial.printf("CPU Context:\n", .{});
-    serial.printf("  RAX: %x  RBX: %x\n", .{ context.rax, context.rbx });
-    serial.printf("  RCX: %x  RDX: %x\n", .{ context.rcx, context.rdx });
-    serial.printf("  RSI: %x  RDI: %x\n", .{ context.rsi, context.rdi });
-    serial.printf("  RBP: %x  RSP: %x\n", .{ context.rbp, context.rsp });
-    serial.printf("  R8:  %x  R9:  %x\n", .{ context.r8, context.r9 });
-    serial.printf("  R10: %x  R11: %x\n", .{ context.r10, context.r11 });
-    serial.printf("  R12: %x  R13: %x\n", .{ context.r12, context.r13 });
-    serial.printf("  R14: %x  R15: %x\n", .{ context.r14, context.r15 });
-    serial.printf("  RIP: %x  RFLAGS: %x\n", .{ context.rip, context.rflags });
+    serial.printf(messages.cpu_context_header, .{});
+    serial.printf(messages.reg_rax_rbx, .{ context.rax, context.rbx });
+    serial.printf(messages.reg_rcx_rdx, .{ context.rcx, context.rdx });
+    serial.printf(messages.reg_rsi_rdi, .{ context.rsi, context.rdi });
+    serial.printf(messages.reg_rbp_rsp, .{ context.rbp, context.rsp });
+    serial.printf(messages.reg_r8_r9, .{ context.r8, context.r9 });
+    serial.printf(messages.reg_r10_r11, .{ context.r10, context.r11 });
+    serial.printf(messages.reg_r12_r13, .{ context.r12, context.r13 });
+    serial.printf(messages.reg_r14_r15, .{ context.r14, context.r15 });
+    serial.printf(messages.reg_rip_rflags, .{ context.rip, context.rflags });
     serial.printf("\n", .{});
 
     render_control_registers(context);
@@ -23,15 +24,15 @@ pub fn render(context: *const Context) void {
 }
 
 fn render_control_registers(context: *const Context) void {
-    serial.printf("Control Registers:\n", .{});
-    serial.printf("  CR0: %x  CR2: %x\n", .{ context.cr0, context.cr2 });
-    serial.printf("  CR3: %x  CR4: %x\n", .{ context.cr3, context.cr4 });
+    serial.printf(messages.control_registers_header, .{});
+    serial.printf(messages.reg_cr0_cr2, .{ context.cr0, context.cr2 });
+    serial.printf(messages.reg_cr3_cr4, .{ context.cr3, context.cr4 });
     serial.printf("\n", .{});
 }
 
 fn render_segment_registers(context: *const Context) void {
-    serial.printf("Segment Registers:\n", .{});
-    serial.printf("  CS: %x  DS: %x  ES: %x\n", .{ context.cs, context.ds, context.es });
-    serial.printf("  FS: %x  GS: %x  SS: %x\n", .{ context.fs, context.gs, context.ss });
+    serial.printf(messages.segment_registers_header, .{});
+    serial.printf(messages.reg_cs_ds_es, .{ context.cs, context.ds, context.es });
+    serial.printf(messages.reg_fs_gs_ss, .{ context.fs, context.gs, context.ss });
     serial.printf("\n", .{});
 }

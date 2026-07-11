@@ -2,12 +2,10 @@
 
 const shared_afs = @import("shared").afs;
 
-// Adapters (EFI-specific)
 pub const btree = @import("btree.zig");
 pub const reader = @import("reader.zig");
 pub const block_io = @import("block.zig");
 
-// Re-export shared types
 pub const constants = shared_afs.constants;
 pub const types = shared_afs.types;
 
@@ -29,7 +27,6 @@ pub const JournalInfoCell = shared_afs.types.JournalInfoCell;
 pub const JournalHeader = shared_afs.types.JournalHeader;
 pub const Timestamp = shared_afs.types.Timestamp;
 
-// Adapter types
 pub const BTree = btree.BTree;
 pub const BTreeError = btree.BTreeError;
 

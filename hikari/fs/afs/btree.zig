@@ -6,7 +6,6 @@ const block_io = @import("block.zig");
 
 const EfiBlockContext = block_io.EfiBlockContext;
 
-// Import shared types
 const BTreeNodeDescriptor = shared_afs.BTreeNodeDescriptor;
 const BTreeHeaderRecord = shared_afs.BTreeHeaderRecord;
 const IndexKey = shared_afs.types.IndexKey;
@@ -15,7 +14,6 @@ const UnitRecord = shared_afs.UnitRecord;
 const ThreadRecord = shared_afs.types.ThreadRecord;
 const SpanDescriptor = shared_afs.SpanDescriptor;
 
-// Import shared B-tree operations
 const btree_ops = shared_afs.btree;
 const constants = shared_afs.constants;
 

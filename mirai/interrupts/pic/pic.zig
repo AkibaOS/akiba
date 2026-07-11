@@ -1,6 +1,6 @@
 //! PIC - 8259A Programmable Interrupt Controller
 
-pub const ports = @import("ports.zig");
+pub const ports = @import("constants/ports.zig");
 pub const init = @import("init.zig");
 pub const mask = @import("mask.zig");
 pub const eoi = @import("eoi.zig");

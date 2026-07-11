@@ -9,15 +9,14 @@ pub const BootSector = extern struct {
     sectors_per_cluster: u8,
     reserved_sectors: u16 align(1),
     fat_count: u8,
-    root_entry_count: u16 align(1), // Must be 0 for FAT32
-    total_sectors_16: u16 align(1), // Must be 0 for FAT32
+    root_entry_count: u16 align(1),
+    total_sectors_16: u16 align(1),
     media_type: u8,
-    fat_size_16: u16 align(1), // Must be 0 for FAT32
+    fat_size_16: u16 align(1),
     sectors_per_track: u16 align(1),
     head_count: u16 align(1),
     hidden_sectors: u32 align(1),
     total_sectors_32: u32 align(1),
-    // FAT32 extended BPB
     fat_size_32: u32 align(1),
     ext_flags: u16 align(1),
     fs_version: u16 align(1),

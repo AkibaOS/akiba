@@ -2,11 +2,12 @@
 
 const serial = @import("../../drivers/serial/serial.zig");
 const types = @import("../types/types.zig");
+const messages = @import("strings/strings.zig").messages;
 
 const Context = types.Context;
 
 pub fn render(context: *const Context) void {
-    serial.printf("Stack Trace:\n", .{});
+    serial.printf(messages.stack_trace_header, .{});
 
     var rbp = context.rbp;
     var depth: usize = 0;
@@ -28,14 +29,14 @@ pub fn render(context: *const Context) void {
     }
 
     if (depth == 0) {
-        serial.printf("  (no stack frames available)\n", .{});
+        serial.printf(messages.no_stack_frames, .{});
     }
 
     serial.printf("\n", .{});
 }
 
 pub fn render_raw_stack(rsp: u64, count: usize) void {
-    serial.printf("Raw Stack (from %x):\n", .{rsp});
+    serial.printf(messages.raw_stack, .{rsp});
 
     const stack_ptr: [*]const u64 = @ptrFromInt(rsp);
 

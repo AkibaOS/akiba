@@ -1,6 +1,6 @@
 //! PIC IRQ Masking
 
-const ports = @import("ports.zig");
+const ports = @import("constants/ports.zig");
 const asm_io = @import("../../asm/io/io.zig");
 
 pub fn enable_irq(irq: u4) void {

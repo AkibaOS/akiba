@@ -1,6 +1,6 @@
 //! Hikari GPT Constants
 
-pub const signature: u64 = 0x5452415020494645; // "EFI PART"
+pub const signature: u64 = 0x5452415020494645;
 pub const revision_1_0: u32 = 0x00010000;
 
 pub const header_size_minimum: u32 = 92;

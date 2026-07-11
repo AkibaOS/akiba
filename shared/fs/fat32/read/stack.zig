@@ -10,7 +10,6 @@ pub const LocationError = error{
     InvalidLocation,
 };
 
-/// Case-insensitive comparison for identities
 pub fn identities_equal(a: []const u8, b: []const u8) bool {
     if (a.len != b.len) {
         return false;
@@ -25,14 +24,12 @@ pub fn identities_equal(a: []const u8, b: []const u8) bool {
     return true;
 }
 
-/// Location component iterator
 pub const LocationIterator = struct {
     location: []const u8,
     position: usize,
 
     pub fn init(location: []const u8) LocationIterator {
         var start: usize = 0;
-        // Skip leading separator
         if (location.len > 0 and (location[0] == '/' or location[0] == '\\')) {
             start = 1;
         }
@@ -43,7 +40,6 @@ pub const LocationIterator = struct {
     }
 
     pub fn next(self: *LocationIterator) ?[]const u8 {
-        // Skip empty components
         while (self.position < self.location.len and
             (self.location[self.position] == '/' or self.location[self.position] == '\\'))
         {
@@ -70,7 +66,6 @@ pub const LocationIterator = struct {
     }
 };
 
-/// Check if entry matches an identity (case-insensitive)
 pub fn entry_matches_identity(entry: *const StackEntry, identity: []const u8) bool {
     var short_identity_buf: [12]u8 = undefined;
     const short_identity_len = entry.get_short_identity(&short_identity_buf);

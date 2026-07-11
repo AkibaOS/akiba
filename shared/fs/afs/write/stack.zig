@@ -10,7 +10,6 @@ const IndexKey = types.IndexKey;
 const Permissions = types.Permissions;
 const ChannelInfo = types.ChannelInfo;
 
-/// Create a stack record
 pub fn create_stack_record(
     node_id: u32,
     timestamp: u64,
@@ -40,7 +39,6 @@ pub fn create_stack_record(
     };
 }
 
-/// Create a unit record
 pub fn create_unit_record(
     node_id: u32,
     timestamp: u64,
@@ -73,7 +71,6 @@ pub fn create_unit_record(
     };
 }
 
-/// Create an index key for a catalog entry
 pub fn create_index_key(
     parent_node_id: u32,
     identity: []const u8,
@@ -91,7 +88,6 @@ pub fn create_index_key(
     return key;
 }
 
-/// Get the size of an index key in bytes
 pub fn index_key_size(identity_len: usize) usize {
     return 8 + identity_len * 2;
 }

@@ -7,7 +7,6 @@ const types = @import("../types/types.zig");
 const BootSector = types.BootSector;
 const FsInfo = types.FsInfo;
 
-/// Parameters for creating a FAT32 filesystem
 pub const CreateParams = struct {
     total_sectors: u32,
     hidden_sectors: u32 = 0,
@@ -19,16 +18,13 @@ pub const CreateParams = struct {
     volume_label: [11]u8 = .{ 'N', 'O', ' ', 'N', 'A', 'M', 'E', ' ', ' ', ' ', ' ' },
 };
 
-/// Calculate FAT size in sectors
 pub fn calculate_fat_size(params: CreateParams) u32 {
     const data_sectors = params.total_sectors - params.reserved_sectors;
     const cluster_count = data_sectors / params.sectors_per_cluster;
-    // Each FAT entry is 4 bytes
     const fat_bytes = (cluster_count + 2) * 4;
     return (fat_bytes + params.bytes_per_sector - 1) / params.bytes_per_sector;
 }
 
-/// Create a boot sector structure
 pub fn create_boot_sector(params: CreateParams) BootSector {
     const fat_size = calculate_fat_size(params);
 
@@ -67,7 +63,6 @@ pub fn create_boot_sector(params: CreateParams) BootSector {
     return boot;
 }
 
-/// Create FSInfo structure
 pub fn create_fsinfo(free_clusters: u32, next_free: u32) FsInfo {
     return FsInfo{
         .signature_1 = constants.fsinfo_sig1,
@@ -80,20 +75,14 @@ pub fn create_fsinfo(free_clusters: u32, next_free: u32) FsInfo {
     };
 }
 
-/// Initialize FAT table with required entries
 pub fn init_fat_table(fat: []u8) void {
-    // Clear
     @memset(fat, 0);
 
-    // Entry 0: Media type
     std.mem.writeInt(u32, fat[0..4], 0x0FFFFFF8, .little);
-    // Entry 1: End of chain marker
     std.mem.writeInt(u32, fat[4..8], 0x0FFFFFFF, .little);
-    // Entry 2: Origin stack EOC
     std.mem.writeInt(u32, fat[8..12], 0x0FFFFFFF, .little);
 }
 
-/// Allocate a cluster in the FAT
 pub fn allocate_cluster(fat: []u8, cluster: u32) void {
     const offset = cluster * 4;
     if (offset + 4 <= fat.len) {
@@ -101,7 +90,6 @@ pub fn allocate_cluster(fat: []u8, cluster: u32) void {
     }
 }
 
-/// Link two clusters in the FAT
 pub fn link_clusters(fat: []u8, from: u32, to: u32) void {
     const offset = from * 4;
     if (offset + 4 <= fat.len) {

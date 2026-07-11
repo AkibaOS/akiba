@@ -1,10 +1,8 @@
 //! Hikari Boot Parameters
-//!
-//! This structure is passed to the Mirai kernel at boot time.
 
 const paging = @import("../paging/paging.zig");
 
-pub const boot_params_magic: u64 = 0x494152494D424B41; // "AKBMIRAI"
+pub const boot_params_magic: u64 = 0x494152494D424B41;
 pub const boot_params_version: u32 = 1;
 
 pub const BootParams = extern struct {

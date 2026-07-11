@@ -1,6 +1,6 @@
 //! PIT IRQ Handler
 
-const constants = @import("constants.zig");
+const constants = @import("constants/constants.zig");
 const pic = @import("../../interrupts/pic/pic.zig");
 const idt = @import("../../interrupts/idt.zig");
 
