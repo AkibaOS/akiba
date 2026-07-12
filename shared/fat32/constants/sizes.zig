@@ -1,0 +1,9 @@
+//! FAT32 Size Constants
+
+pub const SHORT_IDENTITY_LENGTH: usize = 8;
+pub const SHORT_EXT_LENGTH: usize = 3;
+pub const SHORT_TOTAL_LENGTH: usize = SHORT_IDENTITY_LENGTH + SHORT_EXT_LENGTH;
+pub const SHORT_DISPLAY_LENGTH: usize = SHORT_IDENTITY_LENGTH + 1 + SHORT_EXT_LENGTH;
+
+pub const SECTOR_SIZE_MIN: u16 = 512;
+pub const SECTOR_SIZE_MAX: u16 = 4096;

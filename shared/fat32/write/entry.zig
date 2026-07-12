@@ -1,12 +1,11 @@
 //! FAT32 Entry Creation
 
-const std = @import("std");
 const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-const StackEntry = types.StackEntry;
+const StackEntry = types.entry.StackEntry;
 
-pub fn create_entry(
+pub fn createEntry(
     identity: []const u8,
     extension: []const u8,
     attributes: u8,
@@ -14,85 +13,85 @@ pub fn create_entry(
     unit_size: u32,
 ) StackEntry {
     var entry = StackEntry{
-        .identity = .{ ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' },
-        .extension = .{ ' ', ' ', ' ' },
-        .attributes = attributes,
-        .reserved_nt = 0,
-        .creation_time_tenths = 0,
-        .creation_time = 0,
-        .creation_date = 0,
-        .last_access_date = 0,
-        .first_cluster_high = @intCast((first_cluster >> 16) & 0xFFFF),
-        .write_time = 0,
-        .write_date = 0,
-        .first_cluster_low = @intCast(first_cluster & 0xFFFF),
-        .unit_size = unit_size,
+        .Identity = [_]u8{' '} ** constants.sizes.SHORT_IDENTITY_LENGTH,
+        .Extension = [_]u8{' '} ** constants.sizes.SHORT_EXT_LENGTH,
+        .Attributes = attributes,
+        .ReservedNt = 0,
+        .CreationTimeTenths = 0,
+        .CreationTime = 0,
+        .CreationDate = 0,
+        .LastAccessDate = 0,
+        .FirstClusterHigh = @truncate(first_cluster >> @bitSizeOf(u16)),
+        .WriteTime = 0,
+        .WriteDate = 0,
+        .FirstClusterLow = @truncate(first_cluster),
+        .UnitSize = unit_size,
     };
 
-    for (identity, 0..) |c, i| {
-        if (i >= 8) break;
-        entry.identity[i] = to_upper(c);
+    for (identity, 0..) |char, index| {
+        if (index >= constants.sizes.SHORT_IDENTITY_LENGTH) break;
+        entry.Identity[index] = toUpper(char);
     }
 
-    for (extension, 0..) |c, i| {
-        if (i >= 3) break;
-        entry.extension[i] = to_upper(c);
+    for (extension, 0..) |char, index| {
+        if (index >= constants.sizes.SHORT_EXT_LENGTH) break;
+        entry.Extension[index] = toUpper(char);
     }
 
     return entry;
 }
 
-pub fn create_stack_entry(
+pub fn createStackEntry(
     identity: []const u8,
     first_cluster: u32,
 ) StackEntry {
-    return create_entry(identity, "", constants.attr_stack, first_cluster, 0);
+    return createEntry(identity, "", constants.attributes.ATTR_STACK, first_cluster, 0);
 }
 
-pub fn create_dot_entry(cluster: u32) StackEntry {
-    return create_entry(".", "", constants.attr_stack, cluster, 0);
+pub fn createDotEntry(cluster: u32) StackEntry {
+    return createEntry(".", "", constants.attributes.ATTR_STACK, cluster, 0);
 }
 
-pub fn create_dotdot_entry(parent_cluster: u32) StackEntry {
-    return create_entry("..", "", constants.attr_stack, parent_cluster, 0);
+pub fn createDotDotEntry(parent_cluster: u32) StackEntry {
+    return createEntry("..", "", constants.attributes.ATTR_STACK, parent_cluster, 0);
 }
 
-pub fn create_unit_entry(
+pub fn createUnitEntry(
     identity: []const u8,
     extension: []const u8,
     first_cluster: u32,
     unit_size: u32,
 ) StackEntry {
-    return create_entry(identity, extension, constants.attr_archive, first_cluster, unit_size);
+    return createEntry(identity, extension, constants.attributes.ATTR_ARCHIVE, first_cluster, unit_size);
 }
 
-fn to_upper(c: u8) u8 {
-    if (c >= 'a' and c <= 'z') {
-        return c - 32;
+fn toUpper(char: u8) u8 {
+    if (char >= 'a' and char <= 'z') {
+        return char - ('a' - 'A');
     }
-    return c;
+    return char;
 }
 
-pub fn parse_identity(identity: []const u8) struct { name: []const u8, ext: []const u8 } {
-    var dot_pos: ?usize = null;
-    var i: usize = identity.len;
-    while (i > 0) {
-        i -= 1;
-        if (identity[i] == '.') {
-            dot_pos = i;
+pub fn parseIdentity(identity: []const u8) struct { Name: []const u8, Extension: []const u8 } {
+    var dot_position: ?usize = null;
+    var index: usize = identity.len;
+    while (index > 0) {
+        index -= 1;
+        if (identity[index] == '.') {
+            dot_position = index;
             break;
         }
     }
 
-    if (dot_pos) |pos| {
+    if (dot_position) |position| {
         return .{
-            .name = identity[0..pos],
-            .ext = if (pos + 1 < identity.len) identity[pos + 1 ..] else "",
+            .Name = identity[0..position],
+            .Extension = if (position + 1 < identity.len) identity[position + 1 ..] else "",
         };
     } else {
         return .{
-            .name = identity,
-            .ext = "",
+            .Name = identity,
+            .Extension = "",
         };
     }
 }

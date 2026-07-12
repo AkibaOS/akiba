@@ -1,23 +1,18 @@
 //! FAT32 Stack Operations
 
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-const StackEntry = types.StackEntry;
+const StackEntry = types.entry.StackEntry;
 
-pub const LocationError = error{
-    NotFound,
-    NotAStack,
-    InvalidLocation,
-};
-
-pub fn identities_equal(a: []const u8, b: []const u8) bool {
-    if (a.len != b.len) {
+pub fn identitiesEqual(left: []const u8, right: []const u8) bool {
+    if (left.len != right.len) {
         return false;
     }
-    for (a, b) |char_a, char_b| {
-        const upper_a = if (char_a >= 'a' and char_a <= 'z') char_a - 32 else char_a;
-        const upper_b = if (char_b >= 'a' and char_b <= 'z') char_b - 32 else char_b;
-        if (upper_a != upper_b) {
+    for (left, right) |left_char, right_char| {
+        const upper_left = if (left_char >= 'a' and left_char <= 'z') left_char - ('a' - 'A') else left_char;
+        const upper_right = if (right_char >= 'a' and right_char <= 'z') right_char - ('a' - 'A') else right_char;
+        if (upper_left != upper_right) {
             return false;
         }
     }
@@ -25,8 +20,8 @@ pub fn identities_equal(a: []const u8, b: []const u8) bool {
 }
 
 pub const LocationIterator = struct {
-    location: []const u8,
-    position: usize,
+    Location: []const u8,
+    Position: usize,
 
     pub fn init(location: []const u8) LocationIterator {
         var start: usize = 0;
@@ -34,40 +29,40 @@ pub const LocationIterator = struct {
             start = 1;
         }
         return LocationIterator{
-            .location = location,
-            .position = start,
+            .Location = location,
+            .Position = start,
         };
     }
 
     pub fn next(self: *LocationIterator) ?[]const u8 {
-        while (self.position < self.location.len and
-            (self.location[self.position] == '/' or self.location[self.position] == '\\'))
+        while (self.Position < self.Location.len and
+            (self.Location[self.Position] == '/' or self.Location[self.Position] == '\\'))
         {
-            self.position += 1;
+            self.Position += 1;
         }
 
-        if (self.position >= self.location.len) {
+        if (self.Position >= self.Location.len) {
             return null;
         }
 
-        const start = self.position;
-        while (self.position < self.location.len and
-            self.location[self.position] != '/' and
-            self.location[self.position] != '\\')
+        const start = self.Position;
+        while (self.Position < self.Location.len and
+            self.Location[self.Position] != '/' and
+            self.Location[self.Position] != '\\')
         {
-            self.position += 1;
+            self.Position += 1;
         }
 
-        if (self.position == start) {
+        if (self.Position == start) {
             return null;
         }
 
-        return self.location[start..self.position];
+        return self.Location[start..self.Position];
     }
 };
 
-pub fn entry_matches_identity(entry: *const StackEntry, identity: []const u8) bool {
-    var short_identity_buf: [12]u8 = undefined;
-    const short_identity_len = entry.get_short_identity(&short_identity_buf);
-    return identities_equal(short_identity_buf[0..short_identity_len], identity);
+pub fn entryMatchesIdentity(entry: *const StackEntry, identity: []const u8) bool {
+    var short_identity_buffer: [constants.sizes.SHORT_DISPLAY_LENGTH]u8 = undefined;
+    const short_identity_length = entry.getShortIdentity(&short_identity_buffer);
+    return identitiesEqual(short_identity_buffer[0..short_identity_length], identity);
 }

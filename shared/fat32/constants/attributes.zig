@@ -1,0 +1,11 @@
+//! FAT32 Directory Entry Attributes
+
+pub const ATTR_READ_ONLY: u8 = 0x01;
+pub const ATTR_HIDDEN: u8 = 0x02;
+pub const ATTR_SYSTEM: u8 = 0x04;
+pub const ATTR_VOLUME_ID: u8 = 0x08;
+pub const ATTR_STACK: u8 = 0x10;
+pub const ATTR_ARCHIVE: u8 = 0x20;
+
+pub const ATTR_LONG_IDENTITY: u8 = ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID;
+pub const ATTR_LONG_IDENTITY_MASK: u8 = ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID | ATTR_STACK | ATTR_ARCHIVE;
