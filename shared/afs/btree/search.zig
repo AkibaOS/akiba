@@ -1,96 +1,95 @@
 //! AFS B-tree Search Operations
 
 const constants = @import("../constants/constants.zig");
+const node = @import("node.zig");
 const types = @import("../types/types.zig");
-const node_ops = @import("node.zig");
 
-const IndexKey = types.IndexKey;
-const BTreeNodeDescriptor = types.BTreeNodeDescriptor;
-const StackRecord = types.StackRecord;
-const UnitRecord = types.UnitRecord;
-const ThreadRecord = types.ThreadRecord;
+const IndexKey = types.btree.IndexKey;
+const StackRecord = types.catalog.StackRecord;
+const ThreadRecord = types.catalog.ThreadRecord;
+const UnitRecord = types.catalog.UnitRecord;
 
-pub fn compare_keys(parent_node_id: u32, identity: []const u16, key: *align(1) const IndexKey) i32 {
-    if (parent_node_id < key.parent_node_id) {
+pub fn compareKeys(parent_node_id: u32, identity: []const u16, key: *align(1) const IndexKey) i32 {
+    if (parent_node_id < key.ParentNodeId) {
         return -1;
     }
-    if (parent_node_id > key.parent_node_id) {
+    if (parent_node_id > key.ParentNodeId) {
         return 1;
     }
 
-    const key_identity_len = key.get_identity_length();
-    const min_len = if (identity.len < key_identity_len) identity.len else key_identity_len;
+    const key_identity_length = key.getIdentityLength();
+    const min_length = if (identity.len < key_identity_length) identity.len else key_identity_length;
 
-    var i: usize = 0;
-    while (i < min_len) : (i += 1) {
-        const a = identity[i];
-        const b = key.identity[i];
-        if (a < b) {
+    var index: usize = 0;
+    while (index < min_length) : (index += 1) {
+        const left_char = identity[index];
+        const right_char = key.Identity[index];
+        if (left_char < right_char) {
             return -1;
         }
-        if (a > b) {
+        if (left_char > right_char) {
             return 1;
         }
     }
 
-    if (identity.len < key_identity_len) {
+    if (identity.len < key_identity_length) {
         return -1;
     }
-    if (identity.len > key_identity_len) {
+    if (identity.len > key_identity_length) {
         return 1;
     }
 
     return 0;
 }
 
-pub fn search_index_node(
+pub fn searchIndexNode(
     node_buffer: [*]const u8,
     node_size: u32,
     record_count: u16,
     parent_node_id: u32,
     identity: []const u16,
 ) ?u32 {
-    var i: u16 = 0;
-    while (i < record_count) : (i += 1) {
-        const record_ptr = node_ops.get_record_ptr_const(node_buffer, node_size, i);
-        const key: *align(1) const IndexKey = @ptrCast(record_ptr);
+    var index: u16 = 0;
+    while (index < record_count) : (index += 1) {
+        const record_pointer = node.getRecordPointerConst(node_buffer, node_size, index);
+        const key: *align(1) const IndexKey = @ptrCast(record_pointer);
 
-        const cmp = compare_keys(parent_node_id, identity, key);
-        if (cmp <= 0) {
-            const child_ptr: *align(1) const u32 = @ptrCast(record_ptr + key.key_length);
-            return child_ptr.*;
+        const comparison = compareKeys(parent_node_id, identity, key);
+        if (comparison <= 0) {
+            const child_pointer: *align(1) const u32 = @ptrCast(record_pointer + key.KeyLength);
+            return child_pointer.*;
         }
     }
 
     if (record_count > 0) {
-        const last_record = node_ops.get_record_ptr_const(node_buffer, node_size, record_count - 1);
+        const last_record = node.getRecordPointerConst(node_buffer, node_size, record_count - 1);
         const last_key: *align(1) const IndexKey = @ptrCast(last_record);
-        const child_ptr: *align(1) const u32 = @ptrCast(last_record + last_key.key_length);
-        return child_ptr.*;
+        const child_pointer: *align(1) const u32 = @ptrCast(last_record + last_key.KeyLength);
+        return child_pointer.*;
     }
 
     return null;
 }
 
-pub fn search_leaf_for_unit(
+pub fn searchLeafForUnit(
     node_buffer: [*]const u8,
     node_size: u32,
     record_count: u16,
     parent_node_id: u32,
     identity: []const u16,
 ) ?*align(1) const UnitRecord {
-    var i: u16 = 0;
-    while (i < record_count) : (i += 1) {
-        const record_ptr = node_ops.get_record_ptr_const(node_buffer, node_size, i);
-        const key: *align(1) const IndexKey = @ptrCast(record_ptr);
+    var index: u16 = 0;
+    while (index < record_count) : (index += 1) {
+        const record_pointer = node.getRecordPointerConst(node_buffer, node_size, index);
+        const key: *align(1) const IndexKey = @ptrCast(record_pointer);
 
-        const cmp = compare_keys(parent_node_id, identity, key);
-        if (cmp == 0) {
-            const record_start = record_ptr + key.key_length;
-            const record_type_ptr: *align(1) const u16 = @ptrCast(record_start);
-            const record_type = record_type_ptr.*;
+        const comparison = compareKeys(parent_node_id, identity, key);
+        if (comparison == 0) {
+            const record_start = record_pointer + key.KeyLength;
+            const record_type_pointer: *align(1) const u16 = @ptrCast(record_start);
+            const record_type = record_type_pointer.*;
 
-            if (record_type == constants.records.index_unit) {
+            if (record_type == constants.records.INDEX_UNIT) {
                 return @ptrCast(record_start);
             }
         }
@@ -99,25 +98,25 @@ pub fn search_leaf_for_unit(
     return null;
 }
 
-pub fn search_leaf_for_stack(
+pub fn searchLeafForStack(
     node_buffer: [*]const u8,
     node_size: u32,
     record_count: u16,
     parent_node_id: u32,
     identity: []const u16,
 ) ?*align(1) const StackRecord {
-    var i: u16 = 0;
-    while (i < record_count) : (i += 1) {
-        const record_ptr = node_ops.get_record_ptr_const(node_buffer, node_size, i);
-        const key: *align(1) const IndexKey = @ptrCast(record_ptr);
+    var index: u16 = 0;
+    while (index < record_count) : (index += 1) {
+        const record_pointer = node.getRecordPointerConst(node_buffer, node_size, index);
+        const key: *align(1) const IndexKey = @ptrCast(record_pointer);
 
-        const cmp = compare_keys(parent_node_id, identity, key);
-        if (cmp == 0) {
-            const record_start = record_ptr + key.key_length;
-            const record_type_ptr: *align(1) const u16 = @ptrCast(record_start);
-            const record_type = record_type_ptr.*;
+        const comparison = compareKeys(parent_node_id, identity, key);
+        if (comparison == 0) {
+            const record_start = record_pointer + key.KeyLength;
+            const record_type_pointer: *align(1) const u16 = @ptrCast(record_start);
+            const record_type = record_type_pointer.*;
 
-            if (record_type == constants.records.index_stack) {
+            if (record_type == constants.records.INDEX_STACK) {
                 return @ptrCast(record_start);
             }
         }
@@ -126,26 +125,26 @@ pub fn search_leaf_for_stack(
     return null;
 }
 
-pub fn search_leaf_for_thread(
+pub fn searchLeafForThread(
     node_buffer: [*]const u8,
     node_size: u32,
     record_count: u16,
     node_id: u32,
     identity: []const u16,
 ) ?*align(1) const ThreadRecord {
-    var i: u16 = 0;
-    while (i < record_count) : (i += 1) {
-        const record_ptr = node_ops.get_record_ptr_const(node_buffer, node_size, i);
-        const key: *align(1) const IndexKey = @ptrCast(record_ptr);
+    var index: u16 = 0;
+    while (index < record_count) : (index += 1) {
+        const record_pointer = node.getRecordPointerConst(node_buffer, node_size, index);
+        const key: *align(1) const IndexKey = @ptrCast(record_pointer);
 
-        const cmp = compare_keys(node_id, identity, key);
-        if (cmp == 0) {
-            const record_start = record_ptr + key.key_length;
-            const record_type_ptr: *align(1) const u16 = @ptrCast(record_start);
-            const record_type = record_type_ptr.*;
+        const comparison = compareKeys(node_id, identity, key);
+        if (comparison == 0) {
+            const record_start = record_pointer + key.KeyLength;
+            const record_type_pointer: *align(1) const u16 = @ptrCast(record_start);
+            const record_type = record_type_pointer.*;
 
-            if (record_type == constants.records.index_stack_thread or
-                record_type == constants.records.index_unit_thread)
+            if (record_type == constants.records.INDEX_STACK_THREAD or
+                record_type == constants.records.INDEX_UNIT_THREAD)
             {
                 return @ptrCast(record_start);
             }

@@ -1,83 +1,78 @@
 //! AFS Block I/O Interface
 
-pub const BlockError = error{
-    ReadFailed,
-    WriteFailed,
-    OutOfBounds,
-    InvalidCell,
-    DeviceError,
-    NotSupported,
-};
+const errors = @import("../errors/errors.zig");
+
+const BlockError = errors.block.BlockError;
 
 pub const BlockReader = struct {
-    context: *anyopaque,
-    read_fn: *const fn (context: *anyopaque, cell: u64, buffer: []u8) BlockError!void,
-    cell_size: u32,
-    total_cells: u64,
+    Context: *anyopaque,
+    ReadFn: *const fn (context: *anyopaque, cell: u64, buffer: []u8) BlockError!void,
+    CellSize: u32,
+    TotalCells: u64,
 
-    pub fn read_cell(self: *const BlockReader, cell: u64, buffer: []u8) BlockError!void {
-        if (cell >= self.total_cells) {
+    pub fn readCell(self: *const BlockReader, cell: u64, buffer: []u8) BlockError!void {
+        if (cell >= self.TotalCells) {
             return BlockError.OutOfBounds;
         }
-        if (buffer.len < self.cell_size) {
+        if (buffer.len < self.CellSize) {
             return BlockError.InvalidCell;
         }
-        return self.read_fn(self.context, cell, buffer);
+        return self.ReadFn(self.Context, cell, buffer);
     }
 
-    pub fn read_cells(self: *const BlockReader, start_cell: u64, buffer: []u8) BlockError!void {
-        const cells_to_read = buffer.len / self.cell_size;
+    pub fn readCells(self: *const BlockReader, start_cell: u64, buffer: []u8) BlockError!void {
+        const cells_to_read = buffer.len / self.CellSize;
         var offset: usize = 0;
         var cell = start_cell;
 
         while (offset < buffer.len and cell < start_cell + cells_to_read) : ({
-            offset += self.cell_size;
+            offset += self.CellSize;
             cell += 1;
         }) {
-            try self.read_cell(cell, buffer[offset..][0..self.cell_size]);
+            try self.readCell(cell, buffer[offset..][0..self.CellSize]);
         }
     }
 };
 
 pub const BlockWriter = struct {
-    context: *anyopaque,
-    write_fn: *const fn (context: *anyopaque, cell: u64, data: []const u8) BlockError!void,
-    cell_size: u32,
-    total_cells: u64,
+    Context: *anyopaque,
+    WriteFn: *const fn (context: *anyopaque, cell: u64, data: []const u8) BlockError!void,
+    CellSize: u32,
+    TotalCells: u64,
 
-    pub fn write_cell(self: *const BlockWriter, cell: u64, data: []const u8) BlockError!void {
-        if (cell >= self.total_cells) {
+    pub fn writeCell(self: *const BlockWriter, cell: u64, data: []const u8) BlockError!void {
+        if (cell >= self.TotalCells) {
             return BlockError.OutOfBounds;
         }
-        if (data.len < self.cell_size) {
+        if (data.len < self.CellSize) {
             return BlockError.InvalidCell;
         }
-        return self.write_fn(self.context, cell, data);
+        return self.WriteFn(self.Context, cell, data);
     }
 
-    pub fn write_cells(self: *const BlockWriter, start_cell: u64, data: []const u8) BlockError!void {
-        const cells_to_write = data.len / self.cell_size;
+    pub fn writeCells(self: *const BlockWriter, start_cell: u64, data: []const u8) BlockError!void {
+        const cells_to_write = data.len / self.CellSize;
         var offset: usize = 0;
         var cell = start_cell;
 
         while (offset < data.len and cell < start_cell + cells_to_write) : ({
-            offset += self.cell_size;
+            offset += self.CellSize;
             cell += 1;
         }) {
-            try self.write_cell(cell, data[offset..][0..self.cell_size]);
+            try self.writeCell(cell, data[offset..][0..self.CellSize]);
         }
     }
 };
 
 pub const BlockDevice = struct {
-    reader: BlockReader,
-    writer: BlockWriter,
+    Reader: BlockReader,
+    Writer: BlockWriter,
 
-    pub fn read_cell(self: *const BlockDevice, cell: u64, buffer: []u8) BlockError!void {
-        return self.reader.read_cell(cell, buffer);
+    pub fn readCell(self: *const BlockDevice, cell: u64, buffer: []u8) BlockError!void {
+        return self.Reader.readCell(cell, buffer);
     }
 
-    pub fn write_cell(self: *const BlockDevice, cell: u64, data: []const u8) BlockError!void {
-        return self.writer.write_cell(cell, data);
+    pub fn writeCell(self: *const BlockDevice, cell: u64, data: []const u8) BlockError!void {
+        return self.Writer.writeCell(cell, data);
     }
 };

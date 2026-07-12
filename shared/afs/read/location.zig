@@ -1,37 +1,29 @@
 //! AFS Location Operations
 
-const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-const StackRecord = types.StackRecord;
-const UnitRecord = types.UnitRecord;
-
-pub const LocationError = error{
-    NotFound,
-    NotAStack,
-    InvalidLocation,
-    BTreeError,
-};
+const StackRecord = types.catalog.StackRecord;
+const UnitRecord = types.catalog.UnitRecord;
 
 pub const LookupResult = union(enum) {
-    unit: UnitRecord,
-    stack: StackRecord,
-    not_found: void,
+    Unit: UnitRecord,
+    Stack: StackRecord,
+    NotFound: void,
 };
 
-pub fn component_to_identity(component: []const u8, identity_buffer: []u16) usize {
-    var len: usize = 0;
+pub fn componentToIdentity(component: []const u8, identity_buffer: []u16) usize {
+    var length: usize = 0;
     for (component) |byte| {
-        if (len >= identity_buffer.len) break;
-        identity_buffer[len] = byte;
-        len += 1;
+        if (length >= identity_buffer.len) break;
+        identity_buffer[length] = byte;
+        length += 1;
     }
-    return len;
+    return length;
 }
 
 pub const LocationIterator = struct {
-    location: []const u8,
-    position: usize,
+    Location: []const u8,
+    Position: usize,
 
     pub fn init(location: []const u8) LocationIterator {
         var start: usize = 0;
@@ -39,34 +31,34 @@ pub const LocationIterator = struct {
             start = 1;
         }
         return LocationIterator{
-            .location = location,
-            .position = start,
+            .Location = location,
+            .Position = start,
         };
     }
 
     pub fn next(self: *LocationIterator) ?[]const u8 {
-        while (self.position < self.location.len and
-            (self.location[self.position] == '/' or self.location[self.position] == '\\'))
+        while (self.Position < self.Location.len and
+            (self.Location[self.Position] == '/' or self.Location[self.Position] == '\\'))
         {
-            self.position += 1;
+            self.Position += 1;
         }
 
-        if (self.position >= self.location.len) {
+        if (self.Position >= self.Location.len) {
             return null;
         }
 
-        const start = self.position;
-        while (self.position < self.location.len and
-            self.location[self.position] != '/' and
-            self.location[self.position] != '\\')
+        const start = self.Position;
+        while (self.Position < self.Location.len and
+            self.Location[self.Position] != '/' and
+            self.Location[self.Position] != '\\')
         {
-            self.position += 1;
+            self.Position += 1;
         }
 
-        if (self.position == start) {
+        if (self.Position == start) {
             return null;
         }
 
-        return self.location[start..self.position];
+        return self.Location[start..self.Position];
     }
 };
