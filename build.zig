@@ -1,6 +1,9 @@
-const std = @import("std");
-const builder = @import("toolchain/build/build.zig");
+//! Build Entry
 
-pub fn build(b: *std.Build) void {
-    builder.build(b);
+const std = @import("std");
+
+const orchestrator = @import("toolchain/orchestrator/orchestrator.zig");
+
+pub fn build(builder: *std.Build) void {
+    orchestrator.build(builder);
 }

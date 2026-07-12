@@ -1,27 +1,27 @@
 //! Paging Flag Constants
 
-pub const present: u64 = 1 << 0;
-pub const writable: u64 = 1 << 1;
-pub const user_accessible: u64 = 1 << 2;
-pub const write_through: u64 = 1 << 3;
-pub const cache_disabled: u64 = 1 << 4;
-pub const accessed: u64 = 1 << 5;
-pub const dirty: u64 = 1 << 6;
-pub const huge_page: u64 = 1 << 7;
-pub const global: u64 = 1 << 8;
-pub const no_execute: u64 = 1 << 63;
+pub const PRESENT: u64 = 1 << 0;
+pub const WRITABLE: u64 = 1 << 1;
+pub const USER_ACCESSIBLE: u64 = 1 << 2;
+pub const WRITE_THROUGH: u64 = 1 << 3;
+pub const CACHE_DISABLED: u64 = 1 << 4;
+pub const ACCESSED: u64 = 1 << 5;
+pub const DIRTY: u64 = 1 << 6;
+pub const HUGE_PAGE: u64 = 1 << 7;
+pub const GLOBAL: u64 = 1 << 8;
+pub const NO_EXECUTE: u64 = 1 << 63;
 
-pub const kernel_read_only: u64 = present | global;
-pub const kernel_read_write: u64 = present | writable | global;
-pub const kernel_execute: u64 = present | global;
-pub const kernel_read_write_no_execute: u64 = present | writable | global | no_execute;
+pub const KERNEL_READ_ONLY: u64 = PRESENT | GLOBAL;
+pub const KERNEL_READ_WRITE: u64 = PRESENT | WRITABLE | GLOBAL;
+pub const KERNEL_EXECUTE: u64 = PRESENT | GLOBAL;
+pub const KERNEL_READ_WRITE_NO_EXECUTE: u64 = PRESENT | WRITABLE | GLOBAL | NO_EXECUTE;
 
-pub const user_read_only: u64 = present | user_accessible;
-pub const user_read_write: u64 = present | writable | user_accessible;
-pub const user_execute: u64 = present | user_accessible;
-pub const user_read_write_no_execute: u64 = present | writable | user_accessible | no_execute;
+pub const USER_READ_ONLY: u64 = PRESENT | USER_ACCESSIBLE;
+pub const USER_READ_WRITE: u64 = PRESENT | WRITABLE | USER_ACCESSIBLE;
+pub const USER_EXECUTE: u64 = PRESENT | USER_ACCESSIBLE;
+pub const USER_READ_WRITE_NO_EXECUTE: u64 = PRESENT | WRITABLE | USER_ACCESSIBLE | NO_EXECUTE;
 
-pub const table_flags: u64 = present | writable | user_accessible;
-pub const kernel_table_flags: u64 = present | writable;
+pub const TABLE_FLAGS: u64 = PRESENT | WRITABLE | USER_ACCESSIBLE;
+pub const KERNEL_TABLE_FLAGS: u64 = PRESENT | WRITABLE;
 
-pub const mmio_flags: u64 = present | writable | cache_disabled | no_execute;
+pub const MMIO_FLAGS: u64 = PRESENT | WRITABLE | CACHE_DISABLED | NO_EXECUTE;

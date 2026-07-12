@@ -1,6 +1,4 @@
 //! Shared Libraries
 
-pub const fs = @import("fs/fs.zig");
-
-pub const afs = fs.afs;
-pub const fat32 = fs.fat32;
+pub const afs = @import("afs/afs.zig");
+pub const fat32 = @import("fat32/fat32.zig");

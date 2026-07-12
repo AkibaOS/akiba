@@ -1,0 +1,9 @@
+//! Build Names
+
+pub const MODULE_COMMON = "common";
+pub const MODULE_SHARED = "shared";
+pub const MODULE_ASSEMBLY = "asm";
+pub const EXECUTABLE_HIKARI = "hikari";
+pub const EXECUTABLE_MIRAI = "mirai";
+pub const EXECUTABLE_MKAFSDISK = "mkafsdisk";
+pub const ENTRY_MIRAI = "mirai_entry";

@@ -1,4 +1,4 @@
 //! Paging Constants
 
-pub const indices = @import("indices.zig");
 pub const flags = @import("flags.zig");
+pub const indices = @import("indices.zig");

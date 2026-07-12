@@ -6,4 +6,6 @@ pub const AllocationError = error{
     InvalidAlignment,
     RegionExhausted,
     ZoneExhausted,
+    NotInitialized,
+    SizeTooLarge,
 };
