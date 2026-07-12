@@ -1,7 +1,7 @@
 //! PIC Initialization
 
 const ports = @import("constants/ports.zig");
-const asm_io = @import("../../asm/io/io.zig");
+const asm_io = @import("asm").io;
 
 pub fn remap() void {
     const mask1 = asm_io.read_byte(ports.pic1_data);

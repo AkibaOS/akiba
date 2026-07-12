@@ -14,6 +14,10 @@ pub fn build(b: *std.Build) void {
     });
     shared_module.addImport("common", common_module);
 
+    const asm_module = b.createModule(.{
+        .root_source_file = b.path("asm/asm.zig"),
+    });
+
     const hikari_target = b.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .os_tag = .uefi,
@@ -57,6 +61,7 @@ pub fn build(b: *std.Build) void {
 
     mirai_module.addImport("common", common_module);
     mirai_module.addImport("shared", shared_module);
+    mirai_module.addImport("asm", asm_module);
 
     const mirai = b.addExecutable(.{
         .name = "mirai",

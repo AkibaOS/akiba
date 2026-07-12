@@ -1,7 +1,7 @@
 //! PIT Initialization
 
 const constants = @import("constants/constants.zig");
-const asm_io = @import("../../asm/io/io.zig");
+const asm_io = @import("asm").io;
 
 pub fn init(frequency: u32) void {
     const divisor: u16 = @truncate(constants.base_frequency / frequency);

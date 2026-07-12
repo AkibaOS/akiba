@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-pub const asm_ops = @import("asm/asm.zig");
+pub const asm_ops = @import("asm");
 pub const boot = @import("boot/boot.zig");
 pub const crimson = @import("crimson/crimson.zig");
 pub const drivers = @import("drivers/drivers.zig");

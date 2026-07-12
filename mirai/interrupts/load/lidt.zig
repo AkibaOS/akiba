@@ -2,7 +2,7 @@
 
 const types = @import("../types/types.zig");
 const table = @import("../table/table.zig");
-const asm_int = @import("../../asm/interrupts/interrupts.zig");
+const asm_int = @import("asm").interrupts;
 
 pub fn lidt(desc: *const types.Descriptor) void {
     asm_int.lidt(desc);

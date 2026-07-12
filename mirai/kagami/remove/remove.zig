@@ -2,7 +2,7 @@
 
 const types = @import("../types/types.zig");
 const tables = @import("../tables/tables.zig");
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 
 const Entry = types.Entry;
 const Kagami = types.Kagami;

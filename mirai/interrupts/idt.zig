@@ -1,7 +1,7 @@
 //! IDT - Interrupt Descriptor Table
 
 const gdt = @import("../boot/gdt/gdt.zig");
-const asm_int = @import("../asm/interrupts/interrupts.zig");
+const asm_int = @import("asm").interrupts;
 
 pub const types = @import("types/types.zig");
 pub const table = @import("table/table.zig");

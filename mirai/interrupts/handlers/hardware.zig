@@ -2,7 +2,7 @@
 
 const common = @import("common.zig");
 const InterruptFrame = common.InterruptFrame;
-const asm_stubs = @import("../../asm/interrupts/stubs.zig");
+const asm_stubs = @import("asm").interrupts.stubs;
 const pic = @import("../pic/pic.zig");
 
 var irq_handlers: [16]?*const fn (u8) void = [_]?*const fn (u8) void{null} ** 16;

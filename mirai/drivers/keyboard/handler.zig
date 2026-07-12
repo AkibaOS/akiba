@@ -1,6 +1,6 @@
 //! Keyboard IRQ Handler
 
-const asm_io = @import("../../asm/io/io.zig");
+const asm_io = @import("asm").io;
 const idt = @import("../../interrupts/idt.zig");
 const pic = @import("../../interrupts/pic/pic.zig");
 const serial = @import("../serial/serial.zig");

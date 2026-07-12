@@ -2,7 +2,7 @@
 
 const common = @import("common.zig");
 const InterruptFrame = common.InterruptFrame;
-const asm_stubs = @import("../../asm/interrupts/stubs.zig");
+const asm_stubs = @import("asm").interrupts.stubs;
 
 const crimson = @import("../../crimson/crimson.zig");
 

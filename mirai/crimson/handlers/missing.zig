@@ -1,6 +1,6 @@
 //! Missing Handler (Device Not Available)
 
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 const types = @import("../types/types.zig");
 const constants = @import("../constants/constants.zig");
 const Exception = types.Exception;

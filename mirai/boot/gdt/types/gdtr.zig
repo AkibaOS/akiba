@@ -1,6 +1,6 @@
 //! GDT Register Type
 
-const asm_gdt = @import("../../../asm/gdt/gdt.zig");
+const asm_gdt = @import("asm").gdt;
 
 pub const Gdtr = asm_gdt.Gdtr;
 

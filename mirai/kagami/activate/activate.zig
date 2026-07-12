@@ -3,7 +3,7 @@
 const common = @import("root").common;
 const types = @import("../types/types.zig");
 const state = @import("../state.zig");
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 
 const paging_indices = common.constants.paging.indices;
 

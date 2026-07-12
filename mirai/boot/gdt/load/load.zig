@@ -1,6 +1,6 @@
 //! GDT Load Operations
 
-const asm_gdt = @import("../../../asm/gdt/gdt.zig");
+const asm_gdt = @import("asm").gdt;
 const constants = @import("../constants/constants.zig");
 
 const selectors = constants.selectors;

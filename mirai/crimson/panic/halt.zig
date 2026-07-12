@@ -1,6 +1,6 @@
 //! Halt All CPUs
 
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 
 pub fn halt_all() noreturn {
     asm_cpu.disable_interrupts();

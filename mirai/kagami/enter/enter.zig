@@ -4,7 +4,7 @@ const common = @import("root").common;
 const types = @import("../types/types.zig");
 const tables = @import("../tables/tables.zig");
 const constants = @import("../constants/constants.zig");
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 
 const paging_flags = common.constants.paging.flags;
 const MappingError = common.errors.memory.MappingError;

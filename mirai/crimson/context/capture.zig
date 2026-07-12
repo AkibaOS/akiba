@@ -1,6 +1,6 @@
 //! Capture CPU Context
 
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 const types = @import("../types/types.zig");
 const Context = types.Context;
 const Frame = types.Frame;

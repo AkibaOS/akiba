@@ -1,6 +1,6 @@
 //! Capture Debug Registers
 
-const asm_debug = @import("../../asm/debug/debug.zig");
+const asm_debug = @import("asm").debug;
 const types = @import("../types/types.zig");
 const DebugState = types.DebugState;
 

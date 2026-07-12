@@ -1,7 +1,7 @@
 //! Serial Write Operations
 
 const common = @import("root").common;
-const asm_io = @import("../../asm/io/io.zig");
+const asm_io = @import("asm").io;
 
 const serial_constants = common.constants.serial;
 const ports = serial_constants.ports;

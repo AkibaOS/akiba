@@ -1,6 +1,6 @@
 //! Capture Floating Point State
 
-const asm_fpu = @import("../../asm/fpu/fpu.zig");
+const asm_fpu = @import("asm").fpu;
 const types = @import("../types/types.zig");
 const FloatState = types.FloatState;
 

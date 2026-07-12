@@ -1,7 +1,7 @@
 //! PIC End-of-Interrupt
 
 const ports = @import("constants/ports.zig");
-const asm_io = @import("../../asm/io/io.zig");
+const asm_io = @import("asm").io;
 
 pub fn send(irq: u4) void {
     if (irq >= 8) {

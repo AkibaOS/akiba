@@ -1,6 +1,6 @@
 //! Boot Sequence
 
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 const serial = @import("../../drivers/serial/serial.zig");
 const messages = @import("strings/strings.zig").messages;
 

@@ -1,6 +1,6 @@
 //! Generate Corpse
 
-const asm_cpu = @import("../../asm/cpu/cpu.zig");
+const asm_cpu = @import("asm").cpu;
 const types = @import("../types/types.zig");
 const context_ops = @import("../context/context.zig");
 
