@@ -1,158 +1,146 @@
 //! Hikari AFS B-Tree
 
+const afs = @import("shared").afs;
 const efi = @import("../../efi/efi.zig");
-const shared_afs = @import("shared").afs;
-const block_io = @import("block.zig");
+const errors = @import("../errors/errors.zig");
 
-const EfiBlockContext = block_io.EfiBlockContext;
-
-const BTreeNodeDescriptor = shared_afs.BTreeNodeDescriptor;
-const BTreeHeaderRecord = shared_afs.BTreeHeaderRecord;
-const IndexKey = shared_afs.types.IndexKey;
-const StackRecord = shared_afs.StackRecord;
-const UnitRecord = shared_afs.UnitRecord;
-const ThreadRecord = shared_afs.types.ThreadRecord;
-const SpanDescriptor = shared_afs.SpanDescriptor;
-
-const btree_ops = shared_afs.btree;
-const constants = shared_afs.constants;
-
-pub const BTreeError = error{
-    ReadFailed,
-    InvalidNode,
-    InvalidHeader,
-    KeyNotFound,
-    TreeEmpty,
-    AllocationFailed,
-};
+const BTreeError = errors.afs.BTreeError;
+const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
+const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
+const StackRecord = afs.types.catalog.StackRecord;
+const UnitRecord = afs.types.catalog.UnitRecord;
+const ThreadRecord = afs.types.catalog.ThreadRecord;
+const SpanDescriptor = afs.types.volume.SpanDescriptor;
+const node = afs.btree.node;
+const search = afs.btree.search;
 
 pub const BTree = struct {
-    block_io: *efi.protocols.BlockIoProtocol,
-    boot_services: *efi.services.BootServices,
-    partition_start_lba: u64,
-    cell_size: u32,
-    base_span: SpanDescriptor,
-    node_size: u32,
-    root_node: u32,
-    first_leaf: u32,
-    last_leaf: u32,
-    depth: u16,
-    node_buffer: [*]u8,
+    BlockIO: *efi.protocols.block.BlockIoProtocol,
+    BootServices: *efi.services.boot.BootServices,
+    PartitionStartLBA: u64,
+    CellSize: u32,
+    BaseSpan: SpanDescriptor,
+    NodeSize: u32,
+    RootNode: u32,
+    FirstLeaf: u32,
+    LastLeaf: u32,
+    Depth: u16,
+    NodeBuffer: [*]u8,
 
     pub fn initialize(
-        block_io_proto: *efi.protocols.BlockIoProtocol,
-        boot_services: *efi.services.BootServices,
+        block_io: *efi.protocols.block.BlockIoProtocol,
+        boot_services: *efi.services.boot.BootServices,
         partition_start_lba: u64,
         cell_size: u32,
         base_span: SpanDescriptor,
         header: *const BTreeHeaderRecord,
     ) BTreeError!BTree {
         var node_buffer: [*]align(8) u8 = undefined;
-        const alloc_status = boot_services.allocate_pool(
-            .loader_data,
-            header.node_size,
+        const allocation_status = boot_services.AllocatePool(
+            .LoaderData,
+            header.NodeSize,
             &node_buffer,
         );
-        if (efi.types.is_error(alloc_status)) {
+        if (efi.types.base.isError(allocation_status)) {
             return BTreeError.AllocationFailed;
         }
 
         return BTree{
-            .block_io = block_io_proto,
-            .boot_services = boot_services,
-            .partition_start_lba = partition_start_lba,
-            .cell_size = cell_size,
-            .base_span = base_span,
-            .node_size = header.node_size,
-            .root_node = header.root_node,
-            .first_leaf = header.first_leaf_node,
-            .last_leaf = header.last_leaf_node,
-            .depth = header.depth,
-            .node_buffer = node_buffer,
+            .BlockIO = block_io,
+            .BootServices = boot_services,
+            .PartitionStartLBA = partition_start_lba,
+            .CellSize = cell_size,
+            .BaseSpan = base_span,
+            .NodeSize = header.NodeSize,
+            .RootNode = header.RootNode,
+            .FirstLeaf = header.FirstLeafNode,
+            .LastLeaf = header.LastLeafNode,
+            .Depth = header.Depth,
+            .NodeBuffer = node_buffer,
         };
     }
 
-    pub fn read_node(self: *BTree, node_number: u32) BTreeError!*BTreeNodeDescriptor {
-        const cell_offset = btree_ops.get_node_cell(node_number, self.cell_size, self.node_size);
-        const node_offset_in_cell = btree_ops.get_node_offset_in_cell(node_number, self.cell_size, self.node_size);
+    pub fn readNode(self: *BTree, node_number: u32) BTreeError!*BTreeNodeDescriptor {
+        const cell_offset = node.getNodeCell(node_number, self.CellSize, self.NodeSize);
+        const node_offset_in_cell = node.getNodeOffsetInCell(node_number, self.CellSize, self.NodeSize);
 
-        const cell_lba = self.partition_start_lba +
-            ((self.base_span.start_cell + cell_offset) * self.cell_size / self.block_io.media.block_size);
+        const cell_lba = self.PartitionStartLBA +
+            ((self.BaseSpan.StartCell + cell_offset) * self.CellSize / self.BlockIO.Media.BlockSize);
 
         var cell_buffer: [*]align(8) u8 = undefined;
-        const alloc_status = self.boot_services.allocate_pool(
-            .loader_data,
-            self.cell_size,
+        const allocation_status = self.BootServices.AllocatePool(
+            .LoaderData,
+            self.CellSize,
             &cell_buffer,
         );
-        if (efi.types.is_error(alloc_status)) {
+        if (efi.types.base.isError(allocation_status)) {
             return BTreeError.AllocationFailed;
         }
 
-        const read_status = self.block_io.read_blocks(
-            self.block_io,
-            self.block_io.media.media_id,
+        const read_status = self.BlockIO.ReadBlocks(
+            self.BlockIO,
+            self.BlockIO.Media.MediaId,
             cell_lba,
-            self.cell_size,
+            self.CellSize,
             cell_buffer,
         );
-        if (efi.types.is_error(read_status)) {
+        if (efi.types.base.isError(read_status)) {
             return BTreeError.ReadFailed;
         }
 
-        const node_ptr = cell_buffer + node_offset_in_cell;
-        var i: u32 = 0;
-        while (i < self.node_size) : (i += 1) {
-            self.node_buffer[i] = node_ptr[i];
+        const node_pointer = cell_buffer + node_offset_in_cell;
+        var index: u32 = 0;
+        while (index < self.NodeSize) : (index += 1) {
+            self.NodeBuffer[index] = node_pointer[index];
         }
 
-        _ = self.boot_services.free_pool(cell_buffer);
+        _ = self.BootServices.FreePool(cell_buffer);
 
-        return @ptrCast(@alignCast(self.node_buffer));
+        return @ptrCast(@alignCast(self.NodeBuffer));
     }
 
-    pub fn get_record_offset(self: *BTree, record_index: u16) u16 {
-        return btree_ops.get_record_offset(self.node_buffer, self.node_size, record_index);
+    pub fn getRecordOffset(self: *BTree, record_index: u16) u16 {
+        return node.getRecordOffset(self.NodeBuffer, self.NodeSize, record_index);
     }
 
-    pub fn get_record_ptr(self: *BTree, record_index: u16) [*]u8 {
-        return btree_ops.get_record_ptr(self.node_buffer, self.node_size, record_index);
+    pub fn getRecordPointer(self: *BTree, record_index: u16) [*]u8 {
+        return node.getRecordPointer(self.NodeBuffer, self.NodeSize, record_index);
     }
 
-    pub fn search_index(
+    pub fn searchIndex(
         self: *BTree,
         parent_node_id: u32,
         identity: []const u16,
     ) BTreeError!?*align(1) const UnitRecord {
-        if (self.depth == 0) {
+        if (self.Depth == 0) {
             return BTreeError.TreeEmpty;
         }
 
-        var current_node = self.root_node;
-        var current_depth: u16 = self.depth;
+        var current_node = self.RootNode;
+        var current_depth: u16 = self.Depth;
 
         while (current_depth > 0) {
-            const node_desc = try self.read_node(current_node);
+            const node_descriptor = try self.readNode(current_node);
 
-            if (node_desc.is_leaf()) {
-                return btree_ops.search_leaf_for_unit(
-                    self.node_buffer,
-                    self.node_size,
-                    node_desc.record_count,
+            if (node_descriptor.isLeaf()) {
+                return search.searchLeafForUnit(
+                    self.NodeBuffer,
+                    self.NodeSize,
+                    node_descriptor.RecordCount,
                     parent_node_id,
                     identity,
                 );
             }
 
-            const next_node = btree_ops.search_index_node(
-                self.node_buffer,
-                self.node_size,
-                node_desc.record_count,
+            const next_node = search.searchIndexNode(
+                self.NodeBuffer,
+                self.NodeSize,
+                node_descriptor.RecordCount,
                 parent_node_id,
                 identity,
             );
-            if (next_node) |node| {
-                current_node = node;
+            if (next_node) |found| {
+                current_node = found;
                 current_depth -= 1;
             } else {
                 return null;
@@ -162,40 +150,40 @@ pub const BTree = struct {
         return null;
     }
 
-    pub fn search_index_for_stack(
+    pub fn searchIndexForStack(
         self: *BTree,
         parent_node_id: u32,
         identity: []const u16,
     ) BTreeError!?*align(1) const StackRecord {
-        if (self.depth == 0) {
+        if (self.Depth == 0) {
             return BTreeError.TreeEmpty;
         }
 
-        var current_node = self.root_node;
-        var current_depth: u16 = self.depth;
+        var current_node = self.RootNode;
+        var current_depth: u16 = self.Depth;
 
         while (current_depth > 0) {
-            const node_desc = try self.read_node(current_node);
+            const node_descriptor = try self.readNode(current_node);
 
-            if (node_desc.is_leaf()) {
-                return btree_ops.search_leaf_for_stack(
-                    self.node_buffer,
-                    self.node_size,
-                    node_desc.record_count,
+            if (node_descriptor.isLeaf()) {
+                return search.searchLeafForStack(
+                    self.NodeBuffer,
+                    self.NodeSize,
+                    node_descriptor.RecordCount,
                     parent_node_id,
                     identity,
                 );
             }
 
-            const next_node = btree_ops.search_index_node(
-                self.node_buffer,
-                self.node_size,
-                node_desc.record_count,
+            const next_node = search.searchIndexNode(
+                self.NodeBuffer,
+                self.NodeSize,
+                node_descriptor.RecordCount,
                 parent_node_id,
                 identity,
             );
-            if (next_node) |node| {
-                current_node = node;
+            if (next_node) |found| {
+                current_node = found;
                 current_depth -= 1;
             } else {
                 return null;
@@ -205,48 +193,48 @@ pub const BTree = struct {
         return null;
     }
 
-    pub fn get_thread_record(
+    pub fn getThreadRecord(
         self: *BTree,
         node_id: u32,
     ) BTreeError!?*align(1) const ThreadRecord {
         var empty_identity: [0]u16 = undefined;
-        return self.search_thread(node_id, &empty_identity);
+        return self.searchThread(node_id, &empty_identity);
     }
 
-    fn search_thread(
+    fn searchThread(
         self: *BTree,
         node_id: u32,
         identity: []const u16,
     ) BTreeError!?*align(1) const ThreadRecord {
-        if (self.depth == 0) {
+        if (self.Depth == 0) {
             return BTreeError.TreeEmpty;
         }
 
-        var current_node = self.root_node;
-        var current_depth: u16 = self.depth;
+        var current_node = self.RootNode;
+        var current_depth: u16 = self.Depth;
 
         while (current_depth > 0) {
-            const node_desc = try self.read_node(current_node);
+            const node_descriptor = try self.readNode(current_node);
 
-            if (node_desc.is_leaf()) {
-                return btree_ops.search_leaf_for_thread(
-                    self.node_buffer,
-                    self.node_size,
-                    node_desc.record_count,
+            if (node_descriptor.isLeaf()) {
+                return search.searchLeafForThread(
+                    self.NodeBuffer,
+                    self.NodeSize,
+                    node_descriptor.RecordCount,
                     node_id,
                     identity,
                 );
             }
 
-            const next_node = btree_ops.search_index_node(
-                self.node_buffer,
-                self.node_size,
-                node_desc.record_count,
+            const next_node = search.searchIndexNode(
+                self.NodeBuffer,
+                self.NodeSize,
+                node_descriptor.RecordCount,
                 node_id,
                 identity,
             );
-            if (next_node) |node| {
-                current_node = node;
+            if (next_node) |found| {
+                current_node = found;
                 current_depth -= 1;
             } else {
                 return null;

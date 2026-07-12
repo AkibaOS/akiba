@@ -1,42 +1,42 @@
 //! Hikari AFS Block I/O
 
+const afs = @import("shared").afs;
 const efi = @import("../../efi/efi.zig");
-const shared_afs = @import("shared").afs;
 
-const BlockReader = shared_afs.BlockReader;
-const BlockError = shared_afs.BlockError;
+const BlockReader = afs.io.block.BlockReader;
+const BlockError = afs.errors.block.BlockError;
 
 pub const EfiBlockContext = struct {
-    block_io: *efi.protocols.BlockIoProtocol,
-    boot_services: *efi.services.BootServices,
-    partition_start_lba: u64,
-    block_size: u32,
-    cell_size: u32,
+    BlockIO: *efi.protocols.block.BlockIoProtocol,
+    BootServices: *efi.services.boot.BootServices,
+    PartitionStartLBA: u64,
+    BlockSize: u32,
+    CellSize: u32,
 };
 
-pub fn efi_read_cell(context: *anyopaque, cell: u64, buffer: []u8) BlockError!void {
-    const ctx: *EfiBlockContext = @ptrCast(@alignCast(context));
+pub fn efiReadCell(context: *anyopaque, cell: u64, buffer: []u8) BlockError!void {
+    const block_context: *EfiBlockContext = @ptrCast(@alignCast(context));
 
-    const cell_lba = ctx.partition_start_lba + (cell * ctx.cell_size / ctx.block_size);
+    const cell_lba = block_context.PartitionStartLBA + (cell * block_context.CellSize / block_context.BlockSize);
 
-    const read_status = ctx.block_io.read_blocks(
-        ctx.block_io,
-        ctx.block_io.media.media_id,
+    const read_status = block_context.BlockIO.ReadBlocks(
+        block_context.BlockIO,
+        block_context.BlockIO.Media.MediaId,
         cell_lba,
-        ctx.cell_size,
+        block_context.CellSize,
         buffer.ptr,
     );
 
-    if (efi.types.is_error(read_status)) {
+    if (efi.types.base.isError(read_status)) {
         return BlockError.ReadFailed;
     }
 }
 
-pub fn create_block_reader(ctx: *EfiBlockContext, total_cells: u64) BlockReader {
+pub fn createBlockReader(block_context: *EfiBlockContext, total_cells: u64) BlockReader {
     return BlockReader{
-        .context = @ptrCast(ctx),
-        .read_fn = efi_read_cell,
-        .cell_size = ctx.cell_size,
-        .total_cells = total_cells,
+        .Context = @ptrCast(block_context),
+        .ReadFn = efiReadCell,
+        .CellSize = block_context.CellSize,
+        .TotalCells = total_cells,
     };
 }
