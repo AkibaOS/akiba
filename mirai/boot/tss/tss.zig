@@ -2,8 +2,8 @@
 
 const gdt = @import("../gdt/gdt.zig");
 
-pub const constants = @import("constants/constants.zig");
-pub const types = @import("types/types.zig");
+pub const constants = @import("../constants/tss/tss.zig");
+pub const types = @import("../types/tss/tss.zig");
 pub const stacks = @import("stacks/stacks.zig");
 pub const init = @import("init/init.zig");
 pub const state = @import("state.zig");

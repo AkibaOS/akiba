@@ -1,7 +1,7 @@
 //! TSS State
 
-const types = @import("types/types.zig");
-const constants = @import("constants/constants.zig");
+const types = @import("../types/tss/tss.zig");
+const constants = @import("../constants/tss/tss.zig");
 
 const CoreTss = types.CoreTss;
 const Tss = types.Tss;

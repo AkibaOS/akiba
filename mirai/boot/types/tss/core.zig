@@ -1,7 +1,7 @@
 //! Per-Core TSS
 
-const Tss = @import("tss.zig").Tss;
-const constants = @import("../constants/constants.zig");
+const Tss = @import("structure.zig").Tss;
+const constants = @import("../../constants/tss/tss.zig");
 
 pub const CoreTss = struct {
     tss: Tss,

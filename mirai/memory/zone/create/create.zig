@@ -1,6 +1,6 @@
 //! Zone Creation
 
-const types = @import("../types/types.zig");
+const types = @import("../../types/zone/zone.zig");
 const Zone = types.Zone;
 const page_size = types.page_size;
 const min_elem_size = types.min_elem_size;

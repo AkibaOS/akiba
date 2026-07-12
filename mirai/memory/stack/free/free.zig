@@ -1,7 +1,7 @@
 //! Kernel Stack Free
 
 const state = @import("../state.zig");
-const types = @import("../types/types.zig");
+const types = @import("../../types/stack/stack.zig");
 
 pub fn free(stack: types.KernelStack) void {
     const allocator_state = state.get_state();

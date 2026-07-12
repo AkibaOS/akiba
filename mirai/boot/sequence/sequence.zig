@@ -2,10 +2,10 @@
 
 const asm_cpu = @import("asm").cpu;
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("strings/strings.zig").messages;
+const messages = @import("../strings/sequence/sequence.zig").messages;
 
-pub const constants = @import("constants/constants.zig");
-pub const types = @import("types/types.zig");
+pub const constants = @import("../constants/sequence/sequence.zig");
+pub const types = @import("../types/sequence/sequence.zig");
 pub const phases = @import("phases/phases.zig");
 pub const message = @import("message/message.zig");
 pub const state = @import("state.zig");

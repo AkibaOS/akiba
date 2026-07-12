@@ -1,7 +1,7 @@
 //! TSS GDT Entry
 
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
+const types = @import("../../types/gdt/gdt.zig");
+const constants = @import("../../constants/gdt/gdt.zig");
 
 const TssDescriptor = types.TssDescriptor;
 const access = constants.access;

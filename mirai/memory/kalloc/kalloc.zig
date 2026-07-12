@@ -1,12 +1,12 @@
 //! Kernel Allocator
 
-const types = @import("../zone/types/types.zig");
+const types = @import("../types/zone/zone.zig");
 const Zone = types.Zone;
 
 const create_mod = @import("../zone/create/create.zig");
 const alloc_mod = @import("../zone/alloc/alloc.zig");
 const bootstrap = @import("../zone/bootstrap/bootstrap.zig");
-const names = @import("strings/strings.zig").names;
+const names = @import("../strings/kalloc/kalloc.zig").names;
 
 pub const sizes = [_]usize{ 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
 const zone_count = sizes.len;

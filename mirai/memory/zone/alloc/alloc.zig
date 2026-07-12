@@ -1,6 +1,6 @@
 //! Zone Allocation
 
-const types = @import("../types/types.zig");
+const types = @import("../../types/zone/zone.zig");
 const Zone = types.Zone;
 const ZonePageMeta = types.ZonePageMeta;
 const FreeElement = types.FreeElement;

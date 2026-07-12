@@ -1,7 +1,7 @@
 //! Kernel Stack Allocator
 
-pub const constants = @import("constants/constants.zig");
-pub const types = @import("types/types.zig");
+pub const constants = @import("../constants/stack/stack.zig");
+pub const types = @import("../types/stack/stack.zig");
 pub const allocate_module = @import("allocate/allocate.zig");
 pub const free_module = @import("free/free.zig");
 pub const collect_module = @import("collect/collect.zig");

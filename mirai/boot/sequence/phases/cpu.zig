@@ -2,9 +2,9 @@
 
 const gdt = @import("../../gdt/gdt.zig");
 const tss = @import("../../tss/tss.zig");
-const tss_constants = @import("../../tss/constants/constants.zig");
+const tss_constants = @import("../../constants/tss/tss.zig");
 const serial = @import("../../../drivers/serial/serial.zig");
-const messages = @import("../strings/strings.zig").messages;
+const messages = @import("../../strings/sequence/sequence.zig").messages;
 
 pub fn execute() bool {
     serial.printf(messages.TSS_SETUP, .{});

@@ -1,6 +1,6 @@
 //! Zone Allocator
 
-pub const types = @import("types/types.zig");
+pub const types = @import("../types/zone/zone.zig");
 pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const create = @import("create/create.zig");
 pub const alloc = @import("alloc/alloc.zig");

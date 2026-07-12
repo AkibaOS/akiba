@@ -3,7 +3,7 @@
 const common = @import("root").common;
 const kagami = @import("../../../kagami/kagami.zig");
 const pmm = @import("../../../pmm/pmm.zig");
-const constants = @import("../constants/constants.zig");
+const constants = @import("../../constants/stack/stack.zig");
 const state = @import("../state.zig");
 
 const sizes = common.constants.memory.sizes;

@@ -1,6 +1,6 @@
 //! Kernel Stack Allocator State
 
-const types = @import("types/types.zig");
+const types = @import("../types/stack/stack.zig");
 
 pub const State = struct {
     next_slot: u64,

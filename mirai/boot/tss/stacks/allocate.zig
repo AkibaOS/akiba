@@ -2,7 +2,7 @@
 
 const pmm = @import("../../../pmm/pmm.zig");
 const common = @import("root").common;
-const constants = @import("../constants/constants.zig");
+const constants = @import("../../constants/tss/tss.zig");
 
 const memory_layout = common.constants.memory.layout;
 const AllocationError = common.errors.memory.AllocationError;

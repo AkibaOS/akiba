@@ -1,7 +1,7 @@
 //! Boot Messages
 
 const serial = @import("../../../drivers/serial/serial.zig");
-const banner = @import("../strings/strings.zig").banner;
+const banner = @import("../../strings/sequence/sequence.zig").banner;
 
 pub fn log(comptime fmt: []const u8, args: anytype) void {
     serial.printf(fmt, args);

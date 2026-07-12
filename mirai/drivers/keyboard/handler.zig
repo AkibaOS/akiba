@@ -4,8 +4,8 @@ const asm_io = @import("asm").io;
 const idt = @import("../../interrupts/idt.zig");
 const pic = @import("../../interrupts/pic/pic.zig");
 const serial = @import("../serial/serial.zig");
-const constants = @import("constants/constants.zig");
-const messages = @import("strings/strings.zig").messages;
+const constants = @import("../constants/keyboard/keyboard.zig");
+const messages = @import("../strings/keyboard/keyboard.zig").messages;
 
 var last_scancode: u8 = 0;
 

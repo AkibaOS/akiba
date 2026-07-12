@@ -1,8 +1,4 @@
-//! Boot Module
-
-pub const constants = @import("constants/constants.zig");
-pub const types = @import("types/types.zig");
-pub const strings = @import("strings/strings.zig");
+//! Boot Constants
 
 pub const gdt = @import("gdt/gdt.zig");
 pub const tss = @import("tss/tss.zig");

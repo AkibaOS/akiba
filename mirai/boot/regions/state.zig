@@ -1,7 +1,7 @@
 //! Region Conversion State
 
 const root = @import("root");
-const constants = @import("constants/constants.zig");
+const constants = @import("../constants/regions/regions.zig");
 
 const MemoryRegion = root.pmm.types.MemoryRegion;
 

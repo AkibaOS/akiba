@@ -1,7 +1,7 @@
 //! User GDT Entries
 
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
+const types = @import("../../types/gdt/gdt.zig");
+const constants = @import("../../constants/gdt/gdt.zig");
 
 const Entry = types.Entry;
 const access = constants.access;

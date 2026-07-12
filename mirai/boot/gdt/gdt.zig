@@ -1,7 +1,7 @@
 //! Global Descriptor Table
 
-pub const constants = @import("constants/constants.zig");
-pub const types = @import("types/types.zig");
+pub const constants = @import("../constants/gdt/gdt.zig");
+pub const types = @import("../types/gdt/gdt.zig");
 pub const entries = @import("entries/entries.zig");
 pub const load = @import("load/load.zig");
 pub const state = @import("state.zig");

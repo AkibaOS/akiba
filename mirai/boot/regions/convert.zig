@@ -1,7 +1,7 @@
 //! UEFI Memory Map Conversion
 
 const root = @import("root");
-const constants = @import("constants/constants.zig");
+const constants = @import("../constants/regions/regions.zig");
 const state = @import("state.zig");
 const boot_params = @import("../../kernel/boot.zig");
 

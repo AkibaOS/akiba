@@ -1,7 +1,7 @@
 //! Boot Sequence State
 
-const constants = @import("constants/constants.zig");
-const types = @import("types/types.zig");
+const constants = @import("../constants/sequence/sequence.zig");
+const types = @import("../types/sequence/sequence.zig");
 
 const Phase = constants.Phase;
 const BootInfo = types.BootInfo;

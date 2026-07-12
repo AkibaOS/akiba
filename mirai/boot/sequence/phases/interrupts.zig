@@ -4,7 +4,7 @@ const interrupts = @import("../../../interrupts/interrupts.zig");
 const pit = @import("../../../drivers/pit/pit.zig");
 const keyboard = @import("../../../drivers/keyboard/keyboard.zig");
 const serial = @import("../../../drivers/serial/serial.zig");
-const messages = @import("../strings/strings.zig").messages;
+const messages = @import("../../strings/sequence/sequence.zig").messages;
 
 pub fn execute() bool {
     serial.printf(messages.IDT_SETUP, .{});

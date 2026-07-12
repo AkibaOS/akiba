@@ -1,6 +1,6 @@
 //! PIT Initialization
 
-const constants = @import("constants/constants.zig");
+const constants = @import("../constants/pit/pit.zig");
 const asm_io = @import("asm").io;
 
 pub fn init(frequency: u32) void {

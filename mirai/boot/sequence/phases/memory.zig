@@ -5,8 +5,8 @@ const kagami = @import("../../../kagami/kagami.zig");
 const stack = @import("../../../memory/stack/stack.zig");
 const serial = @import("../../../drivers/serial/serial.zig");
 const tss = @import("../../tss/tss.zig");
-const types = @import("../types/types.zig");
-const messages = @import("../strings/strings.zig").messages;
+const types = @import("../../types/sequence/sequence.zig");
+const messages = @import("../../strings/sequence/sequence.zig").messages;
 
 const BootInfo = types.BootInfo;
 

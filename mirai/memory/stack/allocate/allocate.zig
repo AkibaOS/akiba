@@ -3,9 +3,9 @@
 const common = @import("root").common;
 const kagami = @import("../../../kagami/kagami.zig");
 const pmm = @import("../../../pmm/pmm.zig");
-const constants = @import("../constants/constants.zig");
+const constants = @import("../../constants/stack/stack.zig");
 const state = @import("../state.zig");
-const types = @import("../types/types.zig");
+const types = @import("../../types/stack/stack.zig");
 
 const sizes = common.constants.memory.sizes;
 const AllocationError = common.errors.memory.AllocationError;

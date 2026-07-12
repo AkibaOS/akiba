@@ -1,6 +1,6 @@
 //! GDT State
 
-const types = @import("types/types.zig");
+const types = @import("../types/gdt/gdt.zig");
 const entries = @import("entries/entries.zig");
 
 const Table = types.Table;

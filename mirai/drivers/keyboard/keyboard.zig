@@ -1,6 +1,6 @@
 //! Keyboard Driver
 
-pub const constants = @import("constants/constants.zig");
+pub const constants = @import("../constants/keyboard/keyboard.zig");
 pub const handler = @import("handler.zig");
 
 pub const register = handler.register;
