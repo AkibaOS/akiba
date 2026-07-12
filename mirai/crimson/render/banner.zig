@@ -5,20 +5,20 @@ const messages = @import("../strings/strings.zig").messages;
 
 pub fn render() void {
     serial.printf("\n", .{});
-    serial.printf(messages.separator, .{});
-    serial.printf(messages.collapse_header, .{});
-    serial.printf(messages.separator, .{});
+    serial.printf(messages.SEPARATOR, .{});
+    serial.printf(messages.COLLAPSE_HEADER, .{});
+    serial.printf(messages.SEPARATOR, .{});
     serial.printf("\n", .{});
 }
 
 pub fn render_message(message: []const u8) void {
-    serial.printf(messages.reason, .{message});
+    serial.printf(messages.REASON, .{message});
     serial.printf("\n", .{});
 }
 
 pub fn render_halt() void {
     serial.printf("\n", .{});
-    serial.printf(messages.separator, .{});
-    serial.printf(messages.system_halted, .{});
-    serial.printf(messages.separator, .{});
+    serial.printf(messages.SEPARATOR, .{});
+    serial.printf(messages.SYSTEM_HALTED, .{});
+    serial.printf(messages.SEPARATOR, .{});
 }

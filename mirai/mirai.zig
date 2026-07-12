@@ -27,7 +27,7 @@ pub export fn mirai_entry(boot_params_ptr: *kernel.BootParams) callconv(.{ .x86_
 
 fn panic_handler(message: []const u8, first_trace_address: ?usize) noreturn {
     _ = first_trace_address;
-    drivers.serial.printf(crimson_strings.messages.kernel_panic, .{message});
+    drivers.serial.printf(crimson_strings.messages.KERNEL_PANIC, .{message});
     asm_ops.cpu.halt.halt_loop();
 }
 

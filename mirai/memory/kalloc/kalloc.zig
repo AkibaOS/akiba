@@ -62,15 +62,15 @@ fn get_zone_for_size(size: usize) ?*Zone {
 
 fn zone_name(comptime size: usize) []const u8 {
     return switch (size) {
-        16 => names.zone_16,
-        32 => names.zone_32,
-        64 => names.zone_64,
-        128 => names.zone_128,
-        256 => names.zone_256,
-        512 => names.zone_512,
-        1024 => names.zone_1024,
-        2048 => names.zone_2048,
-        4096 => names.zone_4096,
-        else => names.zone_unknown,
+        16 => names.ZONE_16,
+        32 => names.ZONE_32,
+        64 => names.ZONE_64,
+        128 => names.ZONE_128,
+        256 => names.ZONE_256,
+        512 => names.ZONE_512,
+        1024 => names.ZONE_1024,
+        2048 => names.ZONE_2048,
+        4096 => names.ZONE_4096,
+        else => names.ZONE_UNKNOWN,
     };
 }

@@ -10,19 +10,19 @@ const Context = types.Context;
 
 pub fn inspect(corpse: *const Corpse) void {
     if (!corpse.is_valid()) {
-        serial.printf(messages.corpse_invalid, .{});
+        serial.printf(messages.CORPSE_INVALID, .{});
         return;
     }
 
-    serial.printf(messages.corpse_header, .{ corpse.kata_id, corpse.thread_id });
-    serial.printf(messages.corpse_exception, .{
+    serial.printf(messages.CORPSE_HEADER, .{ corpse.kata_id, corpse.thread_id });
+    serial.printf(messages.CORPSE_EXCEPTION, .{
         corpse.exception_type.name(),
         corpse.exception_code,
         corpse.exception_subcode,
     });
 
     if (corpse.fault_address != 0) {
-        serial.printf(messages.corpse_fault_address, .{corpse.fault_address});
+        serial.printf(messages.CORPSE_FAULT_ADDRESS, .{corpse.fault_address});
     }
 
     serial.printf("\n", .{});

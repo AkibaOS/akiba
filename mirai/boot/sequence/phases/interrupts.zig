@@ -7,18 +7,18 @@ const serial = @import("../../../drivers/serial/serial.zig");
 const messages = @import("../strings/strings.zig").messages;
 
 pub fn execute() bool {
-    serial.printf(messages.idt_setup, .{});
+    serial.printf(messages.IDT_SETUP, .{});
     interrupts.initialize();
 
-    serial.printf(messages.timer_setup, .{});
+    serial.printf(messages.TIMER_SETUP, .{});
     pit.initialize();
     pit.register();
 
-    serial.printf(messages.keyboard_setup, .{});
+    serial.printf(messages.KEYBOARD_SETUP, .{});
     keyboard.register();
 
     interrupts.enable();
-    serial.printf(messages.interrupts_enabled, .{});
+    serial.printf(messages.INTERRUPTS_ENABLED, .{});
 
     return true;
 }

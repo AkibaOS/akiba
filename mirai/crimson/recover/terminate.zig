@@ -9,7 +9,7 @@ const Exception = types.Exception;
 const Corpse = types.Corpse;
 
 pub fn terminate(exception: *const Exception) void {
-    serial.printf(messages.terminate_kata_thread, .{
+    serial.printf(messages.TERMINATE_KATA_THREAD, .{
         exception.kata_id,
         exception.thread_id,
     });
@@ -19,7 +19,7 @@ pub fn terminate(exception: *const Exception) void {
 }
 
 pub fn terminate_with_corpse(exception: *const Exception) ?*Corpse {
-    serial.printf(messages.terminate_kata_corpse, .{exception.kata_id});
+    serial.printf(messages.TERMINATE_KATA_CORPSE, .{exception.kata_id});
 
     const corpse = corpse_ops.allocate();
     if (corpse) |c| {

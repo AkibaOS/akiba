@@ -20,64 +20,64 @@ pub fn run(image_handle: efi.types.Handle, system_table: *efi.services.SystemTab
     const console = system_table.console_output;
 
     _ = console.clear_screen(console);
-    print(console, messages.title);
-    print(console, messages.title_underline);
+    print(console, messages.TITLE);
+    print(console, messages.TITLE_UNDERLINE);
 
-    print(console, messages.initializing_graphics);
+    print(console, messages.INITIALIZING_GRAPHICS);
     const gop = get_graphics_output(boot_services) orelse {
-        print(console, messages.error_graphics_output);
+        print(console, messages.ERROR_GRAPHICS_OUTPUT);
         return efi.constants.status.unsupported;
     };
 
     const framebuffer = display.Framebuffer.initialize(gop);
     _ = framebuffer;
 
-    print(console, messages.locating_afs_partition);
+    print(console, messages.LOCATING_AFS_PARTITION);
     const afs_partition = find_afs_partition(boot_services) orelse {
-        print(console, messages.error_afs_partition_not_found);
+        print(console, messages.ERROR_AFS_PARTITION_NOT_FOUND);
         return efi.constants.status.not_found;
     };
 
-    print(console, messages.initializing_afs);
+    print(console, messages.INITIALIZING_AFS);
     var afs_reader = fs.afs.Reader.initialize(
         afs_partition.block_io,
         boot_services,
         afs_partition.start_lba,
     ) catch {
-        print(console, messages.error_afs_initialize);
+        print(console, messages.ERROR_AFS_INITIALIZE);
         return efi.constants.status.device_error;
     };
 
-    print(console, messages.loading_kernel);
+    print(console, messages.LOADING_KERNEL);
     print(console, paths.kernel_location);
-    print(console, messages.newline);
+    print(console, messages.NEWLINE);
 
     const kernel_unit = afs_reader.open_location(paths.kernel_location) catch {
-        print(console, messages.error_kernel_not_found);
+        print(console, messages.ERROR_KERNEL_NOT_FOUND);
         return efi.constants.status.not_found;
     };
 
     const kernel_data = afs_reader.read_unit_to_allocated(&kernel_unit) catch {
-        print(console, messages.error_kernel_read);
+        print(console, messages.ERROR_KERNEL_READ);
         return efi.constants.status.device_error;
     };
 
-    print(console, messages.validating_elf);
+    print(console, messages.VALIDATING_ELF);
     if (!loader.elf.validate_elf(kernel_data.buffer, kernel_data.size)) {
-        print(console, messages.error_invalid_elf);
+        print(console, messages.ERROR_INVALID_ELF);
         return efi.constants.status.invalid_parameter;
     }
 
-    print(console, messages.loading_kernel_memory);
+    print(console, messages.LOADING_KERNEL_MEMORY);
     var elf_loader = loader.elf.Loader.initialize(boot_services);
     const loaded_image = elf_loader.load(kernel_data.buffer, kernel_data.size) catch {
-        print(console, messages.error_kernel_load);
+        print(console, messages.ERROR_KERNEL_LOAD);
         return efi.constants.status.load_error;
     };
 
-    print(console, messages.setting_up_page_tables);
+    print(console, messages.SETTING_UP_PAGE_TABLES);
     var page_setup = paging.PageTableSetup.initialize(boot_services) catch {
-        print(console, messages.error_page_tables);
+        print(console, messages.ERROR_PAGE_TABLES);
         return efi.constants.status.out_of_resources;
     };
 
@@ -85,22 +85,22 @@ pub fn run(image_handle: efi.types.Handle, system_table: *efi.services.SystemTab
     page_setup.map_kernel(loaded_image.base_address, loaded_image.total_size()) catch {};
     page_setup.map_physmap(16 * 1024 * 1024 * 1024) catch {};
 
-    print(console, messages.allocating_kernel_stack);
+    print(console, messages.ALLOCATING_KERNEL_STACK);
     const stack_size: u64 = 64 * 1024;
     const stack_pages = stack_size / 4096;
     var stack_base: efi.types.PhysicalAddress = 0;
     const stack_status = boot_services.allocate_pages(.any_pages, .loader_data, stack_pages, &stack_base);
     if (efi.types.is_error(stack_status)) {
-        print(console, messages.error_stack_allocation);
+        print(console, messages.ERROR_STACK_ALLOCATION);
         return efi.constants.status.out_of_resources;
     }
     const stack_top = stack_base + stack_size;
 
-    print(console, messages.preparing_boot_parameters);
+    print(console, messages.PREPARING_BOOT_PARAMETERS);
     var params_addr: efi.types.PhysicalAddress = 0;
     const params_status = boot_services.allocate_pages(.any_pages, .loader_data, 1, &params_addr);
     if (efi.types.is_error(params_status)) {
-        print(console, messages.error_boot_params_allocation);
+        print(console, messages.ERROR_BOOT_PARAMS_ALLOCATION);
         return efi.constants.status.out_of_resources;
     }
 
@@ -141,7 +141,7 @@ pub fn run(image_handle: efi.types.Handle, system_table: *efi.services.SystemTab
 
     boot_params.acpi = find_acpi(system_table);
 
-    print(console, messages.getting_memory_map);
+    print(console, messages.GETTING_MEMORY_MAP);
     var memory_map_size: usize = 0;
     var map_key: usize = 0;
     var descriptor_size: usize = 0;
@@ -170,7 +170,7 @@ pub fn run(image_handle: efi.types.Handle, system_table: *efi.services.SystemTab
     );
 
     if (efi.types.is_error(map_status)) {
-        print(console, messages.error_memory_map);
+        print(console, messages.ERROR_MEMORY_MAP);
         return efi.constants.status.device_error;
     }
 
@@ -182,7 +182,7 @@ pub fn run(image_handle: efi.types.Handle, system_table: *efi.services.SystemTab
         .reserved = 0,
     };
 
-    print(console, messages.exiting_boot_services);
+    print(console, messages.EXITING_BOOT_SERVICES);
     const exit_status = boot_services.exit_boot_services(image_handle, map_key);
     if (efi.types.is_error(exit_status)) {
         _ = boot_services.get_memory_map(

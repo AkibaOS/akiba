@@ -9,7 +9,7 @@ pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usi
     const start = if (address >= bytes_before) address - bytes_before else 0;
     const total_bytes = bytes_before + bytes_after;
 
-    serial.printf(messages.memory_around, .{address});
+    serial.printf(messages.MEMORY_AROUND, .{address});
 
     const mem_ptr: [*]const u8 = @ptrFromInt(start);
 
@@ -45,7 +45,7 @@ pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usi
 }
 
 pub fn render_instruction_bytes(rip: u64, count: usize) void {
-    serial.printf(messages.instruction_bytes, .{rip});
+    serial.printf(messages.INSTRUCTION_BYTES, .{rip});
 
     const code_ptr: [*]const u8 = @ptrFromInt(rip);
 

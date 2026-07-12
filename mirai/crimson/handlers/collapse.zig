@@ -8,6 +8,6 @@ const Exception = types.Exception;
 const Action = constants.Action;
 
 pub fn handle(exception: *Exception) Action {
-    serial.printf(messages.fatal_unrecoverable, .{ exception.vector, exception.context.rip });
+    serial.printf(messages.FATAL_UNRECOVERABLE, .{ exception.vector, exception.context.rip });
     return .collapse;
 }

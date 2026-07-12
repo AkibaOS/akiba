@@ -7,7 +7,7 @@ const messages = @import("../strings/strings.zig").messages;
 const Context = types.Context;
 
 pub fn render(context: *const Context) void {
-    serial.printf(messages.stack_trace_header, .{});
+    serial.printf(messages.STACK_TRACE_HEADER, .{});
 
     var rbp = context.rbp;
     var depth: usize = 0;
@@ -29,14 +29,14 @@ pub fn render(context: *const Context) void {
     }
 
     if (depth == 0) {
-        serial.printf(messages.no_stack_frames, .{});
+        serial.printf(messages.NO_STACK_FRAMES, .{});
     }
 
     serial.printf("\n", .{});
 }
 
 pub fn render_raw_stack(rsp: u64, count: usize) void {
-    serial.printf(messages.raw_stack, .{rsp});
+    serial.printf(messages.RAW_STACK, .{rsp});
 
     const stack_ptr: [*]const u64 = @ptrFromInt(rsp);
 

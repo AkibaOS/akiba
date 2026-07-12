@@ -16,7 +16,7 @@ var collapse_message_len: usize = 0;
 
 pub fn collapse(message: []const u8, exception: ?*const Exception) noreturn {
     if (collapse_in_progress) {
-        serial.printf(messages.double_collapse, .{});
+        serial.printf(messages.DOUBLE_COLLAPSE, .{});
         halt_module.halt_all();
     }
 
@@ -43,7 +43,7 @@ pub fn collapse(message: []const u8, exception: ?*const Exception) noreturn {
 
 pub fn collapse_with_context(message: []const u8, context: *const Context) noreturn {
     if (collapse_in_progress) {
-        serial.printf(messages.double_collapse, .{});
+        serial.printf(messages.DOUBLE_COLLAPSE, .{});
         halt_module.halt_all();
     }
 

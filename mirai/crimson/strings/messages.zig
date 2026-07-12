@@ -1,74 +1,74 @@
 //! Crimson Messages
 
-pub const separator = "================================================================================\n";
-pub const collapse_header = "                              AKIBA HAS COLLAPSED                              \n";
-pub const reason = "Reason: %s\n";
-pub const system_halted = "System halted. Please restart your computer.\n";
+pub const SEPARATOR = "================================================================================\n";
+pub const COLLAPSE_HEADER = "                              AKIBA HAS COLLAPSED                              \n";
+pub const REASON = "Reason: %s\n";
+pub const SYSTEM_HALTED = "System halted. Please restart your computer.\n";
 
-pub const cpu_context_header = "CPU Context:\n";
-pub const reg_rax_rbx = "  RAX: %x  RBX: %x\n";
-pub const reg_rcx_rdx = "  RCX: %x  RDX: %x\n";
-pub const reg_rsi_rdi = "  RSI: %x  RDI: %x\n";
-pub const reg_rbp_rsp = "  RBP: %x  RSP: %x\n";
-pub const reg_r8_r9 = "  R8:  %x  R9:  %x\n";
-pub const reg_r10_r11 = "  R10: %x  R11: %x\n";
-pub const reg_r12_r13 = "  R12: %x  R13: %x\n";
-pub const reg_r14_r15 = "  R14: %x  R15: %x\n";
-pub const reg_rip_rflags = "  RIP: %x  RFLAGS: %x\n";
-pub const control_registers_header = "Control Registers:\n";
-pub const reg_cr0_cr2 = "  CR0: %x  CR2: %x\n";
-pub const reg_cr3_cr4 = "  CR3: %x  CR4: %x\n";
-pub const segment_registers_header = "Segment Registers:\n";
-pub const reg_cs_ds_es = "  CS: %x  DS: %x  ES: %x\n";
-pub const reg_fs_gs_ss = "  FS: %x  GS: %x  SS: %x\n";
+pub const CPU_CONTEXT_HEADER = "CPU Context:\n";
+pub const REG_RAX_RBX = "  RAX: %x  RBX: %x\n";
+pub const REG_RCX_RDX = "  RCX: %x  RDX: %x\n";
+pub const REG_RSI_RDI = "  RSI: %x  RDI: %x\n";
+pub const REG_RBP_RSP = "  RBP: %x  RSP: %x\n";
+pub const REG_R8_R9 = "  R8:  %x  R9:  %x\n";
+pub const REG_R10_R11 = "  R10: %x  R11: %x\n";
+pub const REG_R12_R13 = "  R12: %x  R13: %x\n";
+pub const REG_R14_R15 = "  R14: %x  R15: %x\n";
+pub const REG_RIP_RFLAGS = "  RIP: %x  RFLAGS: %x\n";
+pub const CONTROL_REGISTERS_HEADER = "Control Registers:\n";
+pub const REG_CR0_CR2 = "  CR0: %x  CR2: %x\n";
+pub const REG_CR3_CR4 = "  CR3: %x  CR4: %x\n";
+pub const SEGMENT_REGISTERS_HEADER = "Segment Registers:\n";
+pub const REG_CS_DS_ES = "  CS: %x  DS: %x  ES: %x\n";
+pub const REG_FS_GS_SS = "  FS: %x  GS: %x  SS: %x\n";
 
-pub const exception_line = "Exception: %s (%s)\n";
-pub const vector = "  Vector: %d\n";
-pub const code = "  Code: %x\n";
-pub const subcode = "  Subcode: %x\n";
-pub const fault_address = "  Fault Address: %x\n";
-pub const location = "  Location: %s mode\n";
-pub const location_kernel = "kernel";
-pub const location_user = "user";
-pub const kata_thread = "  Kata: %d, Thread: %d\n";
-pub const access = "  Access: %s\n";
-pub const mode_user = "  Mode: User\n";
-pub const mode_kernel = "  Mode: Kernel\n";
-pub const faulting_instruction_header = "Faulting Instruction:\n";
-pub const address = "  Address: %x\n";
-pub const bytes_label = "  Bytes: ";
+pub const EXCEPTION_LINE = "Exception: %s (%s)\n";
+pub const VECTOR = "  Vector: %d\n";
+pub const CODE = "  Code: %x\n";
+pub const SUBCODE = "  Subcode: %x\n";
+pub const FAULT_ADDRESS = "  Fault Address: %x\n";
+pub const LOCATION = "  Location: %s mode\n";
+pub const LOCATION_KERNEL = "kernel";
+pub const LOCATION_USER = "user";
+pub const KATA_THREAD = "  Kata: %d, Thread: %d\n";
+pub const ACCESS = "  Access: %s\n";
+pub const MODE_USER = "  Mode: User\n";
+pub const MODE_KERNEL = "  Mode: Kernel\n";
+pub const FAULTING_INSTRUCTION_HEADER = "Faulting Instruction:\n";
+pub const ADDRESS = "  Address: %x\n";
+pub const BYTES_LABEL = "  Bytes: ";
 
-pub const memory_around = "Memory around %x:\n";
-pub const instruction_bytes = "Instruction bytes at %x:\n  ";
+pub const MEMORY_AROUND = "Memory around %x:\n";
+pub const INSTRUCTION_BYTES = "Instruction bytes at %x:\n  ";
 
-pub const stack_trace_header = "Stack Trace:\n";
-pub const no_stack_frames = "  (no stack frames available)\n";
-pub const raw_stack = "Raw Stack (from %x):\n";
+pub const STACK_TRACE_HEADER = "Stack Trace:\n";
+pub const NO_STACK_FRAMES = "  (no stack frames available)\n";
+pub const RAW_STACK = "Raw Stack (from %x):\n";
 
-pub const modules_none = "Loaded Modules: (none registered)\n\n";
-pub const modules_header = "Loaded Modules:\n";
-pub const module_entry = "  %s: %x - %x (%d bytes)\n";
+pub const MODULES_NONE = "Loaded Modules: (none registered)\n\n";
+pub const MODULES_HEADER = "Loaded Modules:\n";
+pub const MODULE_ENTRY = "  %s: %x - %x (%d bytes)\n";
 
-pub const dump_registers_general_1 = "RAX: %x  RBX: %x  RCX: %x  RDX: %x\n";
-pub const dump_registers_general_2 = "RSI: %x  RDI: %x  RBP: %x  RSP: %x\n";
-pub const dump_registers_general_3 = "R8:  %x  R9:  %x  R10: %x  R11: %x\n";
-pub const dump_registers_general_4 = "R12: %x  R13: %x  R14: %x  R15: %x\n";
-pub const dump_registers_instruction = "RIP: %x  RFLAGS: %x\n";
-pub const dump_registers_control = "CR0: %x  CR2: %x  CR3: %x  CR4: %x\n";
+pub const DUMP_REGISTERS_GENERAL_1 = "RAX: %x  RBX: %x  RCX: %x  RDX: %x\n";
+pub const DUMP_REGISTERS_GENERAL_2 = "RSI: %x  RDI: %x  RBP: %x  RSP: %x\n";
+pub const DUMP_REGISTERS_GENERAL_3 = "R8:  %x  R9:  %x  R10: %x  R11: %x\n";
+pub const DUMP_REGISTERS_GENERAL_4 = "R12: %x  R13: %x  R14: %x  R15: %x\n";
+pub const DUMP_REGISTERS_INSTRUCTION = "RIP: %x  RFLAGS: %x\n";
+pub const DUMP_REGISTERS_CONTROL = "CR0: %x  CR2: %x  CR3: %x  CR4: %x\n";
 
-pub const corpse_invalid = "Invalid corpse\n";
-pub const corpse_header = "Corpse for Kata %d, Thread %d\n";
-pub const corpse_exception = "Exception: %s (code=%x, subcode=%x)\n";
-pub const corpse_fault_address = "Fault address: %x\n";
+pub const CORPSE_INVALID = "Invalid corpse\n";
+pub const CORPSE_HEADER = "Corpse for Kata %d, Thread %d\n";
+pub const CORPSE_EXCEPTION = "Exception: %s (code=%x, subcode=%x)\n";
+pub const CORPSE_FAULT_ADDRESS = "Fault address: %x\n";
 
-pub const terminate_kata_thread = "Terminating kata %d, thread %d due to unhandled exception\n";
-pub const terminate_kata_corpse = "Terminating kata %d with corpse generation\n";
+pub const TERMINATE_KATA_THREAD = "Terminating kata %d, thread %d due to unhandled exception\n";
+pub const TERMINATE_KATA_CORPSE = "Terminating kata %d with corpse generation\n";
 
-pub const double_collapse = "\nDouble collapse detected, halting immediately\n";
+pub const DOUBLE_COLLAPSE = "\nDouble collapse detected, halting immediately\n";
 
-pub const kernel_page_fault = "Kernel page fault at %x: %s\n";
-pub const fatal_unrecoverable = "FATAL: Unrecoverable exception (vector %d) at %x\n";
-pub const kernel_forbidden = "Kernel forbidden exception at %x (vector %d, error %x)\n";
-pub const kernel_arithmetic = "Kernel arithmetic exception at %x\n";
+pub const KERNEL_PAGE_FAULT = "Kernel page fault at %x: %s\n";
+pub const FATAL_UNRECOVERABLE = "FATAL: Unrecoverable exception (vector %d) at %x\n";
+pub const KERNEL_FORBIDDEN = "Kernel forbidden exception at %x (vector %d, error %x)\n";
+pub const KERNEL_ARITHMETIC = "Kernel arithmetic exception at %x\n";
 
-pub const kernel_panic = "\nKERNEL PANIC: %s\n";
+pub const KERNEL_PANIC = "\nKERNEL PANIC: %s\n";

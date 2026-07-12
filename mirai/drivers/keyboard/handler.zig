@@ -12,7 +12,7 @@ var last_scancode: u8 = 0;
 pub fn handler(_: u8) void {
     const scancode = asm_io.read_byte(constants.data);
     last_scancode = scancode;
-    serial.printf(messages.scancode, .{scancode});
+    serial.printf(messages.SCANCODE, .{scancode});
 }
 
 pub fn register() void {

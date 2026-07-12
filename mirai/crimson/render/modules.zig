@@ -36,15 +36,15 @@ pub fn register_module(name: []const u8, base_address: u64, size: u64) bool {
 
 pub fn render() void {
     if (module_count == 0) {
-        serial.printf(messages.modules_none, .{});
+        serial.printf(messages.MODULES_NONE, .{});
         return;
     }
 
-    serial.printf(messages.modules_header, .{});
+    serial.printf(messages.MODULES_HEADER, .{});
 
     for (0..module_count) |i| {
         const module = &loaded_modules[i];
-        serial.printf(messages.module_entry, .{
+        serial.printf(messages.MODULE_ENTRY, .{
             module.name[0..module.name_len],
             module.base_address,
             module.base_address + module.size,

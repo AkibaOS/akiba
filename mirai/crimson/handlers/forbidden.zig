@@ -9,7 +9,7 @@ const Action = constants.Action;
 
 pub fn handle(exception: *Exception) Action {
     if (exception.context.is_kernel_mode()) {
-        serial.printf(messages.kernel_forbidden, .{ exception.context.rip, exception.vector, exception.code });
+        serial.printf(messages.KERNEL_FORBIDDEN, .{ exception.context.rip, exception.vector, exception.code });
         return .collapse;
     }
     return .terminate;

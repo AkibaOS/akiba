@@ -9,7 +9,7 @@ const Action = constants.Action;
 
 pub fn handle(exception: *Exception) Action {
     if (exception.context.is_kernel_mode()) {
-        serial.printf(messages.kernel_arithmetic, .{exception.context.rip});
+        serial.printf(messages.KERNEL_ARITHMETIC, .{exception.context.rip});
         return .collapse;
     }
     return .terminate;

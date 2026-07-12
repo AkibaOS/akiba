@@ -8,9 +8,9 @@ pub fn log(comptime fmt: []const u8, args: anytype) void {
 }
 
 pub fn print_banner() void {
-    serial.printf(banner.blank, .{});
-    serial.printf(banner.top, .{});
-    serial.printf(banner.title, .{});
-    serial.printf(banner.bottom, .{});
-    serial.printf(banner.blank, .{});
+    serial.printf(banner.BLANK, .{});
+    serial.printf(banner.TOP, .{});
+    serial.printf(banner.TITLE, .{});
+    serial.printf(banner.BOTTOM, .{});
+    serial.printf(banner.BLANK, .{});
 }

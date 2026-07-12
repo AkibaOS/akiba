@@ -11,11 +11,11 @@ const messages = @import("../strings/strings.zig").messages;
 const BootInfo = types.BootInfo;
 
 pub fn execute(boot_info: *const BootInfo) bool {
-    serial.printf(messages.detecting, .{});
+    serial.printf(messages.DETECTING, .{});
 
     const bitmap_location = find_bitmap_location(boot_info);
     if (bitmap_location == 0) {
-        serial.printf(messages.no_bitmap, .{});
+        serial.printf(messages.NO_BITMAP, .{});
         return false;
     }
 
@@ -25,20 +25,20 @@ pub fn execute(boot_info: *const BootInfo) bool {
     const total_mb = (stats.total_pages * 4096) / (1024 * 1024);
     const free_mb = (stats.free_pages * 4096) / (1024 * 1024);
 
-    serial.printf(messages.found_pages, .{ stats.total_pages, total_mb });
-    serial.printf(messages.available, .{ stats.free_pages, free_mb });
+    serial.printf(messages.FOUND_PAGES, .{ stats.total_pages, total_mb });
+    serial.printf(messages.AVAILABLE, .{ stats.free_pages, free_mb });
 
-    serial.printf(messages.kagami_setup, .{});
+    serial.printf(messages.KAGAMI_SETUP, .{});
     kagami.initialize(boot_info.pml4_physical);
-    serial.printf(messages.pml4, .{boot_info.pml4_physical});
+    serial.printf(messages.PML4, .{boot_info.pml4_physical});
 
-    serial.printf(messages.provisioning_stack, .{});
+    serial.printf(messages.PROVISIONING_STACK, .{});
     const boot_stack = stack.allocate() catch {
-        serial.printf(messages.no_stack, .{});
+        serial.printf(messages.NO_STACK, .{});
         return false;
     };
     tss.set_current_rsp0(0, boot_stack.top);
-    serial.printf(messages.stack_info, .{ boot_stack.base, boot_stack.top });
+    serial.printf(messages.STACK_INFO, .{ boot_stack.base, boot_stack.top });
 
     return true;
 }

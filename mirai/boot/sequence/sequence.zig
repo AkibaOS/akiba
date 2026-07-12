@@ -22,42 +22,42 @@ pub fn execute(boot_info: *const BootInfo) bool {
 
     message.print_banner();
 
-    serial.printf(messages.starting, .{});
-    serial.printf(messages.powered, .{});
+    serial.printf(messages.STARTING, .{});
+    serial.printf(messages.POWERED, .{});
 
     state.set_current_phase(Phase.cpu);
     if (!phases.execute_cpu()) {
-        serial.printf(messages.cpu_failed, .{});
+        serial.printf(messages.CPU_FAILED, .{});
         return false;
     }
     state.advance_phase();
 
-    serial.printf(messages.newline, .{});
+    serial.printf(messages.NEWLINE, .{});
 
     state.set_current_phase(Phase.memory);
     if (!phases.execute_memory(boot_info)) {
-        serial.printf(messages.memory_failed, .{});
+        serial.printf(messages.MEMORY_FAILED, .{});
         return false;
     }
     state.advance_phase();
 
-    serial.printf(messages.newline, .{});
+    serial.printf(messages.NEWLINE, .{});
 
     state.set_current_phase(Phase.interrupts);
     if (!phases.execute_interrupts()) {
-        serial.printf(messages.interrupts_failed, .{});
+        serial.printf(messages.INTERRUPTS_FAILED, .{});
         return false;
     }
     state.advance_phase();
 
-    serial.printf(messages.complete, .{});
+    serial.printf(messages.COMPLETE, .{});
     state.set_current_phase(Phase.complete);
 
     return true;
 }
 
 pub fn halt_on_failure() noreturn {
-    serial.printf(messages.halted, .{});
+    serial.printf(messages.HALTED, .{});
     asm_cpu.halt_loop();
 }
 

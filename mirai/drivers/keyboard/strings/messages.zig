@@ -1,3 +1,3 @@
 //! Keyboard Messages
 
-pub const scancode = "  Keyboard scancode %x\n";
+pub const SCANCODE = "  Keyboard scancode %x\n";

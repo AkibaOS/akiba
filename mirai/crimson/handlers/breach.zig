@@ -13,7 +13,7 @@ pub fn handle(exception: *Exception) Action {
     if (exception.vector == 14) {
         const err = PageFaultError.from_error_code(exception.code);
         if (exception.context.is_kernel_mode()) {
-            serial.printf(messages.kernel_page_fault, .{ exception.address, err.description() });
+            serial.printf(messages.KERNEL_PAGE_FAULT, .{ exception.address, err.description() });
             return .collapse;
         }
         return .@"resume";
