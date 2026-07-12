@@ -1,11 +1,5 @@
 //! Hikari Display Subsystem
 
-pub const framebuffer = @import("framebuffer.zig");
-pub const font = @import("font.zig");
-pub const text = @import("text.zig");
-
-pub const Framebuffer = framebuffer.Framebuffer;
-pub const Color = framebuffer.Color;
-pub const Font = font.Font;
-pub const Psf2Header = font.Psf2Header;
-pub const TextRenderer = text.TextRenderer;
+pub const font = @import("font/font.zig");
+pub const framebuffer = @import("framebuffer/framebuffer.zig");
+pub const text = @import("text/text.zig");
