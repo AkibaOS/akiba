@@ -1,3 +1,3 @@
 //! Hikari Boot Sequence Constants
 
-pub const paths = @import("paths.zig");
+pub const memory = @import("memory.zig");
