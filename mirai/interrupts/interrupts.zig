@@ -1,5 +1,6 @@
 //! Interrupts
 
+pub const constants = @import("constants/constants.zig");
 pub const idt = @import("idt.zig");
 
 pub const types = idt.types;
