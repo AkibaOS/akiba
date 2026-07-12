@@ -1,14 +1,16 @@
 //! Hikari EFI Simple Unit System Protocol
 
-const efi = @import("../efi.zig");
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 const unit = @import("unit.zig");
 
-pub const SimpleUnitSystemProtocol = extern struct {
-    revision: u64,
+const convention = constants.convention.CALLING_CONVENTION;
 
-    open_volume: *const fn (
+pub const SimpleUnitSystemProtocol = extern struct {
+    Revision: u64,
+
+    OpenVolume: *const fn (
         self: *SimpleUnitSystemProtocol,
         root: **unit.UnitProtocol,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 };

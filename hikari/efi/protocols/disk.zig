@@ -1,26 +1,26 @@
 //! Hikari EFI Disk I/O Protocol
 
-const efi = @import("../efi.zig");
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-pub const DiskIoProtocol = extern struct {
-    revision: u64,
+const convention = constants.convention.CALLING_CONVENTION;
 
-    read_disk: *const fn (
+pub const DiskIoProtocol = extern struct {
+    Revision: u64,
+
+    ReadDisk: *const fn (
         self: *DiskIoProtocol,
         media_id: u32,
         offset: u64,
         buffer_size: usize,
         buffer: [*]u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    write_disk: *const fn (
+    WriteDisk: *const fn (
         self: *DiskIoProtocol,
         media_id: u32,
         offset: u64,
         buffer_size: usize,
         buffer: [*]const u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 };
-
-pub const disk_io_protocol_revision: u64 = 0x00010000;

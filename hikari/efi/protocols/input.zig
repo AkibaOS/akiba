@@ -1,19 +1,20 @@
 //! Hikari EFI Simple Text Input Protocol
 
-const efi = @import("../efi.zig");
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
-const input = @import("../types/input.zig");
+
+const convention = constants.convention.CALLING_CONVENTION;
 
 pub const SimpleTextInputProtocol = extern struct {
-    reset: *const fn (
+    Reset: *const fn (
         self: *SimpleTextInputProtocol,
         extended_verification: bool,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    read_key_stroke: *const fn (
+    ReadKeyStroke: *const fn (
         self: *SimpleTextInputProtocol,
-        key: *input.InputKey,
-    ) callconv(efi.akiba) types.Status,
+        key: *types.input.InputKey,
+    ) callconv(convention) types.base.Status,
 
-    wait_for_key: types.Event,
+    WaitForKey: types.base.Event,
 };

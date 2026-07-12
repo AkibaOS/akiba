@@ -1,26 +1,27 @@
 //! Hikari EFI Graphics Output Protocol
 
-const efi = @import("../efi.zig");
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
-const graphics = @import("../types/graphics.zig");
+
+const convention = constants.convention.CALLING_CONVENTION;
 
 pub const GraphicsOutputProtocol = extern struct {
-    query_mode: *const fn (
+    QueryMode: *const fn (
         self: *GraphicsOutputProtocol,
         mode_number: u32,
         size_of_info: *usize,
-        info: **graphics.GraphicsOutputModeInformation,
-    ) callconv(efi.akiba) types.Status,
+        info: **types.graphics.GraphicsOutputModeInformation,
+    ) callconv(convention) types.base.Status,
 
-    set_mode: *const fn (
+    SetMode: *const fn (
         self: *GraphicsOutputProtocol,
         mode_number: u32,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    blt: *const fn (
+    Blt: *const fn (
         self: *GraphicsOutputProtocol,
-        blt_buffer: ?[*]graphics.BltPixel,
-        blt_operation: graphics.BltOperation,
+        blt_buffer: ?[*]types.graphics.BltPixel,
+        blt_operation: types.graphics.BltOperation,
         source_x: usize,
         source_y: usize,
         destination_x: usize,
@@ -28,7 +29,7 @@ pub const GraphicsOutputProtocol = extern struct {
         width: usize,
         height: usize,
         delta: usize,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    mode: *graphics.GraphicsOutputProtocolMode,
+    Mode: *types.graphics.GraphicsOutputProtocolMode,
 };

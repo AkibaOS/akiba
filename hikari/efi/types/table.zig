@@ -3,14 +3,14 @@
 const base = @import("base.zig");
 
 pub const TableHeader = extern struct {
-    signature: u64,
-    revision: u32,
-    header_size: u32,
-    crc32: u32,
-    reserved: u32,
+    Signature: u64,
+    Revision: u32,
+    HeaderSize: u32,
+    CRC32: u32,
+    Reserved: u32,
 };
 
 pub const ConfigurationTableEntry = extern struct {
-    vendor_guid: base.Guid,
-    vendor_table: *anyopaque,
+    VendorGUID: base.GUID,
+    VendorTable: *anyopaque,
 };

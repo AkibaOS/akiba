@@ -1,97 +1,97 @@
 //! Hikari EFI Unit Protocol
 
-const efi = @import("../efi.zig");
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-pub const UnitProtocol = extern struct {
-    revision: u64,
+const convention = constants.convention.CALLING_CONVENTION;
 
-    open: *const fn (
+pub const UnitProtocol = extern struct {
+    Revision: u64,
+
+    Open: *const fn (
         self: *UnitProtocol,
         new_handle: **UnitProtocol,
-        unit_name: [*:0]const types.Char16,
+        unit_name: [*:0]const types.base.Char16,
         open_mode: u64,
         attributes: u64,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    close: *const fn (
+    Close: *const fn (
         self: *UnitProtocol,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    delete: *const fn (
+    Delete: *const fn (
         self: *UnitProtocol,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    read: *const fn (
+    Read: *const fn (
         self: *UnitProtocol,
         buffer_size: *usize,
         buffer: [*]u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    write: *const fn (
+    Write: *const fn (
         self: *UnitProtocol,
         buffer_size: *usize,
         buffer: [*]const u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    get_position: *const fn (
+    GetPosition: *const fn (
         self: *UnitProtocol,
         position: *u64,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    set_position: *const fn (
+    SetPosition: *const fn (
         self: *UnitProtocol,
         position: u64,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    get_info: *const fn (
+    GetInfo: *const fn (
         self: *UnitProtocol,
-        information_type: *align(8) const types.Guid,
+        information_type: *align(8) const types.base.GUID,
         buffer_size: *usize,
         buffer: [*]u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    set_info: *const fn (
+    SetInfo: *const fn (
         self: *UnitProtocol,
-        information_type: *align(8) const types.Guid,
+        information_type: *align(8) const types.base.GUID,
         buffer_size: usize,
         buffer: [*]const u8,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    flush: *const fn (
+    Flush: *const fn (
         self: *UnitProtocol,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    open_ex: *const fn (
+    OpenEx: *const fn (
         self: *UnitProtocol,
         new_handle: **UnitProtocol,
-        unit_name: [*:0]const types.Char16,
+        unit_name: [*:0]const types.base.Char16,
         open_mode: u64,
         attributes: u64,
         token: *UnitIoToken,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    read_ex: *const fn (
+    ReadEx: *const fn (
         self: *UnitProtocol,
         token: *UnitIoToken,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    write_ex: *const fn (
+    WriteEx: *const fn (
         self: *UnitProtocol,
         token: *UnitIoToken,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 
-    flush_ex: *const fn (
+    FlushEx: *const fn (
         self: *UnitProtocol,
         token: *UnitIoToken,
-    ) callconv(efi.akiba) types.Status,
+    ) callconv(convention) types.base.Status,
 };
 
 pub const UnitIoToken = extern struct {
-    event: types.Event,
-    status: types.Status,
-    buffer_size: usize,
-    buffer: ?*anyopaque,
+    Event: types.base.Event,
+    Status: types.base.Status,
+    BufferSize: usize,
+    Buffer: ?*anyopaque,
 };
-
-pub const unit_position_end: u64 = 0xFFFFFFFFFFFFFFFF;

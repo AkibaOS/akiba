@@ -3,6 +3,6 @@
 const base = @import("base.zig");
 
 pub const InputKey = extern struct {
-    scan_code: u16,
-    unicode_char: base.Char16,
+    ScanCode: u16,
+    UnicodeChar: base.Char16,
 };

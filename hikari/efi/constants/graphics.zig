@@ -1,13 +1,13 @@
 //! Hikari EFI Graphics Constants
 
-pub const pixel_format_rgb: u32 = 0;
-pub const pixel_format_bgr: u32 = 1;
-pub const pixel_format_bitmask: u32 = 2;
-pub const pixel_format_blt_only: u32 = 3;
+pub const PIXEL_FORMAT_RGB: u32 = 0;
+pub const PIXEL_FORMAT_BGR: u32 = 1;
+pub const PIXEL_FORMAT_BITMASK: u32 = 2;
+pub const PIXEL_FORMAT_BLT_ONLY: u32 = 3;
 
-pub const blt_operation_video_fill: u32 = 0;
-pub const blt_operation_video_to_buffer: u32 = 1;
-pub const blt_operation_buffer_to_video: u32 = 2;
-pub const blt_operation_video_to_video: u32 = 3;
+pub const BLT_OPERATION_VIDEO_FILL: u32 = 0;
+pub const BLT_OPERATION_VIDEO_TO_BUFFER: u32 = 1;
+pub const BLT_OPERATION_BUFFER_TO_VIDEO: u32 = 2;
+pub const BLT_OPERATION_VIDEO_TO_VIDEO: u32 = 3;
 
-pub const graphics_output_protocol_revision: u32 = 0x00010000;
+pub const GRAPHICS_OUTPUT_PROTOCOL_REVISION: u32 = 0x00010000;
