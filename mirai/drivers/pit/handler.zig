@@ -13,8 +13,6 @@ pub fn handler(_: u8) void {
     if (tick_callback) |callback| {
         callback();
     }
-
-    pic.send_eoi(constants.irq);
 }
 
 pub fn register() void {

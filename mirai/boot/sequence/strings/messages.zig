@@ -21,3 +21,9 @@ pub const pml4 = "  Using PML4 at physical address %x\n";
 pub const provisioning_stack = "Provisioning boot kernel stack with guard pages\n";
 pub const no_stack = "  Could not allocate boot kernel stack\n";
 pub const stack_info = "  Stack base %x, top %x\n";
+
+pub const interrupts_failed = "\nInterrupt initialization failed, cannot continue\n";
+pub const idt_setup = "Loading Interrupt Descriptor Table and remapping PIC\n";
+pub const timer_setup = "Configuring PIT timer and registering IRQ0\n";
+pub const keyboard_setup = "Registering keyboard handler on IRQ1\n";
+pub const interrupts_enabled = "  Interrupts enabled (timer + keyboard)\n";

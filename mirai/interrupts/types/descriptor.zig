@@ -15,5 +15,5 @@ pub const Descriptor = packed struct(u80) {
 };
 
 comptime {
-    if (@sizeOf(Descriptor) != 10) @compileError("Descriptor must be 10 bytes");
+    if (@bitSizeOf(Descriptor) != 80) @compileError("Descriptor must be 80 bits");
 }

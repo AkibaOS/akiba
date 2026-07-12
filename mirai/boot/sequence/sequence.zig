@@ -41,6 +41,15 @@ pub fn execute(boot_info: *const BootInfo) bool {
     }
     state.advance_phase();
 
+    serial.printf(messages.newline, .{});
+
+    state.set_current_phase(Phase.interrupts);
+    if (!phases.execute_interrupts()) {
+        serial.printf(messages.interrupts_failed, .{});
+        return false;
+    }
+    state.advance_phase();
+
     serial.printf(messages.complete, .{});
     state.set_current_phase(Phase.complete);
 

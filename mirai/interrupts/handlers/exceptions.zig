@@ -9,20 +9,40 @@ const crimson = @import("../../crimson/crimson.zig");
 export fn exception_dispatch(frame: *InterruptFrame) void {
     const vector: u8 = @truncate(frame.vector);
 
-    var exception = crimson.handlers.create_exception(
-        vector,
-        frame.error_code,
-        frame.rip,
-        frame.rsp,
-    );
+    var context = crimson.Context{
+        .rax = frame.rax,
+        .rbx = frame.rbx,
+        .rcx = frame.rcx,
+        .rdx = frame.rdx,
+        .rsi = frame.rsi,
+        .rdi = frame.rdi,
+        .rbp = frame.rbp,
+        .r8 = frame.r8,
+        .r9 = frame.r9,
+        .r10 = frame.r10,
+        .r11 = frame.r11,
+        .r12 = frame.r12,
+        .r13 = frame.r13,
+        .r14 = frame.r14,
+        .r15 = frame.r15,
+    };
+    crimson.context.capture_segments(&context);
+
+    var exception_frame = crimson.Frame{
+        .error_code = frame.error_code,
+        .rip = frame.rip,
+        .cs = frame.cs,
+        .rflags = frame.rflags,
+        .rsp = frame.rsp,
+        .ss = frame.ss,
+    };
+
+    var exception = crimson.handlers.create_exception(vector, &exception_frame, &context);
 
     const action = crimson.handlers.dispatch(&exception);
 
-    switch (action) {
-        .resume_execution => {},
-        .terminate => crimson.collapse(&exception),
-        .collapse => crimson.collapse(&exception),
-        else => crimson.collapse(&exception),
+    if (action.is_fatal()) {
+        crimson.collapse(exception.get_type_name(), &exception);
     }
 }
 
@@ -59,7 +79,7 @@ pub const exception_29 = asm_stubs.make_exception_handler(29, true);
 pub const exception_30 = asm_stubs.make_exception_handler(30, true);
 pub const exception_31 = asm_stubs.make_exception_handler(31, false);
 
-pub const stubs = [32]*const fn () callconv(.Naked) void{
+pub const stubs = [32]*const fn () callconv(.naked) void{
     &exception_0,  &exception_1,  &exception_2,  &exception_3,
     &exception_4,  &exception_5,  &exception_6,  &exception_7,
     &exception_8,  &exception_9,  &exception_10, &exception_11,

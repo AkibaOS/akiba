@@ -18,6 +18,7 @@ pub fn initialize_from_memory_map(
     var entry_index: u64 = 0;
     while (entry_index < entry_count) : (entry_index += 1) {
         const region = memory_map_entries[entry_index];
+        if (!region.is_usable()) continue;
         const region_end = region.end_address();
         if (region_end > highest_address) {
             highest_address = region_end;

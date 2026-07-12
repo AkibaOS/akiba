@@ -3,6 +3,7 @@
 const common = @import("common.zig");
 const InterruptFrame = common.InterruptFrame;
 const asm_stubs = @import("../../asm/interrupts/stubs.zig");
+const pic = @import("../pic/pic.zig");
 
 var irq_handlers: [16]?*const fn (u8) void = [_]?*const fn (u8) void{null} ** 16;
 
@@ -16,12 +17,13 @@ pub fn unregister_handler(irq: u4) void {
 
 export fn irq_dispatch(frame: *InterruptFrame) void {
     const vector: u8 = @truncate(frame.vector);
-    const irq = vector - 32;
+    const irq: u8 = vector - 32;
 
     if (irq < 16) {
         if (irq_handlers[irq]) |handler| {
             handler(irq);
         }
+        pic.send_eoi(@truncate(irq));
     }
 }
 
@@ -42,7 +44,7 @@ pub const irq_13 = asm_stubs.make_irq_handler(13);
 pub const irq_14 = asm_stubs.make_irq_handler(14);
 pub const irq_15 = asm_stubs.make_irq_handler(15);
 
-pub const stubs = [16]*const fn () callconv(.Naked) void{
+pub const stubs = [16]*const fn () callconv(.naked) void{
     &irq_0,  &irq_1,  &irq_2,  &irq_3,
     &irq_4,  &irq_5,  &irq_6,  &irq_7,
     &irq_8,  &irq_9,  &irq_10, &irq_11,

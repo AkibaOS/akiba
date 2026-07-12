@@ -62,32 +62,32 @@ pub const call_irq_dispatch =
 pub fn exception_stub(comptime vector: u8, comptime has_error_code: bool) []const u8 {
     return (if (!has_error_code) push_zero else "") ++
         push_vector(vector) ++
-        push_all ++
-        call_exception_dispatch ++
-        pop_all ++
+        push_all ++ "\n" ++
+        call_exception_dispatch ++ "\n" ++
+        pop_all ++ "\n" ++
         iret_cleanup;
 }
 
 pub fn irq_stub(comptime irq: u8) []const u8 {
     return push_zero ++
         push_vector(irq + 32) ++
-        push_all ++
-        call_irq_dispatch ++
-        pop_all ++
+        push_all ++ "\n" ++
+        call_irq_dispatch ++ "\n" ++
+        pop_all ++ "\n" ++
         iret_cleanup;
 }
 
-pub fn make_exception_handler(comptime vector: u8, comptime has_error_code: bool) fn () callconv(.Naked) void {
+pub fn make_exception_handler(comptime vector: u8, comptime has_error_code: bool) fn () callconv(.naked) void {
     return struct {
-        fn handler() callconv(.Naked) void {
+        fn handler() callconv(.naked) void {
             asm volatile (exception_stub(vector, has_error_code));
         }
     }.handler;
 }
 
-pub fn make_irq_handler(comptime irq: u8) fn () callconv(.Naked) void {
+pub fn make_irq_handler(comptime irq: u8) fn () callconv(.naked) void {
     return struct {
-        fn handler() callconv(.Naked) void {
+        fn handler() callconv(.naked) void {
             asm volatile (irq_stub(irq));
         }
     }.handler;
