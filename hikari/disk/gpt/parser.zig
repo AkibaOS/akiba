@@ -1,198 +1,158 @@
 //! Hikari GPT Parser
 
+const constants = @import("../constants/constants.zig");
+const crc = @import("crc.zig");
 const efi = @import("../../efi/efi.zig");
-const constants = @import("constants.zig");
-const types = @import("types.zig");
+const errors = @import("../errors/errors.zig");
+const types = @import("../types/types.zig");
 
-pub const ParseError = error{
-    read_failed,
-    invalid_protective_mbr,
-    invalid_signature,
-    invalid_revision,
-    invalid_header_size,
-    invalid_header_crc,
-    invalid_entries_crc,
-    no_partitions,
-    partition_not_found,
-};
+const ParseError = errors.gpt.ParseError;
 
 pub const Parser = struct {
-    block_io: *efi.protocols.BlockIoProtocol,
-    block_size: u32,
-    header: types.Header,
-    entries_buffer: [*]u8,
-    entries_count: u32,
-    entry_size: u32,
+    BlockIO: *efi.protocols.block.BlockIoProtocol,
+    BlockSize: u32,
+    Header: types.gpt.Header,
+    EntriesBuffer: [*]u8,
+    EntriesCount: u32,
+    EntrySize: u32,
 
-    pub fn initialize(block_io: *efi.protocols.BlockIoProtocol, boot_services: *efi.services.BootServices) ParseError!Parser {
-        const block_size = block_io.media.block_size;
+    pub fn initialize(block_io: *efi.protocols.block.BlockIoProtocol, boot_services: *efi.services.boot.BootServices) ParseError!Parser {
+        const block_size = block_io.Media.BlockSize;
 
-        var header_buffer: [512]u8 align(8) = undefined;
-        const header_read_status = block_io.read_blocks(
+        var header_buffer: [constants.gpt.HEADER_BUFFER_SIZE]u8 align(8) = undefined;
+        const header_read_status = block_io.ReadBlocks(
             block_io,
-            block_io.media.media_id,
-            constants.header_lba,
+            block_io.Media.MediaId,
+            constants.gpt.HEADER_LBA,
             block_size,
             &header_buffer,
         );
 
-        if (efi.types.is_error(header_read_status)) {
-            return ParseError.read_failed;
+        if (efi.types.base.isError(header_read_status)) {
+            return ParseError.ReadFailed;
         }
 
-        const header: *const types.Header = @ptrCast(@alignCast(&header_buffer));
+        const header: *const types.gpt.Header = @ptrCast(@alignCast(&header_buffer));
 
-        if (header.signature != constants.signature) {
-            return ParseError.invalid_signature;
+        if (header.Signature != constants.gpt.SIGNATURE) {
+            return ParseError.InvalidSignature;
         }
 
-        if (header.revision < constants.revision_1_0) {
-            return ParseError.invalid_revision;
+        if (header.Revision < constants.gpt.REVISION_1_0) {
+            return ParseError.InvalidRevision;
         }
 
-        if (header.header_size < constants.header_size_minimum) {
-            return ParseError.invalid_header_size;
+        if (header.HeaderSize < constants.gpt.HEADER_SIZE_MINIMUM) {
+            return ParseError.InvalidHeaderSize;
         }
 
-        const stored_header_crc = header.header_crc32;
+        const stored_header_crc = header.HeaderCRC32;
         var header_for_crc = header_buffer;
-        const header_ptr: *types.Header = @ptrCast(@alignCast(&header_for_crc));
-        header_ptr.header_crc32 = 0;
+        const header_pointer: *types.gpt.Header = @ptrCast(@alignCast(&header_for_crc));
+        header_pointer.HeaderCRC32 = 0;
 
-        const calculated_header_crc = calculate_crc32(header_for_crc[0..header.header_size]);
+        const calculated_header_crc = crc.calculateCRC32(header_for_crc[0..header.HeaderSize]);
         if (calculated_header_crc != stored_header_crc) {
-            return ParseError.invalid_header_crc;
+            return ParseError.InvalidHeaderCRC;
         }
 
-        if (header.partition_entries_count == 0) {
-            return ParseError.no_partitions;
+        if (header.PartitionEntriesCount == 0) {
+            return ParseError.NoPartitions;
         }
 
-        const entries_total_size = header.partition_entries_count * header.partition_entry_size;
+        const entries_total_size = header.PartitionEntriesCount * header.PartitionEntrySize;
         const entries_blocks = (entries_total_size + block_size - 1) / block_size;
         const entries_buffer_size = entries_blocks * block_size;
 
         var entries_buffer: [*]align(8) u8 = undefined;
-        const alloc_status = boot_services.allocate_pool(
-            .loader_data,
+        const allocation_status = boot_services.AllocatePool(
+            .LoaderData,
             entries_buffer_size,
             &entries_buffer,
         );
 
-        if (efi.types.is_error(alloc_status)) {
-            return ParseError.read_failed;
+        if (efi.types.base.isError(allocation_status)) {
+            return ParseError.ReadFailed;
         }
 
-        const entries_read_status = block_io.read_blocks(
+        const entries_read_status = block_io.ReadBlocks(
             block_io,
-            block_io.media.media_id,
-            header.partition_entries_lba,
+            block_io.Media.MediaId,
+            header.PartitionEntriesLBA,
             entries_buffer_size,
             entries_buffer,
         );
 
-        if (efi.types.is_error(entries_read_status)) {
-            return ParseError.read_failed;
+        if (efi.types.base.isError(entries_read_status)) {
+            return ParseError.ReadFailed;
         }
 
-        const calculated_entries_crc = calculate_crc32(entries_buffer[0..entries_total_size]);
-        if (calculated_entries_crc != header.partition_entries_crc32) {
-            return ParseError.invalid_entries_crc;
+        const calculated_entries_crc = crc.calculateCRC32(entries_buffer[0..entries_total_size]);
+        if (calculated_entries_crc != header.PartitionEntriesCRC32) {
+            return ParseError.InvalidEntriesCRC;
         }
 
         return Parser{
-            .block_io = block_io,
-            .block_size = block_size,
-            .header = header.*,
-            .entries_buffer = entries_buffer,
-            .entries_count = header.partition_entries_count,
-            .entry_size = header.partition_entry_size,
+            .BlockIO = block_io,
+            .BlockSize = block_size,
+            .Header = header.*,
+            .EntriesBuffer = entries_buffer,
+            .EntriesCount = header.PartitionEntriesCount,
+            .EntrySize = header.PartitionEntrySize,
         };
     }
 
-    pub fn find_partition_by_type(self: *const Parser, type_guid: efi.types.Guid) ?*const types.PartitionEntry {
+    pub fn findPartitionByType(self: *const Parser, type_guid: efi.types.base.GUID) ?*const types.gpt.PartitionEntry {
         var index: u32 = 0;
-        while (index < self.entries_count) : (index += 1) {
-            const entry = self.get_partition_entry(index);
-            if (entry.is_empty()) {
+        while (index < self.EntriesCount) : (index += 1) {
+            const entry = self.getPartitionEntry(index);
+            if (entry.isEmpty()) {
                 continue;
             }
-            if (entry.is_type(type_guid)) {
+            if (entry.isType(type_guid)) {
                 return entry;
             }
         }
         return null;
     }
 
-    pub fn find_partition_by_index(self: *const Parser, index: u32) ?*const types.PartitionEntry {
-        if (index >= self.entries_count) {
+    pub fn findPartitionByIndex(self: *const Parser, index: u32) ?*const types.gpt.PartitionEntry {
+        if (index >= self.EntriesCount) {
             return null;
         }
-        const entry = self.get_partition_entry(index);
-        if (entry.is_empty()) {
+        const entry = self.getPartitionEntry(index);
+        if (entry.isEmpty()) {
             return null;
         }
         return entry;
     }
 
-    pub fn get_partition_entry(self: *const Parser, index: u32) *const types.PartitionEntry {
-        const offset = index * self.entry_size;
-        return @ptrCast(@alignCast(self.entries_buffer + offset));
+    pub fn getPartitionEntry(self: *const Parser, index: u32) *const types.gpt.PartitionEntry {
+        const offset = index * self.EntrySize;
+        return @ptrCast(@alignCast(self.EntriesBuffer + offset));
     }
 
-    pub fn count_valid_partitions(self: *const Parser) u32 {
+    pub fn countValidPartitions(self: *const Parser) u32 {
         var count: u32 = 0;
         var index: u32 = 0;
-        while (index < self.entries_count) : (index += 1) {
-            const entry = self.get_partition_entry(index);
-            if (!entry.is_empty()) {
+        while (index < self.EntriesCount) : (index += 1) {
+            const entry = self.getPartitionEntry(index);
+            if (!entry.isEmpty()) {
                 count += 1;
             }
         }
         return count;
     }
 
-    pub fn get_disk_guid(self: *const Parser) efi.types.Guid {
-        return self.header.disk_guid;
+    pub fn getDiskGUID(self: *const Parser) efi.types.base.GUID {
+        return self.Header.DiskGUID;
     }
 
-    pub fn get_first_usable_lba(self: *const Parser) u64 {
-        return self.header.first_usable_lba;
+    pub fn getFirstUsableLBA(self: *const Parser) u64 {
+        return self.Header.FirstUsableLBA;
     }
 
-    pub fn get_last_usable_lba(self: *const Parser) u64 {
-        return self.header.last_usable_lba;
+    pub fn getLastUsableLBA(self: *const Parser) u64 {
+        return self.Header.LastUsableLBA;
     }
 };
-
-const crc32_table: [256]u32 = blk: {
-    @setEvalBranchQuota(10000);
-    break :blk generate_crc32_table();
-};
-
-fn generate_crc32_table() [256]u32 {
-    var table: [256]u32 = undefined;
-    var index: u32 = 0;
-    while (index < 256) : (index += 1) {
-        var crc: u32 = index;
-        var bit: u32 = 0;
-        while (bit < 8) : (bit += 1) {
-            if ((crc & 1) != 0) {
-                crc = (crc >> 1) ^ 0xEDB88320;
-            } else {
-                crc = crc >> 1;
-            }
-        }
-        table[index] = crc;
-    }
-    return table;
-}
-
-pub fn calculate_crc32(data: []const u8) u32 {
-    var crc: u32 = 0xFFFFFFFF;
-    for (data) |byte| {
-        const table_index = (crc ^ byte) & 0xFF;
-        crc = (crc >> 8) ^ crc32_table[table_index];
-    }
-    return crc ^ 0xFFFFFFFF;
-}
