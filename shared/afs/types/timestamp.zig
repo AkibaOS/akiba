@@ -1,7 +1,7 @@
 //! AFS Timestamp Type
 
 pub const Timestamp = extern struct {
-    seconds: i64 = 0,
-    nanoseconds: u32 = 0,
-    reserved: u32 = 0,
+    Seconds: i64 = 0,
+    Nanoseconds: u32 = 0,
+    Reserved: u32 = 0,
 };

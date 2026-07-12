@@ -3,58 +3,58 @@
 const constants = @import("../constants/constants.zig");
 
 pub const NodeDescriptor = extern struct {
-    forward_link: u32 = 0,
-    backward_link: u32 = 0,
-    node_type: i8 = constants.btree.node_type_leaf,
-    height: u8 = 0,
-    record_count: u16 = 0,
-    reserved: u16 = 0,
+    ForwardLink: u32 = 0,
+    BackwardLink: u32 = 0,
+    NodeType: i8 = constants.btree.NODE_TYPE_LEAF,
+    Height: u8 = 0,
+    RecordCount: u16 = 0,
+    Reserved: u16 = 0,
 
-    pub fn is_leaf(self: *const NodeDescriptor) bool {
-        return self.node_type == constants.btree.node_type_leaf;
+    pub fn isLeaf(self: *const NodeDescriptor) bool {
+        return self.NodeType == constants.btree.NODE_TYPE_LEAF;
     }
 
-    pub fn is_index(self: *const NodeDescriptor) bool {
-        return self.node_type == constants.btree.node_type_index;
+    pub fn isIndex(self: *const NodeDescriptor) bool {
+        return self.NodeType == constants.btree.NODE_TYPE_INDEX;
     }
 
-    pub fn is_header(self: *const NodeDescriptor) bool {
-        return self.node_type == constants.btree.node_type_header;
+    pub fn isHeader(self: *const NodeDescriptor) bool {
+        return self.NodeType == constants.btree.NODE_TYPE_HEADER;
     }
 
-    pub fn is_map(self: *const NodeDescriptor) bool {
-        return self.node_type == constants.btree.node_type_map;
+    pub fn isMap(self: *const NodeDescriptor) bool {
+        return self.NodeType == constants.btree.NODE_TYPE_MAP;
     }
 };
 
 pub const HeaderRecord = extern struct {
-    depth: u16 = 1,
-    root_node: u32 = 1,
-    leaf_record_count: u32 = 0,
-    first_leaf_node: u32 = 1,
-    last_leaf_node: u32 = 1,
-    node_size: u16 = 0,
-    max_key_length: u16 = 0,
-    total_nodes: u32 = 0,
-    free_nodes: u32 = 0,
-    reserved1: u16 = 0,
-    clump_size: u32 = 0,
-    btree_type: u8 = 0,
-    key_compare_type: u8 = 0,
-    attributes: u32 = 0,
-    reserved2: [64]u8 = [_]u8{0} ** 64,
+    Depth: u16 = 1,
+    RootNode: u32 = 1,
+    LeafRecordCount: u32 = 0,
+    FirstLeafNode: u32 = 1,
+    LastLeafNode: u32 = 1,
+    NodeSize: u16 = 0,
+    MaxKeyLength: u16 = 0,
+    TotalNodes: u32 = 0,
+    FreeNodes: u32 = 0,
+    Reserved1: u16 = 0,
+    ClumpSize: u32 = 0,
+    BTreeType: u8 = 0,
+    KeyCompareType: u8 = 0,
+    Attributes: u32 = 0,
+    Reserved2: [64]u8 = [_]u8{0} ** 64,
 };
 
 pub const IndexKey = extern struct {
-    key_length: u16 = 0,
-    parent_node_id: u32 = 0,
-    identity: [256]u16 = [_]u16{0} ** 256,
+    KeyLength: u16 = 0,
+    ParentNodeId: u32 = 0,
+    Identity: [256]u16 = [_]u16{0} ** 256,
 
-    pub fn get_identity_length(self: *align(1) const IndexKey) usize {
-        const total_key_len = self.key_length;
-        if (total_key_len <= 8) {
+    pub fn getIdentityLength(self: *align(1) const IndexKey) usize {
+        const total_key_length = self.KeyLength;
+        if (total_key_length <= constants.btree.INDEX_KEY_HEADER_SIZE) {
             return 0;
         }
-        return (total_key_len - 8) / 2;
+        return (total_key_length - constants.btree.INDEX_KEY_HEADER_SIZE) / @sizeOf(u16);
     }
 };

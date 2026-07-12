@@ -6,6 +6,8 @@ pub const VERSION: u16 = 0x0001;
 
 pub const JOURNAL_SIGNATURE: u32 = 0x4A4E524C;
 
+pub const JOURNAL_ENDIAN_MARKER: u32 = 0x12345678;
+
 pub const PARTITION_TYPE_GUID = [16]u8{
     0x42, 0x49, 0x4B, 0x41,
     0x46, 0x41, 0x00, 0x53,
