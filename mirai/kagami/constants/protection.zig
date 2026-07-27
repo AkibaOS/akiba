@@ -1,19 +1,19 @@
 //! Kagami Protection Constants
 
-pub const none: u8 = 0x00;
-pub const read: u8 = 0x01;
-pub const write: u8 = 0x02;
-pub const execute: u8 = 0x04;
-pub const user: u8 = 0x08;
-pub const wired: u8 = 0x10;
-pub const nocache: u8 = 0x20;
+pub const NONE: u8 = 0x00;
+pub const READ: u8 = 0x01;
+pub const WRITE: u8 = 0x02;
+pub const EXECUTE: u8 = 0x04;
+pub const USER: u8 = 0x08;
+pub const WIRED: u8 = 0x10;
+pub const NOCACHE: u8 = 0x20;
 
-pub const kernel_read: u8 = read;
-pub const kernel_write: u8 = read | write;
-pub const kernel_execute: u8 = read | execute;
-pub const kernel_all: u8 = read | write | execute;
+pub const KERNEL_READ: u8 = READ;
+pub const KERNEL_WRITE: u8 = READ | WRITE;
+pub const KERNEL_EXECUTE: u8 = READ | EXECUTE;
+pub const KERNEL_ALL: u8 = READ | WRITE | EXECUTE;
 
-pub const user_read: u8 = read | user;
-pub const user_write: u8 = read | write | user;
-pub const user_execute: u8 = read | execute | user;
-pub const user_all: u8 = read | write | execute | user;
+pub const USER_READ: u8 = READ | USER;
+pub const USER_WRITE: u8 = READ | WRITE | USER;
+pub const USER_EXECUTE: u8 = READ | EXECUTE | USER;
+pub const USER_ALL: u8 = READ | WRITE | EXECUTE | USER;

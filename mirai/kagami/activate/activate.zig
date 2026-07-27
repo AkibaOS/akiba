@@ -1,27 +1,29 @@
 //! Kagami Activation
 
-const common = @import("root").common;
+const common = @import("common");
+
+const cpu = @import("asm").cpu;
+
+const state = @import("../state/state.zig");
 const types = @import("../types/types.zig");
-const state = @import("../state.zig");
-const asm_cpu = @import("asm").cpu;
 
-const paging_indices = common.constants.paging.indices;
+const indices = common.constants.paging.indices;
 
-const Kagami = types.Kagami;
+const Kagami = types.kagami.Kagami;
 
 pub fn activate(kagami: *Kagami) void {
-    asm_cpu.write_cr3(kagami.pml4_physical);
-    state.set_current_kagami(kagami);
+    cpu.control.writeCR3(kagami.PML4Physical);
+    state.setCurrentKagami(kagami);
 }
 
-pub fn activate_kernel() void {
-    activate(state.get_kernel_kagami());
+pub fn activateKernel() void {
+    activate(state.getKernelKagami());
 }
 
-pub fn get_active_pml4() u64 {
-    return asm_cpu.read_cr3() & paging_indices.address_mask;
+pub fn getActivePML4() u64 {
+    return cpu.control.readCR3() & indices.ADDRESS_MASK;
 }
 
-pub fn is_active(kagami: *const Kagami) bool {
-    return get_active_pml4() == kagami.pml4_physical;
+pub fn isActive(kagami: *const Kagami) bool {
+    return getActivePML4() == kagami.PML4Physical;
 }

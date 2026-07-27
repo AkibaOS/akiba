@@ -1,4 +1,5 @@
 //! Kagami Constants
 
-pub const tables = @import("tables.zig");
+pub const pool = @import("pool.zig");
 pub const protection = @import("protection.zig");
+pub const tables = @import("tables.zig");

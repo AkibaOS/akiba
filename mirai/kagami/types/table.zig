@@ -1,35 +1,40 @@
 //! Page Table Type
 
-const Entry = @import("entry.zig").Entry;
+const common = @import("common");
+
+const entry = @import("entry.zig");
+
+const constants = @import("../constants/constants.zig");
+const sizes = common.constants.memory.sizes;
 
 pub const Table = struct {
-    entries: [512]Entry,
+    Entries: [sizes.ENTRIES_PER_PAGE_TABLE]entry.Entry,
 
-    pub fn get_entry(self: *Table, index: u9) *Entry {
-        return &self.entries[index];
+    pub fn getEntry(self: *Table, index: u9) *entry.Entry {
+        return &self.Entries[index];
     }
 
-    pub fn get_entry_const(self: *const Table, index: u9) *const Entry {
-        return &self.entries[index];
+    pub fn getEntryConst(self: *const Table, index: u9) *const entry.Entry {
+        return &self.Entries[index];
     }
 
-    pub fn clear_all(self: *Table) void {
-        for (&self.entries) |*entry| {
-            entry.clear();
+    pub fn clearAll(self: *Table) void {
+        for (&self.Entries) |*table_entry| {
+            table_entry.clear();
         }
     }
 
-    pub fn copy_kernel_entries(self: *Table, source: *const Table) void {
-        var index: usize = 256;
-        while (index < 512) : (index += 1) {
-            self.entries[index] = source.entries[index];
+    pub fn copyKernelEntries(self: *Table, source: *const Table) void {
+        var index: usize = constants.tables.KERNEL_PML4_START;
+        while (index < constants.tables.KERNEL_PML4_END) : (index += 1) {
+            self.Entries[index] = source.Entries[index];
         }
     }
 
-    pub fn count_present(self: *const Table) u32 {
+    pub fn countPresent(self: *const Table) u32 {
         var count: u32 = 0;
-        for (self.entries) |entry| {
-            if (entry.is_present()) {
+        for (self.Entries) |table_entry| {
+            if (table_entry.isPresent()) {
                 count += 1;
             }
         }

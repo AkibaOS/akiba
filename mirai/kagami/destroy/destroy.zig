@@ -1,76 +1,76 @@
 //! Destroy Kagami
 
+const constants = @import("../constants/constants.zig");
+const create = @import("../create/create.zig");
 const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
-const state = @import("../state.zig");
 const tables = @import("../tables/tables.zig");
-const create_module = @import("../create/create.zig");
+const types = @import("../types/types.zig");
 
-const Kagami = types.Kagami;
-const Table = types.Table;
+const Kagami = types.kagami.Kagami;
+const Table = types.table.Table;
 
 pub fn destroy(kagami: *Kagami) void {
-    if (kagami.is_kernel()) {
+    if (kagami.isKernel()) {
         return;
     }
 
-    const remaining = kagami.decrement_reference();
+    const remaining = kagami.decrementReference();
     if (remaining > 0) {
         return;
     }
 
-    free_user_tables(kagami);
+    freeUserTables(kagami);
 
-    pmm.free_page(kagami.pml4_physical);
+    pmm.free.single.freePage(kagami.PML4Physical);
 
-    create_module.free_kagami_struct(kagami);
+    create.freeKagamiStruct(kagami);
 }
 
-fn free_user_tables(kagami: *Kagami) void {
-    const pml4 = tables.get_pml4(kagami.pml4_physical);
+fn freeUserTables(kagami: *Kagami) void {
+    const pml4 = tables.walk.getPML4(kagami.PML4Physical);
 
     var pml4_index: u9 = 0;
-    while (pml4_index < 256) : (pml4_index += 1) {
-        const pml4_entry = pml4.get_entry(pml4_index);
-        if (!pml4_entry.is_present()) continue;
+    while (pml4_index < constants.tables.KERNEL_PML4_START) : (pml4_index += 1) {
+        const pml4_entry = pml4.getEntry(pml4_index);
+        if (!pml4_entry.isPresent()) continue;
 
-        const pdpt = tables.get_table_from_physical(pml4_entry.get_physical_address());
-        free_pdpt(pdpt);
+        const pdpt = tables.walk.getTableFromPhysical(pml4_entry.getPhysicalAddress());
+        freePDPT(pdpt);
 
-        pmm.free_page(pml4_entry.get_physical_address());
+        pmm.free.single.freePage(pml4_entry.getPhysicalAddress());
         pml4_entry.clear();
     }
 }
 
-fn free_pdpt(pdpt: *Table) void {
-    var pdpt_index: u9 = 0;
-    while (pdpt_index < 512) : (pdpt_index += 1) {
-        const pdpt_entry = pdpt.get_entry(pdpt_index);
-        if (!pdpt_entry.is_present()) continue;
-        if (pdpt_entry.is_huge()) continue;
+fn freePDPT(pdpt: *Table) void {
+    var pdpt_index: u32 = 0;
+    while (pdpt_index < constants.tables.PDPT_ENTRIES) : (pdpt_index += 1) {
+        const pdpt_entry = pdpt.getEntry(@truncate(pdpt_index));
+        if (!pdpt_entry.isPresent()) continue;
+        if (pdpt_entry.isHuge()) continue;
 
-        const pd = tables.get_table_from_physical(pdpt_entry.get_physical_address());
-        free_pd(pd);
+        const pd = tables.walk.getTableFromPhysical(pdpt_entry.getPhysicalAddress());
+        freePD(pd);
 
-        pmm.free_page(pdpt_entry.get_physical_address());
+        pmm.free.single.freePage(pdpt_entry.getPhysicalAddress());
         pdpt_entry.clear();
     }
 }
 
-fn free_pd(pd: *Table) void {
-    var pd_index: u9 = 0;
-    while (pd_index < 512) : (pd_index += 1) {
-        const pd_entry = pd.get_entry(pd_index);
-        if (!pd_entry.is_present()) continue;
-        if (pd_entry.is_huge()) continue;
+fn freePD(pd: *Table) void {
+    var pd_index: u32 = 0;
+    while (pd_index < constants.tables.PD_ENTRIES) : (pd_index += 1) {
+        const pd_entry = pd.getEntry(@truncate(pd_index));
+        if (!pd_entry.isPresent()) continue;
+        if (pd_entry.isHuge()) continue;
 
-        pmm.free_page(pd_entry.get_physical_address());
+        pmm.free.single.freePage(pd_entry.getPhysicalAddress());
         pd_entry.clear();
     }
 }
 
 pub fn reference(kagami: *Kagami) void {
-    kagami.increment_reference();
+    kagami.incrementReference();
 }
 
 pub fn release(kagami: *Kagami) void {

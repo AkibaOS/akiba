@@ -1,49 +1,51 @@
 //! Create Kagami
 
-const common = @import("root").common;
+const common = @import("common");
+
+const constants = @import("../constants/constants.zig");
 const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
-const state = @import("../state.zig");
+const state = @import("../state/state.zig");
 const tables = @import("../tables/tables.zig");
+const types = @import("../types/types.zig");
 
-const AllocationError = common.errors.memory.AllocationError;
-const Kagami = types.Kagami;
-const Table = types.Table;
+const AllocationError = common.errors.memory.allocation.AllocationError;
+const Kagami = types.kagami.Kagami;
+const pool = constants.pool;
 
-var kagami_pool: [256]Kagami = undefined;
-var kagami_pool_bitmap: [32]u8 = [_]u8{0} ** 32;
+var kagami_pool: [pool.MAX_KAGAMI]Kagami = undefined;
+var kagami_pool_bitmap: [pool.POOL_BITMAP_BYTES]u8 = [_]u8{0} ** pool.POOL_BITMAP_BYTES;
 
 pub fn create() AllocationError!*Kagami {
-    const pml4_physical = try pmm.allocate_page_zeroed();
+    const pml4_physical = try pmm.allocate.single.allocatePageZeroed();
 
-    const kagami = allocate_kagami_struct() orelse {
-        pmm.free_page(pml4_physical);
+    const kagami = allocateKagamiStruct() orelse {
+        pmm.free.single.freePage(pml4_physical);
         return AllocationError.OutOfMemory;
     };
 
     kagami.* = Kagami{
-        .pml4_physical = pml4_physical,
-        .reference_count = 1,
-        .resident_pages = 0,
-        .wired_pages = 0,
-        .table_pages = 1,
-        .lock = false,
+        .PML4Physical = pml4_physical,
+        .ReferenceCount = 1,
+        .ResidentPages = 0,
+        .WiredPages = 0,
+        .TablePages = 1,
+        .Lock = false,
     };
 
-    const kernel_kagami = state.get_kernel_kagami();
-    const new_pml4 = tables.get_pml4(pml4_physical);
-    const kernel_pml4 = tables.get_pml4(kernel_kagami.pml4_physical);
+    const kernel_kagami = state.getKernelKagami();
+    const new_pml4 = tables.walk.getPML4(pml4_physical);
+    const kernel_pml4 = tables.walk.getPML4(kernel_kagami.PML4Physical);
 
-    new_pml4.copy_kernel_entries(kernel_pml4);
+    new_pml4.copyKernelEntries(kernel_pml4);
 
     return kagami;
 }
 
-fn allocate_kagami_struct() ?*Kagami {
+fn allocateKagamiStruct() ?*Kagami {
     var index: usize = 0;
-    while (index < 256) : (index += 1) {
-        const byte_index = index / 8;
-        const bit_index: u3 = @truncate(index % 8);
+    while (index < pool.MAX_KAGAMI) : (index += 1) {
+        const byte_index = index / @bitSizeOf(u8);
+        const bit_index: u3 = @truncate(index % @bitSizeOf(u8));
 
         if ((kagami_pool_bitmap[byte_index] & (@as(u8, 1) << bit_index)) == 0) {
             kagami_pool_bitmap[byte_index] |= (@as(u8, 1) << bit_index);
@@ -53,19 +55,19 @@ fn allocate_kagami_struct() ?*Kagami {
     return null;
 }
 
-pub fn free_kagami_struct(kagami: *Kagami) void {
-    const base_ptr: usize = @intFromPtr(&kagami_pool[0]);
-    const kagami_ptr: usize = @intFromPtr(kagami);
+pub fn freeKagamiStruct(kagami: *Kagami) void {
+    const base_pointer: usize = @intFromPtr(&kagami_pool[0]);
+    const kagami_pointer: usize = @intFromPtr(kagami);
 
-    if (kagami_ptr < base_ptr) return;
+    if (kagami_pointer < base_pointer) return;
 
-    const offset = kagami_ptr - base_ptr;
+    const offset = kagami_pointer - base_pointer;
     const index = offset / @sizeOf(Kagami);
 
-    if (index >= 256) return;
+    if (index >= pool.MAX_KAGAMI) return;
 
-    const byte_index = index / 8;
-    const bit_index: u3 = @truncate(index % 8);
+    const byte_index = index / @bitSizeOf(u8);
+    const bit_index: u3 = @truncate(index % @bitSizeOf(u8));
 
     kagami_pool_bitmap[byte_index] &= ~(@as(u8, 1) << bit_index);
 }

@@ -1,17 +1,19 @@
 //! Enter Mapping (VA -> PA)
 
-const common = @import("root").common;
-const types = @import("../types/types.zig");
-const tables = @import("../tables/tables.zig");
+const common = @import("common");
+
+const cpu = @import("asm").cpu;
+
 const constants = @import("../constants/constants.zig");
-const asm_cpu = @import("asm").cpu;
+const tables = @import("../tables/tables.zig");
+const types = @import("../types/types.zig");
 
-const paging_flags = common.constants.paging.flags;
-const MappingError = common.errors.memory.MappingError;
-const AllocationError = common.errors.memory.AllocationError;
+const AllocationError = common.errors.memory.allocation.AllocationError;
+const MappingError = common.errors.memory.mapping.MappingError;
+const sizes = common.constants.memory.sizes;
 
-const Entry = types.Entry;
-const Kagami = types.Kagami;
+const Entry = types.entry.Entry;
+const Kagami = types.kagami.Kagami;
 
 pub fn enter(
     kagami: *Kagami,
@@ -19,69 +21,69 @@ pub fn enter(
     physical_address: u64,
     protection: u8,
 ) (MappingError || AllocationError)!void {
-    if ((virtual_address & 0xFFF) != 0) {
+    if ((virtual_address & sizes.PAGE_MASK) != 0) {
         return MappingError.AddressNotAligned;
     }
 
-    if ((physical_address & 0xFFF) != 0) {
+    if ((physical_address & sizes.PAGE_MASK) != 0) {
         return MappingError.AddressNotAligned;
     }
 
-    const entry = try tables.ensure_tables(kagami, virtual_address);
+    const entry = try tables.allocate.ensureTables(kagami, virtual_address);
 
-    if (entry.is_present()) {
+    if (entry.isPresent()) {
         return MappingError.AlreadyMapped;
     }
 
-    entry.* = build_entry(physical_address, protection);
+    entry.* = buildEntry(physical_address, protection);
 
-    kagami.add_resident();
+    kagami.addResident();
 
-    if ((protection & constants.protection.wired) != 0) {
-        kagami.add_wired();
+    if ((protection & constants.protection.WIRED) != 0) {
+        kagami.addWired();
     }
 
-    asm_cpu.invalidate_page(virtual_address);
+    cpu.control.invalidatePage(virtual_address);
 }
 
-pub fn enter_replace(
+pub fn enterReplace(
     kagami: *Kagami,
     virtual_address: u64,
     physical_address: u64,
     protection: u8,
 ) (MappingError || AllocationError)!void {
-    if ((virtual_address & 0xFFF) != 0) {
+    if ((virtual_address & sizes.PAGE_MASK) != 0) {
         return MappingError.AddressNotAligned;
     }
 
-    if ((physical_address & 0xFFF) != 0) {
+    if ((physical_address & sizes.PAGE_MASK) != 0) {
         return MappingError.AddressNotAligned;
     }
 
-    const entry = try tables.ensure_tables(kagami, virtual_address);
+    const entry = try tables.allocate.ensureTables(kagami, virtual_address);
 
-    const was_present = entry.is_present();
+    const was_present = entry.isPresent();
 
-    entry.* = build_entry(physical_address, protection);
+    entry.* = buildEntry(physical_address, protection);
 
     if (!was_present) {
-        kagami.add_resident();
+        kagami.addResident();
     }
 
-    asm_cpu.invalidate_page(virtual_address);
+    cpu.control.invalidatePage(virtual_address);
 }
 
-fn build_entry(physical_address: u64, protection: u8) Entry {
+fn buildEntry(physical_address: u64, protection: u8) Entry {
     var entry = Entry{
-        .present = true,
-        .writable = (protection & constants.protection.write) != 0,
-        .user_accessible = (protection & constants.protection.user) != 0,
-        .cache_disabled = (protection & constants.protection.nocache) != 0,
-        .global = (protection & constants.protection.user) == 0,
-        .no_execute = (protection & constants.protection.execute) == 0,
+        .Present = true,
+        .Writable = (protection & constants.protection.WRITE) != 0,
+        .UserAccessible = (protection & constants.protection.USER) != 0,
+        .CacheDisabled = (protection & constants.protection.NOCACHE) != 0,
+        .Global = (protection & constants.protection.USER) == 0,
+        .NoExecute = (protection & constants.protection.EXECUTE) == 0,
     };
 
-    entry.set_physical_address(physical_address);
+    entry.setPhysicalAddress(physical_address);
 
     return entry;
 }

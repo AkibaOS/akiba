@@ -1,35 +1,38 @@
 //! Extract Physical Address
 
-const types = @import("../types/types.zig");
-const tables = @import("../tables/tables.zig");
+const common = @import("common");
 
-const Entry = types.Entry;
-const Kagami = types.Kagami;
+const tables = @import("../tables/tables.zig");
+const types = @import("../types/types.zig");
+
+const indices = common.constants.paging.indices;
+
+const Kagami = types.kagami.Kagami;
 
 pub fn extract(kagami: *const Kagami, virtual_address: u64) ?u64 {
-    const entry = tables.walk_to_entry(kagami.pml4_physical, virtual_address) orelse return null;
+    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return null;
 
-    if (!entry.is_present()) {
+    if (!entry.isPresent()) {
         return null;
     }
 
-    const physical_base = entry.get_physical_address();
-    const offset = virtual_address & 0xFFF;
+    const physical_base = entry.getPhysicalAddress();
+    const offset = virtual_address & indices.OFFSET_MASK;
 
     return physical_base | offset;
 }
 
-pub fn is_mapped(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk_to_entry(kagami.pml4_physical, virtual_address) orelse return false;
-    return entry.is_present();
+pub fn isMapped(kagami: *const Kagami, virtual_address: u64) bool {
+    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
+    return entry.isPresent();
 }
 
-pub fn is_writable(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk_to_entry(kagami.pml4_physical, virtual_address) orelse return false;
-    return entry.is_present() and entry.is_writable();
+pub fn isWritable(kagami: *const Kagami, virtual_address: u64) bool {
+    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
+    return entry.isPresent() and entry.isWritable();
 }
 
-pub fn is_user_accessible(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk_to_entry(kagami.pml4_physical, virtual_address) orelse return false;
-    return entry.is_present() and entry.is_user();
+pub fn isUserAccessible(kagami: *const Kagami, virtual_address: u64) bool {
+    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
+    return entry.isPresent() and entry.isUser();
 }

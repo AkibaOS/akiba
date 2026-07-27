@@ -1,100 +1,101 @@
 //! Page Table Allocation
 
-const common = @import("root").common;
+const common = @import("common");
+
+const constants = @import("../constants/constants.zig");
+const index = @import("index.zig");
 const pmm = @import("../../pmm/pmm.zig");
 const types = @import("../types/types.zig");
 const walk = @import("walk.zig");
 
-const paging = common.constants.paging;
-const memory = common.constants.memory;
-const AllocationError = common.errors.memory.AllocationError;
+const AllocationError = common.errors.memory.allocation.AllocationError;
 
-const Entry = types.Entry;
-const Table = types.Table;
-const Kagami = types.Kagami;
+const Entry = types.entry.Entry;
+const Kagami = types.kagami.Kagami;
+const Table = types.table.Table;
 
-pub fn allocate_table() AllocationError!u64 {
-    const physical_address = try pmm.allocate_page_zeroed();
+pub fn allocateTable() AllocationError!u64 {
+    const physical_address = try pmm.allocate.single.allocatePageZeroed();
     return physical_address;
 }
 
-pub fn free_table(physical_address: u64) void {
-    pmm.free_page(physical_address);
+pub fn freeTable(physical_address: u64) void {
+    pmm.free.single.freePage(physical_address);
 }
 
-pub fn ensure_pdpt(kagami: *Kagami, virtual_address: u64) AllocationError!*Table {
-    const pml4 = walk.get_pml4(kagami.pml4_physical);
-    const pml4_index = paging.indices.extract_pml4_index(virtual_address);
-    const entry = pml4.get_entry(pml4_index);
+pub fn ensurePDPT(kagami: *Kagami, virtual_address: u64) AllocationError!*Table {
+    const pml4 = walk.getPML4(kagami.PML4Physical);
+    const pml4_index = index.extractPML4Index(virtual_address);
+    const entry = pml4.getEntry(pml4_index);
 
-    if (entry.is_present()) {
-        return walk.get_table_from_physical(entry.get_physical_address());
+    if (entry.isPresent()) {
+        return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 
-    const new_table_physical = try allocate_table();
-    kagami.add_table();
+    const new_table_physical = try allocateTable();
+    kagami.addTable();
 
     entry.* = Entry{
-        .present = true,
-        .writable = true,
-        .user_accessible = (pml4_index < 256),
+        .Present = true,
+        .Writable = true,
+        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
     };
-    entry.set_physical_address(new_table_physical);
+    entry.setPhysicalAddress(new_table_physical);
 
-    return walk.get_table_from_physical(new_table_physical);
+    return walk.getTableFromPhysical(new_table_physical);
 }
 
-pub fn ensure_pd(kagami: *Kagami, pdpt: *Table, virtual_address: u64) AllocationError!*Table {
-    const pdpt_index = paging.indices.extract_pdpt_index(virtual_address);
-    const entry = pdpt.get_entry(pdpt_index);
+pub fn ensurePD(kagami: *Kagami, pdpt: *Table, virtual_address: u64) AllocationError!*Table {
+    const pdpt_index = index.extractPDPTIndex(virtual_address);
+    const entry = pdpt.getEntry(pdpt_index);
 
-    if (entry.is_present()) {
-        return walk.get_table_from_physical(entry.get_physical_address());
+    if (entry.isPresent()) {
+        return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 
-    const new_table_physical = try allocate_table();
-    kagami.add_table();
+    const new_table_physical = try allocateTable();
+    kagami.addTable();
 
-    const pml4_index = paging.indices.extract_pml4_index(virtual_address);
+    const pml4_index = index.extractPML4Index(virtual_address);
 
     entry.* = Entry{
-        .present = true,
-        .writable = true,
-        .user_accessible = (pml4_index < 256),
+        .Present = true,
+        .Writable = true,
+        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
     };
-    entry.set_physical_address(new_table_physical);
+    entry.setPhysicalAddress(new_table_physical);
 
-    return walk.get_table_from_physical(new_table_physical);
+    return walk.getTableFromPhysical(new_table_physical);
 }
 
-pub fn ensure_pt(kagami: *Kagami, pd: *Table, virtual_address: u64) AllocationError!*Table {
-    const pd_index = paging.indices.extract_pd_index(virtual_address);
-    const entry = pd.get_entry(pd_index);
+pub fn ensurePT(kagami: *Kagami, pd: *Table, virtual_address: u64) AllocationError!*Table {
+    const pd_index = index.extractPDIndex(virtual_address);
+    const entry = pd.getEntry(pd_index);
 
-    if (entry.is_present()) {
-        return walk.get_table_from_physical(entry.get_physical_address());
+    if (entry.isPresent()) {
+        return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 
-    const new_table_physical = try allocate_table();
-    kagami.add_table();
+    const new_table_physical = try allocateTable();
+    kagami.addTable();
 
-    const pml4_index = paging.indices.extract_pml4_index(virtual_address);
+    const pml4_index = index.extractPML4Index(virtual_address);
 
     entry.* = Entry{
-        .present = true,
-        .writable = true,
-        .user_accessible = (pml4_index < 256),
+        .Present = true,
+        .Writable = true,
+        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
     };
-    entry.set_physical_address(new_table_physical);
+    entry.setPhysicalAddress(new_table_physical);
 
-    return walk.get_table_from_physical(new_table_physical);
+    return walk.getTableFromPhysical(new_table_physical);
 }
 
-pub fn ensure_tables(kagami: *Kagami, virtual_address: u64) AllocationError!*Entry {
-    const pdpt = try ensure_pdpt(kagami, virtual_address);
-    const pd = try ensure_pd(kagami, pdpt, virtual_address);
-    const pt = try ensure_pt(kagami, pd, virtual_address);
+pub fn ensureTables(kagami: *Kagami, virtual_address: u64) AllocationError!*Entry {
+    const pdpt = try ensurePDPT(kagami, virtual_address);
+    const pd = try ensurePD(kagami, pdpt, virtual_address);
+    const pt = try ensurePT(kagami, pd, virtual_address);
 
-    const pt_index = paging.indices.extract_pt_index(virtual_address);
-    return pt.get_entry(pt_index);
+    const pt_index = index.extractPTIndex(virtual_address);
+    return pt.getEntry(pt_index);
 }

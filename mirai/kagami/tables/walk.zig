@@ -1,75 +1,76 @@
 //! Page Table Walking
 
-const common = @import("root").common;
+const common = @import("common");
+
+const index = @import("index.zig");
 const types = @import("../types/types.zig");
 
-const paging = common.constants.paging;
-const memory = common.constants.memory;
+const layout = common.constants.memory.layout;
 
-const Entry = types.Entry;
-const Table = types.Table;
+const Entry = types.entry.Entry;
+const Table = types.table.Table;
 
-pub fn get_table_from_physical(physical_address: u64) *Table {
-    const virtual_address = physical_address + memory.layout.physmap_base;
+pub fn getTableFromPhysical(physical_address: u64) *Table {
+    const virtual_address = physical_address + layout.PHYSMAP_BASE;
     return @ptrFromInt(virtual_address);
 }
 
-pub fn get_pml4(pml4_physical: u64) *Table {
-    return get_table_from_physical(pml4_physical);
+pub fn getPML4(pml4_physical: u64) *Table {
+    return getTableFromPhysical(pml4_physical);
 }
 
-pub fn get_pdpt(pml4: *Table, virtual_address: u64) ?*Table {
-    const pml4_index = paging.indices.extract_pml4_index(virtual_address);
-    const entry = pml4.get_entry(pml4_index);
+pub fn getPDPT(pml4: *Table, virtual_address: u64) ?*Table {
+    const pml4_index = index.extractPML4Index(virtual_address);
+    const entry = pml4.getEntry(pml4_index);
 
-    if (!entry.is_present()) {
+    if (!entry.isPresent()) {
         return null;
     }
 
-    return get_table_from_physical(entry.get_physical_address());
+    return getTableFromPhysical(entry.getPhysicalAddress());
 }
 
-pub fn get_pd(pdpt: *Table, virtual_address: u64) ?*Table {
-    const pdpt_index = paging.indices.extract_pdpt_index(virtual_address);
-    const entry = pdpt.get_entry(pdpt_index);
+pub fn getPD(pdpt: *Table, virtual_address: u64) ?*Table {
+    const pdpt_index = index.extractPDPTIndex(virtual_address);
+    const entry = pdpt.getEntry(pdpt_index);
 
-    if (!entry.is_present()) {
+    if (!entry.isPresent()) {
         return null;
     }
 
-    if (entry.is_huge()) {
+    if (entry.isHuge()) {
         return null;
     }
 
-    return get_table_from_physical(entry.get_physical_address());
+    return getTableFromPhysical(entry.getPhysicalAddress());
 }
 
-pub fn get_pt(pd: *Table, virtual_address: u64) ?*Table {
-    const pd_index = paging.indices.extract_pd_index(virtual_address);
-    const entry = pd.get_entry(pd_index);
+pub fn getPT(pd: *Table, virtual_address: u64) ?*Table {
+    const pd_index = index.extractPDIndex(virtual_address);
+    const entry = pd.getEntry(pd_index);
 
-    if (!entry.is_present()) {
+    if (!entry.isPresent()) {
         return null;
     }
 
-    if (entry.is_huge()) {
+    if (entry.isHuge()) {
         return null;
     }
 
-    return get_table_from_physical(entry.get_physical_address());
+    return getTableFromPhysical(entry.getPhysicalAddress());
 }
 
-pub fn get_page_entry(pt: *Table, virtual_address: u64) *Entry {
-    const pt_index = paging.indices.extract_pt_index(virtual_address);
-    return pt.get_entry(pt_index);
+pub fn getPageEntry(pt: *Table, virtual_address: u64) *Entry {
+    const pt_index = index.extractPTIndex(virtual_address);
+    return pt.getEntry(pt_index);
 }
 
-pub fn walk_to_entry(pml4_physical: u64, virtual_address: u64) ?*Entry {
-    const pml4 = get_pml4(pml4_physical);
+pub fn walkToEntry(pml4_physical: u64, virtual_address: u64) ?*Entry {
+    const pml4 = getPML4(pml4_physical);
 
-    const pdpt = get_pdpt(pml4, virtual_address) orelse return null;
-    const pd = get_pd(pdpt, virtual_address) orelse return null;
-    const pt = get_pt(pd, virtual_address) orelse return null;
+    const pdpt = getPDPT(pml4, virtual_address) orelse return null;
+    const pd = getPD(pdpt, virtual_address) orelse return null;
+    const pt = getPT(pd, virtual_address) orelse return null;
 
-    return get_page_entry(pt, virtual_address);
+    return getPageEntry(pt, virtual_address);
 }
