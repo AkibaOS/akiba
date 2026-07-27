@@ -1,28 +1,32 @@
 //! Memory Region Type
 
+const common = @import("common");
+
+const sizes = common.constants.memory.sizes;
+
+pub const RegionType = enum(u32) {
+    Available = 1,
+    Reserved = 2,
+    ACPIReclaimable = 3,
+    ACPINVS = 4,
+    Bad = 5,
+    _,
+};
+
 pub const MemoryRegion = struct {
-    base_address: u64,
-    length: u64,
-    region_type: RegionType,
+    BaseAddress: u64,
+    Length: u64,
+    RegionType: RegionType,
 
-    pub const RegionType = enum(u32) {
-        available = 1,
-        reserved = 2,
-        acpi_reclaimable = 3,
-        acpi_nvs = 4,
-        bad = 5,
-        _,
-    };
-
-    pub fn end_address(self: MemoryRegion) u64 {
-        return self.base_address + self.length;
+    pub fn endAddress(self: MemoryRegion) u64 {
+        return self.BaseAddress + self.Length;
     }
 
-    pub fn page_count(self: MemoryRegion) u64 {
-        return self.length / 4096;
+    pub fn pageCount(self: MemoryRegion) u64 {
+        return self.Length / sizes.PAGE_SIZE;
     }
 
-    pub fn is_usable(self: MemoryRegion) bool {
-        return self.region_type == .available;
+    pub fn isUsable(self: MemoryRegion) bool {
+        return self.RegionType == .Available;
     }
 };

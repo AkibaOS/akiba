@@ -1,26 +1,30 @@
 //! Physical Memory Statistics
 
+const common = @import("common");
+
+const sizes = common.constants.memory.sizes;
+
 pub const Statistics = struct {
-    total_pages: u64,
-    free_pages: u64,
-    used_pages: u64,
-    reserved_pages: u64,
-    wired_pages: u64,
+    TotalPages: u64,
+    FreePages: u64,
+    UsedPages: u64,
+    ReservedPages: u64,
+    WiredPages: u64,
 
-    pub fn total_bytes(self: Statistics) u64 {
-        return self.total_pages * 4096;
+    pub fn totalBytes(self: Statistics) u64 {
+        return self.TotalPages * sizes.PAGE_SIZE;
     }
 
-    pub fn free_bytes(self: Statistics) u64 {
-        return self.free_pages * 4096;
+    pub fn freeBytes(self: Statistics) u64 {
+        return self.FreePages * sizes.PAGE_SIZE;
     }
 
-    pub fn used_bytes(self: Statistics) u64 {
-        return self.used_pages * 4096;
+    pub fn usedBytes(self: Statistics) u64 {
+        return self.UsedPages * sizes.PAGE_SIZE;
     }
 
-    pub fn usage_percentage(self: Statistics) u8 {
-        if (self.total_pages == 0) return 0;
-        return @truncate((self.used_pages * 100) / self.total_pages);
+    pub fn usagePercentage(self: Statistics) u8 {
+        if (self.TotalPages == 0) return 0;
+        return @truncate((self.UsedPages * 100) / self.TotalPages);
     }
 };

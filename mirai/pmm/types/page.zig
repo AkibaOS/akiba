@@ -1,27 +1,31 @@
 //! Physical Page Type
 
+const common = @import("common");
+
+const sizes = common.constants.memory.sizes;
+
 pub const PhysicalPage = struct {
-    frame_number: u64,
-    reference_count: u32,
-    flags: PageFlags,
+    FrameNumber: u64,
+    ReferenceCount: u32,
+    Flags: PageFlags,
 
     pub const PageFlags = packed struct {
-        allocated: bool = false,
-        wired: bool = false,
-        reserved: bool = false,
-        kernel: bool = false,
-        padding: u28 = 0,
+        Allocated: bool = false,
+        Wired: bool = false,
+        Reserved: bool = false,
+        Kernel: bool = false,
+        Padding: u28 = 0,
     };
 
-    pub fn physical_address(self: PhysicalPage) u64 {
-        return self.frame_number << 12;
+    pub fn physicalAddress(self: PhysicalPage) u64 {
+        return self.FrameNumber << sizes.PAGE_SHIFT;
     }
 
-    pub fn from_physical_address(address: u64) PhysicalPage {
+    pub fn fromPhysicalAddress(address: u64) PhysicalPage {
         return PhysicalPage{
-            .frame_number = address >> 12,
-            .reference_count = 0,
-            .flags = .{},
+            .FrameNumber = address >> sizes.PAGE_SHIFT,
+            .ReferenceCount = 0,
+            .Flags = .{},
         };
     }
 };

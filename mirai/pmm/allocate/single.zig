@@ -1,40 +1,43 @@
 //! Single Page Allocation
 
+const common = @import("common");
+
 const bitmap = @import("../bitmap/bitmap.zig");
-const state = @import("../state.zig");
-const common = @import("root").common;
+const state = @import("../state/state.zig");
 
-const AllocationError = common.errors.memory.AllocationError;
+const AllocationError = common.errors.memory.allocation.AllocationError;
+const layout = common.constants.memory.layout;
+const sizes = common.constants.memory.sizes;
 
-pub fn allocate_page() AllocationError!u64 {
-    const pmm_state = state.get_state();
+pub fn allocatePage() AllocationError!u64 {
+    const pmm_state = state.getState();
 
-    if (pmm_state.free_pages == 0) {
+    if (pmm_state.FreePages == 0) {
         return AllocationError.OutOfMemory;
     }
 
-    const page_index = bitmap.find_first_clear(
-        pmm_state.bitmap,
-        pmm_state.search_start,
-        pmm_state.total_pages,
-    ) orelse bitmap.find_first_clear(
-        pmm_state.bitmap,
+    const page_index = bitmap.operations.findFirstClear(
+        pmm_state.Bitmap,
+        pmm_state.SearchStart,
+        pmm_state.TotalPages,
+    ) orelse bitmap.operations.findFirstClear(
+        pmm_state.Bitmap,
         0,
-        pmm_state.search_start,
+        pmm_state.SearchStart,
     ) orelse return AllocationError.OutOfMemory;
 
-    bitmap.set_bit(pmm_state.bitmap, page_index);
-    pmm_state.free_pages -= 1;
-    pmm_state.used_pages += 1;
-    pmm_state.search_start = page_index + 1;
+    bitmap.operations.setBit(pmm_state.Bitmap, page_index);
+    pmm_state.FreePages -= 1;
+    pmm_state.UsedPages += 1;
+    pmm_state.SearchStart = page_index + 1;
 
-    return page_index << 12;
+    return page_index << sizes.PAGE_SHIFT;
 }
 
-pub fn allocate_page_zeroed() AllocationError!u64 {
-    const physical_address = try allocate_page();
-    const virtual_address = physical_address + common.constants.memory.layout.physmap_base;
-    const page_ptr: [*]u8 = @ptrFromInt(virtual_address);
-    @memset(page_ptr[0..4096], 0);
+pub fn allocatePageZeroed() AllocationError!u64 {
+    const physical_address = try allocatePage();
+    const virtual_address = physical_address + layout.PHYSMAP_BASE;
+    const page_pointer: [*]u8 = @ptrFromInt(virtual_address);
+    @memset(page_pointer[0..sizes.PAGE_SIZE], 0);
     return physical_address;
 }

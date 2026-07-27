@@ -1,25 +1,29 @@
 //! Single Page Free
 
+const common = @import("common");
+
 const bitmap = @import("../bitmap/bitmap.zig");
-const state = @import("../state.zig");
+const state = @import("../state/state.zig");
 
-pub fn free_page(physical_address: u64) void {
-    const page_index = physical_address >> 12;
-    const pmm_state = state.get_state();
+const sizes = common.constants.memory.sizes;
 
-    if (page_index >= pmm_state.total_pages) {
+pub fn freePage(physical_address: u64) void {
+    const page_index = physical_address >> sizes.PAGE_SHIFT;
+    const pmm_state = state.getState();
+
+    if (page_index >= pmm_state.TotalPages) {
         return;
     }
 
-    if (!bitmap.test_bit(pmm_state.bitmap, page_index)) {
+    if (!bitmap.operations.testBit(pmm_state.Bitmap, page_index)) {
         return;
     }
 
-    bitmap.clear_bit(pmm_state.bitmap, page_index);
-    pmm_state.free_pages += 1;
-    pmm_state.used_pages -= 1;
+    bitmap.operations.clearBit(pmm_state.Bitmap, page_index);
+    pmm_state.FreePages += 1;
+    pmm_state.UsedPages -= 1;
 
-    if (page_index < pmm_state.search_start) {
-        pmm_state.search_start = page_index;
+    if (page_index < pmm_state.SearchStart) {
+        pmm_state.SearchStart = page_index;
     }
 }
