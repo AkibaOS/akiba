@@ -1,17 +1,18 @@
 //! Halt All CPUs
 
-const asm_cpu = @import("asm").cpu;
+const cpu = @import("asm").cpu;
+const interrupt = @import("asm").interrupts;
 
-pub fn halt_all() noreturn {
-    asm_cpu.disable_interrupts();
-    asm_cpu.halt_loop();
+pub fn haltAll() noreturn {
+    interrupt.flags.disableInterrupts();
+    cpu.halt.haltLoop();
 }
 
-pub fn halt_current() noreturn {
-    asm_cpu.disable_interrupts();
-    asm_cpu.halt_loop();
+pub fn haltCurrent() noreturn {
+    interrupt.flags.disableInterrupts();
+    cpu.halt.haltLoop();
 }
 
-pub fn send_halt_ipi() void {}
+pub fn sendHaltIPI() void {}
 
-pub fn wait_for_other_cpus() void {}
+pub fn waitForOtherCPUs() void {}

@@ -1,22 +1,25 @@
 //! Breach Handler (Page Fault, Segment Fault)
 
-const serial = @import("../../drivers/serial/serial.zig");
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
 const classify = @import("../classify/classify.zig");
-const messages = @import("../strings/strings.zig").messages;
-const Exception = types.Exception;
-const Action = constants.Action;
-const PageFaultError = classify.PageFaultError;
+const constants = @import("../constants/constants.zig");
+const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
+
+const messages = strings.messages;
+
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
+const PageFaultError = classify.analyze.PageFaultError;
 
 pub fn handle(exception: *Exception) Action {
-    if (exception.vector == 14) {
-        const err = PageFaultError.from_error_code(exception.code);
-        if (exception.context.is_kernel_mode()) {
-            serial.printf(messages.KERNEL_PAGE_FAULT, .{ exception.address, err.description() });
-            return .collapse;
+    if (exception.Vector == constants.vectors.PAGE_FAULT_VECTOR) {
+        const fault = PageFaultError.fromErrorCode(exception.Code);
+        if (exception.Context.isKernelMode()) {
+            serial.write.printf(messages.KERNEL_PAGE_FAULT, .{ exception.Address, fault.description() });
+            return .Collapse;
         }
-        return .@"resume";
+        return .Resume;
     }
-    return if (exception.context.is_kernel_mode()) .collapse else .terminate;
+    return if (exception.Context.isKernelMode()) .Collapse else .Terminate;
 }

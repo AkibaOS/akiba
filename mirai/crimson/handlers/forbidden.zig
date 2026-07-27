@@ -1,16 +1,18 @@
 //! Forbidden Handler (Invalid Opcode, GPF)
 
 const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const messages = @import("../strings/strings.zig").messages;
-const Exception = types.Exception;
-const Action = constants.Action;
+
+const messages = strings.messages;
+
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
 
 pub fn handle(exception: *Exception) Action {
-    if (exception.context.is_kernel_mode()) {
-        serial.printf(messages.KERNEL_FORBIDDEN, .{ exception.context.rip, exception.vector, exception.code });
-        return .collapse;
+    if (exception.Context.isKernelMode()) {
+        serial.write.printf(messages.KERNEL_FORBIDDEN, .{ exception.Context.RIP, exception.Vector, exception.Code });
+        return .Collapse;
     }
-    return .terminate;
+    return .Terminate;
 }

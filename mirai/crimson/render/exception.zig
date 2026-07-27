@@ -1,62 +1,66 @@
 //! Render Exception Info
 
-const serial = @import("../../drivers/serial/serial.zig");
-const types = @import("../types/types.zig");
 const classify = @import("../classify/classify.zig");
-const messages = @import("../strings/strings.zig").messages;
+const constants = @import("../constants/constants.zig");
+const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
 
-const Exception = types.Exception;
-const PageFaultError = classify.PageFaultError;
+const limits = constants.limits;
+const messages = strings.messages;
+
+const Exception = types.exception.Exception;
+const PageFaultError = classify.analyze.PageFaultError;
 
 pub fn render(exception: *const Exception) void {
-    serial.printf(messages.EXCEPTION_LINE, .{
-        exception.exception_type.name(),
-        classify.get_vector_name(exception.vector),
+    serial.write.printf(messages.EXCEPTION_LINE, .{
+        exception.ExceptionType.name(),
+        classify.vector.getVectorName(exception.Vector),
     });
 
-    serial.printf(messages.VECTOR, .{exception.vector});
-    serial.printf(messages.CODE, .{exception.code});
-    serial.printf(messages.SUBCODE, .{exception.subcode});
+    serial.write.printf(messages.VECTOR, .{exception.Vector});
+    serial.write.printf(messages.CODE, .{exception.Code});
+    serial.write.printf(messages.SUBCODE, .{exception.Subcode});
 
-    if (exception.address != 0) {
-        serial.printf(messages.FAULT_ADDRESS, .{exception.address});
+    if (exception.Address != 0) {
+        serial.write.printf(messages.FAULT_ADDRESS, .{exception.Address});
     }
 
-    if (exception.vector == 14) {
-        render_page_fault_details(exception.code);
+    if (exception.Vector == constants.vectors.PAGE_FAULT_VECTOR) {
+        renderPageFaultDetails(exception.Code);
     }
 
-    serial.printf(messages.LOCATION, .{
-        if (exception.context.is_kernel_mode()) messages.LOCATION_KERNEL else messages.LOCATION_USER,
+    serial.write.printf(messages.LOCATION, .{
+        if (exception.Context.isKernelMode()) messages.LOCATION_KERNEL else messages.LOCATION_USER,
     });
 
-    if (exception.kata_id != 0) {
-        serial.printf(messages.KATA_THREAD, .{ exception.kata_id, exception.thread_id });
+    if (exception.KataId != 0) {
+        serial.write.printf(messages.KATA_THREAD, .{ exception.KataId, exception.ThreadId });
     }
 
-    serial.printf("\n", .{});
+    serial.write.printf("\n", .{});
 }
 
-fn render_page_fault_details(error_code: u64) void {
-    const pf_error = PageFaultError.from_error_code(error_code);
+fn renderPageFaultDetails(error_code: u64) void {
+    const fault = PageFaultError.fromErrorCode(error_code);
 
-    serial.printf(messages.ACCESS, .{pf_error.description()});
+    serial.write.printf(messages.ACCESS, .{fault.description()});
 
-    if (pf_error.user) {
-        serial.printf(messages.MODE_USER, .{});
+    if (fault.User) {
+        serial.write.printf(messages.MODE_USER, .{});
     } else {
-        serial.printf(messages.MODE_KERNEL, .{});
+        serial.write.printf(messages.MODE_KERNEL, .{});
     }
 }
 
-pub fn render_faulting_instruction(rip: u64) void {
-    serial.printf(messages.FAULTING_INSTRUCTION_HEADER, .{});
-    serial.printf(messages.ADDRESS, .{rip});
+pub fn renderFaultingInstruction(rip: u64) void {
+    serial.write.printf(messages.FAULTING_INSTRUCTION_HEADER, .{});
+    serial.write.printf(messages.ADDRESS, .{rip});
 
-    const code_ptr: [*]const u8 = @ptrFromInt(rip);
-    serial.printf(messages.BYTES_LABEL, .{});
-    for (0..8) |i| {
-        serial.printf("%x ", .{code_ptr[i]});
+    const code_pointer: [*]const u8 = @ptrFromInt(rip);
+    serial.write.printf(messages.BYTES_LABEL, .{});
+    for (0..limits.RENDER_INSTRUCTION_BYTES) |index| {
+        serial.write.printf("%x ", .{code_pointer[index]});
     }
-    serial.printf("\n\n", .{});
+    serial.write.printf("\n\n", .{});
 }

@@ -1,47 +1,53 @@
 //! CPU Context
 
+const constants = @import("../constants/constants.zig");
+
+const privileges = constants.privileges;
+
 pub const Context = extern struct {
-    rax: u64 = 0,
-    rbx: u64 = 0,
-    rcx: u64 = 0,
-    rdx: u64 = 0,
-    rsi: u64 = 0,
-    rdi: u64 = 0,
-    rbp: u64 = 0,
-    rsp: u64 = 0,
-    r8: u64 = 0,
-    r9: u64 = 0,
-    r10: u64 = 0,
-    r11: u64 = 0,
-    r12: u64 = 0,
-    r13: u64 = 0,
-    r14: u64 = 0,
-    r15: u64 = 0,
-    rip: u64 = 0,
-    rflags: u64 = 0,
-    cs: u16 = 0,
-    ds: u16 = 0,
-    es: u16 = 0,
-    fs: u16 = 0,
-    gs: u16 = 0,
-    ss: u16 = 0,
-    padding: u32 = 0,
-    cr0: u64 = 0,
-    cr2: u64 = 0,
-    cr3: u64 = 0,
-    cr4: u64 = 0,
+    RAX: u64 = 0,
+    RBX: u64 = 0,
+    RCX: u64 = 0,
+    RDX: u64 = 0,
+    RSI: u64 = 0,
+    RDI: u64 = 0,
+    RBP: u64 = 0,
+    RSP: u64 = 0,
+    R8: u64 = 0,
+    R9: u64 = 0,
+    R10: u64 = 0,
+    R11: u64 = 0,
+    R12: u64 = 0,
+    R13: u64 = 0,
+    R14: u64 = 0,
+    R15: u64 = 0,
+    RIP: u64 = 0,
+    RFLAGS: u64 = 0,
+    CS: u16 = 0,
+    DS: u16 = 0,
+    ES: u16 = 0,
+    FS: u16 = 0,
+    GS: u16 = 0,
+    SS: u16 = 0,
+    Padding: u32 = 0,
+    CR0: u64 = 0,
+    CR2: u64 = 0,
+    CR3: u64 = 0,
+    CR4: u64 = 0,
 
     pub fn clear(self: *Context) void {
         self.* = Context{};
     }
 
-    pub fn is_user_mode(self: *const Context) bool {
-        return (self.cs & 0x3) == 3;
+    pub fn isUserMode(self: *const Context) bool {
+        return (self.CS & privileges.PRIVILEGE_MASK) == privileges.USER_PRIVILEGE_LEVEL;
     }
-    pub fn is_kernel_mode(self: *const Context) bool {
-        return (self.cs & 0x3) == 0;
+
+    pub fn isKernelMode(self: *const Context) bool {
+        return (self.CS & privileges.PRIVILEGE_MASK) == privileges.KERNEL_PRIVILEGE_LEVEL;
     }
-    pub fn get_fault_address(self: *const Context) u64 {
-        return self.cr2;
+
+    pub fn getFaultAddress(self: *const Context) u64 {
+        return self.CR2;
     }
 };

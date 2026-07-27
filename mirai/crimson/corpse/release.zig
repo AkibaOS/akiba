@@ -1,26 +1,27 @@
 //! Release Corpse Resources
 
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-const Corpse = types.Corpse;
+const limits = constants.limits;
 
-pub const max_corpses = 16;
+const Corpse = types.corpse.Corpse;
 
-var corpse_pool: [max_corpses]Corpse = init_pool();
-var corpse_in_use: [max_corpses]bool = [_]bool{false} ** max_corpses;
+var corpse_pool: [limits.MAX_CORPSES]Corpse = initPool();
+var corpse_in_use: [limits.MAX_CORPSES]bool = [_]bool{false} ** limits.MAX_CORPSES;
 
-fn init_pool() [max_corpses]Corpse {
-    var pool: [max_corpses]Corpse = undefined;
-    for (&pool) |*c| {
-        c.clear();
+fn initPool() [limits.MAX_CORPSES]Corpse {
+    var pool: [limits.MAX_CORPSES]Corpse = undefined;
+    for (&pool) |*corpse| {
+        corpse.clear();
     }
     return pool;
 }
 
 pub fn allocate() ?*Corpse {
-    for (&corpse_pool, 0..) |*corpse, i| {
-        if (!corpse_in_use[i]) {
-            corpse_in_use[i] = true;
+    for (&corpse_pool, 0..) |*corpse, index| {
+        if (!corpse_in_use[index]) {
+            corpse_in_use[index] = true;
             corpse.clear();
             return corpse;
         }
@@ -29,25 +30,25 @@ pub fn allocate() ?*Corpse {
 }
 
 pub fn release(corpse: *Corpse) void {
-    for (&corpse_pool, 0..) |*pool_corpse, i| {
+    for (&corpse_pool, 0..) |*pool_corpse, index| {
         if (pool_corpse == corpse) {
-            corpse_in_use[i] = false;
+            corpse_in_use[index] = false;
             corpse.clear();
             return;
         }
     }
 }
 
-pub fn release_all_for_kata(kata_id: u64) void {
-    for (&corpse_pool, 0..) |*corpse, i| {
-        if (corpse_in_use[i] and corpse.kata_id == kata_id) {
-            corpse_in_use[i] = false;
+pub fn releaseAllForKata(kata_id: u64) void {
+    for (&corpse_pool, 0..) |*corpse, index| {
+        if (corpse_in_use[index] and corpse.KataId == kata_id) {
+            corpse_in_use[index] = false;
             corpse.clear();
         }
     }
 }
 
-pub fn get_active_count() usize {
+pub fn getActiveCount() usize {
     var count: usize = 0;
     for (corpse_in_use) |in_use| {
         if (in_use) count += 1;

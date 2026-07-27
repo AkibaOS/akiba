@@ -1,45 +1,47 @@
 //! Terminate Kata
 
+const corpse = @import("../corpse/corpse.zig");
 const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
 const types = @import("../types/types.zig");
-const corpse_ops = @import("../corpse/corpse.zig");
-const messages = @import("../strings/strings.zig").messages;
 
-const Exception = types.Exception;
-const Corpse = types.Corpse;
+const messages = strings.messages;
+
+const Corpse = types.corpse.Corpse;
+const Exception = types.exception.Exception;
 
 pub fn terminate(exception: *const Exception) void {
-    serial.printf(messages.TERMINATE_KATA_THREAD, .{
-        exception.kata_id,
-        exception.thread_id,
+    serial.write.printf(messages.TERMINATE_KATA_THREAD, .{
+        exception.KataId,
+        exception.ThreadId,
     });
 
-    cleanup_thread(exception.thread_id);
-    cleanup_kata_if_last(exception.kata_id);
+    cleanupThread(exception.ThreadId);
+    cleanupKataIfLast(exception.KataId);
 }
 
-pub fn terminate_with_corpse(exception: *const Exception) ?*Corpse {
-    serial.printf(messages.TERMINATE_KATA_CORPSE, .{exception.kata_id});
+pub fn terminateWithCorpse(exception: *const Exception) ?*Corpse {
+    serial.write.printf(messages.TERMINATE_KATA_CORPSE, .{exception.KataId});
 
-    const corpse = corpse_ops.allocate();
-    if (corpse) |c| {
-        c.* = corpse_ops.generate(exception);
+    const allocated = corpse.release.allocate();
+    if (allocated) |new_corpse| {
+        new_corpse.* = corpse.generate.generate(exception);
     }
 
     terminate(exception);
 
-    return corpse;
+    return allocated;
 }
 
-fn cleanup_thread(thread_id: u64) void {
+fn cleanupThread(thread_id: u64) void {
     _ = thread_id;
 }
 
-fn cleanup_kata_if_last(kata_id: u64) void {
+fn cleanupKataIfLast(kata_id: u64) void {
     _ = kata_id;
 }
 
-pub fn is_last_thread(kata_id: u64) bool {
+pub fn isLastThread(kata_id: u64) bool {
     _ = kata_id;
     return true;
 }

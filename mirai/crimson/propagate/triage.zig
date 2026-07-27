@@ -1,35 +1,33 @@
 //! Exception Triage
 
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const handlers = @import("../handlers/handlers.zig");
-const ports = @import("../ports/ports.zig");
 const chain = @import("chain.zig");
-const deliver = @import("deliver.zig");
+const entry = @import("../handlers/entry.zig");
+const ports = @import("../ports/ports.zig");
+const types = @import("../types/types.zig");
 
-const Exception = types.Exception;
-const Action = constants.Action;
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
 
 pub fn triage(exception: *Exception) Action {
-    const handler_action = handlers.dispatch(exception);
+    const handler_action = entry.dispatch(exception);
 
-    if (handler_action == .collapse) {
-        return .collapse;
+    if (handler_action == .Collapse) {
+        return .Collapse;
     }
 
-    if (handler_action == .@"resume") {
-        return .@"resume";
+    if (handler_action == .Resume) {
+        return .Resume;
     }
 
-    const lookup_result = ports.find_port(exception);
-    if (!lookup_result.found) {
-        return handlers.default_action(exception.exception_type);
+    const lookup_result = ports.lookup.findPort(exception);
+    if (!lookup_result.Found) {
+        return entry.defaultAction(exception.ExceptionType);
     }
 
-    const port = lookup_result.port;
-    if (!port.is_valid()) {
-        return handlers.default_action(exception.exception_type);
+    const port = lookup_result.Port;
+    if (!port.isValid()) {
+        return entry.defaultAction(exception.ExceptionType);
     }
 
-    return chain.propagate_through_chain(exception);
+    return chain.propagateThroughChain(exception);
 }

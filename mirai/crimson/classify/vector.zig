@@ -1,18 +1,36 @@
 //! Vector Classification
 
-const constants = @import("../constants/constants.zig");
-const ExceptionType = constants.ExceptionType;
-const vectors = constants.vectors;
+const common = @import("common");
 
-pub fn classify_vector(vector_number: u8) ExceptionType {
-    return vectors.get_exception_type(vector_number);
+const constants = @import("../constants/constants.zig");
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
+
+const interrupts = common.constants.interrupts;
+
+const ExceptionType = types.kind.ExceptionType;
+
+pub fn classifyVector(vector_number: u8) ExceptionType {
+    for (constants.vectors.VECTORS) |vector| {
+        if (vector.Number == vector_number) return vector.ExceptionType;
+    }
+    return .Forbidden;
 }
-pub fn get_vector_name(vector_number: u8) []const u8 {
-    return vectors.get_name(vector_number);
+
+pub fn getVectorName(vector_number: u8) []const u8 {
+    for (constants.vectors.VECTORS) |vector| {
+        if (vector.Number == vector_number) return vector.Name;
+    }
+    return strings.names.VECTOR_UNKNOWN;
 }
-pub fn vector_has_error_code(vector_number: u8) bool {
-    return vectors.has_error_code(vector_number);
+
+pub fn vectorHasErrorCode(vector_number: u8) bool {
+    for (constants.vectors.VECTORS) |vector| {
+        if (vector.Number == vector_number) return vector.HasErrorCode;
+    }
+    return false;
 }
-pub fn is_exception_vector(vector_number: u8) bool {
-    return vector_number < 32;
+
+pub fn isExceptionVector(vector_number: u8) bool {
+    return vector_number < interrupts.vectors.EXCEPTION_COUNT;
 }

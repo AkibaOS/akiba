@@ -1,79 +1,78 @@
 //! Kata Exception Ports
 
-const types = @import("../types/types.zig");
+const array = @import("array.zig");
 const constants = @import("../constants/constants.zig");
-const array_module = @import("array.zig");
+const types = @import("../types/types.zig");
 
-const Port = types.Port;
-const PortOwner = types.PortOwner;
-const PortArray = array_module.PortArray;
-const ExceptionType = constants.ExceptionType;
-const Behavior = constants.Behavior;
-const Flavor = constants.Flavor;
+const limits = constants.limits;
 
-pub const max_katas = 256;
+const Behavior = types.behavior.Behavior;
+const ExceptionType = types.kind.ExceptionType;
+const Flavor = types.flavor.Flavor;
+const Port = types.port.Port;
+const PortArray = array.PortArray;
 
-var kata_ports: [max_katas]PortArray = init_all();
+var kata_ports: [limits.MAX_KATAS]PortArray = initAll();
 
-fn init_all() [max_katas]PortArray {
-    var arrays: [max_katas]PortArray = undefined;
-    for (&arrays) |*a| {
-        a.* = PortArray.init();
+fn initAll() [limits.MAX_KATAS]PortArray {
+    var arrays: [limits.MAX_KATAS]PortArray = undefined;
+    for (&arrays) |*port_array| {
+        port_array.* = PortArray.init();
     }
     return arrays;
 }
 
-pub fn get_port(kata_id: u64, exception_type: ExceptionType) *const Port {
-    if (kata_id >= max_katas) {
+pub fn getPort(kata_id: u64, exception_type: ExceptionType) *const Port {
+    if (kata_id >= limits.MAX_KATAS) {
         return &empty_port;
     }
-    return kata_ports[kata_id].get_const(exception_type);
+    return kata_ports[kata_id].getConst(exception_type);
 }
 
-pub fn set_port(kata_id: u64, exception_type: ExceptionType, port_id: u64, behavior: Behavior, flavor: Flavor) bool {
-    if (kata_id >= max_katas) {
+pub fn setPort(kata_id: u64, exception_type: ExceptionType, port_id: u64, behavior: Behavior, flavor: Flavor) bool {
+    if (kata_id >= limits.MAX_KATAS) {
         return false;
     }
     const port = Port{
-        .port_id = port_id,
-        .behavior = behavior,
-        .flavor = flavor,
-        .owner = .kata,
-        .owner_id = kata_id,
-        .active = true,
+        .PortId = port_id,
+        .Behavior = behavior,
+        .Flavor = flavor,
+        .Owner = .Kata,
+        .OwnerId = kata_id,
+        .Active = true,
     };
     kata_ports[kata_id].set(exception_type, port);
     return true;
 }
 
-pub fn clear_port(kata_id: u64, exception_type: ExceptionType) bool {
-    if (kata_id >= max_katas) {
+pub fn clearPort(kata_id: u64, exception_type: ExceptionType) bool {
+    if (kata_id >= limits.MAX_KATAS) {
         return false;
     }
     kata_ports[kata_id].get(exception_type).clear();
     return true;
 }
 
-pub fn has_port(kata_id: u64, exception_type: ExceptionType) bool {
-    if (kata_id >= max_katas) {
+pub fn hasPort(kata_id: u64, exception_type: ExceptionType) bool {
+    if (kata_id >= limits.MAX_KATAS) {
         return false;
     }
-    return kata_ports[kata_id].has_port(exception_type);
+    return kata_ports[kata_id].hasPort(exception_type);
 }
 
-pub fn clear_all_for_kata(kata_id: u64) bool {
-    if (kata_id >= max_katas) {
+pub fn clearAllForKata(kata_id: u64) bool {
+    if (kata_id >= limits.MAX_KATAS) {
         return false;
     }
-    kata_ports[kata_id].clear_all();
+    kata_ports[kata_id].clearAll();
     return true;
 }
 
 var empty_port: Port = Port{
-    .port_id = 0,
-    .behavior = .default,
-    .flavor = .none,
-    .owner = .none,
-    .owner_id = 0,
-    .active = false,
+    .PortId = 0,
+    .Behavior = .Default,
+    .Flavor = .None,
+    .Owner = .None,
+    .OwnerId = 0,
+    .Active = false,
 };

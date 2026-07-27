@@ -1,49 +1,51 @@
 //! Parse Reply Actions
 
-const types = @import("../types/types.zig");
 const constants = @import("../constants/constants.zig");
+const types = @import("../types/types.zig");
 
-const Context = types.Context;
-const Action = constants.Action;
+const replies = constants.replies;
+
+const Action = types.behavior.Action;
+const Context = types.context.Context;
 
 pub const ParsedAction = struct {
-    action: Action,
-    modify_state: bool,
-    new_context: ?*Context,
-    valid: bool,
+    Action: Action,
+    ModifyState: bool,
+    NewContext: ?*Context,
+    Valid: bool,
 };
 
-pub fn parse_action_code(code: u64) ParsedAction {
-    const action_value: u8 = @truncate(code & 0xFF);
-    const flags: u8 = @truncate((code >> 8) & 0xFF);
+pub fn parseActionCode(code: u64) ParsedAction {
+    const action_value: u8 = @truncate(code & replies.ACTION_MASK);
+    const flags: u8 = @truncate((code >> replies.FLAGS_SHIFT) & replies.ACTION_MASK);
 
     const action: Action = switch (action_value) {
-        0 => .@"resume",
-        1 => .skip,
-        2 => .terminate,
-        3 => .terminate_corpse,
-        4 => .collapse,
-        5 => .debug,
+        @intFromEnum(Action.Resume) => .Resume,
+        @intFromEnum(Action.Skip) => .Skip,
+        @intFromEnum(Action.Terminate) => .Terminate,
+        @intFromEnum(Action.TerminateCorpse) => .TerminateCorpse,
+        @intFromEnum(Action.Collapse) => .Collapse,
+        @intFromEnum(Action.Debug) => .Debug,
         else => return ParsedAction{
-            .action = .terminate,
-            .modify_state = false,
-            .new_context = null,
-            .valid = false,
+            .Action = .Terminate,
+            .ModifyState = false,
+            .NewContext = null,
+            .Valid = false,
         },
     };
 
     return ParsedAction{
-        .action = action,
-        .modify_state = (flags & 1) != 0,
-        .new_context = null,
-        .valid = true,
+        .Action = action,
+        .ModifyState = (flags & replies.MODIFY_STATE_FLAG) != 0,
+        .NewContext = null,
+        .Valid = true,
     };
 }
 
-pub fn encode_action(action: Action, modify_state: bool) u64 {
+pub fn encodeAction(action: Action, modify_state: bool) u64 {
     var code: u64 = @intFromEnum(action);
     if (modify_state) {
-        code |= (1 << 8);
+        code |= (@as(u64, replies.MODIFY_STATE_FLAG) << replies.FLAGS_SHIFT);
     }
     return code;
 }

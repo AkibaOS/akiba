@@ -1,77 +1,79 @@
 //! Trigger Collapse (Panic)
 
-const serial = @import("../../drivers/serial/serial.zig");
-const types = @import("../types/types.zig");
-const render = @import("../render/render.zig");
+const constants = @import("../constants/constants.zig");
 const gather = @import("gather.zig");
-const halt_module = @import("halt.zig");
-const messages = @import("../strings/strings.zig").messages;
+const halt = @import("halt.zig");
+const render = @import("../render/render.zig");
+const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
 
-const Exception = types.Exception;
-const Context = types.Context;
+const limits = constants.limits;
+const messages = strings.messages;
+
+const Context = types.context.Context;
+const Exception = types.exception.Exception;
 
 var collapse_in_progress: bool = false;
-var collapse_message: [256]u8 = undefined;
-var collapse_message_len: usize = 0;
+var collapse_message: [limits.MESSAGE_CAPACITY]u8 = undefined;
+var collapse_message_length: usize = 0;
 
 pub fn collapse(message: []const u8, exception: ?*const Exception) noreturn {
     if (collapse_in_progress) {
-        serial.printf(messages.DOUBLE_COLLAPSE, .{});
-        halt_module.halt_all();
+        serial.write.printf(messages.DOUBLE_COLLAPSE, .{});
+        halt.haltAll();
     }
 
     collapse_in_progress = true;
 
-    set_message(message);
+    setMessage(message);
 
-    render.render_collapse_banner();
-    render.render_message(get_message());
+    render.banner.render();
+    render.banner.renderMessage(getMessage());
 
-    if (exception) |exc| {
-        render.render_exception(exc);
-        render.render_context(exc.context);
+    if (exception) |found| {
+        render.exception.render(found);
+        render.context.render(found.Context);
     } else {
         var context: Context = undefined;
-        gather.capture_current_context(&context);
-        render.render_context(&context);
+        gather.captureCurrentContext(&context);
+        render.context.render(&context);
     }
 
-    render.render_halt_message();
+    render.banner.renderHalt();
 
-    halt_module.halt_all();
+    halt.haltAll();
 }
 
-pub fn collapse_with_context(message: []const u8, context: *const Context) noreturn {
+pub fn collapseWithContext(message: []const u8, context: *const Context) noreturn {
     if (collapse_in_progress) {
-        serial.printf(messages.DOUBLE_COLLAPSE, .{});
-        halt_module.halt_all();
+        serial.write.printf(messages.DOUBLE_COLLAPSE, .{});
+        halt.haltAll();
     }
 
     collapse_in_progress = true;
 
-    set_message(message);
+    setMessage(message);
 
-    render.render_collapse_banner();
-    render.render_message(get_message());
-    render.render_context(context);
-    render.render_halt_message();
+    render.banner.render();
+    render.banner.renderMessage(getMessage());
+    render.context.render(context);
+    render.banner.renderHalt();
 
-    halt_module.halt_all();
+    halt.haltAll();
 }
 
-fn set_message(message: []const u8) void {
-    const len = @min(message.len, 255);
-    for (message[0..len], 0..) |c, i| {
-        collapse_message[i] = c;
-    }
-    collapse_message[len] = 0;
-    collapse_message_len = len;
+fn setMessage(message: []const u8) void {
+    const length = @min(message.len, limits.MESSAGE_CAPACITY - 1);
+    @memcpy(collapse_message[0..length], message[0..length]);
+    collapse_message[length] = 0;
+    collapse_message_length = length;
 }
 
-fn get_message() []const u8 {
-    return collapse_message[0..collapse_message_len];
+fn getMessage() []const u8 {
+    return collapse_message[0..collapse_message_length];
 }
 
-pub fn is_collapsing() bool {
+pub fn isCollapsing() bool {
     return collapse_in_progress;
 }

@@ -1,27 +1,30 @@
 //! Render Stack Trace
 
+const constants = @import("../constants/constants.zig");
 const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
 const types = @import("../types/types.zig");
-const messages = @import("../strings/strings.zig").messages;
 
-const Context = types.Context;
+const limits = constants.limits;
+const messages = strings.messages;
+
+const Context = types.context.Context;
 
 pub fn render(context: *const Context) void {
-    serial.printf(messages.STACK_TRACE_HEADER, .{});
+    serial.write.printf(messages.STACK_TRACE_HEADER, .{});
 
-    var rbp = context.rbp;
+    var rbp = context.RBP;
     var depth: usize = 0;
-    const max_depth: usize = 20;
 
-    while (rbp != 0 and depth < max_depth) {
-        const frame_ptr: [*]const u64 = @ptrFromInt(rbp);
+    while (rbp != 0 and depth < limits.RENDER_MAX_STACK_DEPTH) {
+        const frame_pointer: [*]const u64 = @ptrFromInt(rbp);
 
-        const return_address = frame_ptr[1];
+        const return_address = frame_pointer[1];
         if (return_address == 0) break;
 
-        serial.printf("  [%d] %x\n", .{ depth, return_address });
+        serial.write.printf("  [%d] %x\n", .{ depth, return_address });
 
-        const next_rbp = frame_ptr[0];
+        const next_rbp = frame_pointer[0];
         if (next_rbp <= rbp) break;
 
         rbp = next_rbp;
@@ -29,20 +32,20 @@ pub fn render(context: *const Context) void {
     }
 
     if (depth == 0) {
-        serial.printf(messages.NO_STACK_FRAMES, .{});
+        serial.write.printf(messages.NO_STACK_FRAMES, .{});
     }
 
-    serial.printf("\n", .{});
+    serial.write.printf("\n", .{});
 }
 
-pub fn render_raw_stack(rsp: u64, count: usize) void {
-    serial.printf(messages.RAW_STACK, .{rsp});
+pub fn renderRawStack(rsp: u64, count: usize) void {
+    serial.write.printf(messages.RAW_STACK, .{rsp});
 
-    const stack_ptr: [*]const u64 = @ptrFromInt(rsp);
+    const stack_pointer: [*]const u64 = @ptrFromInt(rsp);
 
-    for (0..count) |i| {
-        serial.printf("  [%x]: %x\n", .{ rsp + i * 8, stack_ptr[i] });
+    for (0..count) |index| {
+        serial.write.printf("  [%x]: %x\n", .{ rsp + index * @sizeOf(u64), stack_pointer[index] });
     }
 
-    serial.printf("\n", .{});
+    serial.write.printf("\n", .{});
 }

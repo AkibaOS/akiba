@@ -1,54 +1,53 @@
 //! Port Lookup (Thread → Kata → Host Chain)
 
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const thread = @import("thread.zig");
-const kata = @import("kata.zig");
 const host = @import("host.zig");
+const kata = @import("kata.zig");
+const thread = @import("thread.zig");
+const types = @import("../types/types.zig");
 
-const Port = types.Port;
-const Exception = types.Exception;
-const ExceptionType = constants.ExceptionType;
+const Exception = types.exception.Exception;
+const ExceptionType = types.kind.ExceptionType;
+const Port = types.port.Port;
 
 pub const LookupResult = struct {
-    port: *const Port,
-    found: bool,
+    Port: *const Port,
+    Found: bool,
 };
 
-pub fn find_port(exception: *const Exception) LookupResult {
-    return find_port_for(exception.thread_id, exception.kata_id, exception.exception_type);
+pub fn findPort(exception: *const Exception) LookupResult {
+    return findPortFor(exception.ThreadId, exception.KataId, exception.ExceptionType);
 }
 
-pub fn find_port_for(thread_id: u64, kata_id: u64, exception_type: ExceptionType) LookupResult {
-    if (thread.has_port(thread_id, exception_type)) {
+pub fn findPortFor(thread_id: u64, kata_id: u64, exception_type: ExceptionType) LookupResult {
+    if (thread.hasPort(thread_id, exception_type)) {
         return LookupResult{
-            .port = thread.get_port(thread_id, exception_type),
-            .found = true,
+            .Port = thread.getPort(thread_id, exception_type),
+            .Found = true,
         };
     }
 
-    if (kata.has_port(kata_id, exception_type)) {
+    if (kata.hasPort(kata_id, exception_type)) {
         return LookupResult{
-            .port = kata.get_port(kata_id, exception_type),
-            .found = true,
+            .Port = kata.getPort(kata_id, exception_type),
+            .Found = true,
         };
     }
 
-    if (host.has_port(exception_type)) {
+    if (host.hasPort(exception_type)) {
         return LookupResult{
-            .port = host.get_port(exception_type),
-            .found = true,
+            .Port = host.getPort(exception_type),
+            .Found = true,
         };
     }
 
     return LookupResult{
-        .port = undefined,
-        .found = false,
+        .Port = undefined,
+        .Found = false,
     };
 }
 
-pub fn has_any_port(thread_id: u64, kata_id: u64, exception_type: ExceptionType) bool {
-    return thread.has_port(thread_id, exception_type) or
-        kata.has_port(kata_id, exception_type) or
-        host.has_port(exception_type);
+pub fn hasAnyPort(thread_id: u64, kata_id: u64, exception_type: ExceptionType) bool {
+    return thread.hasPort(thread_id, exception_type) or
+        kata.hasPort(kata_id, exception_type) or
+        host.hasPort(exception_type);
 }

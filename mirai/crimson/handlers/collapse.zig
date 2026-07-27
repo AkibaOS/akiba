@@ -1,13 +1,15 @@
 //! Collapse Handler (Double Fault, Machine Check)
 
 const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const messages = @import("../strings/strings.zig").messages;
-const Exception = types.Exception;
-const Action = constants.Action;
+
+const messages = strings.messages;
+
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
 
 pub fn handle(exception: *Exception) Action {
-    serial.printf(messages.FATAL_UNRECOVERABLE, .{ exception.vector, exception.context.rip });
-    return .collapse;
+    serial.write.printf(messages.FATAL_UNRECOVERABLE, .{ exception.Vector, exception.Context.RIP });
+    return .Collapse;
 }

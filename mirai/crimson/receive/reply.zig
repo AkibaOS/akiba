@@ -1,49 +1,48 @@
 //! Exception Reply
 
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
 
-const Context = types.Context;
-const Action = constants.Action;
+const Action = types.behavior.Action;
+const Context = types.context.Context;
 
 pub const ExceptionReply = struct {
-    reply_port: u64,
-    action: Action,
-    new_context: ?*Context,
+    ReplyPort: u64,
+    Action: Action,
+    NewContext: ?*Context,
 };
 
-pub fn create_reply(reply_port: u64, action: Action) ExceptionReply {
+pub fn createReply(reply_port: u64, action: Action) ExceptionReply {
     return ExceptionReply{
-        .reply_port = reply_port,
-        .action = action,
-        .new_context = null,
+        .ReplyPort = reply_port,
+        .Action = action,
+        .NewContext = null,
     };
 }
 
-pub fn create_reply_with_state(reply_port: u64, action: Action, context: *Context) ExceptionReply {
+pub fn createReplyWithState(reply_port: u64, action: Action, context: *Context) ExceptionReply {
     return ExceptionReply{
-        .reply_port = reply_port,
-        .action = action,
-        .new_context = context,
+        .ReplyPort = reply_port,
+        .Action = action,
+        .NewContext = context,
     };
 }
 
-pub fn send_reply(reply: *const ExceptionReply) bool {
+pub fn sendReply(reply: *const ExceptionReply) bool {
     _ = reply;
     return true;
 }
 
-pub fn reply_resume(reply_port: u64) bool {
-    const reply = create_reply(reply_port, .@"resume");
-    return send_reply(&reply);
+pub fn replyResume(reply_port: u64) bool {
+    const reply = createReply(reply_port, .Resume);
+    return sendReply(&reply);
 }
 
-pub fn reply_terminate(reply_port: u64) bool {
-    const reply = create_reply(reply_port, .terminate);
-    return send_reply(&reply);
+pub fn replyTerminate(reply_port: u64) bool {
+    const reply = createReply(reply_port, .Terminate);
+    return sendReply(&reply);
 }
 
-pub fn reply_terminate_corpse(reply_port: u64) bool {
-    const reply = create_reply(reply_port, .terminate_corpse);
-    return send_reply(&reply);
+pub fn replyTerminateCorpse(reply_port: u64) bool {
+    const reply = createReply(reply_port, .TerminateCorpse);
+    return sendReply(&reply);
 }

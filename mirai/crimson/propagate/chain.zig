@@ -1,64 +1,62 @@
 //! Exception Chain (Thread → Kata → Host)
 
-const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const handlers = @import("../handlers/handlers.zig");
-const ports = @import("../ports/ports.zig");
 const deliver = @import("deliver.zig");
+const entry = @import("../handlers/entry.zig");
+const ports = @import("../ports/ports.zig");
+const types = @import("../types/types.zig");
 const wait = @import("wait.zig");
 
-const Exception = types.Exception;
-const Port = types.Port;
-const Action = constants.Action;
-const ExceptionType = constants.ExceptionType;
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
+const Port = types.port.Port;
 
-pub fn propagate_through_chain(exception: *Exception) Action {
-    if (try_thread_port(exception)) |action| {
+pub fn propagateThroughChain(exception: *Exception) Action {
+    if (tryThreadPort(exception)) |action| {
         return action;
     }
 
-    if (try_kata_port(exception)) |action| {
+    if (tryKataPort(exception)) |action| {
         return action;
     }
 
-    if (try_host_port(exception)) |action| {
+    if (tryHostPort(exception)) |action| {
         return action;
     }
 
-    return handlers.default_action(exception.exception_type);
+    return entry.defaultAction(exception.ExceptionType);
 }
 
-fn try_thread_port(exception: *Exception) ?Action {
-    if (!ports.thread.has_port(exception.thread_id, exception.exception_type)) {
+fn tryThreadPort(exception: *Exception) ?Action {
+    if (!ports.thread.hasPort(exception.ThreadId, exception.ExceptionType)) {
         return null;
     }
 
-    const port = ports.thread.get_port(exception.thread_id, exception.exception_type);
-    return deliver_and_wait(exception, port);
+    const port = ports.thread.getPort(exception.ThreadId, exception.ExceptionType);
+    return deliverAndWait(exception, port);
 }
 
-fn try_kata_port(exception: *Exception) ?Action {
-    if (!ports.kata.has_port(exception.kata_id, exception.exception_type)) {
+fn tryKataPort(exception: *Exception) ?Action {
+    if (!ports.kata.hasPort(exception.KataId, exception.ExceptionType)) {
         return null;
     }
 
-    const port = ports.kata.get_port(exception.kata_id, exception.exception_type);
-    return deliver_and_wait(exception, port);
+    const port = ports.kata.getPort(exception.KataId, exception.ExceptionType);
+    return deliverAndWait(exception, port);
 }
 
-fn try_host_port(exception: *Exception) ?Action {
-    if (!ports.host.has_port(exception.exception_type)) {
+fn tryHostPort(exception: *Exception) ?Action {
+    if (!ports.host.hasPort(exception.ExceptionType)) {
         return null;
     }
 
-    const port = ports.host.get_port(exception.exception_type);
-    return deliver_and_wait(exception, port);
+    const port = ports.host.getPort(exception.ExceptionType);
+    return deliverAndWait(exception, port);
 }
 
-fn deliver_and_wait(exception: *Exception, port: *const Port) Action {
-    if (!deliver.send_exception(exception, port)) {
-        return handlers.default_action(exception.exception_type);
+fn deliverAndWait(exception: *Exception, port: *const Port) Action {
+    if (!deliver.sendException(exception, port)) {
+        return entry.defaultAction(exception.ExceptionType);
     }
 
-    return wait.wait_for_reply(exception, port);
+    return wait.waitForReply(exception, port);
 }

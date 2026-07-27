@@ -1,60 +1,62 @@
 //! Inspect Corpse
 
+const context = @import("../context/context.zig");
 const serial = @import("../../drivers/serial/serial.zig");
+const strings = @import("../strings/strings.zig");
 const types = @import("../types/types.zig");
-const context_ops = @import("../context/context.zig");
-const messages = @import("../strings/strings.zig").messages;
 
-const Corpse = types.Corpse;
-const Context = types.Context;
+const messages = strings.messages;
+
+const Context = types.context.Context;
+const Corpse = types.corpse.Corpse;
 
 pub fn inspect(corpse: *const Corpse) void {
-    if (!corpse.is_valid()) {
-        serial.printf(messages.CORPSE_INVALID, .{});
+    if (!corpse.isValid()) {
+        serial.write.printf(messages.CORPSE_INVALID, .{});
         return;
     }
 
-    serial.printf(messages.CORPSE_HEADER, .{ corpse.kata_id, corpse.thread_id });
-    serial.printf(messages.CORPSE_EXCEPTION, .{
-        corpse.exception_type.name(),
-        corpse.exception_code,
-        corpse.exception_subcode,
+    serial.write.printf(messages.CORPSE_HEADER, .{ corpse.KataId, corpse.ThreadId });
+    serial.write.printf(messages.CORPSE_EXCEPTION, .{
+        corpse.ExceptionType.name(),
+        corpse.ExceptionCode,
+        corpse.ExceptionSubcode,
     });
 
-    if (corpse.fault_address != 0) {
-        serial.printf(messages.CORPSE_FAULT_ADDRESS, .{corpse.fault_address});
+    if (corpse.FaultAddress != 0) {
+        serial.write.printf(messages.CORPSE_FAULT_ADDRESS, .{corpse.FaultAddress});
     }
 
-    serial.printf("\n", .{});
-    context_ops.dump_context(&corpse.context);
+    serial.write.printf("\n", .{});
+    context.dump.dumpContext(&corpse.Context);
 }
 
-pub fn get_context(corpse: *const Corpse) *const Context {
-    return &corpse.context;
+pub fn getContext(corpse: *const Corpse) *const Context {
+    return &corpse.Context;
 }
 
-pub fn get_stack_snapshot(corpse: *const Corpse) []const u8 {
-    if (corpse.stack_snapshot_size == 0) {
+pub fn getStackSnapshot(corpse: *const Corpse) []const u8 {
+    if (corpse.StackSnapshotSize == 0) {
         return &[_]u8{};
     }
-    return corpse.stack_snapshot[0..corpse.stack_snapshot_size];
+    return corpse.StackSnapshot[0..corpse.StackSnapshotSize];
 }
 
-pub fn get_memory_snapshot(corpse: *const Corpse) []const u8 {
-    if (corpse.memory_snapshot_size == 0) {
+pub fn getMemorySnapshot(corpse: *const Corpse) []const u8 {
+    if (corpse.MemorySnapshotSize == 0) {
         return &[_]u8{};
     }
-    return corpse.memory_snapshot[0..corpse.memory_snapshot_size];
+    return corpse.MemorySnapshot[0..corpse.MemorySnapshotSize];
 }
 
-pub fn get_memory_snapshot_address(corpse: *const Corpse) u64 {
-    return corpse.memory_snapshot_address;
+pub fn getMemorySnapshotAddress(corpse: *const Corpse) u64 {
+    return corpse.MemorySnapshotAddress;
 }
 
-pub fn get_fault_address(corpse: *const Corpse) u64 {
-    return corpse.fault_address;
+pub fn getFaultAddress(corpse: *const Corpse) u64 {
+    return corpse.FaultAddress;
 }
 
-pub fn get_timestamp(corpse: *const Corpse) u64 {
-    return corpse.timestamp;
+pub fn getTimestamp(corpse: *const Corpse) u64 {
+    return corpse.Timestamp;
 }

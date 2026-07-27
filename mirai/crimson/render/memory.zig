@@ -1,57 +1,61 @@
 //! Render Memory Around Fault
 
+const constants = @import("../constants/constants.zig");
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("../strings/strings.zig").messages;
+const strings = @import("../strings/strings.zig");
 
-pub fn render_around_address(address: u64, bytes_before: usize, bytes_after: usize) void {
+const limits = constants.limits;
+const messages = strings.messages;
+
+pub fn renderAroundAddress(address: u64, bytes_before: usize, bytes_after: usize) void {
     if (address == 0) return;
 
     const start = if (address >= bytes_before) address - bytes_before else 0;
     const total_bytes = bytes_before + bytes_after;
 
-    serial.printf(messages.MEMORY_AROUND, .{address});
+    serial.write.printf(messages.MEMORY_AROUND, .{address});
 
-    const mem_ptr: [*]const u8 = @ptrFromInt(start);
+    const memory_pointer: [*]const u8 = @ptrFromInt(start);
 
     var offset: usize = 0;
     while (offset < total_bytes) {
-        serial.printf("  %x: ", .{start + offset});
+        serial.write.printf("  %x: ", .{start + offset});
 
-        for (0..16) |i| {
-            if (offset + i < total_bytes) {
-                serial.printf("%x ", .{mem_ptr[offset + i]});
+        for (0..limits.RENDER_BYTES_PER_ROW) |index| {
+            if (offset + index < total_bytes) {
+                serial.write.printf("%x ", .{memory_pointer[offset + index]});
             } else {
-                serial.printf("   ", .{});
+                serial.write.printf("   ", .{});
             }
         }
 
-        serial.printf(" |", .{});
-        for (0..16) |i| {
-            if (offset + i < total_bytes) {
-                const c = mem_ptr[offset + i];
-                if (c >= 0x20 and c < 0x7F) {
-                    serial.printf("%s", .{&[_]u8{c}});
+        serial.write.printf(" |", .{});
+        for (0..limits.RENDER_BYTES_PER_ROW) |index| {
+            if (offset + index < total_bytes) {
+                const byte = memory_pointer[offset + index];
+                if (byte >= 0x20 and byte < 0x7F) {
+                    serial.write.printf("%s", .{&[_]u8{byte}});
                 } else {
-                    serial.printf(".", .{});
+                    serial.write.printf(".", .{});
                 }
             }
         }
-        serial.printf("|\n", .{});
+        serial.write.printf("|\n", .{});
 
-        offset += 16;
+        offset += limits.RENDER_BYTES_PER_ROW;
     }
 
-    serial.printf("\n", .{});
+    serial.write.printf("\n", .{});
 }
 
-pub fn render_instruction_bytes(rip: u64, count: usize) void {
-    serial.printf(messages.INSTRUCTION_BYTES, .{rip});
+pub fn renderInstructionBytes(rip: u64, count: usize) void {
+    serial.write.printf(messages.INSTRUCTION_BYTES, .{rip});
 
-    const code_ptr: [*]const u8 = @ptrFromInt(rip);
+    const code_pointer: [*]const u8 = @ptrFromInt(rip);
 
-    for (0..count) |i| {
-        serial.printf("%x ", .{code_ptr[i]});
+    for (0..count) |index| {
+        serial.write.printf("%x ", .{code_pointer[index]});
     }
 
-    serial.printf("\n\n", .{});
+    serial.write.printf("\n\n", .{});
 }

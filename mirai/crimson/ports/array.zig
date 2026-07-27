@@ -1,32 +1,39 @@
 //! Port Array (Per Exception Type)
 
-const types = @import("../types/types.zig");
 const constants = @import("../constants/constants.zig");
-const Port = types.Port;
-const ExceptionType = constants.ExceptionType;
+const types = @import("../types/types.zig");
 
-pub const exception_type_count = 10;
+const limits = constants.limits;
+
+const ExceptionType = types.kind.ExceptionType;
+const Port = types.port.Port;
 
 pub const PortArray = struct {
-    ports: [exception_type_count]Port,
+    Ports: [limits.EXCEPTION_TYPE_COUNT]Port,
+
     pub fn init() PortArray {
-        var a = PortArray{ .ports = undefined };
-        for (&a.ports) |*p| p.clear();
-        return a;
+        var array = PortArray{ .Ports = undefined };
+        for (&array.Ports) |*port| port.clear();
+        return array;
     }
-    pub fn get(self: *PortArray, t: ExceptionType) *Port {
-        return &self.ports[@intFromEnum(t)];
+
+    pub fn get(self: *PortArray, exception_type: ExceptionType) *Port {
+        return &self.Ports[@intFromEnum(exception_type)];
     }
-    pub fn get_const(self: *const PortArray, t: ExceptionType) *const Port {
-        return &self.ports[@intFromEnum(t)];
+
+    pub fn getConst(self: *const PortArray, exception_type: ExceptionType) *const Port {
+        return &self.Ports[@intFromEnum(exception_type)];
     }
-    pub fn set(self: *PortArray, t: ExceptionType, port: Port) void {
-        self.ports[@intFromEnum(t)] = port;
+
+    pub fn set(self: *PortArray, exception_type: ExceptionType, port: Port) void {
+        self.Ports[@intFromEnum(exception_type)] = port;
     }
-    pub fn clear_all(self: *PortArray) void {
-        for (&self.ports) |*p| p.clear();
+
+    pub fn clearAll(self: *PortArray) void {
+        for (&self.Ports) |*port| port.clear();
     }
-    pub fn has_port(self: *const PortArray, t: ExceptionType) bool {
-        return self.get_const(t).is_valid();
+
+    pub fn hasPort(self: *const PortArray, exception_type: ExceptionType) bool {
+        return self.getConst(exception_type).isValid();
     }
 };

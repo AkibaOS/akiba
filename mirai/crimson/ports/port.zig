@@ -1,25 +1,28 @@
 //! Single Port Operations
 
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const Port = types.Port;
-const PortOwner = types.PortOwner;
-const Behavior = constants.Behavior;
-const Flavor = constants.Flavor;
+
+const Behavior = types.behavior.Behavior;
+const Flavor = types.flavor.Flavor;
+const Port = types.port.Port;
+const PortOwner = types.port.PortOwner;
 
 pub fn create(port_id: u64, owner: PortOwner, owner_id: u64) Port {
-    return Port{ .port_id = port_id, .behavior = .default, .flavor = .general, .owner = owner, .owner_id = owner_id, .active = true };
+    return Port{ .PortId = port_id, .Behavior = .Default, .Flavor = .General, .Owner = owner, .OwnerId = owner_id, .Active = true };
 }
 
-pub fn set_behavior(port: *Port, behavior: Behavior) void {
-    port.behavior = behavior;
+pub fn setBehavior(port: *Port, behavior: Behavior) void {
+    port.Behavior = behavior;
 }
-pub fn set_flavor(port: *Port, flavor: Flavor) void {
-    port.flavor = flavor;
+
+pub fn setFlavor(port: *Port, flavor: Flavor) void {
+    port.Flavor = flavor;
 }
+
 pub fn activate(port: *Port) void {
-    port.active = true;
+    port.Active = true;
 }
+
 pub fn deactivate(port: *Port) void {
-    port.active = false;
+    port.Active = false;
 }

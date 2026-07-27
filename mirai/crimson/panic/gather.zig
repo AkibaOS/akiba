@@ -1,39 +1,40 @@
 //! Gather System State
 
-const asm_cpu = @import("asm").cpu;
+const cpu = @import("asm").cpu;
+
+const context = @import("../context/context.zig");
 const types = @import("../types/types.zig");
-const context_ops = @import("../context/context.zig");
 
-const Context = types.Context;
-const FloatState = types.FloatState;
-const DebugState = types.DebugState;
+const Context = types.context.Context;
+const DebugState = types.flavor.DebugState;
+const FloatState = types.flavor.FloatState;
 
-pub fn capture_current_context(context: *Context) void {
-    context.clear();
+pub fn captureCurrentContext(target: *Context) void {
+    target.clear();
 
-    context.cr0 = asm_cpu.read_cr0();
-    context.cr2 = asm_cpu.read_cr2();
-    context.cr3 = asm_cpu.read_cr3();
-    context.cr4 = asm_cpu.read_cr4();
+    target.CR0 = cpu.control.readCR0();
+    target.CR2 = cpu.control.readCR2();
+    target.CR3 = cpu.control.readCR3();
+    target.CR4 = cpu.control.readCR4();
 
-    context.rflags = asm_cpu.read_flags();
-    context.rsp = asm_cpu.read_rsp();
+    target.RFLAGS = cpu.state.readFlags();
+    target.RSP = cpu.state.readStackPointer();
 
-    context_ops.capture_segments(context);
+    context.capture.captureSegments(target);
 }
 
-pub fn capture_float_state(state: *FloatState) void {
-    context_ops.capture_float(state);
+pub fn captureFloatState(state: *FloatState) void {
+    context.float.capture(state);
 }
 
-pub fn capture_debug_state(state: *DebugState) void {
-    context_ops.capture_debug(state);
+pub fn captureDebugState(state: *DebugState) void {
+    context.debug.capture(state);
 }
 
-pub fn get_current_cpu() u32 {
+pub fn getCurrentCPU() u32 {
     return 0;
 }
 
-pub fn get_uptime_ticks() u64 {
-    return asm_cpu.rdtsc();
+pub fn getUptimeTicks() u64 {
+    return cpu.state.readTimeStampCounter();
 }

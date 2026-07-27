@@ -1,48 +1,47 @@
 //! Wait for Exception Reply
 
+const entry = @import("../handlers/entry.zig");
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const handlers = @import("../handlers/handlers.zig");
 
-const Exception = types.Exception;
-const Port = types.Port;
-const Action = constants.Action;
+const Action = types.behavior.Action;
+const Exception = types.exception.Exception;
+const Port = types.port.Port;
 
 pub const Reply = struct {
-    action: Action,
-    new_state: bool,
-    valid: bool,
+    Action: Action,
+    NewState: bool,
+    Valid: bool,
 };
 
-pub fn wait_for_reply(exception: *Exception, port: *const Port) Action {
+pub fn waitForReply(exception: *Exception, port: *const Port) Action {
     _ = port;
 
-    const reply = receive_reply();
+    const reply = receiveReply();
 
-    if (!reply.valid) {
-        return handlers.default_action(exception.exception_type);
+    if (!reply.Valid) {
+        return entry.defaultAction(exception.ExceptionType);
     }
 
-    if (reply.new_state) {
-        apply_new_state(exception);
+    if (reply.NewState) {
+        applyNewState(exception);
     }
 
-    return reply.action;
+    return reply.Action;
 }
 
-fn receive_reply() Reply {
+fn receiveReply() Reply {
     return Reply{
-        .action = .terminate,
-        .new_state = false,
-        .valid = true,
+        .Action = .Terminate,
+        .NewState = false,
+        .Valid = true,
     };
 }
 
-fn apply_new_state(exception: *Exception) void {
+fn applyNewState(exception: *Exception) void {
     _ = exception;
 }
 
-pub fn wait_with_timeout(exception: *Exception, port: *const Port, timeout_ms: u64) Action {
+pub fn waitWithTimeout(exception: *Exception, port: *const Port, timeout_ms: u64) Action {
     _ = timeout_ms;
-    return wait_for_reply(exception, port);
+    return waitForReply(exception, port);
 }

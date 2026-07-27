@@ -1,34 +1,30 @@
 //! Render Loaded Modules
 
+const constants = @import("../constants/constants.zig");
 const serial = @import("../../drivers/serial/serial.zig");
-const messages = @import("../strings/strings.zig").messages;
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
 
-pub const ModuleInfo = struct {
-    name: [64]u8,
-    name_len: usize,
-    base_address: u64,
-    size: u64,
-};
+const limits = constants.limits;
+const messages = strings.messages;
 
-pub const max_modules = 32;
+const ModuleInfo = types.module.ModuleInfo;
 
-var loaded_modules: [max_modules]ModuleInfo = undefined;
+var loaded_modules: [limits.MAX_MODULES]ModuleInfo = undefined;
 var module_count: usize = 0;
 
-pub fn register_module(name: []const u8, base_address: u64, size: u64) bool {
-    if (module_count >= max_modules) {
+pub fn registerModule(name: []const u8, base_address: u64, size: u64) bool {
+    if (module_count >= limits.MAX_MODULES) {
         return false;
     }
 
     var module = &loaded_modules[module_count];
-    const len = @min(name.len, 63);
-    for (name[0..len], 0..) |c, i| {
-        module.name[i] = c;
-    }
-    module.name[len] = 0;
-    module.name_len = len;
-    module.base_address = base_address;
-    module.size = size;
+    const length = @min(name.len, limits.MODULE_NAME_CAPACITY - 1);
+    @memcpy(module.Name[0..length], name[0..length]);
+    module.Name[length] = 0;
+    module.NameLength = length;
+    module.BaseAddress = base_address;
+    module.Size = size;
 
     module_count += 1;
     return true;
@@ -36,35 +32,35 @@ pub fn register_module(name: []const u8, base_address: u64, size: u64) bool {
 
 pub fn render() void {
     if (module_count == 0) {
-        serial.printf(messages.MODULES_NONE, .{});
+        serial.write.printf(messages.MODULES_NONE, .{});
         return;
     }
 
-    serial.printf(messages.MODULES_HEADER, .{});
+    serial.write.printf(messages.MODULES_HEADER, .{});
 
-    for (0..module_count) |i| {
-        const module = &loaded_modules[i];
-        serial.printf(messages.MODULE_ENTRY, .{
-            module.name[0..module.name_len],
-            module.base_address,
-            module.base_address + module.size,
-            module.size,
+    for (0..module_count) |index| {
+        const module = &loaded_modules[index];
+        serial.write.printf(messages.MODULE_ENTRY, .{
+            module.Name[0..module.NameLength],
+            module.BaseAddress,
+            module.BaseAddress + module.Size,
+            module.Size,
         });
     }
 
-    serial.printf("\n", .{});
+    serial.write.printf("\n", .{});
 }
 
-pub fn find_module_for_address(address: u64) ?*const ModuleInfo {
-    for (0..module_count) |i| {
-        const module = &loaded_modules[i];
-        if (address >= module.base_address and address < module.base_address + module.size) {
+pub fn findModuleForAddress(address: u64) ?*const ModuleInfo {
+    for (0..module_count) |index| {
+        const module = &loaded_modules[index];
+        if (address >= module.BaseAddress and address < module.BaseAddress + module.Size) {
             return module;
         }
     }
     return null;
 }
 
-pub fn clear_modules() void {
+pub fn clearModules() void {
     module_count = 0;
 }

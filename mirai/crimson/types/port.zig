@@ -1,26 +1,28 @@
 //! Exception Port
 
-const constants = @import("../constants/constants.zig");
-const Behavior = constants.Behavior;
-const Flavor = constants.Flavor;
+const behavior = @import("behavior.zig");
+const flavor = @import("flavor.zig");
 
-pub const PortOwner = enum(u8) { none = 0, thread = 1, kata = 2, host = 3 };
-
-pub const Port = struct {
-    port_id: u64,
-    behavior: Behavior,
-    flavor: Flavor,
-    owner: PortOwner,
-    owner_id: u64,
-    active: bool,
-    pub fn is_valid(self: *const Port) bool {
-        return self.port_id != 0 and self.active;
-    }
-    pub fn clear(self: *Port) void {
-        self.* = Port{ .port_id = 0, .behavior = .default, .flavor = .none, .owner = .none, .owner_id = 0, .active = false };
-    }
+pub const PortOwner = enum(u8) {
+    None = 0,
+    Thread = 1,
+    Kata = 2,
+    Host = 3,
 };
 
-pub fn create_port(port_id: u64, owner: PortOwner, owner_id: u64) Port {
-    return Port{ .port_id = port_id, .behavior = .default, .flavor = .general, .owner = owner, .owner_id = owner_id, .active = true };
-}
+pub const Port = struct {
+    PortId: u64,
+    Behavior: behavior.Behavior,
+    Flavor: flavor.Flavor,
+    Owner: PortOwner,
+    OwnerId: u64,
+    Active: bool,
+
+    pub fn isValid(self: *const Port) bool {
+        return self.PortId != 0 and self.Active;
+    }
+
+    pub fn clear(self: *Port) void {
+        self.* = Port{ .PortId = 0, .Behavior = .Default, .Flavor = .None, .Owner = .None, .OwnerId = 0, .Active = false };
+    }
+};

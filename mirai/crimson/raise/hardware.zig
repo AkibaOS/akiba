@@ -1,33 +1,34 @@
 //! Raise Hardware Exception
 
+const boot = @import("../../boot/boot.zig");
+const entry = @import("../handlers/entry.zig");
 const types = @import("../types/types.zig");
-const constants = @import("../constants/constants.zig");
-const handlers = @import("../handlers/handlers.zig");
 
-const Exception = types.Exception;
-const Context = types.Context;
-const Frame = types.Frame;
-const Action = constants.Action;
+const selectors = boot.constants.gdt.selectors;
 
-pub fn raise_from_vector(vector: u8, frame: *Frame, context: *Context) Action {
-    var exception = handlers.create_exception(vector, frame, context);
-    return handlers.dispatch(&exception);
+const Action = types.behavior.Action;
+const Context = types.context.Context;
+const Frame = types.frame.Frame;
+
+pub fn raiseFromVector(vector: u8, frame: *Frame, context: *Context) Action {
+    var exception = entry.createException(vector, frame, context);
+    return entry.dispatch(&exception);
 }
 
-pub fn raise_from_interrupt(vector: u8, error_code: u64, rip: u64, rsp: u64) Action {
-    var context = handlers.get_exception_context();
-    context.rip = rip;
-    context.rsp = rsp;
+pub fn raiseFromInterrupt(vector: u8, error_code: u64, rip: u64, rsp: u64) Action {
+    var context = entry.getExceptionContext();
+    context.RIP = rip;
+    context.RSP = rsp;
 
     var frame = Frame{
-        .error_code = error_code,
-        .rip = rip,
-        .cs = 0x08,
-        .rflags = 0,
-        .rsp = rsp,
-        .ss = 0x10,
+        .ErrorCode = error_code,
+        .RIP = rip,
+        .CS = selectors.KERNEL_CODE_SELECTOR,
+        .RFLAGS = 0,
+        .RSP = rsp,
+        .SS = selectors.KERNEL_DATA_SELECTOR,
     };
 
-    var exception = handlers.create_exception(vector, &frame, context);
-    return handlers.dispatch(&exception);
+    var exception = entry.createException(vector, &frame, context);
+    return entry.dispatch(&exception);
 }

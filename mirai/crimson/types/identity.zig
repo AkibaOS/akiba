@@ -1,16 +1,29 @@
 //! Exception Identity
 
+const constants = @import("../constants/constants.zig");
+
+const limits = constants.limits;
+
 pub const Identity = struct {
-    thread_id: u64,
-    kata_id: u64,
-    thread_port: u64,
-    kata_port: u64,
-    thread_name: [32]u8,
-    kata_name: [32]u8,
+    ThreadId: u64,
+    KataId: u64,
+    ThreadPort: u64,
+    KataPort: u64,
+    ThreadName: [limits.IDENTITY_NAME_CAPACITY]u8,
+    KataName: [limits.IDENTITY_NAME_CAPACITY]u8,
+
     pub fn clear(self: *Identity) void {
-        self.* = Identity{ .thread_id = 0, .kata_id = 0, .thread_port = 0, .kata_port = 0, .thread_name = [_]u8{0} ** 32, .kata_name = [_]u8{0} ** 32 };
+        self.* = Identity{
+            .ThreadId = 0,
+            .KataId = 0,
+            .ThreadPort = 0,
+            .KataPort = 0,
+            .ThreadName = [_]u8{0} ** limits.IDENTITY_NAME_CAPACITY,
+            .KataName = [_]u8{0} ** limits.IDENTITY_NAME_CAPACITY,
+        };
     }
-    pub fn is_kernel(self: *const Identity) bool {
-        return self.kata_id == 0;
+
+    pub fn isKernel(self: *const Identity) bool {
+        return self.KataId == 0;
     }
 };
