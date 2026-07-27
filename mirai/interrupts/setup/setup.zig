@@ -25,7 +25,7 @@ pub fn initialize() void {
     }
 
     for (0..vectors.IRQ_COUNT) |index| {
-        const vector: u8 = @truncate(index) + vectors.VECTOR_OFFSET;
+        const vector: u8 = @as(u8, @truncate(index)) + vectors.VECTOR_OFFSET;
         const handler_address = @intFromPtr(handlers.hardware.stubs[index]);
         table.install.setInterrupt(vector, handler_address, selector);
     }
