@@ -1,37 +1,36 @@
 //! Zone Types
 
-pub const Zone = struct {
-    name: [32]u8,
-    name_len: u8,
-    elem_size: usize,
-    elems_per_page: usize,
-    partial_pages: ?*ZonePageMeta,
-    full_pages: ?*ZonePageMeta,
-    alloc_count: usize,
-    free_count: usize,
-    page_count: usize,
+const constants = @import("../../constants/constants.zig");
 
-    pub fn get_name(self: *const Zone) []const u8 {
-        return self.name[0..self.name_len];
+pub const Zone = struct {
+    Name: [constants.zone.limits.NAME_CAPACITY]u8,
+    NameLength: u8,
+    ElementSize: usize,
+    ElementsPerPage: usize,
+    PartialPages: ?*ZonePageMeta,
+    FullPages: ?*ZonePageMeta,
+    AllocationCount: usize,
+    FreeCount: usize,
+    PageCount: usize,
+
+    pub fn getName(self: *const Zone) []const u8 {
+        return self.Name[0..self.NameLength];
     }
 
-    pub fn in_use(self: *const Zone) usize {
-        return self.alloc_count -| self.free_count;
+    pub fn inUse(self: *const Zone) usize {
+        return self.AllocationCount -| self.FreeCount;
     }
 };
 
 pub const FreeElement = struct {
-    next: ?*FreeElement,
+    Next: ?*FreeElement,
 };
 
 pub const ZonePageMeta = struct {
-    zone: *Zone,
-    page_virt: u64,
-    page_phys: u64,
-    free_list: ?*FreeElement,
-    in_use: usize,
-    next: ?*ZonePageMeta,
+    Zone: *Zone,
+    PageVirtual: u64,
+    PagePhysical: u64,
+    FreeList: ?*FreeElement,
+    InUse: usize,
+    Next: ?*ZonePageMeta,
 };
-
-pub const page_size: usize = 4096;
-pub const min_elem_size: usize = @sizeOf(FreeElement);

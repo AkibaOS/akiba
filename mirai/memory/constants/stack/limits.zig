@@ -1,20 +1,20 @@
 //! Kernel Stack Limits
 
-const common = @import("root").common;
+const common = @import("common");
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
-pub const stack_size: u64 = layout.kernel_stack_size;
-pub const stack_pages: u64 = layout.kernel_stack_pages;
+pub const STACK_SIZE: u64 = layout.KERNEL_STACK_SIZE;
+pub const STACK_PAGES: u64 = layout.KERNEL_STACK_PAGES;
 
-pub const guard_pages: u64 = 1;
+pub const GUARD_PAGES: u64 = 1;
 
-pub const slot_pages: u64 = stack_pages + 2 * guard_pages;
-pub const slot_size: u64 = slot_pages * sizes.page_size;
+pub const SLOT_PAGES: u64 = STACK_PAGES + 2 * GUARD_PAGES;
+pub const SLOT_SIZE: u64 = SLOT_PAGES * sizes.PAGE_SIZE;
 
-pub const area_base: u64 = layout.kernel_stack_area_base;
-pub const area_size: u64 = layout.kernel_stack_area_size;
-pub const max_slots: u64 = area_size / slot_size;
+pub const AREA_BASE: u64 = layout.KERNEL_STACK_AREA_BASE;
+pub const AREA_SIZE: u64 = layout.KERNEL_STACK_AREA_SIZE;
+pub const MAX_SLOTS: u64 = AREA_SIZE / SLOT_SIZE;
 
-pub const cache_target: u64 = 8;
+pub const CACHE_TARGET: u64 = 8;

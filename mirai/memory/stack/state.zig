@@ -1,23 +1,23 @@
 //! Kernel Stack Allocator State
 
-const types = @import("../types/stack/stack.zig");
+const types = @import("../types/types.zig");
 
 pub const State = struct {
-    next_slot: u64,
-    free_list: ?*types.FreeNode,
-    free_count: u64,
-    total_count: u64,
-    high_watermark: u64,
+    NextSlot: u64,
+    FreeList: ?*types.stack.node.FreeNode,
+    FreeCount: u64,
+    TotalCount: u64,
+    HighWatermark: u64,
 };
 
 var global_state: State = .{
-    .next_slot = 0,
-    .free_list = null,
-    .free_count = 0,
-    .total_count = 0,
-    .high_watermark = 0,
+    .NextSlot = 0,
+    .FreeList = null,
+    .FreeCount = 0,
+    .TotalCount = 0,
+    .HighWatermark = 0,
 };
 
-pub fn get_state() *State {
+pub fn getState() *State {
     return &global_state;
 }

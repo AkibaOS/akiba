@@ -1,66 +1,62 @@
 //! Kernel Allocator
 
-const types = @import("../types/zone/zone.zig");
-const Zone = types.Zone;
+const common = @import("common");
 
-const create_mod = @import("../zone/create/create.zig");
-const alloc_mod = @import("../zone/alloc/alloc.zig");
-const bootstrap = @import("../zone/bootstrap/bootstrap.zig");
-const names = @import("../strings/kalloc/kalloc.zig").names;
+const constants = @import("../constants/constants.zig");
+const strings = @import("../strings/strings.zig");
+const types = @import("../types/types.zig");
+const zone = @import("../zone/zone.zig");
 
-pub const sizes = [_]usize{ 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
-const zone_count = sizes.len;
+const names = strings.kalloc.names;
+const zone_sizes = constants.kalloc.sizes.ZONE_SIZES;
 
-var zones: [zone_count]?*Zone = [_]?*Zone{null} ** zone_count;
+const AllocationError = common.errors.memory.allocation.AllocationError;
+const Zone = types.zone.Zone;
+
+var zones: [zone_sizes.len]?*Zone = [_]?*Zone{null} ** zone_sizes.len;
 var initialized: bool = false;
 
-pub const AllocError = error{
-    NotInitialized,
-    SizeTooLarge,
-    OutOfMemory,
-};
-
-pub fn init() !void {
+pub fn init() AllocationError!void {
     if (initialized) return;
-    if (!bootstrap.is_initialized()) return error.NotInitialized;
+    if (!zone.bootstrap.isInitialized()) return AllocationError.NotInitialized;
 
-    inline for (sizes, 0..) |size, i| {
-        zones[i] = try create_mod.create(zone_name(size), size);
+    inline for (zone_sizes, 0..) |size, index| {
+        zones[index] = try zone.create.create(zoneName(size), size);
     }
 
     initialized = true;
 }
 
-pub fn kalloc(size: usize) AllocError!*anyopaque {
-    if (!initialized) return AllocError.NotInitialized;
-    if (size == 0) return AllocError.SizeTooLarge;
+pub fn kalloc(size: usize) AllocationError!*anyopaque {
+    if (!initialized) return AllocationError.NotInitialized;
+    if (size == 0) return AllocationError.SizeTooLarge;
 
-    const zone = get_zone_for_size(size) orelse return AllocError.SizeTooLarge;
-    return alloc_mod.zalloc(zone) catch AllocError.OutOfMemory;
+    const target_zone = getZoneForSize(size) orelse return AllocationError.SizeTooLarge;
+    return zone.alloc.zalloc(target_zone) catch AllocationError.OutOfMemory;
 }
 
-pub fn kalloc_zeroed(size: usize) AllocError!*anyopaque {
-    if (!initialized) return AllocError.NotInitialized;
-    if (size == 0) return AllocError.SizeTooLarge;
+pub fn kallocZeroed(size: usize) AllocationError!*anyopaque {
+    if (!initialized) return AllocationError.NotInitialized;
+    if (size == 0) return AllocationError.SizeTooLarge;
 
-    const zone = get_zone_for_size(size) orelse return AllocError.SizeTooLarge;
-    return alloc_mod.zalloc_zeroed(zone) catch AllocError.OutOfMemory;
+    const target_zone = getZoneForSize(size) orelse return AllocationError.SizeTooLarge;
+    return zone.alloc.zallocZeroed(target_zone) catch AllocationError.OutOfMemory;
 }
 
-pub fn kfree(ptr: *anyopaque, size: usize) void {
+pub fn kfree(pointer: *anyopaque, size: usize) void {
     if (!initialized) return;
-    const zone = get_zone_for_size(size) orelse return;
-    alloc_mod.zfree(zone, ptr);
+    const target_zone = getZoneForSize(size) orelse return;
+    zone.alloc.zfree(target_zone, pointer);
 }
 
-fn get_zone_for_size(size: usize) ?*Zone {
-    inline for (sizes, 0..) |zone_size, i| {
-        if (size <= zone_size) return zones[i];
+fn getZoneForSize(size: usize) ?*Zone {
+    inline for (zone_sizes, 0..) |zone_size, index| {
+        if (size <= zone_size) return zones[index];
     }
     return null;
 }
 
-fn zone_name(comptime size: usize) []const u8 {
+fn zoneName(comptime size: usize) []const u8 {
     return switch (size) {
         16 => names.ZONE_16,
         32 => names.ZONE_32,

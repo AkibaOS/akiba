@@ -1,12 +1,13 @@
 //! Physical-Virtual Address Conversion
 
-const common = @import("root").common;
+const common = @import("common");
+
 const layout = common.constants.memory.layout;
 
-pub fn phys_to_virt(phys: u64) u64 {
-    return phys + layout.physmap_base;
+pub fn physToVirt(physical: u64) u64 {
+    return physical + layout.PHYSMAP_BASE;
 }
 
-pub fn virt_to_phys(virt: u64) u64 {
-    return virt - layout.physmap_base;
+pub fn virtToPhys(virtual: u64) u64 {
+    return virtual - layout.PHYSMAP_BASE;
 }
