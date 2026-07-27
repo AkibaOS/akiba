@@ -1,5 +1,5 @@
 //! Keyboard I/O Ports
 
-pub const data: u16 = 0x60;
-pub const status: u16 = 0x64;
-pub const irq: u4 = 1;
+pub const DATA: u16 = 0x60;
+pub const STATUS: u16 = 0x64;
+pub const IRQ: u4 = 1;

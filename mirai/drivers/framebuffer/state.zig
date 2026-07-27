@@ -14,22 +14,22 @@ pub fn set(framebuffer_base: u64, framebuffer_width: u32, framebuffer_height: u3
     initialized = true;
 }
 
-pub fn get_base() u64 {
+pub fn getBase() u64 {
     return base;
 }
 
-pub fn get_width() u32 {
+pub fn getWidth() u32 {
     return width;
 }
 
-pub fn get_height() u32 {
+pub fn getHeight() u32 {
     return height;
 }
 
-pub fn get_stride() u32 {
+pub fn getStride() u32 {
     return stride;
 }
 
-pub fn is_initialized() bool {
+pub fn isInitialized() bool {
     return initialized;
 }

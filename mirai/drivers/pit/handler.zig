@@ -1,8 +1,9 @@
 //! PIT IRQ Handler
 
-const constants = @import("../constants/pit/pit.zig");
-const pic = @import("../../interrupts/pic/pic.zig");
-const idt = @import("../../interrupts/idt.zig");
+const constants = @import("../constants/constants.zig");
+const interrupts = @import("../../interrupts/interrupts.zig");
+
+const limits = constants.pit.limits;
 
 var ticks: u64 = 0;
 var tick_callback: ?*const fn () void = null;
@@ -16,18 +17,18 @@ pub fn handler(_: u8) void {
 }
 
 pub fn register() void {
-    idt.register_irq(constants.irq, &handler);
-    pic.enable_irq(constants.irq);
+    interrupts.handlers.hardware.registerHandler(limits.IRQ, &handler);
+    interrupts.pic.mask.enableIRQ(limits.IRQ);
 }
 
-pub fn set_callback(callback: *const fn () void) void {
+pub fn setCallback(callback: *const fn () void) void {
     tick_callback = callback;
 }
 
-pub fn clear_callback() void {
+pub fn clearCallback() void {
     tick_callback = null;
 }
 
-pub fn get_ticks() u64 {
+pub fn getTicks() u64 {
     return ticks;
 }

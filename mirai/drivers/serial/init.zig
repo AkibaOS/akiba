@@ -1,38 +1,40 @@
 //! Serial Initialization
 
-const common = @import("root").common;
-const asm_io = @import("asm").io;
+const common = @import("common");
 
-const serial_constants = common.constants.serial;
-const ports = serial_constants.ports;
-const registers = serial_constants.registers;
+const io = @import("asm").io;
+
+const constants = @import("../constants/constants.zig");
+
+const ports = common.constants.serial.ports;
+const registers = common.constants.serial.registers;
 
 pub fn initialize(port: u16) bool {
-    asm_io.write_byte(port + registers.interrupt_enable_register, 0x00);
+    io.port.writeByte(port + registers.INTERRUPT_ENABLE_REGISTER, 0x00);
 
-    asm_io.write_byte(port + registers.line_control_register, registers.line_control_dlab);
-    asm_io.write_byte(port + registers.divisor_latch_low, @truncate(ports.default_baud_divisor));
-    asm_io.write_byte(port + registers.divisor_latch_high, @truncate(ports.default_baud_divisor >> 8));
+    io.port.writeByte(port + registers.LINE_CONTROL_REGISTER, registers.LINE_CONTROL_DLAB);
+    io.port.writeByte(port + registers.DIVISOR_LATCH_LOW, @truncate(ports.DEFAULT_BAUD_DIVISOR));
+    io.port.writeByte(port + registers.DIVISOR_LATCH_HIGH, @truncate(ports.DEFAULT_BAUD_DIVISOR >> @bitSizeOf(u8)));
 
-    asm_io.write_byte(port + registers.line_control_register, registers.line_control_8_bits);
+    io.port.writeByte(port + registers.LINE_CONTROL_REGISTER, registers.LINE_CONTROL_8_BITS);
 
-    asm_io.write_byte(port + registers.fifo_control_register, registers.fifo_enable | registers.fifo_clear_receive | registers.fifo_clear_transmit | registers.fifo_trigger_14);
+    io.port.writeByte(port + registers.FIFO_CONTROL_REGISTER, registers.FIFO_ENABLE | registers.FIFO_CLEAR_RECEIVE | registers.FIFO_CLEAR_TRANSMIT | registers.FIFO_TRIGGER_14);
 
-    asm_io.write_byte(port + registers.modem_control_register, registers.modem_dtr | registers.modem_rts | registers.modem_out2);
+    io.port.writeByte(port + registers.MODEM_CONTROL_REGISTER, registers.MODEM_DTR | registers.MODEM_RTS | registers.MODEM_OUT2);
 
-    asm_io.write_byte(port + registers.modem_control_register, registers.modem_dtr | registers.modem_rts | registers.modem_out1 | registers.modem_out2 | registers.modem_loopback);
+    io.port.writeByte(port + registers.MODEM_CONTROL_REGISTER, registers.MODEM_DTR | registers.MODEM_RTS | registers.MODEM_OUT1 | registers.MODEM_OUT2 | registers.MODEM_LOOPBACK);
 
-    asm_io.write_byte(port + registers.data_register, 0xAE);
+    io.port.writeByte(port + registers.DATA_REGISTER, constants.serial.format.LOOPBACK_TEST_BYTE);
 
-    if (asm_io.read_byte(port + registers.data_register) != 0xAE) {
+    if (io.port.readByte(port + registers.DATA_REGISTER) != constants.serial.format.LOOPBACK_TEST_BYTE) {
         return false;
     }
 
-    asm_io.write_byte(port + registers.modem_control_register, registers.modem_dtr | registers.modem_rts | registers.modem_out1 | registers.modem_out2);
+    io.port.writeByte(port + registers.MODEM_CONTROL_REGISTER, registers.MODEM_DTR | registers.MODEM_RTS | registers.MODEM_OUT1 | registers.MODEM_OUT2);
 
     return true;
 }
 
-pub fn initialize_default() bool {
-    return initialize(ports.default_port);
+pub fn initializeDefault() bool {
+    return initialize(ports.DEFAULT_PORT);
 }

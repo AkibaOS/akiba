@@ -1,10 +1,4 @@
 //! PIT - Programmable Interval Timer
 
-pub const constants = @import("../constants/pit/pit.zig");
-pub const init = @import("init.zig");
 pub const handler = @import("handler.zig");
-
-pub const initialize = init.init_default;
-pub const register = handler.register;
-pub const set_callback = handler.set_callback;
-pub const get_ticks = handler.get_ticks;
+pub const init = @import("init.zig");

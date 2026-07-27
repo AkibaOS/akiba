@@ -1,113 +1,116 @@
 //! Serial Write Operations
 
-const common = @import("root").common;
-const asm_io = @import("asm").io;
+const common = @import("common");
 
-const serial_constants = common.constants.serial;
-const ports = serial_constants.ports;
-const registers = serial_constants.registers;
+const io = @import("asm").io;
 
-var current_port: u16 = ports.default_port;
+const constants = @import("../constants/constants.zig");
+const strings = @import("../strings/strings.zig");
 
-pub fn set_port(port: u16) void {
+const format = constants.serial.format;
+const ports = common.constants.serial.ports;
+const registers = common.constants.serial.registers;
+
+var current_port: u16 = ports.DEFAULT_PORT;
+
+pub fn setPort(port: u16) void {
     current_port = port;
 }
 
-fn is_transmit_empty(port: u16) bool {
-    return (asm_io.read_byte(port + registers.line_status_register) & registers.line_status_transmit_empty) != 0;
+fn isTransmitEmpty(port: u16) bool {
+    return (io.port.readByte(port + registers.LINE_STATUS_REGISTER) & registers.LINE_STATUS_TRANSMIT_EMPTY) != 0;
 }
 
-fn write_char(port: u16, char: u8) void {
-    while (!is_transmit_empty(port)) {
-        asm_io.io_wait();
+fn writeChar(port: u16, char: u8) void {
+    while (!isTransmitEmpty(port)) {
+        io.port.ioWait();
     }
-    asm_io.write_byte(port + registers.data_register, char);
+    io.port.writeByte(port + registers.DATA_REGISTER, char);
 }
 
 pub fn printf(comptime fmt: []const u8, args: anytype) void {
     const ArgsType = @TypeOf(args);
     const fields = @typeInfo(ArgsType).@"struct".fields;
 
-    comptime var i: usize = 0;
-    comptime var arg_index: usize = 0;
+    comptime var position: usize = 0;
+    comptime var argument_index: usize = 0;
 
-    inline while (i < fmt.len) {
-        if (fmt[i] == '%' and i + 1 < fmt.len) {
-            switch (fmt[i + 1]) {
+    inline while (position < fmt.len) {
+        if (fmt[position] == '%' and position + 1 < fmt.len) {
+            switch (fmt[position + 1]) {
                 's' => {
-                    const str = @field(args, fields[arg_index].name);
-                    for (str) |c| {
-                        if (c == '\n') write_char(current_port, '\r');
-                        write_char(current_port, c);
+                    const text = @field(args, fields[argument_index].name);
+                    for (text) |char| {
+                        if (char == '\n') writeChar(current_port, '\r');
+                        writeChar(current_port, char);
                     }
-                    arg_index += 1;
-                    i += 2;
+                    argument_index += 1;
+                    position += 2;
                 },
                 'd' => {
-                    const val = @field(args, fields[arg_index].name);
-                    print_decimal_value(@intCast(val));
-                    arg_index += 1;
-                    i += 2;
+                    const value = @field(args, fields[argument_index].name);
+                    printDecimalValue(@intCast(value));
+                    argument_index += 1;
+                    position += 2;
                 },
                 'x' => {
-                    const val = @field(args, fields[arg_index].name);
-                    print_hex_value(@intCast(val));
-                    arg_index += 1;
-                    i += 2;
+                    const value = @field(args, fields[argument_index].name);
+                    printHexValue(@intCast(value));
+                    argument_index += 1;
+                    position += 2;
                 },
                 '%' => {
-                    write_char(current_port, '%');
-                    i += 2;
+                    writeChar(current_port, '%');
+                    position += 2;
                 },
                 else => {
-                    write_char(current_port, fmt[i]);
-                    i += 1;
+                    writeChar(current_port, fmt[position]);
+                    position += 1;
                 },
             }
         } else {
-            if (fmt[i] == '\n') write_char(current_port, '\r');
-            write_char(current_port, fmt[i]);
-            i += 1;
+            if (fmt[position] == '\n') writeChar(current_port, '\r');
+            writeChar(current_port, fmt[position]);
+            position += 1;
         }
     }
 }
 
-fn print_decimal_value(value: u64) void {
+fn printDecimalValue(value: u64) void {
     if (value == 0) {
-        write_char(current_port, '0');
+        writeChar(current_port, '0');
         return;
     }
 
-    var buffer: [20]u8 = undefined;
-    var temp = value;
-    var len: usize = 0;
+    var buffer: [format.MAX_DIGITS]u8 = undefined;
+    var remaining = value;
+    var length: usize = 0;
 
-    while (temp > 0) {
-        buffer[len] = @truncate((temp % 10) + '0');
-        temp /= 10;
-        len += 1;
+    while (remaining > 0) {
+        buffer[length] = @truncate((remaining % format.DECIMAL_BASE) + '0');
+        remaining /= format.DECIMAL_BASE;
+        length += 1;
     }
 
-    while (len > 0) {
-        len -= 1;
-        write_char(current_port, buffer[len]);
+    while (length > 0) {
+        length -= 1;
+        writeChar(current_port, buffer[length]);
     }
 }
 
-fn print_hex_value(value: u64) void {
-    const hex = "0123456789abcdef";
-    write_char(current_port, '0');
-    write_char(current_port, 'x');
+fn printHexValue(value: u64) void {
+    writeChar(current_port, '0');
+    writeChar(current_port, 'x');
 
     var started = false;
-    var shift: u6 = 60;
+    var shift: u6 = @bitSizeOf(u64) - format.HEX_NIBBLE_BITS;
     while (true) {
-        const nibble: u4 = @truncate((value >> shift) & 0xF);
+        const nibble: u4 = @truncate((value >> shift) & format.HEX_NIBBLE_MASK);
         if (nibble != 0 or started or shift == 0) {
-            write_char(current_port, hex[nibble]);
+            writeChar(current_port, strings.serial.format.HEX_DIGITS[nibble]);
             started = true;
         }
         if (shift == 0) break;
-        shift -= 4;
+        shift -= format.HEX_NIBBLE_BITS;
     }
 }

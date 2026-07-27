@@ -1,16 +1,19 @@
 //! PIT Initialization
 
-const constants = @import("../constants/pit/pit.zig");
-const asm_io = @import("asm").io;
+const io = @import("asm").io;
+
+const constants = @import("../constants/constants.zig");
+
+const limits = constants.pit.limits;
 
 pub fn init(frequency: u32) void {
-    const divisor: u16 = @truncate(constants.base_frequency / frequency);
+    const divisor: u16 = @truncate(limits.BASE_FREQUENCY / frequency);
 
-    asm_io.write_byte(constants.command, constants.mode_square_wave);
-    asm_io.write_byte(constants.channel0_data, @truncate(divisor));
-    asm_io.write_byte(constants.channel0_data, @truncate(divisor >> 8));
+    io.port.writeByte(limits.COMMAND, limits.MODE_SQUARE_WAVE);
+    io.port.writeByte(limits.CHANNEL0_DATA, @truncate(divisor));
+    io.port.writeByte(limits.CHANNEL0_DATA, @truncate(divisor >> @bitSizeOf(u8)));
 }
 
-pub fn init_default() void {
-    init(constants.target_frequency);
+pub fn initDefault() void {
+    init(limits.TARGET_FREQUENCY);
 }
