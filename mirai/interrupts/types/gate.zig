@@ -1,29 +1,29 @@
 //! IDT Gate Descriptor (64-bit)
 
 pub const GateType = enum(u4) {
-    interrupt = 0xE,
-    trap = 0xF,
+    Interrupt = 0xE,
+    Trap = 0xF,
 };
 
 pub const DPL = enum(u2) {
-    ring0 = 0,
-    ring1 = 1,
-    ring2 = 2,
-    ring3 = 3,
+    Ring0 = 0,
+    Ring1 = 1,
+    Ring2 = 2,
+    Ring3 = 3,
 };
 
 pub const Gate64 = packed struct(u128) {
-    offset_low: u16,
-    selector: u16,
-    ist: u3,
-    reserved0: u5 = 0,
-    gate_type: GateType,
-    zero: u1 = 0,
-    dpl: DPL,
-    present: bool,
-    offset_mid: u16,
-    offset_high: u32,
-    reserved1: u32 = 0,
+    OffsetLow: u16,
+    Selector: u16,
+    IST: u3,
+    Reserved0: u5 = 0,
+    GateType: GateType,
+    Zero: u1 = 0,
+    DPL: DPL,
+    Present: bool,
+    OffsetMid: u16,
+    OffsetHigh: u32,
+    Reserved1: u32 = 0,
 
     pub fn empty() Gate64 {
         return @bitCast(@as(u128, 0));
@@ -31,34 +31,34 @@ pub const Gate64 = packed struct(u128) {
 
     pub fn interrupt(handler: u64, selector: u16, ist: u3, dpl: DPL) Gate64 {
         return Gate64{
-            .offset_low = @truncate(handler),
-            .selector = selector,
-            .ist = ist,
-            .gate_type = .interrupt,
-            .dpl = dpl,
-            .present = true,
-            .offset_mid = @truncate(handler >> 16),
-            .offset_high = @truncate(handler >> 32),
+            .OffsetLow = @truncate(handler),
+            .Selector = selector,
+            .IST = ist,
+            .GateType = .Interrupt,
+            .DPL = dpl,
+            .Present = true,
+            .OffsetMid = @truncate(handler >> @bitSizeOf(u16)),
+            .OffsetHigh = @truncate(handler >> @bitSizeOf(u32)),
         };
     }
 
     pub fn trap(handler: u64, selector: u16, ist: u3, dpl: DPL) Gate64 {
         return Gate64{
-            .offset_low = @truncate(handler),
-            .selector = selector,
-            .ist = ist,
-            .gate_type = .trap,
-            .dpl = dpl,
-            .present = true,
-            .offset_mid = @truncate(handler >> 16),
-            .offset_high = @truncate(handler >> 32),
+            .OffsetLow = @truncate(handler),
+            .Selector = selector,
+            .IST = ist,
+            .GateType = .Trap,
+            .DPL = dpl,
+            .Present = true,
+            .OffsetMid = @truncate(handler >> @bitSizeOf(u16)),
+            .OffsetHigh = @truncate(handler >> @bitSizeOf(u32)),
         };
     }
 
-    pub fn get_offset(self: Gate64) u64 {
-        return @as(u64, self.offset_low) |
-            (@as(u64, self.offset_mid) << 16) |
-            (@as(u64, self.offset_high) << 32);
+    pub fn getOffset(self: Gate64) u64 {
+        return @as(u64, self.OffsetLow) |
+            (@as(u64, self.OffsetMid) << @bitSizeOf(u16)) |
+            (@as(u64, self.OffsetHigh) << @bitSizeOf(u32));
     }
 };
 

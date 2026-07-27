@@ -1,20 +1,23 @@
-//! LIDT Operations
+//! IDT Load Operations
 
-const types = @import("../types/types.zig");
+const interrupt = @import("asm").interrupts;
+
 const table = @import("../table/table.zig");
-const asm_int = @import("asm").interrupts;
+const types = @import("../types/types.zig");
 
-pub fn lidt(desc: *const types.Descriptor) void {
-    asm_int.lidt(desc);
+const Descriptor = types.descriptor.Descriptor;
+
+pub fn loadDescriptor(descriptor: *const Descriptor) void {
+    interrupt.idt.loadInterruptDescriptorTable(descriptor);
 }
 
 pub fn load() void {
-    const desc = types.Descriptor.from_table(&table.entries.entries);
-    lidt(&desc);
+    const descriptor = Descriptor.fromTable(&table.entries.entries);
+    loadDescriptor(&descriptor);
 }
 
-pub fn sidt() types.Descriptor {
-    var desc: types.Descriptor = undefined;
-    asm_int.sidt(&desc);
-    return desc;
+pub fn store() Descriptor {
+    var descriptor: Descriptor = undefined;
+    interrupt.idt.storeInterruptDescriptorTable(&descriptor);
+    return descriptor;
 }

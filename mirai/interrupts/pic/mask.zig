@@ -1,40 +1,43 @@
 //! PIC IRQ Masking
 
-const ports = @import("../constants/pic/ports.zig");
-const asm_io = @import("asm").io;
+const io = @import("asm").io;
 
-pub fn enable_irq(irq: u4) void {
-    if (irq < 8) {
-        const mask = asm_io.read_byte(ports.pic1_data);
-        asm_io.write_byte(ports.pic1_data, mask & ~(@as(u8, 1) << @truncate(irq)));
+const constants = @import("../constants/constants.zig");
+
+const ports = constants.pic.ports;
+
+pub fn enableIRQ(irq: u4) void {
+    if (irq < ports.IRQS_PER_PIC) {
+        const mask = io.port.readByte(ports.PIC1_DATA);
+        io.port.writeByte(ports.PIC1_DATA, mask & ~(@as(u8, 1) << @truncate(irq)));
     } else {
-        const mask = asm_io.read_byte(ports.pic2_data);
-        asm_io.write_byte(ports.pic2_data, mask & ~(@as(u8, 1) << @truncate(irq - 8)));
+        const mask = io.port.readByte(ports.PIC2_DATA);
+        io.port.writeByte(ports.PIC2_DATA, mask & ~(@as(u8, 1) << @truncate(irq - ports.IRQS_PER_PIC)));
     }
 }
 
-pub fn disable_irq(irq: u4) void {
-    if (irq < 8) {
-        const mask = asm_io.read_byte(ports.pic1_data);
-        asm_io.write_byte(ports.pic1_data, mask | (@as(u8, 1) << @truncate(irq)));
+pub fn disableIRQ(irq: u4) void {
+    if (irq < ports.IRQS_PER_PIC) {
+        const mask = io.port.readByte(ports.PIC1_DATA);
+        io.port.writeByte(ports.PIC1_DATA, mask | (@as(u8, 1) << @truncate(irq)));
     } else {
-        const mask = asm_io.read_byte(ports.pic2_data);
-        asm_io.write_byte(ports.pic2_data, mask | (@as(u8, 1) << @truncate(irq - 8)));
+        const mask = io.port.readByte(ports.PIC2_DATA);
+        io.port.writeByte(ports.PIC2_DATA, mask | (@as(u8, 1) << @truncate(irq - ports.IRQS_PER_PIC)));
     }
 }
 
-pub fn mask_all() void {
-    asm_io.write_byte(ports.pic1_data, 0xFF);
-    asm_io.write_byte(ports.pic2_data, 0xFF);
+pub fn maskAll() void {
+    io.port.writeByte(ports.PIC1_DATA, ports.MASK_ALL);
+    io.port.writeByte(ports.PIC2_DATA, ports.MASK_ALL);
 }
 
-pub fn unmask_all() void {
-    asm_io.write_byte(ports.pic1_data, 0x00);
-    asm_io.write_byte(ports.pic2_data, 0x00);
+pub fn unmaskAll() void {
+    io.port.writeByte(ports.PIC1_DATA, ports.MASK_NONE);
+    io.port.writeByte(ports.PIC2_DATA, ports.MASK_NONE);
 }
 
-pub fn get_mask() u16 {
-    const low = asm_io.read_byte(ports.pic1_data);
-    const high = asm_io.read_byte(ports.pic2_data);
-    return @as(u16, high) << 8 | low;
+pub fn getMask() u16 {
+    const low = io.port.readByte(ports.PIC1_DATA);
+    const high = io.port.readByte(ports.PIC2_DATA);
+    return @as(u16, high) << @bitSizeOf(u8) | low;
 }

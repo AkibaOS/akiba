@@ -1,41 +1,40 @@
 //! PIC Initialization
 
-const ports = @import("../constants/pic/ports.zig");
-const asm_io = @import("asm").io;
+const io = @import("asm").io;
+
+const constants = @import("../constants/constants.zig");
+
+const ports = constants.pic.ports;
 
 pub fn remap() void {
-    const mask1 = asm_io.read_byte(ports.pic1_data);
-    const mask2 = asm_io.read_byte(ports.pic2_data);
+    const mask1 = io.port.readByte(ports.PIC1_DATA);
+    const mask2 = io.port.readByte(ports.PIC2_DATA);
 
-    asm_io.write_byte(ports.pic1_command, ports.icw1_init | ports.icw1_icw4);
-    io_wait();
-    asm_io.write_byte(ports.pic2_command, ports.icw1_init | ports.icw1_icw4);
-    io_wait();
+    io.port.writeByte(ports.PIC1_COMMAND, ports.ICW1_INIT | ports.ICW1_ICW4);
+    io.port.ioWait();
+    io.port.writeByte(ports.PIC2_COMMAND, ports.ICW1_INIT | ports.ICW1_ICW4);
+    io.port.ioWait();
 
-    asm_io.write_byte(ports.pic1_data, ports.vector_offset_master);
-    io_wait();
-    asm_io.write_byte(ports.pic2_data, ports.vector_offset_slave);
-    io_wait();
+    io.port.writeByte(ports.PIC1_DATA, ports.VECTOR_OFFSET_MASTER);
+    io.port.ioWait();
+    io.port.writeByte(ports.PIC2_DATA, ports.VECTOR_OFFSET_SLAVE);
+    io.port.ioWait();
 
-    asm_io.write_byte(ports.pic1_data, 4);
-    io_wait();
-    asm_io.write_byte(ports.pic2_data, 2);
-    io_wait();
+    io.port.writeByte(ports.PIC1_DATA, ports.ICW3_MASTER_SLAVE_ON_IRQ2);
+    io.port.ioWait();
+    io.port.writeByte(ports.PIC2_DATA, ports.ICW3_SLAVE_CASCADE_IDENTITY);
+    io.port.ioWait();
 
-    asm_io.write_byte(ports.pic1_data, ports.icw4_8086);
-    io_wait();
-    asm_io.write_byte(ports.pic2_data, ports.icw4_8086);
-    io_wait();
+    io.port.writeByte(ports.PIC1_DATA, ports.ICW4_8086);
+    io.port.ioWait();
+    io.port.writeByte(ports.PIC2_DATA, ports.ICW4_8086);
+    io.port.ioWait();
 
-    asm_io.write_byte(ports.pic1_data, mask1);
-    asm_io.write_byte(ports.pic2_data, mask2);
+    io.port.writeByte(ports.PIC1_DATA, mask1);
+    io.port.writeByte(ports.PIC2_DATA, mask2);
 }
 
 pub fn disable() void {
-    asm_io.write_byte(ports.pic1_data, 0xFF);
-    asm_io.write_byte(ports.pic2_data, 0xFF);
-}
-
-fn io_wait() void {
-    asm_io.write_byte(0x80, 0);
+    io.port.writeByte(ports.PIC1_DATA, ports.MASK_ALL);
+    io.port.writeByte(ports.PIC2_DATA, ports.MASK_ALL);
 }

@@ -1,5 +1,8 @@
 //! IDT Entries Table
 
+const constants = @import("../constants/constants.zig");
 const types = @import("../types/types.zig");
 
-pub var entries: [256]types.Gate64 = [_]types.Gate64{types.Gate64.empty()} ** 256;
+const IDT_ENTRIES = constants.idt.limits.IDT_ENTRIES;
+
+pub var entries: [IDT_ENTRIES]types.gate.Gate64 = [_]types.gate.Gate64{types.gate.Gate64.empty()} ** IDT_ENTRIES;

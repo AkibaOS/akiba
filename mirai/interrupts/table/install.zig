@@ -1,27 +1,31 @@
 //! IDT Gate Installation
 
-const types = @import("../types/types.zig");
 const entries = @import("entries.zig");
+const types = @import("../types/types.zig");
 
-pub fn set_gate(vector: u8, handler: u64, selector: u16, ist: u3, dpl: types.DPL, gate_type: types.GateType) void {
+const DPL = types.gate.DPL;
+const Gate64 = types.gate.Gate64;
+const GateType = types.gate.GateType;
+
+pub fn setGate(vector: u8, handler: u64, selector: u16, ist: u3, dpl: DPL, gate_type: GateType) void {
     entries.entries[vector] = switch (gate_type) {
-        .interrupt => types.Gate64.interrupt(handler, selector, ist, dpl),
-        .trap => types.Gate64.trap(handler, selector, ist, dpl),
+        .Interrupt => Gate64.interrupt(handler, selector, ist, dpl),
+        .Trap => Gate64.trap(handler, selector, ist, dpl),
     };
 }
 
-pub fn set_interrupt(vector: u8, handler: u64, selector: u16) void {
-    set_gate(vector, handler, selector, 0, .ring0, .interrupt);
+pub fn setInterrupt(vector: u8, handler: u64, selector: u16) void {
+    setGate(vector, handler, selector, 0, .Ring0, .Interrupt);
 }
 
-pub fn set_trap(vector: u8, handler: u64, selector: u16) void {
-    set_gate(vector, handler, selector, 0, .ring0, .trap);
+pub fn setTrap(vector: u8, handler: u64, selector: u16) void {
+    setGate(vector, handler, selector, 0, .Ring0, .Trap);
 }
 
-pub fn set_interrupt_ist(vector: u8, handler: u64, selector: u16, ist: u3) void {
-    set_gate(vector, handler, selector, ist, .ring0, .interrupt);
+pub fn setInterruptIST(vector: u8, handler: u64, selector: u16, ist: u3) void {
+    setGate(vector, handler, selector, ist, .Ring0, .Interrupt);
 }
 
-pub fn clear_gate(vector: u8) void {
-    entries.entries[vector] = types.Gate64.empty();
+pub fn clearGate(vector: u8) void {
+    entries.entries[vector] = Gate64.empty();
 }

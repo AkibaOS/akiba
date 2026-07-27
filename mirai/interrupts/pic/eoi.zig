@@ -1,20 +1,23 @@
 //! PIC End-of-Interrupt
 
-const ports = @import("../constants/pic/ports.zig");
-const asm_io = @import("asm").io;
+const io = @import("asm").io;
+
+const constants = @import("../constants/constants.zig");
+
+const ports = constants.pic.ports;
 
 pub fn send(irq: u4) void {
-    if (irq >= 8) {
-        asm_io.write_byte(ports.pic2_command, ports.eoi);
+    if (irq >= ports.IRQS_PER_PIC) {
+        io.port.writeByte(ports.PIC2_COMMAND, ports.EOI);
     }
-    asm_io.write_byte(ports.pic1_command, ports.eoi);
+    io.port.writeByte(ports.PIC1_COMMAND, ports.EOI);
 }
 
-pub fn send_master() void {
-    asm_io.write_byte(ports.pic1_command, ports.eoi);
+pub fn sendMaster() void {
+    io.port.writeByte(ports.PIC1_COMMAND, ports.EOI);
 }
 
-pub fn send_slave() void {
-    asm_io.write_byte(ports.pic2_command, ports.eoi);
-    asm_io.write_byte(ports.pic1_command, ports.eoi);
+pub fn sendSlave() void {
+    io.port.writeByte(ports.PIC2_COMMAND, ports.EOI);
+    io.port.writeByte(ports.PIC1_COMMAND, ports.EOI);
 }
