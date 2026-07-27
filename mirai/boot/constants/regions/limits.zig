@@ -1,3 +1,3 @@
 //! Region Conversion Limits
 
-pub const max_regions: usize = 512;
+pub const MAX_REGIONS: usize = 512;

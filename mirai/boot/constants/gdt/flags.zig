@@ -1,15 +1,17 @@
 //! GDT Flags Constants
 
-pub const granularity_byte: u4 = 0;
-pub const granularity_page: u4 = 1 << 3;
+pub const GRANULARITY_BYTE: u4 = 0;
+pub const GRANULARITY_PAGE: u4 = 1 << 3;
 
-pub const size_16bit: u4 = 0;
-pub const size_32bit: u4 = 1 << 2;
+pub const SIZE_16BIT: u4 = 0;
+pub const SIZE_32BIT: u4 = 1 << 2;
 
-pub const long_mode_code: u4 = 1 << 1;
+pub const LONG_MODE_CODE: u4 = 1 << 1;
 
-pub const kernel_code_flags: u4 = granularity_page | long_mode_code;
-pub const kernel_data_flags: u4 = granularity_page | size_32bit;
-pub const user_code_flags: u4 = granularity_page | long_mode_code;
-pub const user_data_flags: u4 = granularity_page | size_32bit;
-pub const tss_flags: u4 = 0;
+pub const KERNEL_CODE_FLAGS: u4 = GRANULARITY_PAGE | LONG_MODE_CODE;
+pub const KERNEL_DATA_FLAGS: u4 = GRANULARITY_PAGE | SIZE_32BIT;
+pub const USER_CODE_FLAGS: u4 = GRANULARITY_PAGE | LONG_MODE_CODE;
+pub const USER_DATA_FLAGS: u4 = GRANULARITY_PAGE | SIZE_32BIT;
+pub const TSS_FLAGS: u4 = 0;
+
+pub const SEGMENT_LIMIT: u20 = 0xFFFFF;

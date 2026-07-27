@@ -1,12 +1,14 @@
 //! Region Conversion State
 
-const root = @import("root");
-const constants = @import("../constants/regions/regions.zig");
+const constants = @import("../constants/constants.zig");
+const pmm = @import("../../pmm/pmm.zig");
 
-const MemoryRegion = root.pmm.types.MemoryRegion;
+const limits = constants.regions.limits;
 
-var region_storage: [constants.max_regions]MemoryRegion = undefined;
+const MemoryRegion = pmm.types.region.MemoryRegion;
 
-pub fn get_storage() *[constants.max_regions]MemoryRegion {
+var region_storage: [limits.MAX_REGIONS]MemoryRegion = undefined;
+
+pub fn getStorage() *[limits.MAX_REGIONS]MemoryRegion {
     return &region_storage;
 }

@@ -1,26 +1,32 @@
 //! UEFI Memory Map Conversion
 
-const root = @import("root");
-const constants = @import("../constants/regions/regions.zig");
+const common = @import("common");
+
+const boot = @import("shared").boot;
+const constants = @import("../constants/constants.zig");
+const pmm = @import("../../pmm/pmm.zig");
 const state = @import("state.zig");
-const boot_params = @import("../../kernel/boot.zig");
 
-const MemoryRegion = root.pmm.types.MemoryRegion;
+const limits = constants.regions.limits;
+const sizes = common.constants.memory.sizes;
 
-pub fn convert(map: boot_params.MemoryMapInfo) []const MemoryRegion {
-    const storage = state.get_storage();
+const MemoryRegion = pmm.types.region.MemoryRegion;
+const RegionType = pmm.types.region.RegionType;
+
+pub fn convert(map: boot.types.memory.MemoryMapInfo) []const MemoryRegion {
+    const storage = state.getStorage();
 
     var region_count: usize = 0;
     var entry_index: u32 = 0;
 
-    while (entry_index < map.entry_count and region_count < constants.max_regions) : (entry_index += 1) {
-        const descriptor_address = map.entries + @as(u64, entry_index) * map.entry_size;
-        const descriptor: *const boot_params.UefiMemoryDescriptor = @ptrFromInt(descriptor_address);
+    while (entry_index < map.EntryCount and region_count < limits.MAX_REGIONS) : (entry_index += 1) {
+        const descriptor_address = map.Entries + @as(u64, entry_index) * map.EntrySize;
+        const descriptor: *const boot.types.memory.UefiMemoryDescriptor = @ptrFromInt(descriptor_address);
 
         storage[region_count] = MemoryRegion{
-            .base_address = descriptor.physical_start,
-            .length = descriptor.number_of_pages * 4096,
-            .region_type = classify(descriptor.memory_type),
+            .BaseAddress = descriptor.PhysicalStart,
+            .Length = descriptor.NumberOfPages * sizes.PAGE_SIZE,
+            .RegionType = classify(descriptor.MemoryType),
         };
         region_count += 1;
     }
@@ -28,12 +34,12 @@ pub fn convert(map: boot_params.MemoryMapInfo) []const MemoryRegion {
     return storage[0..region_count];
 }
 
-fn classify(memory_type: boot_params.UefiMemoryType) MemoryRegion.RegionType {
+fn classify(memory_type: boot.types.memory.UefiMemoryType) RegionType {
     return switch (memory_type) {
-        .conventional => .available,
-        .acpi_reclaim => .acpi_reclaimable,
-        .acpi_nvs => .acpi_nvs,
-        .unusable => .bad,
-        else => .reserved,
+        .Conventional => .Available,
+        .ACPIReclaim => .ACPIReclaimable,
+        .ACPINVS => .ACPINVS,
+        .Unusable => .Bad,
+        else => .Reserved,
     };
 }

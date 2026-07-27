@@ -1,58 +1,57 @@
 //! Boot Sequence State
 
-const constants = @import("../constants/sequence/sequence.zig");
-const types = @import("../types/sequence/sequence.zig");
+const types = @import("../types/types.zig");
 
-const Phase = constants.Phase;
-const BootInfo = types.BootInfo;
+const BootInfo = types.sequence.info.BootInfo;
+const Phase = types.sequence.phase.Phase;
 
-var current_phase: Phase = Phase.cpu;
-var boot_info_ptr: ?*const BootInfo = null;
+var current_phase: Phase = Phase.CPU;
+var boot_info_pointer: ?*const BootInfo = null;
 var boot_failed: bool = false;
-var failure_phase: Phase = Phase.cpu;
+var failure_phase: Phase = Phase.CPU;
 var failure_message: []const u8 = "";
 
-pub fn get_current_phase() Phase {
+pub fn getCurrentPhase() Phase {
     return current_phase;
 }
 
-pub fn set_current_phase(phase: Phase) void {
+pub fn setCurrentPhase(phase: Phase) void {
     current_phase = phase;
 }
 
-pub fn advance_phase() void {
+pub fn advancePhase() void {
     const next = @intFromEnum(current_phase) + 1;
-    if (next <= @intFromEnum(Phase.complete)) {
+    if (next <= @intFromEnum(Phase.Complete)) {
         current_phase = @enumFromInt(next);
     }
 }
 
-pub fn set_boot_info(info: *const BootInfo) void {
-    boot_info_ptr = info;
+pub fn setBootInfo(info: *const BootInfo) void {
+    boot_info_pointer = info;
 }
 
-pub fn get_boot_info() ?*const BootInfo {
-    return boot_info_ptr;
+pub fn getBootInfo() ?*const BootInfo {
+    return boot_info_pointer;
 }
 
-pub fn set_failure(phase: Phase, message: []const u8) void {
+pub fn setFailure(phase: Phase, message: []const u8) void {
     boot_failed = true;
     failure_phase = phase;
     failure_message = message;
 }
 
-pub fn has_failed() bool {
+pub fn hasFailed() bool {
     return boot_failed;
 }
 
-pub fn get_failure_phase() Phase {
+pub fn getFailurePhase() Phase {
     return failure_phase;
 }
 
-pub fn get_failure_message() []const u8 {
+pub fn getFailureMessage() []const u8 {
     return failure_message;
 }
 
-pub fn is_complete() bool {
-    return current_phase == Phase.complete;
+pub fn isComplete() bool {
+    return current_phase == Phase.Complete;
 }

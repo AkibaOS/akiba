@@ -1,36 +1,36 @@
 //! GDT Table Type
 
-const Entry = @import("entry.zig").Entry;
-const TssDescriptor = @import("tss.zig").TssDescriptor;
-const Gdtr = @import("gdtr.zig").Gdtr;
+const entry = @import("entry.zig");
+const gdtr = @import("gdtr.zig");
+const tss = @import("tss.zig");
 
 pub const Table = extern struct {
-    null: Entry,
-    kernel_code: Entry,
-    kernel_data: Entry,
-    user_code: Entry,
-    user_data: Entry,
-    tss: TssDescriptor align(8),
+    Null: entry.Entry,
+    KernelCode: entry.Entry,
+    KernelData: entry.Entry,
+    UserCode: entry.Entry,
+    UserData: entry.Entry,
+    TSS: tss.TSSDescriptor align(8),
 
-    pub fn get_gdtr(self: *Table) Gdtr {
+    pub fn getGDTR(self: *Table) gdtr.GDTR {
         const base = @intFromPtr(self);
         const size = @sizeOf(Table);
-        return Gdtr{
-            .limit = size - 1,
-            .base = base,
+        return gdtr.GDTR{
+            .Limit = size - 1,
+            .Base = base,
         };
     }
 
-    pub fn get_entry(self: *Table, index: u16) ?*Entry {
-        const entries: [*]Entry = @ptrCast(self);
-        const max_entries = @sizeOf(Table) / @sizeOf(Entry);
+    pub fn getEntry(self: *Table, index: u16) ?*entry.Entry {
+        const entries: [*]entry.Entry = @ptrCast(self);
+        const max_entries = @sizeOf(Table) / @sizeOf(entry.Entry);
         if (index >= max_entries) {
             return null;
         }
         return &entries[index];
     }
 
-    pub fn get_tss_descriptor(self: *Table) *TssDescriptor {
-        return &self.tss;
+    pub fn getTSSDescriptor(self: *Table) *tss.TSSDescriptor {
+        return &self.TSS;
     }
 };

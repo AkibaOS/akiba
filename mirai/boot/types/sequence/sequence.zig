@@ -1,5 +1,4 @@
 //! Boot Sequence Types
 
-pub const boot_info = @import("info.zig");
-
-pub const BootInfo = boot_info.BootInfo;
+pub const info = @import("info.zig");
+pub const phase = @import("phase.zig");

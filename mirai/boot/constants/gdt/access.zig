@@ -1,19 +1,24 @@
 //! GDT Access Flag Constants
 
-pub const accessed: u8 = 1 << 0;
-pub const read_write: u8 = 1 << 1;
-pub const direction_conforming: u8 = 1 << 2;
-pub const executable: u8 = 1 << 3;
-pub const descriptor_type: u8 = 1 << 4;
-pub const dpl_ring_1: u8 = 1 << 5;
-pub const dpl_ring_2: u8 = 2 << 5;
-pub const dpl_ring_3: u8 = 3 << 5;
-pub const present: u8 = 1 << 7;
+pub const ACCESSED: u8 = 1 << 0;
+pub const READ_WRITE: u8 = 1 << 1;
+pub const DIRECTION_CONFORMING: u8 = 1 << 2;
+pub const EXECUTABLE: u8 = 1 << 3;
+pub const DESCRIPTOR_TYPE: u8 = 1 << 4;
+pub const DPL_RING_1: u8 = 1 << 5;
+pub const DPL_RING_2: u8 = 2 << 5;
+pub const DPL_RING_3: u8 = 3 << 5;
+pub const PRESENT: u8 = 1 << 7;
 
-pub const kernel_code_access: u8 = present | descriptor_type | executable | read_write;
-pub const kernel_data_access: u8 = present | descriptor_type | read_write;
-pub const user_code_access: u8 = present | dpl_ring_3 | descriptor_type | executable | read_write;
-pub const user_data_access: u8 = present | dpl_ring_3 | descriptor_type | read_write;
+pub const DPL_SHIFT: u3 = 5;
+pub const DPL_MASK: u8 = 0x03;
 
-pub const tss_access: u8 = present | 0x09;
-pub const tss_access_busy: u8 = present | 0x0B;
+pub const KERNEL_CODE_ACCESS: u8 = PRESENT | DESCRIPTOR_TYPE | EXECUTABLE | READ_WRITE;
+pub const KERNEL_DATA_ACCESS: u8 = PRESENT | DESCRIPTOR_TYPE | READ_WRITE;
+pub const USER_CODE_ACCESS: u8 = PRESENT | DPL_RING_3 | DESCRIPTOR_TYPE | EXECUTABLE | READ_WRITE;
+pub const USER_DATA_ACCESS: u8 = PRESENT | DPL_RING_3 | DESCRIPTOR_TYPE | READ_WRITE;
+
+pub const TSS_TYPE_AVAILABLE: u8 = 0x09;
+pub const TSS_TYPE_BUSY: u8 = 0x0B;
+pub const TSS_ACCESS: u8 = PRESENT | TSS_TYPE_AVAILABLE;
+pub const TSS_ACCESS_BUSY: u8 = PRESENT | TSS_TYPE_BUSY;
