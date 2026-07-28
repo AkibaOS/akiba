@@ -7,6 +7,7 @@ pub const UTILS_ROOT = "utils/utils.zig";
 pub const HIKARI_ROOT = "hikari/hikari.zig";
 pub const MIRAI_ROOT = "mirai/mirai.zig";
 pub const MKAFSDISK_ROOT = "toolchain/mkafsdisk/mkafsdisk.zig";
+pub const FONTPREVIEW_ROOT = "toolchain/fontpreview/fontpreview.zig";
 pub const FONT_RESOURCE = "resources/system/fonts/akiba.psf";
 pub const LINKER_SCRIPT = "linker/mirai.linker";
 pub const HIKARI_OUTPUT = "EFI/BOOT/BOOTX64.EFI";

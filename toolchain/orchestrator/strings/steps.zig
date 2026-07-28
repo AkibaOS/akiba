@@ -7,3 +7,5 @@ pub const ALL = "all";
 pub const ALL_DESCRIPTION = "Build everything";
 pub const CLEAN = "clean";
 pub const CLEAN_DESCRIPTION = "Remove build artifacts";
+
+pub const FONTPREVIEW_DESCRIPTION = "Build the host font preview tool";
