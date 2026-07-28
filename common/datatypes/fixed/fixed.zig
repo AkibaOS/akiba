@@ -78,7 +78,7 @@ pub const Fixed16Dot16 = struct {
             return Fixed16Dot16{ .Raw = 0 };
         }
         const scaled = @as(i64, numerator) << FRACTION_BITS;
-        return Fixed16Dot16{ .Raw = @intCast(@divTrunc(scaled, @as(i64, denominator))) };
+        return Fixed16Dot16{ .Raw = @intCast(roundedDivide(scaled, @as(i64, denominator))) };
     }
 
     pub fn multiply(self: Fixed16Dot16, other: Fixed16Dot16) Fixed16Dot16 {
@@ -88,6 +88,13 @@ pub const Fixed16Dot16 = struct {
 
     pub fn applyToUnits(self: Fixed16Dot16, units: i32) Fixed26Dot6 {
         const product = @as(i64, units) * @as(i64, self.Raw);
-        return Fixed26Dot6{ .Raw = @intCast(product >> (FRACTION_BITS - Fixed26Dot6.FRACTION_BITS)) };
+        const divisor = @as(i64, 1) << (FRACTION_BITS - Fixed26Dot6.FRACTION_BITS);
+        return Fixed26Dot6{ .Raw = @intCast(roundedDivide(product, divisor)) };
     }
 };
+
+fn roundedDivide(numerator: i64, denominator: i64) i64 {
+    const half = @divTrunc(denominator, 2);
+    const biased = if (numerator >= 0) numerator + half else numerator - half;
+    return @divTrunc(biased, denominator);
+}
