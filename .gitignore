@@ -1,31 +1,11 @@
-# Zig build artifacts
+# Build artifacts
 zig-out
-
-# Zig build cache and build directory
 .zig-cache/
-.zig-build/
-
-# Akiba build artifacts
-.akiba-build-*
 iso/
 
-# Legacy reference files
-*.old
+# Legacy system, kept locally for reference
+akiba.old
 
-# Object files and logs
-*.o
-*.elf
-*.log
-
-# Grub AFS build artifacts
-toolchain*/grub-afs/build
-toolchain*/grub-afs/grub-*
-toolchain*/grub-afs/grub.*
-
-# OS System files
+# OS and IDE files
 .DS_Store
-.Thumbs.db
-
-# IDE files
 .vscode/
-.idea/
