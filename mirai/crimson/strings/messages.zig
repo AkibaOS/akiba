@@ -1,7 +1,7 @@
 //! Crimson Messages
 
 pub const SEPARATOR = "================================================================================\n";
-pub const COLLAPSE_HEADER = "                              AKIBA HAS COLLAPSED                              \n";
+pub const COLLAPSE_HEADER = "                                AKIBA COLLAPSED                                 \n";
 pub const REASON = "Reason: %s\n";
 pub const SYSTEM_HALTED = "System halted. Please restart your computer.\n";
 
