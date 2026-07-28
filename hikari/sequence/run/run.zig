@@ -18,7 +18,6 @@ const strings = @import("hikari").sequence.strings;
 const messages = strings.messages;
 const paths = strings.paths;
 const layout = common.constants.memory.layout;
-const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
 pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.system.SystemTable) efi.types.base.Status {

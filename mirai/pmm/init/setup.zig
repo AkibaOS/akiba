@@ -2,12 +2,14 @@
 
 const common = @import("common");
 
-const bitmap = @import("mirai").pmm.bitmap;
 const constants = @import("mirai").pmm.constants;
 const state = @import("mirai").pmm.state;
 const types = @import("mirai").pmm.types;
 
-const layout = common.constants.memory.layout;
+const address = @import("utils").address;
+const bits = @import("utils").bits;
+const math = @import("utils").math;
+
 const sizes = common.constants.memory.sizes;
 
 pub fn initializeFromMemoryMap(
@@ -28,13 +30,13 @@ pub fn initializeFromMemoryMap(
         }
     }
 
-    pmm_state.TotalPages = highest_address >> sizes.PAGE_SHIFT;
-    pmm_state.BitmapSize = (pmm_state.TotalPages + @bitSizeOf(u8) - 1) / @bitSizeOf(u8);
+    pmm_state.TotalPages = address.translate.addressToPage(highest_address);
+    pmm_state.BitmapSize = bits.operations.bitmapBytes(pmm_state.TotalPages);
 
-    const bitmap_pointer: [*]u8 = @ptrFromInt(bitmap_location + layout.PHYSMAP_BASE);
+    const bitmap_pointer: [*]u8 = @ptrFromInt(address.translate.physToVirt(bitmap_location));
     pmm_state.Bitmap = bitmap_pointer[0..pmm_state.BitmapSize];
 
-    bitmap.operations.setRange(pmm_state.Bitmap, 0, pmm_state.TotalPages);
+    bits.operations.setRange(pmm_state.Bitmap, 0, pmm_state.TotalPages);
     pmm_state.FreePages = 0;
     pmm_state.UsedPages = pmm_state.TotalPages;
 
@@ -56,8 +58,8 @@ pub fn initializeFromMemoryMap(
 fn markRegionFree(base_address: u64, length: u64) void {
     const pmm_state = state.getState();
 
-    const start_page = (base_address + sizes.PAGE_MASK) >> sizes.PAGE_SHIFT;
-    const end_page = (base_address + length) >> sizes.PAGE_SHIFT;
+    const start_page = math.integer.divideCeil(base_address, sizes.PAGE_SIZE);
+    const end_page = address.translate.addressToPage(base_address + length);
 
     if (end_page <= start_page) {
         return;
@@ -65,7 +67,7 @@ fn markRegionFree(base_address: u64, length: u64) void {
 
     const page_count = end_page - start_page;
 
-    bitmap.operations.clearRange(pmm_state.Bitmap, start_page, page_count);
+    bits.operations.clearRange(pmm_state.Bitmap, start_page, page_count);
     pmm_state.FreePages += page_count;
     pmm_state.UsedPages -= page_count;
 }
@@ -75,8 +77,8 @@ fn reserveKernelMemory() void {
 
     var page_index: u64 = 0;
     while (page_index < constants.limits.KERNEL_RESERVED_PAGES) : (page_index += 1) {
-        if (!bitmap.operations.testBit(pmm_state.Bitmap, page_index)) {
-            bitmap.operations.setBit(pmm_state.Bitmap, page_index);
+        if (!bits.operations.testBit(pmm_state.Bitmap, page_index)) {
+            bits.operations.setBit(pmm_state.Bitmap, page_index);
             pmm_state.FreePages -= 1;
             pmm_state.UsedPages += 1;
         }
@@ -86,14 +88,14 @@ fn reserveKernelMemory() void {
 fn reserveBitmapMemory(bitmap_location: u64) void {
     const pmm_state = state.getState();
 
-    const bitmap_start_page = bitmap_location >> sizes.PAGE_SHIFT;
-    const bitmap_page_count = (pmm_state.BitmapSize + sizes.PAGE_MASK) >> sizes.PAGE_SHIFT;
+    const bitmap_start_page = address.translate.addressToPage(bitmap_location);
+    const bitmap_page_count = math.integer.divideCeil(pmm_state.BitmapSize, sizes.PAGE_SIZE);
 
     var page_index: u64 = 0;
     while (page_index < bitmap_page_count) : (page_index += 1) {
         const current_page = bitmap_start_page + page_index;
-        if (!bitmap.operations.testBit(pmm_state.Bitmap, current_page)) {
-            bitmap.operations.setBit(pmm_state.Bitmap, current_page);
+        if (!bits.operations.testBit(pmm_state.Bitmap, current_page)) {
+            bits.operations.setBit(pmm_state.Bitmap, current_page);
             pmm_state.FreePages -= 1;
             pmm_state.UsedPages += 1;
         }

@@ -1,8 +1,8 @@
-//! Hikari CRC32
+//! CRC32 Checksum
 
-const constants = @import("hikari").disk.constants;
+const constants = @import("utils").crc.constants;
 
-const CRC32_TABLE = generateTable();
+const TABLE = generateTable();
 
 fn generateTable() [constants.crc.TABLE_SIZE]u32 {
     @setEvalBranchQuota(10000);
@@ -23,11 +23,11 @@ fn generateTable() [constants.crc.TABLE_SIZE]u32 {
     return table;
 }
 
-pub fn calculateCRC32(data: []const u8) u32 {
+pub fn calculate(data: []const u8) u32 {
     var value: u32 = constants.crc.INITIAL;
     for (data) |byte| {
         const table_index: u8 = @truncate(value ^ byte);
-        value = (value >> @bitSizeOf(u8)) ^ CRC32_TABLE[table_index];
+        value = (value >> @bitSizeOf(u8)) ^ TABLE[table_index];
     }
     return value ^ constants.crc.INITIAL;
 }

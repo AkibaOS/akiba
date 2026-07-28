@@ -1,18 +1,17 @@
 //! Range Page Free
 
-const common = @import("common");
-
-const bitmap = @import("mirai").pmm.bitmap;
 const state = @import("mirai").pmm.state;
 
-const sizes = common.constants.memory.sizes;
+const bits = @import("utils").bits;
+
+const address = @import("utils").address;
 
 pub fn freeRange(physical_address: u64, page_count: u64) void {
     if (page_count == 0) {
         return;
     }
 
-    const start_page = physical_address >> sizes.PAGE_SHIFT;
+    const start_page = address.translate.addressToPage(physical_address);
     const pmm_state = state.getState();
 
     var freed_count: u64 = 0;
@@ -25,8 +24,8 @@ pub fn freeRange(physical_address: u64, page_count: u64) void {
             break;
         }
 
-        if (bitmap.operations.testBit(pmm_state.Bitmap, current_page)) {
-            bitmap.operations.clearBit(pmm_state.Bitmap, current_page);
+        if (bits.operations.testBit(pmm_state.Bitmap, current_page)) {
+            bits.operations.clearBit(pmm_state.Bitmap, current_page);
             freed_count += 1;
         }
     }

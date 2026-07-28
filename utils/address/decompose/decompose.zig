@@ -1,4 +1,4 @@
-//! Page Table Index Extraction
+//! Virtual Address Decomposition
 
 const common = @import("common");
 
@@ -18,8 +18,4 @@ pub fn extractPDIndex(virtual_address: u64) u9 {
 
 pub fn extractPTIndex(virtual_address: u64) u9 {
     return @truncate((virtual_address >> indices.PT_SHIFT) & indices.INDEX_MASK);
-}
-
-pub fn extractOffset(virtual_address: u64) u12 {
-    return @truncate(virtual_address & indices.OFFSET_MASK);
 }

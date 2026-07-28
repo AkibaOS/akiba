@@ -1,8 +1,6 @@
 //! Physical Page Type
 
-const common = @import("common");
-
-const sizes = common.constants.memory.sizes;
+const address = @import("utils").address;
 
 pub const PhysicalPage = struct {
     FrameNumber: u64,
@@ -18,12 +16,12 @@ pub const PhysicalPage = struct {
     };
 
     pub fn physicalAddress(self: PhysicalPage) u64 {
-        return self.FrameNumber << sizes.PAGE_SHIFT;
+        return address.translate.pageToAddress(self.FrameNumber);
     }
 
-    pub fn fromPhysicalAddress(address: u64) PhysicalPage {
+    pub fn fromPhysicalAddress(physical_address: u64) PhysicalPage {
         return PhysicalPage{
-            .FrameNumber = address >> sizes.PAGE_SHIFT,
+            .FrameNumber = address.translate.addressToPage(physical_address),
             .ReferenceCount = 0,
             .Flags = .{},
         };

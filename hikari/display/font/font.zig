@@ -2,6 +2,8 @@
 
 const constants = @import("constants/constants.zig");
 
+const bits = @import("utils").bits;
+
 pub const PSF2Header = extern struct {
     Magic: u32,
     Version: u32,
@@ -21,7 +23,7 @@ pub const PSF2Header = extern struct {
     }
 
     pub fn bytesPerRow(self: *const PSF2Header) u32 {
-        return (self.Width + @bitSizeOf(u8) - 1) / @bitSizeOf(u8);
+        return @intCast(bits.operations.bitmapBytes(self.Width));
     }
 };
 

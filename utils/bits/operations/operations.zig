@@ -1,4 +1,4 @@
-//! Bitmap Operations
+//! Bitmap Bit Operations
 
 pub fn setBit(bitmap: []u8, bit_index: u64) void {
     const byte_index = bit_index / @bitSizeOf(u8);
@@ -70,13 +70,6 @@ pub fn findContiguousClear(bitmap: []const u8, start_bit: u64, max_bit: u64, cou
     return null;
 }
 
-pub fn countClearBits(bitmap: []const u8, max_bit: u64) u64 {
-    var count: u64 = 0;
-    var bit_index: u64 = 0;
-    while (bit_index < max_bit) : (bit_index += 1) {
-        if (!testBit(bitmap, bit_index)) {
-            count += 1;
-        }
-    }
-    return count;
+pub fn bitmapBytes(bit_count: u64) u64 {
+    return (bit_count + @bitSizeOf(u8) - 1) / @bitSizeOf(u8);
 }

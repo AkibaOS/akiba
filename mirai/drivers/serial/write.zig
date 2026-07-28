@@ -5,10 +5,11 @@ const common = @import("common");
 const io = @import("asm").io;
 
 const constants = @import("mirai").drivers.constants;
-const strings = @import("mirai").drivers.strings;
 
-const format = constants.serial.format;
+const format = @import("utils").format;
+
 const ports = common.constants.serial.ports;
+const limits = format.constants.format;
 const registers = common.constants.serial.registers;
 
 var current_port: u16 = ports.DEFAULT_PORT;
@@ -77,24 +78,9 @@ pub fn printf(comptime fmt: []const u8, args: anytype) void {
 }
 
 fn printDecimalValue(value: u64) void {
-    if (value == 0) {
-        writeChar(current_port, '0');
-        return;
-    }
-
-    var buffer: [format.MAX_DIGITS]u8 = undefined;
-    var remaining = value;
-    var length: usize = 0;
-
-    while (remaining > 0) {
-        buffer[length] = @truncate((remaining % format.DECIMAL_BASE) + '0');
-        remaining /= format.DECIMAL_BASE;
-        length += 1;
-    }
-
-    while (length > 0) {
-        length -= 1;
-        writeChar(current_port, buffer[length]);
+    var digits: [limits.MAX_DECIMAL_DIGITS]u8 = undefined;
+    for (format.number.decimal(value, &digits)) |digit| {
+        writeChar(current_port, digit);
     }
 }
 
@@ -102,15 +88,8 @@ fn printHexValue(value: u64) void {
     writeChar(current_port, '0');
     writeChar(current_port, 'x');
 
-    var started = false;
-    var shift: u6 = @bitSizeOf(u64) - format.HEX_NIBBLE_BITS;
-    while (true) {
-        const nibble: u4 = @truncate((value >> shift) & format.HEX_NIBBLE_MASK);
-        if (nibble != 0 or started or shift == 0) {
-            writeChar(current_port, strings.serial.format.HEX_DIGITS[nibble]);
-            started = true;
-        }
-        if (shift == 0) break;
-        shift -= format.HEX_NIBBLE_BITS;
+    var digits: [limits.MAX_HEX_DIGITS]u8 = undefined;
+    for (format.number.hexLower(value, &digits)) |digit| {
+        writeChar(current_port, digit);
     }
 }

@@ -2,11 +2,12 @@
 
 const common = @import("common");
 
-const bitmap = @import("mirai").pmm.bitmap;
 const state = @import("mirai").pmm.state;
 
+const address = @import("utils").address;
+const bits = @import("utils").bits;
+
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
 pub fn allocateContiguous(page_count: u64) AllocationError!u64 {
@@ -20,23 +21,23 @@ pub fn allocateContiguous(page_count: u64) AllocationError!u64 {
         return AllocationError.OutOfMemory;
     }
 
-    const start_page = bitmap.operations.findContiguousClear(
+    const start_page = bits.operations.findContiguousClear(
         pmm_state.Bitmap,
         0,
         pmm_state.TotalPages,
         page_count,
     ) orelse return AllocationError.OutOfMemory;
 
-    bitmap.operations.setRange(pmm_state.Bitmap, start_page, page_count);
+    bits.operations.setRange(pmm_state.Bitmap, start_page, page_count);
     pmm_state.FreePages -= page_count;
     pmm_state.UsedPages += page_count;
 
-    return start_page << sizes.PAGE_SHIFT;
+    return address.translate.pageToAddress(start_page);
 }
 
 pub fn allocateContiguousZeroed(page_count: u64) AllocationError!u64 {
     const physical_address = try allocateContiguous(page_count);
-    const virtual_address = physical_address + layout.PHYSMAP_BASE;
+    const virtual_address = address.translate.physToVirt(physical_address);
     const total_bytes = page_count * sizes.PAGE_SIZE;
     const page_pointer: [*]u8 = @ptrFromInt(virtual_address);
     @memset(page_pointer[0..total_bytes], 0);
@@ -65,7 +66,7 @@ pub fn allocateAligned(page_count: u64, alignment_pages: u64) AllocationError!u6
         var found = true;
         var check_index: u64 = 0;
         while (check_index < page_count) : (check_index += 1) {
-            if (bitmap.operations.testBit(pmm_state.Bitmap, aligned_start + check_index)) {
+            if (bits.operations.testBit(pmm_state.Bitmap, aligned_start + check_index)) {
                 found = false;
                 search_start = aligned_start + check_index + 1;
                 break;
@@ -73,10 +74,10 @@ pub fn allocateAligned(page_count: u64, alignment_pages: u64) AllocationError!u6
         }
 
         if (found) {
-            bitmap.operations.setRange(pmm_state.Bitmap, aligned_start, page_count);
+            bits.operations.setRange(pmm_state.Bitmap, aligned_start, page_count);
             pmm_state.FreePages -= page_count;
             pmm_state.UsedPages += page_count;
-            return aligned_start << sizes.PAGE_SHIFT;
+            return address.translate.pageToAddress(aligned_start);
         }
     }
 

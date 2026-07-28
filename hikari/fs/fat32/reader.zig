@@ -4,6 +4,8 @@ const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 const fat32 = @import("shared").fat32;
 
+const utils = @import("utils");
+
 const ReadError = errors.fat32.ReadError;
 const BootSector = fat32.types.boot.BootSector;
 const StackEntry = fat32.types.entry.StackEntry;
@@ -180,7 +182,7 @@ pub const Reader = struct {
         var current_cluster = self.OriginCluster;
         var is_stack = true;
 
-        var iterator = stack.LocationIterator.init(location);
+        var iterator = utils.path.types.iterator.LocationIterator.init(location);
         var last_entry: ?StackEntry = null;
 
         while (iterator.next()) |component| {

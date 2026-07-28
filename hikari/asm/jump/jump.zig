@@ -12,6 +12,7 @@ pub fn jumpToKernel(
         \\mov %[stack], %%rsp
         \\mov %[params], %%rdi
         \\xor %%rbp, %%rbp
+        \\push $0
         \\jmp *%[entry]
         :
         : [pml4] "r" (pml4_address),

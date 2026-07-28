@@ -1,10 +1,13 @@
 //! Hikari GPT Parser
 
 const constants = @import("hikari").disk.constants;
-const crc = @import("hikari").disk.gpt.crc;
+
 const efi = @import("hikari").efi;
 const errors = @import("hikari").disk.errors;
 const types = @import("hikari").disk.types;
+
+const crc = @import("utils").crc;
+const math = @import("utils").math;
 
 const ParseError = errors.gpt.ParseError;
 
@@ -51,7 +54,7 @@ pub const Parser = struct {
         const header_pointer: *types.gpt.Header = @ptrCast(@alignCast(&header_for_crc));
         header_pointer.HeaderCRC32 = 0;
 
-        const calculated_header_crc = crc.calculateCRC32(header_for_crc[0..header.HeaderSize]);
+        const calculated_header_crc = crc.checksum.calculate(header_for_crc[0..header.HeaderSize]);
         if (calculated_header_crc != stored_header_crc) {
             return ParseError.InvalidHeaderCRC;
         }
@@ -61,7 +64,7 @@ pub const Parser = struct {
         }
 
         const entries_total_size = header.PartitionEntriesCount * header.PartitionEntrySize;
-        const entries_blocks = (entries_total_size + block_size - 1) / block_size;
+        const entries_blocks = math.integer.divideCeil(entries_total_size, block_size);
         const entries_buffer_size = entries_blocks * block_size;
 
         var entries_buffer: [*]align(8) u8 = undefined;
@@ -87,7 +90,7 @@ pub const Parser = struct {
             return ParseError.ReadFailed;
         }
 
-        const calculated_entries_crc = crc.calculateCRC32(entries_buffer[0..entries_total_size]);
+        const calculated_entries_crc = crc.checksum.calculate(entries_buffer[0..entries_total_size]);
         if (calculated_entries_crc != header.PartitionEntriesCRC32) {
             return ParseError.InvalidEntriesCRC;
         }

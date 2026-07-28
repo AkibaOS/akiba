@@ -5,6 +5,8 @@ const std = @import("std");
 const constants = @import("shared").fat32.constants;
 const types = @import("shared").fat32.types;
 
+const math = @import("utils").math;
+
 const BootSector = types.boot.BootSector;
 const FsInfo = types.boot.FsInfo;
 
@@ -23,7 +25,7 @@ pub fn calculateFatSize(params: CreateParams) u32 {
     const data_sectors = params.TotalSectors - params.ReservedSectors;
     const cluster_count = data_sectors / params.SectorsPerCluster;
     const fat_bytes = (cluster_count + constants.clusters.CLUSTER_DATA_START) * @sizeOf(u32);
-    return (fat_bytes + params.BytesPerSector - 1) / params.BytesPerSector;
+    return math.integer.divideCeil(fat_bytes, params.BytesPerSector);
 }
 
 pub fn createBootSector(params: CreateParams) BootSector {

@@ -5,6 +5,8 @@ const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
 const types = @import("mirai").crimson.types;
 
+const text = @import("utils").text;
+
 const limits = constants.limits;
 const messages = strings.messages;
 
@@ -19,8 +21,7 @@ pub fn registerModule(name: []const u8, base_address: u64, size: u64) bool {
     }
 
     var module = &loaded_modules[module_count];
-    const length = @min(name.len, limits.MODULE_NAME_CAPACITY - 1);
-    @memcpy(module.Name[0..length], name[0..length]);
+    const length = text.ascii.copyBounded(module.Name[0 .. limits.MODULE_NAME_CAPACITY - 1], name);
     module.Name[length] = 0;
     module.NameLength = length;
     module.BaseAddress = base_address;

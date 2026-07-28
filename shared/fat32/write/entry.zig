@@ -3,6 +3,8 @@
 const constants = @import("shared").fat32.constants;
 const types = @import("shared").fat32.types;
 
+const text = @import("utils").text;
+
 const StackEntry = types.entry.StackEntry;
 
 pub fn createEntry(
@@ -30,12 +32,12 @@ pub fn createEntry(
 
     for (identity, 0..) |char, index| {
         if (index >= constants.sizes.SHORT_IDENTITY_LENGTH) break;
-        entry.Identity[index] = toUpper(char);
+        entry.Identity[index] = text.ascii.toUpper(char);
     }
 
     for (extension, 0..) |char, index| {
         if (index >= constants.sizes.SHORT_EXT_LENGTH) break;
-        entry.Extension[index] = toUpper(char);
+        entry.Extension[index] = text.ascii.toUpper(char);
     }
 
     return entry;

@@ -8,6 +8,8 @@ const efi = @import("hikari").efi;
 const errors = @import("hikari").loader.errors;
 const types = @import("hikari").loader.types;
 
+const math = @import("utils").math;
+
 const LoadError = errors.elf.LoadError;
 const sizes = common.constants.memory.sizes;
 
@@ -71,7 +73,7 @@ pub const Loader = struct {
         }
 
         const total_size = load_end - load_base;
-        const pages_needed = (total_size + sizes.PAGE_SIZE - 1) / sizes.PAGE_SIZE;
+        const pages_needed = math.integer.divideCeil(total_size, sizes.PAGE_SIZE);
 
         var physical_base: efi.types.base.PhysicalAddress = load_base;
         const allocation_status = self.BootServices.AllocatePages(

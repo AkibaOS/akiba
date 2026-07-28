@@ -5,7 +5,8 @@ const common = @import("common");
 const constants = @import("mirai").boot.constants;
 const pmm = @import("mirai").pmm;
 
-const layout = common.constants.memory.layout;
+const address = @import("utils").address;
+
 const limits = constants.tss.limits;
 const sizes = common.constants.memory.sizes;
 
@@ -27,7 +28,7 @@ pub fn allocateISTStack() AllocationError!StackRange {
 fn allocateStack(size: u64) AllocationError!StackRange {
     const page_count = size / sizes.PAGE_SIZE;
     const physical_base = try pmm.allocate.contiguous.allocateContiguous(page_count);
-    const virtual_base = physical_base + layout.PHYSMAP_BASE;
+    const virtual_base = address.translate.physToVirt(physical_base);
 
     return StackRange{
         .Base = virtual_base,
@@ -36,7 +37,7 @@ fn allocateStack(size: u64) AllocationError!StackRange {
 }
 
 pub fn freeStack(base: u64, size: u64) void {
-    const physical_base = base - layout.PHYSMAP_BASE;
+    const physical_base = address.translate.virtToPhys(base);
     const page_count = size / sizes.PAGE_SIZE;
     pmm.free.range.freeRange(physical_base, page_count);
 }

@@ -1,25 +1,24 @@
 //! Single Page Free
 
-const common = @import("common");
-
-const bitmap = @import("mirai").pmm.bitmap;
 const state = @import("mirai").pmm.state;
 
-const sizes = common.constants.memory.sizes;
+const bits = @import("utils").bits;
+
+const address = @import("utils").address;
 
 pub fn freePage(physical_address: u64) void {
-    const page_index = physical_address >> sizes.PAGE_SHIFT;
+    const page_index = address.translate.addressToPage(physical_address);
     const pmm_state = state.getState();
 
     if (page_index >= pmm_state.TotalPages) {
         return;
     }
 
-    if (!bitmap.operations.testBit(pmm_state.Bitmap, page_index)) {
+    if (!bits.operations.testBit(pmm_state.Bitmap, page_index)) {
         return;
     }
 
-    bitmap.operations.clearBit(pmm_state.Bitmap, page_index);
+    bits.operations.clearBit(pmm_state.Bitmap, page_index);
     pmm_state.FreePages += 1;
     pmm_state.UsedPages -= 1;
 

@@ -3,7 +3,10 @@
 const constants = @import("constants/constants.zig");
 const framebuffer = @import("hikari").display.framebuffer;
 const font = @import("hikari").display.font;
-const strings = @import("strings/strings.zig");
+
+const format = @import("utils").format;
+
+const limits = format.constants.format;
 
 pub const TextRenderer = struct {
     Framebuffer: *framebuffer.Framebuffer,
@@ -155,40 +158,13 @@ pub const TextRenderer = struct {
     }
 
     pub fn printUnsigned(self: *TextRenderer, value: u64) void {
-        var buffer: [constants.text.MAX_DIGITS]u8 = undefined;
-        var length: usize = 0;
-        var remaining = value;
-
-        if (remaining == 0) {
-            self.putChar('0');
-            return;
-        }
-
-        while (remaining > 0) {
-            buffer[length] = @truncate((remaining % constants.text.DECIMAL_BASE) + '0');
-            remaining /= constants.text.DECIMAL_BASE;
-            length += 1;
-        }
-
-        while (length > 0) {
-            length -= 1;
-            self.putChar(buffer[length]);
-        }
+        var digits: [limits.MAX_DECIMAL_DIGITS]u8 = undefined;
+        self.print(format.number.decimal(value, &digits));
     }
 
     pub fn printHex(self: *TextRenderer, value: u64) void {
         self.print("0x");
-
-        var started = false;
-        var shift: u6 = @bitSizeOf(u64) - constants.text.HEX_NIBBLE_BITS;
-        while (true) {
-            const nibble: u4 = @truncate((value >> shift) & constants.text.HEX_NIBBLE_MASK);
-            if (nibble != 0 or started or shift == 0) {
-                self.putChar(strings.text.HEX_DIGITS[nibble]);
-                started = true;
-            }
-            if (shift == 0) break;
-            shift -= constants.text.HEX_NIBBLE_BITS;
-        }
+        var digits: [limits.MAX_HEX_DIGITS]u8 = undefined;
+        self.print(format.number.hexUpper(value, &digits));
     }
 };

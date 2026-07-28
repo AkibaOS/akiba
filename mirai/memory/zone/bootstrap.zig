@@ -3,9 +3,12 @@
 const common = @import("common");
 
 const constants = @import("mirai").memory.constants;
-const convert = @import("mirai").memory.convert;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").memory.types;
+
+const address = @import("utils").address;
+const math = @import("utils").math;
+const text = @import("utils").text;
 
 const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
@@ -37,7 +40,7 @@ pub fn init() AllocationError!void {
 
 fn initZone(zone: *Zone, name: []const u8, element_size: usize) void {
     const actual_size = @max(element_size, @sizeOf(FreeElement));
-    const aligned_size = (actual_size + limits.ELEMENT_ALIGNMENT - 1) & ~(limits.ELEMENT_ALIGNMENT - 1);
+    const aligned_size = math.integer.alignUp(actual_size, limits.ELEMENT_ALIGNMENT);
 
     zone.ElementSize = aligned_size;
     zone.ElementsPerPage = sizes.PAGE_SIZE / aligned_size;
@@ -47,8 +50,7 @@ fn initZone(zone: *Zone, name: []const u8, element_size: usize) void {
     zone.FreeCount = 0;
     zone.PageCount = 0;
 
-    const copy_length = @min(name.len, limits.NAME_CAPACITY - 1);
-    @memcpy(zone.Name[0..copy_length], name[0..copy_length]);
+    const copy_length = text.ascii.copyBounded(zone.Name[0 .. limits.NAME_CAPACITY - 1], name);
     zone.NameLength = @truncate(copy_length);
 }
 
@@ -56,7 +58,7 @@ fn expandZoneEarly(zone: *Zone) AllocationError!void {
     if (early_meta_used >= early_page_metas.len) return AllocationError.OutOfMemory;
 
     const physical = try pmm.allocate.single.allocatePage();
-    const virtual = convert.physToVirt(physical);
+    const virtual = address.translate.physToVirt(physical);
 
     const meta = &early_page_metas[early_meta_used];
     early_meta_used += 1;

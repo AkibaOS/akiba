@@ -1,8 +1,6 @@
 //! Page Table Entry Type
 
-const common = @import("common");
-
-const sizes = common.constants.memory.sizes;
+const address = @import("utils").address;
 
 pub const Entry = packed struct {
     Present: bool = false,
@@ -36,11 +34,11 @@ pub const Entry = packed struct {
     }
 
     pub fn getPhysicalAddress(self: Entry) u64 {
-        return @as(u64, self.PhysicalAddress) << sizes.PAGE_SHIFT;
+        return address.translate.pageToAddress(self.PhysicalAddress);
     }
 
-    pub fn setPhysicalAddress(self: *Entry, address: u64) void {
-        self.PhysicalAddress = @truncate(address >> sizes.PAGE_SHIFT);
+    pub fn setPhysicalAddress(self: *Entry, physical_address: u64) void {
+        self.PhysicalAddress = @truncate(address.translate.addressToPage(physical_address));
     }
 
     pub fn clear(self: *Entry) void {

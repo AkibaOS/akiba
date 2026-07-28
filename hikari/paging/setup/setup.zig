@@ -4,8 +4,11 @@ const common = @import("common");
 const constants = @import("hikari").paging.constants;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").paging.errors;
-const index = @import("hikari").paging.index;
+
 const types = @import("hikari").paging.types;
+
+const address = @import("utils").address;
+const math = @import("utils").math;
 
 const flags = common.constants.paging.flags;
 const layout = common.constants.memory.layout;
@@ -93,7 +96,7 @@ pub const PageTableSetup = struct {
         else
             max_physical;
 
-        const gigabyte_count = (size_to_map + sizes.HUGE_PAGE_SIZE - 1) / sizes.HUGE_PAGE_SIZE;
+        const gigabyte_count = math.integer.divideCeil(size_to_map, sizes.HUGE_PAGE_SIZE);
 
         var gigabyte_index: u64 = 0;
         while (gigabyte_index < gigabyte_count and gigabyte_index < sizes.ENTRIES_PER_PAGE_TABLE) : (gigabyte_index += 1) {
@@ -107,12 +110,12 @@ pub const PageTableSetup = struct {
     }
 
     pub fn mapRange(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, page_flags: u64) SetupError!void {
-        var virt = virtual & ~@as(u64, sizes.PAGE_SIZE - 1);
-        var phys = physical & ~@as(u64, sizes.PAGE_SIZE - 1);
+        var virt = math.integer.alignDown(virtual, sizes.PAGE_SIZE);
+        var phys = math.integer.alignDown(physical, sizes.PAGE_SIZE);
         var remaining = size;
 
         while (remaining > 0) {
-            const l4_index = index.extractL4Index(virt);
+            const l4_index = address.decompose.extractPML4Index(virt);
             var l3: *types.table.TableL3 = undefined;
 
             if (self.L4.getEntry(l4_index).isPresent()) {
@@ -126,7 +129,7 @@ pub const PageTableSetup = struct {
                 self.L4.setEntry(l4_index, entry);
             }
 
-            const l3_index = index.extractL3Index(virt);
+            const l3_index = address.decompose.extractPDPTIndex(virt);
             var l2: *types.table.TableL2 = undefined;
 
             if (l3.getEntry(l3_index).isPresent()) {
@@ -150,7 +153,7 @@ pub const PageTableSetup = struct {
                 l3.setEntry(l3_index, entry);
             }
 
-            const l2_index = index.extractL2Index(virt);
+            const l2_index = address.decompose.extractPDIndex(virt);
 
             if (remaining >= sizes.LARGE_PAGE_SIZE and
                 (virt & (sizes.LARGE_PAGE_SIZE - 1)) == 0 and
@@ -191,7 +194,7 @@ pub const PageTableSetup = struct {
                 l2.setEntry(l2_index, entry);
             }
 
-            const l1_index = index.extractL1Index(virt);
+            const l1_index = address.decompose.extractPTIndex(virt);
             const entry = types.entry.PageTableEntry.fromAddress(phys, page_flags);
             l1.setEntry(l1_index, entry);
 

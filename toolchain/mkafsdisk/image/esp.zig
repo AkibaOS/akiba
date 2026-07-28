@@ -7,6 +7,8 @@ const fat32 = @import("shared").fat32;
 const constants = @import("mkafsdisk").constants;
 const strings = @import("mkafsdisk").strings;
 
+const math = @import("utils").math;
+
 const disk = constants.disk;
 const esp = constants.esp;
 const messages = strings.messages;
@@ -132,7 +134,7 @@ pub fn createEsp(
     defer bootloader_file.close();
 
     const bootloader_size = try bootloader_file.getEndPos();
-    const bootloader_clusters = @as(u32, @intCast((bootloader_size + disk.SECTOR_SIZE - 1) / disk.SECTOR_SIZE));
+    const bootloader_clusters = @as(u32, @intCast(math.integer.divideCeil(bootloader_size, disk.SECTOR_SIZE)));
 
     std.debug.print(messages.BOOTLOADER_ADDING, .{ bootloader_size, bootloader_clusters });
 

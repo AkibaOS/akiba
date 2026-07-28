@@ -5,6 +5,8 @@ const errors = @import("shared").afs.errors;
 const io = @import("shared").afs.io;
 const types = @import("shared").afs.types;
 
+const math = @import("utils").math;
+
 const BlockWriter = io.block.BlockWriter;
 const ChannelInfo = types.volume.ChannelInfo;
 const SpanDescriptor = types.volume.SpanDescriptor;
@@ -48,7 +50,7 @@ pub fn writeSpan(
 
 pub fn cellsNeeded(size: u64, cell_size: u32) u32 {
     if (size == 0) return 0;
-    return @intCast((size + cell_size - 1) / cell_size);
+    return @intCast(math.integer.divideCeil(size, cell_size));
 }
 
 pub fn createChannelInfo(

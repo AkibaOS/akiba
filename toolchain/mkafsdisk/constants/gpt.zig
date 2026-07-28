@@ -37,9 +37,6 @@ pub const ENTRY_OFFSET_FIRST_LBA: usize = 32;
 pub const ENTRY_OFFSET_LAST_LBA: usize = 40;
 pub const ENTRY_OFFSET_NAME: usize = 56;
 
-pub const CRC32_POLYNOMIAL: u32 = 0xEDB88320;
-pub const CRC32_INITIAL: u32 = 0xFFFFFFFF;
-
 pub const ESP_TYPE_GUID = [16]u8{
     0x28, 0x73, 0x2A, 0xC1,
     0x1F, 0xF8, 0xD2, 0x11,

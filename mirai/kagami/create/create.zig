@@ -8,6 +8,8 @@ const state = @import("mirai").kagami.state;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
+const bits = @import("utils").bits;
+
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const Kagami = types.kagami.Kagami;
 const pool = constants.pool;
@@ -42,17 +44,9 @@ pub fn create() AllocationError!*Kagami {
 }
 
 fn allocateKagamiStruct() ?*Kagami {
-    var index: usize = 0;
-    while (index < pool.MAX_KAGAMI) : (index += 1) {
-        const byte_index = index / @bitSizeOf(u8);
-        const bit_index: u3 = @truncate(index % @bitSizeOf(u8));
-
-        if ((kagami_pool_bitmap[byte_index] & (@as(u8, 1) << bit_index)) == 0) {
-            kagami_pool_bitmap[byte_index] |= (@as(u8, 1) << bit_index);
-            return &kagami_pool[index];
-        }
-    }
-    return null;
+    const free_index = bits.operations.findFirstClear(&kagami_pool_bitmap, 0, pool.MAX_KAGAMI) orelse return null;
+    bits.operations.setBit(&kagami_pool_bitmap, free_index);
+    return &kagami_pool[free_index];
 }
 
 pub fn freeKagamiStruct(kagami: *Kagami) void {
@@ -66,8 +60,5 @@ pub fn freeKagamiStruct(kagami: *Kagami) void {
 
     if (index >= pool.MAX_KAGAMI) return;
 
-    const byte_index = index / @bitSizeOf(u8);
-    const bit_index: u3 = @truncate(index % @bitSizeOf(u8));
-
-    kagami_pool_bitmap[byte_index] &= ~(@as(u8, 1) << bit_index);
+    bits.operations.clearBit(&kagami_pool_bitmap, index);
 }

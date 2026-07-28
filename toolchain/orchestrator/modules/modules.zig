@@ -12,11 +12,18 @@ pub fn create(builder: *std.Build) types.Modules {
     });
     common.addImport(names.MODULE_COMMON, common);
 
+    const utils = builder.createModule(.{
+        .root_source_file = builder.path(paths.UTILS_ROOT),
+    });
+    utils.addImport(names.MODULE_COMMON, common);
+    utils.addImport(names.MODULE_UTILS, utils);
+
     const shared = builder.createModule(.{
         .root_source_file = builder.path(paths.SHARED_ROOT),
     });
     shared.addImport(names.MODULE_COMMON, common);
     shared.addImport(names.MODULE_SHARED, shared);
+    shared.addImport(names.MODULE_UTILS, utils);
 
     const assembly = builder.createModule(.{
         .root_source_file = builder.path(paths.ASSEMBLY_ROOT),
@@ -27,5 +34,6 @@ pub fn create(builder: *std.Build) types.Modules {
         .Common = common,
         .Shared = shared,
         .Assembly = assembly,
+        .Utils = utils,
     };
 }

@@ -3,9 +3,11 @@
 const common = @import("common");
 
 const bootstrap = @import("mirai").memory.zone.bootstrap;
-const convert = @import("mirai").memory.convert;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").memory.types;
+
+const address = @import("utils").address;
+const math = @import("utils").math;
 
 const sizes = common.constants.memory.sizes;
 
@@ -43,7 +45,7 @@ pub fn zallocZeroed(zone: *Zone) AllocationError!*anyopaque {
 }
 
 pub fn zfree(zone: *Zone, pointer: *anyopaque) void {
-    const page_virtual = @intFromPtr(pointer) & ~@as(usize, sizes.PAGE_MASK);
+    const page_virtual = math.integer.alignDown(@intFromPtr(pointer), @as(usize, sizes.PAGE_SIZE));
     const page = findPage(zone, page_virtual) orelse return;
     const was_full = (page.FreeList == null);
 
@@ -62,7 +64,7 @@ pub fn zfree(zone: *Zone, pointer: *anyopaque) void {
 
 fn expand(zone: *Zone) AllocationError!void {
     const physical = pmm.allocate.single.allocatePage() catch return AllocationError.OutOfMemory;
-    const virtual = convert.physToVirt(physical);
+    const virtual = address.translate.physToVirt(physical);
 
     const page_meta_zone = bootstrap.getPageMetaZone();
     const meta_pointer = zalloc(page_meta_zone) catch {

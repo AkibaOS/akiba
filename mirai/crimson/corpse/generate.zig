@@ -8,6 +8,8 @@ const constants = @import("mirai").crimson.constants;
 const context = @import("mirai").crimson.context;
 const types = @import("mirai").crimson.types;
 
+const math = @import("utils").math;
+
 const limits = constants.limits;
 const sizes = common.constants.memory.sizes;
 
@@ -64,7 +66,7 @@ fn captureStackSnapshot(corpse: *Corpse, rsp: u64) void {
 }
 
 fn captureMemorySnapshot(corpse: *Corpse, address: u64) void {
-    const page_start = address & ~sizes.PAGE_MASK;
+    const page_start = math.integer.alignDown(address, sizes.PAGE_SIZE);
     const offset = address - page_start;
 
     const half_snapshot = limits.SNAPSHOT_SIZE / 2;

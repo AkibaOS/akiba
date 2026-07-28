@@ -2,6 +2,8 @@
 
 const errors = @import("shared").afs.errors;
 
+const bits = @import("utils").bits;
+
 const AllocationError = errors.allocate.AllocationError;
 
 pub const AllocationMap = struct {
@@ -19,23 +21,17 @@ pub const AllocationMap = struct {
 
     pub fn markAllocated(self: *AllocationMap, cell: u32) void {
         if (cell >= self.TotalCells) return;
-        const byte_index = cell / @bitSizeOf(u8);
-        const bit_index: u3 = @intCast(cell % @bitSizeOf(u8));
-        self.Bitmap[byte_index] |= @as(u8, 1) << bit_index;
+        bits.operations.setBit(self.Bitmap, cell);
     }
 
     pub fn markFree(self: *AllocationMap, cell: u32) void {
         if (cell >= self.TotalCells) return;
-        const byte_index = cell / @bitSizeOf(u8);
-        const bit_index: u3 = @intCast(cell % @bitSizeOf(u8));
-        self.Bitmap[byte_index] &= ~(@as(u8, 1) << bit_index);
+        bits.operations.clearBit(self.Bitmap, cell);
     }
 
     pub fn isAllocated(self: *const AllocationMap, cell: u32) bool {
         if (cell >= self.TotalCells) return true;
-        const byte_index = cell / @bitSizeOf(u8);
-        const bit_index: u3 = @intCast(cell % @bitSizeOf(u8));
-        return (self.Bitmap[byte_index] & (@as(u8, 1) << bit_index)) != 0;
+        return bits.operations.testBit(self.Bitmap, cell);
     }
 
     pub fn allocateCells(self: *AllocationMap, count: u32) AllocationError!u32 {
@@ -46,10 +42,7 @@ pub const AllocationMap = struct {
             return AllocationError.OutOfSpace;
         }
 
-        var index: u32 = 0;
-        while (index < count) : (index += 1) {
-            self.markAllocated(start + index);
-        }
+        self.reserveRange(start, count);
 
         self.NextFree = start + count;
         return start;
@@ -75,5 +68,5 @@ pub const AllocationMap = struct {
 };
 
 pub fn bitmapSize(total_cells: u32) u32 {
-    return (total_cells + @bitSizeOf(u8) - 1) / @bitSizeOf(u8);
+    return @intCast(bits.operations.bitmapBytes(total_cells));
 }

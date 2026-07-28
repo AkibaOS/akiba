@@ -10,6 +10,8 @@ const strings = @import("mirai").boot.strings;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
 
+const math = @import("utils").math;
+
 const layout = common.constants.memory.layout;
 const messages = strings.sequence.messages;
 const sizes = common.constants.memory.sizes;
@@ -51,7 +53,7 @@ pub fn execute(boot_info: *const BootInfo) bool {
 
 fn findBitmapLocation(boot_info: *const BootInfo) u64 {
     const bitmap_size = pmm.constants.limits.BITMAP_SIZE_BYTES;
-    const required_pages = (bitmap_size + sizes.PAGE_MASK) / sizes.PAGE_SIZE;
+    const required_pages = math.integer.divideCeil(bitmap_size, sizes.PAGE_SIZE);
 
     var index: u64 = 0;
     while (index < boot_info.MemoryMapCount) : (index += 1) {

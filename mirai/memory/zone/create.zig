@@ -7,6 +7,9 @@ const bootstrap = @import("mirai").memory.zone.bootstrap;
 const constants = @import("mirai").memory.constants;
 const types = @import("mirai").memory.types;
 
+const math = @import("utils").math;
+const text = @import("utils").text;
+
 const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
 
@@ -22,7 +25,7 @@ pub fn create(name: []const u8, element_size: usize) AllocationError!*Zone {
     const zone: *Zone = @ptrCast(@alignCast(pointer));
 
     const actual_size = @max(element_size, @sizeOf(FreeElement));
-    const aligned_size = (actual_size + limits.ELEMENT_ALIGNMENT - 1) & ~(limits.ELEMENT_ALIGNMENT - 1);
+    const aligned_size = math.integer.alignUp(actual_size, limits.ELEMENT_ALIGNMENT);
 
     zone.ElementSize = aligned_size;
     zone.ElementsPerPage = sizes.PAGE_SIZE / aligned_size;
@@ -32,8 +35,7 @@ pub fn create(name: []const u8, element_size: usize) AllocationError!*Zone {
     zone.FreeCount = 0;
     zone.PageCount = 0;
 
-    const copy_length = @min(name.len, limits.NAME_CAPACITY - 1);
-    @memcpy(zone.Name[0..copy_length], name[0..copy_length]);
+    const copy_length = text.ascii.copyBounded(zone.Name[0 .. limits.NAME_CAPACITY - 1], name);
     zone.NameLength = @truncate(copy_length);
 
     return zone;

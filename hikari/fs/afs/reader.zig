@@ -5,6 +5,9 @@ const btree = @import("hikari").fs.afs.btree;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 
+const text = @import("utils").text;
+const utils = @import("utils");
+
 const ReadError = errors.afs.ReadError;
 const VolumeHeader = afs.types.volume.VolumeHeader;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
@@ -12,7 +15,6 @@ const UnitRecord = afs.types.catalog.UnitRecord;
 const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
 const constants = afs.constants;
-const location = afs.read.location;
 const BTree = btree.BTree;
 
 pub const Reader = struct {
@@ -128,12 +130,12 @@ pub const Reader = struct {
     pub fn openLocation(self: *Reader, path: []const u8) ReadError!UnitRecord {
         var current_node_id: u32 = constants.nodes.ORIGIN_STACK;
 
-        var iterator = location.LocationIterator.init(path);
+        var iterator = utils.path.types.iterator.LocationIterator.init(path);
         var last_unit: ?UnitRecord = null;
 
         while (iterator.next()) |component| {
             var identity_utf16: [constants.sizes.MAX_IDENTITY_LENGTH]u16 = undefined;
-            const identity_length = location.componentToIdentity(component, &identity_utf16);
+            const identity_length = text.ascii.widenToUtf16(&identity_utf16, component);
             const identity = identity_utf16[0..identity_length];
 
             const stack_record = self.Index.searchIndexForStack(current_node_id, identity) catch {

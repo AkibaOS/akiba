@@ -8,6 +8,8 @@ const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
 const types = @import("mirai").crimson.types;
 
+const text = @import("utils").text;
+
 const limits = constants.limits;
 const messages = strings.messages;
 
@@ -64,8 +66,7 @@ pub fn collapseWithContext(message: []const u8, context: *const Context) noretur
 }
 
 fn setMessage(message: []const u8) void {
-    const length = @min(message.len, limits.MESSAGE_CAPACITY - 1);
-    @memcpy(collapse_message[0..length], message[0..length]);
+    const length = text.ascii.copyBounded(collapse_message[0 .. limits.MESSAGE_CAPACITY - 1], message);
     collapse_message[length] = 0;
     collapse_message_length = length;
 }
