@@ -1,6 +1,6 @@
 //! Hikari EFI Input Types
 
-const base = @import("base.zig");
+const base = @import("hikari").efi.types.base;
 
 pub const InputKey = extern struct {
     ScanCode: u16,

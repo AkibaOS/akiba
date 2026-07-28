@@ -1,6 +1,6 @@
 //! Framebuffer Draw Operations
 
-const state = @import("state.zig");
+const state = @import("mirai").drivers.framebuffer.state;
 
 pub fn fill(color: u32) void {
     if (!state.isInitialized()) {

@@ -1,7 +1,7 @@
 //! Release Corpse Resources
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").crimson.constants;
+const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 

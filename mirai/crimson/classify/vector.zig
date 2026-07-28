@@ -2,9 +2,9 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").crimson.constants;
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const interrupts = common.constants.interrupts;
 

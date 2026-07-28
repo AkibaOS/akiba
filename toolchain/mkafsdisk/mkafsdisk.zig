@@ -2,8 +2,10 @@
 
 const std = @import("std");
 
-const image = @import("image/image.zig");
-const strings = @import("strings/strings.zig");
+pub const afs = @import("afs/afs.zig");
+pub const constants = @import("constants/constants.zig");
+pub const image = @import("image/image.zig");
+pub const strings = @import("strings/strings.zig");
 
 const messages = strings.messages;
 

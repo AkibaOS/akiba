@@ -1,7 +1,7 @@
 //! Host Exception Port
 
-const array = @import("array.zig");
-const types = @import("../types/types.zig");
+const array = @import("mirai").crimson.ports.array;
+const types = @import("mirai").crimson.types;
 
 const Behavior = types.behavior.Behavior;
 const ExceptionType = types.kind.ExceptionType;

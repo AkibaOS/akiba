@@ -1,7 +1,7 @@
 //! Exception Port
 
-const behavior = @import("behavior.zig");
-const flavor = @import("flavor.zig");
+const behavior = @import("mirai").crimson.types.behavior;
+const flavor = @import("mirai").crimson.types.flavor;
 
 pub const PortOwner = enum(u8) {
     None = 0,

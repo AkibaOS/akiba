@@ -1,7 +1,7 @@
 //! Hikari EFI Unit Types
 
-const base = @import("base.zig");
-const time = @import("time.zig");
+const base = @import("hikari").efi.types.base;
+const time = @import("hikari").efi.types.time;
 
 pub const UnitInfo = extern struct {
     Size: u64,

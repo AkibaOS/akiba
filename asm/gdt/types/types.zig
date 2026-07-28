@@ -1,3 +1,3 @@
 //! GDT Types
 
-pub const GDTR = @import("register.zig").GDTR;
+pub const register = @import("register.zig");

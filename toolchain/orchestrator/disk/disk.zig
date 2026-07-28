@@ -18,6 +18,7 @@ pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
     });
     module.addImport(names.MODULE_COMMON, modules.Common);
     module.addImport(names.MODULE_SHARED, modules.Shared);
+    module.addImport(names.EXECUTABLE_MKAFSDISK, module);
 
     const executable = builder.addExecutable(.{
         .name = names.EXECUTABLE_MKAFSDISK,

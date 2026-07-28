@@ -1,7 +1,7 @@
 //! Kernel Stack Free
 
-const state = @import("state.zig");
-const types = @import("../types/types.zig");
+const state = @import("mirai").memory.stack.state;
+const types = @import("mirai").memory.types;
 
 pub fn free(stack: types.stack.kernel.KernelStack) void {
     const allocator_state = state.getState();

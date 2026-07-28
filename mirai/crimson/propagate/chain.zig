@@ -1,10 +1,10 @@
 //! Exception Chain (Thread → Kata → Host)
 
-const deliver = @import("deliver.zig");
-const entry = @import("../handlers/entry.zig");
-const ports = @import("../ports/ports.zig");
-const types = @import("../types/types.zig");
-const wait = @import("wait.zig");
+const deliver = @import("mirai").crimson.propagate.deliver;
+const entry = @import("mirai").crimson.handlers.entry;
+const ports = @import("mirai").crimson.ports;
+const types = @import("mirai").crimson.types;
+const wait = @import("mirai").crimson.propagate.wait;
 
 const Action = types.behavior.Action;
 const Exception = types.exception.Exception;

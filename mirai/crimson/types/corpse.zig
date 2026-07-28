@@ -1,10 +1,10 @@
 //! Corpse Structure
 
-const constants = @import("../constants/constants.zig");
-const context = @import("context.zig");
-const flavor = @import("flavor.zig");
-const identity = @import("identity.zig");
-const kind = @import("kind.zig");
+const constants = @import("mirai").crimson.constants;
+const context = @import("mirai").crimson.types.context;
+const flavor = @import("mirai").crimson.types.flavor;
+const identity = @import("mirai").crimson.types.identity;
+const kind = @import("mirai").crimson.types.kind;
 
 const limits = constants.limits;
 

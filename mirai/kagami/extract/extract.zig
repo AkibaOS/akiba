@@ -2,8 +2,8 @@
 
 const common = @import("common");
 
-const tables = @import("../tables/tables.zig");
-const types = @import("../types/types.zig");
+const tables = @import("mirai").kagami.tables;
+const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
 

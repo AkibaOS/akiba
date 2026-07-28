@@ -1,8 +1,8 @@
 //! GDT Table Type
 
-const entry = @import("entry.zig");
-const gdtr = @import("gdtr.zig");
-const tss = @import("tss.zig");
+const entry = @import("mirai").boot.types.gdt.entry;
+const gdtr = @import("mirai").boot.types.gdt.gdtr;
+const tss = @import("mirai").boot.types.gdt.tss;
 
 pub const Table = extern struct {
     Null: entry.Entry,

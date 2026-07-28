@@ -1,7 +1,7 @@
 //! Analyze Error Codes
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("mirai").crimson.constants;
+const strings = @import("mirai").crimson.strings;
 
 const faults = constants.faults;
 const names = strings.names;

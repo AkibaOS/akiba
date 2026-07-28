@@ -2,11 +2,11 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const kagami = @import("../../kagami/kagami.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const state = @import("state.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").memory.constants;
+const kagami = @import("mirai").kagami;
+const pmm = @import("mirai").pmm;
+const state = @import("mirai").memory.stack.state;
+const types = @import("mirai").memory.types;
 
 const limits = constants.stack.limits;
 const sizes = common.constants.memory.sizes;

@@ -4,11 +4,11 @@ const boot = @import("shared").boot;
 
 const halt = @import("asm").cpu.halt;
 
-const constants = @import("../constants/constants.zig");
-const framebuffer = @import("../../drivers/framebuffer/framebuffer.zig");
-const regions = @import("../../boot/regions/regions.zig");
-const sequence = @import("../../boot/sequence/sequence.zig");
-const types = @import("../../boot/types/types.zig");
+const constants = @import("mirai").kernel.constants;
+const framebuffer = @import("mirai").drivers.framebuffer;
+const regions = @import("mirai").boot.regions;
+const sequence = @import("mirai").boot.sequence;
+const types = @import("mirai").boot.types;
 
 const colors = constants.colors;
 

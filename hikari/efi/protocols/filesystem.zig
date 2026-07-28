@@ -1,8 +1,8 @@
 //! Hikari EFI Simple Unit System Protocol
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
-const unit = @import("unit.zig");
+const constants = @import("hikari").efi.constants;
+const types = @import("hikari").efi.types;
+const unit = @import("hikari").efi.protocols.unit;
 
 const convention = constants.convention.CALLING_CONVENTION;
 

@@ -1,7 +1,7 @@
 //! Boot Message Printing
 
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").boot.strings;
 
 const banner = strings.sequence.banner;
 

@@ -2,11 +2,11 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const index = @import("index.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
-const walk = @import("walk.zig");
+const constants = @import("mirai").kagami.constants;
+const index = @import("mirai").kagami.tables.index;
+const pmm = @import("mirai").pmm;
+const types = @import("mirai").kagami.types;
+const walk = @import("mirai").kagami.tables.walk;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 

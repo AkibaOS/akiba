@@ -1,7 +1,7 @@
 //! IDT Entries Table
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").interrupts.constants;
+const types = @import("mirai").interrupts.types;
 
 const IDT_ENTRIES = constants.idt.limits.IDT_ENTRIES;
 

@@ -1,6 +1,6 @@
 //! FAT32 Boot Sector (BPB)
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").fat32.constants;
 
 pub const BootSector = extern struct {
     JumpBoot: [3]u8,

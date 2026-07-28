@@ -1,7 +1,7 @@
 //! Hikari FAT32 Reader
 
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
+const efi = @import("hikari").efi;
+const errors = @import("hikari").fs.errors;
 const fat32 = @import("shared").fat32;
 
 const ReadError = errors.fat32.ReadError;

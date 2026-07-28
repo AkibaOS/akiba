@@ -2,9 +2,9 @@
 
 const common = @import("common");
 
-const entry = @import("entry.zig");
+const entry = @import("mirai").kagami.types.entry;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").kagami.constants;
 const sizes = common.constants.memory.sizes;
 
 pub const Table = struct {

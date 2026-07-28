@@ -1,10 +1,10 @@
 //! Breach Handler (Page Fault, Segment Fault)
 
-const classify = @import("../classify/classify.zig");
-const constants = @import("../constants/constants.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const classify = @import("mirai").crimson.classify;
+const constants = @import("mirai").crimson.constants;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 

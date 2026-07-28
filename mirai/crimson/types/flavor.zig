@@ -1,6 +1,6 @@
 //! Flavor State Structures
 
-const strings = @import("../strings/strings.zig");
+const strings = @import("mirai").crimson.strings;
 
 const names = strings.names;
 

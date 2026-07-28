@@ -1,6 +1,6 @@
 //! Hikari EFI Table Types
 
-const base = @import("base.zig");
+const base = @import("hikari").efi.types.base;
 
 pub const TableHeader = extern struct {
     Signature: u64,

@@ -1,7 +1,7 @@
 //! Hikari EFI Simple Text Input Protocol
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("hikari").efi.constants;
+const types = @import("hikari").efi.types;
 
 const convention = constants.convention.CALLING_CONVENTION;
 

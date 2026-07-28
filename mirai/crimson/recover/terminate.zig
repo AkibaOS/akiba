@@ -1,9 +1,9 @@
 //! Terminate Kata
 
-const corpse = @import("../corpse/corpse.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const corpse = @import("mirai").crimson.corpse;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 

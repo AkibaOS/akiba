@@ -1,6 +1,6 @@
 //! Hikari Console Output Helper
 
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 pub fn print(console: *efi.protocols.output.SimpleTextOutputProtocol, message: []const u8) void {
     for (message) |character| {

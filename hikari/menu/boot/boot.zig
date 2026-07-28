@@ -1,7 +1,7 @@
 //! Hikari Boot Menu
 
-const input = @import("../input/input.zig");
-const renderer = @import("../renderer/renderer.zig");
+const input = @import("hikari").menu.input;
+const renderer = @import("hikari").menu.renderer;
 
 pub const BootMenu = struct {
     Renderer: *renderer.Renderer,

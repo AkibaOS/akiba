@@ -2,8 +2,8 @@
 
 const cpu = @import("asm").cpu;
 
-const context = @import("../context/context.zig");
-const types = @import("../types/types.zig");
+const context = @import("mirai").crimson.context;
+const types = @import("mirai").crimson.types;
 
 const Context = types.context.Context;
 const DebugState = types.flavor.DebugState;

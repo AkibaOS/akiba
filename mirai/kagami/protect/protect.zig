@@ -4,9 +4,9 @@ const common = @import("common");
 
 const cpu = @import("asm").cpu;
 
-const constants = @import("../constants/constants.zig");
-const tables = @import("../tables/tables.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").kagami.constants;
+const tables = @import("mirai").kagami.tables;
+const types = @import("mirai").kagami.types;
 
 const MappingError = common.errors.memory.mapping.MappingError;
 const sizes = common.constants.memory.sizes;

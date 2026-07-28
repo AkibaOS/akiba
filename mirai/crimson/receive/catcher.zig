@@ -1,6 +1,6 @@
 //! Catch Exception (Receive Side)
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const Context = types.context.Context;
 const ExceptionType = types.kind.ExceptionType;

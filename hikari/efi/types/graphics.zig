@@ -1,6 +1,6 @@
 //! Hikari EFI Graphics Types
 
-const base = @import("base.zig");
+const base = @import("hikari").efi.types.base;
 
 pub const PixelFormat = enum(u32) {
     RGB = 0,

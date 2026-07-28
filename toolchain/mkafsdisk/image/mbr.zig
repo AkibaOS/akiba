@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mkafsdisk").constants;
 
 const disk = constants.disk;
 const gpt = constants.gpt;

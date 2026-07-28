@@ -1,6 +1,6 @@
 //! Kagami State
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").kagami.types;
 
 const Kagami = types.kagami.Kagami;
 

@@ -1,6 +1,6 @@
 //! Hikari EFI Protocol GUIDs
 
-const types = @import("../types/types.zig");
+const types = @import("hikari").efi.types;
 
 const GUID = types.base.GUID;
 

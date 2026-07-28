@@ -1,7 +1,7 @@
 //! Collapse Banner
 
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
 
 const messages = strings.messages;
 

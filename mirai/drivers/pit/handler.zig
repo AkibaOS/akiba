@@ -1,7 +1,7 @@
 //! PIT IRQ Handler
 
-const constants = @import("../constants/constants.zig");
-const interrupts = @import("../../interrupts/interrupts.zig");
+const constants = @import("mirai").drivers.constants;
+const interrupts = @import("mirai").interrupts;
 
 const limits = constants.pit.limits;
 

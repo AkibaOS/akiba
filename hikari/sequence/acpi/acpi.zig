@@ -1,7 +1,7 @@
 //! Hikari ACPI Table Locator
 
 const boot = @import("shared").boot;
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 pub fn findACPI(system_table: *efi.services.system.SystemTable) boot.types.acpi.ACPIInfo {
     var index: usize = 0;

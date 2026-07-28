@@ -1,8 +1,8 @@
 //! Render Memory Around Fault
 
-const constants = @import("../constants/constants.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("mirai").crimson.constants;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
 
 const limits = constants.limits;
 const messages = strings.messages;

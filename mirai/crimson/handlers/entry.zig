@@ -1,16 +1,16 @@
 //! Common Handler Entry
 
-const breach = @import("breach.zig");
-const classify = @import("../classify/classify.zig");
-const collapse = @import("collapse.zig");
-const context = @import("../context/context.zig");
-const forbidden = @import("forbidden.zig");
-const missing = @import("missing.zig");
-const overflow = @import("overflow.zig");
-const propagate = @import("../propagate/propagate.zig");
-const shatter = @import("shatter.zig");
-const state = @import("../state/state.zig");
-const types = @import("../types/types.zig");
+const breach = @import("mirai").crimson.handlers.breach;
+const classify = @import("mirai").crimson.classify;
+const collapse = @import("mirai").crimson.handlers.collapse;
+const context = @import("mirai").crimson.context;
+const forbidden = @import("mirai").crimson.handlers.forbidden;
+const missing = @import("mirai").crimson.handlers.missing;
+const overflow = @import("mirai").crimson.handlers.overflow;
+const propagate = @import("mirai").crimson.propagate;
+const shatter = @import("mirai").crimson.handlers.shatter;
+const state = @import("mirai").crimson.state;
+const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
 const Context = types.context.Context;

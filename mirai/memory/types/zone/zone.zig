@@ -1,6 +1,6 @@
 //! Zone Types
 
-const constants = @import("../../constants/constants.zig");
+const constants = @import("mirai").memory.constants;
 
 pub const Zone = struct {
     Name: [constants.zone.limits.NAME_CAPACITY]u8,

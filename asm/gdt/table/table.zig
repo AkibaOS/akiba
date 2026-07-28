@@ -1,6 +1,6 @@
 //! GDT Table Load Operations
 
-const register = @import("../types/register.zig");
+const register = @import("asm").gdt.types.register;
 
 pub fn loadGlobalDescriptorTable(descriptor: *const register.GDTR) void {
     asm volatile ("lgdt (%[descriptor])"

@@ -1,6 +1,6 @@
 //! Crimson Global State
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const ExceptionType = types.kind.ExceptionType;
 

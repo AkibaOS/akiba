@@ -1,6 +1,6 @@
 //! Memory Layout Constants
 
-const sizes = @import("sizes.zig");
+const sizes = @import("common").constants.memory.sizes;
 
 pub const KERNEL_BASE: u64 = 0xFFFFFFFF80000000;
 pub const KERNEL_PHYSICAL_BASE: u64 = 0x100000;

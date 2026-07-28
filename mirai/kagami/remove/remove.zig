@@ -4,8 +4,8 @@ const common = @import("common");
 
 const cpu = @import("asm").cpu;
 
-const tables = @import("../tables/tables.zig");
-const types = @import("../types/types.zig");
+const tables = @import("mirai").kagami.tables;
+const types = @import("mirai").kagami.types;
 
 const sizes = common.constants.memory.sizes;
 

@@ -1,7 +1,7 @@
 //! GDT Entry Creation
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").boot.constants;
+const types = @import("mirai").boot.types;
 
 const access = constants.gdt.access;
 const flags = constants.gdt.flags;

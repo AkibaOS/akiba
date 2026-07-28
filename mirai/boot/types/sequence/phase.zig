@@ -1,6 +1,6 @@
 //! Boot Phase Type
 
-const strings = @import("../../strings/strings.zig");
+const strings = @import("mirai").boot.strings;
 
 const phases = strings.sequence.phases;
 

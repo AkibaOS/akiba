@@ -1,8 +1,8 @@
 //! Raise Software Exception
 
-const entry = @import("../handlers/entry.zig");
-const propagate = @import("../propagate/propagate.zig");
-const types = @import("../types/types.zig");
+const entry = @import("mirai").crimson.handlers.entry;
+const propagate = @import("mirai").crimson.propagate;
+const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
 const Exception = types.exception.Exception;

@@ -1,6 +1,6 @@
 //! Resume Execution
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const Context = types.context.Context;
 const Exception = types.exception.Exception;

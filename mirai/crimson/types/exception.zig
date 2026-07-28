@@ -1,9 +1,9 @@
 //! Exception Structure
 
-const constants = @import("../constants/constants.zig");
-const context = @import("context.zig");
-const frame = @import("frame.zig");
-const kind = @import("kind.zig");
+const constants = @import("mirai").crimson.constants;
+const context = @import("mirai").crimson.types.context;
+const frame = @import("mirai").crimson.types.frame;
+const kind = @import("mirai").crimson.types.kind;
 
 const vectors = constants.vectors;
 

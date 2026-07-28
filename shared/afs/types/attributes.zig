@@ -1,7 +1,7 @@
 //! AFS Attribute Types
 
-const constants = @import("../constants/constants.zig");
-const volume = @import("volume.zig");
+const constants = @import("shared").afs.constants;
+const volume = @import("shared").afs.types.volume;
 
 const ChannelInfo = volume.ChannelInfo;
 

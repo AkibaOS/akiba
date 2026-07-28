@@ -1,11 +1,11 @@
 //! Boot Parameters
 
-const acpi = @import("acpi.zig");
-const framebuffer = @import("framebuffer.zig");
-const kernel = @import("kernel.zig");
-const memory = @import("memory.zig");
+const acpi = @import("shared").boot.types.acpi;
+const framebuffer = @import("shared").boot.types.framebuffer;
+const kernel = @import("shared").boot.types.kernel;
+const memory = @import("shared").boot.types.memory;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").boot.constants;
 
 pub const BootParams = extern struct {
     Magic: u64,

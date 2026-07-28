@@ -1,6 +1,6 @@
 //! Hikari Framebuffer
 
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 pub const Framebuffer = struct {
     Base: [*]u32,

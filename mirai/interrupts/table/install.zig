@@ -1,7 +1,7 @@
 //! IDT Gate Installation
 
-const entries = @import("entries.zig");
-const types = @import("../types/types.zig");
+const entries = @import("mirai").interrupts.table.entries;
+const types = @import("mirai").interrupts.types;
 
 const DPL = types.gate.DPL;
 const Gate64 = types.gate.Gate64;

@@ -2,7 +2,7 @@
 
 const cpu = @import("asm").cpu;
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const FloatState = types.flavor.FloatState;
 

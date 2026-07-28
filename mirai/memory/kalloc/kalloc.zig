@@ -2,10 +2,10 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
-const zone = @import("../zone/zone.zig");
+const constants = @import("mirai").memory.constants;
+const strings = @import("mirai").memory.strings;
+const types = @import("mirai").memory.types;
+const zone = @import("mirai").memory.zone;
 
 const names = strings.kalloc.names;
 const zone_sizes = constants.kalloc.sizes.ZONE_SIZES;

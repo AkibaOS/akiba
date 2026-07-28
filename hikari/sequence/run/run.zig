@@ -1,19 +1,19 @@
 //! Hikari Boot Sequence Runner
 
-const acpi = @import("../acpi/acpi.zig");
-const assembly = @import("../../asm/asm.zig");
+const acpi = @import("hikari").sequence.acpi;
+const assembly = @import("hikari").assembly;
 const boot = @import("shared").boot;
 const common = @import("common");
-const console = @import("../console/console.zig");
-const constants = @import("../constants/constants.zig");
-const display = @import("../../display/display.zig");
-const efi = @import("../../efi/efi.zig");
-const fs = @import("../../fs/fs.zig");
-const graphics = @import("../graphics/graphics.zig");
-const loader = @import("../../loader/loader.zig");
-const paging = @import("../../paging/paging.zig");
-const partition = @import("../partition/partition.zig");
-const strings = @import("../strings/strings.zig");
+const console = @import("hikari").sequence.console;
+const constants = @import("hikari").sequence.constants;
+const display = @import("hikari").display;
+const efi = @import("hikari").efi;
+const fs = @import("hikari").fs;
+const graphics = @import("hikari").sequence.graphics;
+const loader = @import("hikari").loader;
+const paging = @import("hikari").paging;
+const partition = @import("hikari").sequence.partition;
+const strings = @import("hikari").sequence.strings;
 
 const messages = strings.messages;
 const paths = strings.paths;

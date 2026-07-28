@@ -1,14 +1,14 @@
 //! Boot Sequence Runner
 
-const cpu = @import("cpu.zig");
+const cpu = @import("mirai").boot.sequence.cpu;
 const halt = @import("asm").cpu.halt;
-const interrupts = @import("interrupts.zig");
-const memory = @import("memory.zig");
-const print = @import("print.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const state = @import("state.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const interrupts = @import("mirai").boot.sequence.interrupts;
+const memory = @import("mirai").boot.sequence.memory;
+const print = @import("mirai").boot.sequence.print;
+const serial = @import("mirai").drivers.serial;
+const state = @import("mirai").boot.sequence.state;
+const strings = @import("mirai").boot.strings;
+const types = @import("mirai").boot.types;
 
 const messages = strings.sequence.messages;
 

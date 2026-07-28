@@ -2,8 +2,8 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const pmm = @import("../../pmm/pmm.zig");
+const constants = @import("mirai").boot.constants;
+const pmm = @import("mirai").pmm;
 
 const layout = common.constants.memory.layout;
 const limits = constants.tss.limits;

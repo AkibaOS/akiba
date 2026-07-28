@@ -2,7 +2,7 @@
 
 const common = @import("common");
 
-const entry = @import("entry.zig");
+const entry = @import("hikari").paging.types.entry;
 
 const sizes = common.constants.memory.sizes;
 

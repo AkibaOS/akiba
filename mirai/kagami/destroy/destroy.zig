@@ -1,10 +1,10 @@
 //! Destroy Kagami
 
-const constants = @import("../constants/constants.zig");
-const create = @import("../create/create.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const tables = @import("../tables/tables.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").kagami.constants;
+const create = @import("mirai").kagami.create;
+const pmm = @import("mirai").pmm;
+const tables = @import("mirai").kagami.tables;
+const types = @import("mirai").kagami.types;
 
 const Kagami = types.kagami.Kagami;
 const Table = types.table.Table;

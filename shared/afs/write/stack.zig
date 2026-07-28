@@ -1,7 +1,7 @@
 //! AFS Stack Write Operations
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("shared").afs.constants;
+const types = @import("shared").afs.types;
 
 const ChannelInfo = types.volume.ChannelInfo;
 const IndexKey = types.btree.IndexKey;

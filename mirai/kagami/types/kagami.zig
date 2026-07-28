@@ -1,6 +1,6 @@
 //! Kagami Structure
 
-const state = @import("../state/state.zig");
+const state = @import("mirai").kagami.state;
 
 pub const Kagami = struct {
     PML4Physical: u64,

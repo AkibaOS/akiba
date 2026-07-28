@@ -1,6 +1,6 @@
 //! Vector Mapping Type
 
-const kind = @import("kind.zig");
+const kind = @import("mirai").crimson.types.kind;
 
 pub const Vector = struct {
     Number: u8,

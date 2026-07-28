@@ -1,7 +1,7 @@
 //! FAT32 Cluster Operations
 
-const constants = @import("../constants/constants.zig");
-const errors = @import("../errors/errors.zig");
+const constants = @import("shared").fat32.constants;
+const errors = @import("shared").fat32.errors;
 
 const ClusterError = errors.cluster.ClusterError;
 

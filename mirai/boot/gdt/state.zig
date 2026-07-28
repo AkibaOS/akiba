@@ -1,7 +1,7 @@
 //! GDT State
 
-const entries = @import("entries.zig");
-const types = @import("../types/types.zig");
+const entries = @import("mirai").boot.gdt.entries;
+const types = @import("mirai").boot.types;
 
 const Entry = types.gdt.entry.Entry;
 const GDTR = types.gdt.gdtr.GDTR;

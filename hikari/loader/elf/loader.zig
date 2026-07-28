@@ -3,10 +3,10 @@
 const std = @import("std");
 
 const common = @import("common");
-const constants = @import("../constants/constants.zig");
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
-const types = @import("../types/types.zig");
+const constants = @import("hikari").loader.constants;
+const efi = @import("hikari").efi;
+const errors = @import("hikari").loader.errors;
+const types = @import("hikari").loader.types;
 
 const LoadError = errors.elf.LoadError;
 const sizes = common.constants.memory.sizes;

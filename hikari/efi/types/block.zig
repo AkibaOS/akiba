@@ -1,6 +1,6 @@
 //! Hikari EFI Block I/O Types
 
-const base = @import("base.zig");
+const base = @import("hikari").efi.types.base;
 
 pub const BlockIoMedia = extern struct {
     MediaId: u32,

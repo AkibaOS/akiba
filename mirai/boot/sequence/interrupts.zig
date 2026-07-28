@@ -1,10 +1,10 @@
 //! Interrupts Phase
 
-const interrupts = @import("../../interrupts/interrupts.zig");
-const keyboard = @import("../../drivers/keyboard/keyboard.zig");
-const pit = @import("../../drivers/pit/pit.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
+const interrupts = @import("mirai").interrupts;
+const keyboard = @import("mirai").drivers.keyboard;
+const pit = @import("mirai").drivers.pit;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").boot.strings;
 
 const messages = strings.sequence.messages;
 

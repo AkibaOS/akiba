@@ -1,7 +1,7 @@
 //! CPU Vector Mapping
 
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const names = strings.names;
 const Vector = types.vector.Vector;

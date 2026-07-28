@@ -1,7 +1,7 @@
 //! IDT Descriptor for LIDT
 
-const constants = @import("../constants/constants.zig");
-const gate = @import("gate.zig");
+const constants = @import("mirai").interrupts.constants;
+const gate = @import("mirai").interrupts.types.gate;
 
 const IDT_ENTRIES = constants.idt.limits.IDT_ENTRIES;
 

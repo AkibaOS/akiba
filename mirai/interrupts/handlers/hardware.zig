@@ -4,8 +4,8 @@ const common = @import("common");
 
 const stubgen = @import("asm").interrupts.stubs;
 
-const frame = @import("common.zig");
-const pic = @import("../pic/pic.zig");
+const frame = @import("mirai").interrupts.handlers.common;
+const pic = @import("mirai").interrupts.pic;
 
 const vectors = common.constants.interrupts.vectors;
 

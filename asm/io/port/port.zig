@@ -1,6 +1,6 @@
 //! Port I/O Operations
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("asm").io.constants;
 
 pub fn readByte(port: u16) u8 {
     var result: u8 = undefined;

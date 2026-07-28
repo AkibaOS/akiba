@@ -1,8 +1,8 @@
 //! GDT Setup
 
-const constants = @import("../constants/constants.zig");
-const load = @import("load.zig");
-const state = @import("state.zig");
+const constants = @import("mirai").boot.constants;
+const load = @import("mirai").boot.gdt.load;
+const state = @import("mirai").boot.gdt.state;
 
 const selectors = constants.gdt.selectors;
 

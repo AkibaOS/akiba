@@ -15,7 +15,7 @@ pub const sequence = @import("sequence/sequence.zig");
 pub fn main() void {
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
     const system_table: *efi.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
-    _ = sequence.run(image_handle, system_table);
+    _ = sequence.run.run(image_handle, system_table);
 }
 
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, return_address: ?usize) noreturn {

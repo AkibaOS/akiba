@@ -2,4 +2,4 @@
 
 const gdt = @import("asm").gdt;
 
-pub const GDTR = gdt.types.GDTR;
+pub const GDTR = gdt.types.register.GDTR;

@@ -1,6 +1,6 @@
 //! Hikari Menu Input
 
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 pub const InputAction = enum {
     None,

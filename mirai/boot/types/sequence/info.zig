@@ -1,6 +1,6 @@
 //! Boot Information Type
 
-const pmm = @import("../../../pmm/pmm.zig");
+const pmm = @import("mirai").pmm;
 
 const MemoryRegion = pmm.types.region.MemoryRegion;
 

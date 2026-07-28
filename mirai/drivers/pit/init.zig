@@ -2,7 +2,7 @@
 
 const io = @import("asm").io;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").drivers.constants;
 
 const limits = constants.pit.limits;
 

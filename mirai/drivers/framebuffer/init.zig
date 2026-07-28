@@ -1,6 +1,6 @@
 //! Framebuffer Initialization
 
-const state = @import("state.zig");
+const state = @import("mirai").drivers.framebuffer.state;
 
 pub fn initialize(base: u64, width: u32, height: u32, stride: u32) bool {
     if (base == 0 or width == 0 or height == 0) {

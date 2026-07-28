@@ -2,13 +2,13 @@
 
 const common = @import("common");
 
-const kagami = @import("../../kagami/kagami.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const stack = @import("../../memory/stack/stack.zig");
-const strings = @import("../strings/strings.zig");
-const tss = @import("../tss/tss.zig");
-const types = @import("../types/types.zig");
+const kagami = @import("mirai").kagami;
+const pmm = @import("mirai").pmm;
+const serial = @import("mirai").drivers.serial;
+const stack = @import("mirai").memory.stack;
+const strings = @import("mirai").boot.strings;
+const tss = @import("mirai").boot.tss;
+const types = @import("mirai").boot.types;
 
 const layout = common.constants.memory.layout;
 const messages = strings.sequence.messages;

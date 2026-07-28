@@ -1,7 +1,7 @@
 //! Region Conversion State
 
-const constants = @import("../constants/constants.zig");
-const pmm = @import("../../pmm/pmm.zig");
+const constants = @import("mirai").boot.constants;
+const pmm = @import("mirai").pmm;
 
 const limits = constants.regions.limits;
 

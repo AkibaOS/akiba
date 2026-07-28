@@ -1,6 +1,6 @@
 //! Exception Mask Operations
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const ExceptionType = types.kind.ExceptionType;
 const Mask = types.mask.Mask;

@@ -1,7 +1,7 @@
 //! Hikari AFS Block I/O
 
 const afs = @import("shared").afs;
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 const BlockReader = afs.io.block.BlockReader;
 const BlockError = afs.errors.block.BlockError;

@@ -4,8 +4,8 @@ const std = @import("std");
 
 const fat32 = @import("shared").fat32;
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("mkafsdisk").constants;
+const strings = @import("mkafsdisk").strings;
 
 const disk = constants.disk;
 const esp = constants.esp;

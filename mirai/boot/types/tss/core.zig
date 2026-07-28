@@ -1,7 +1,7 @@
 //! Per-Core TSS
 
-const constants = @import("../../constants/constants.zig");
-const structure = @import("structure.zig");
+const constants = @import("mirai").boot.constants;
+const structure = @import("mirai").boot.types.tss.structure;
 
 const limits = constants.tss.limits;
 

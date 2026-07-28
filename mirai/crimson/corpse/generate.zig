@@ -4,9 +4,9 @@ const common = @import("common");
 
 const cpu = @import("asm").cpu;
 
-const constants = @import("../constants/constants.zig");
-const context = @import("../context/context.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").crimson.constants;
+const context = @import("mirai").crimson.context;
+const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 const sizes = common.constants.memory.sizes;

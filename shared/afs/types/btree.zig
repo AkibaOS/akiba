@@ -1,6 +1,6 @@
 //! AFS B-tree Types
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").afs.constants;
 
 pub const NodeDescriptor = extern struct {
     ForwardLink: u32 = 0,

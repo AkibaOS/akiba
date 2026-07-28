@@ -4,8 +4,8 @@ const common = @import("common");
 
 const cpu = @import("asm").cpu;
 
-const state = @import("../state/state.zig");
-const types = @import("../types/types.zig");
+const state = @import("mirai").kagami.state;
+const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
 

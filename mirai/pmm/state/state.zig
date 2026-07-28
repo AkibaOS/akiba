@@ -1,6 +1,6 @@
 //! Physical Memory Manager State
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").pmm.types;
 
 pub const State = struct {
     Bitmap: []u8,

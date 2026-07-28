@@ -2,7 +2,7 @@
 
 const io = @import("asm").io;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").interrupts.constants;
 
 const ports = constants.pic.ports;
 

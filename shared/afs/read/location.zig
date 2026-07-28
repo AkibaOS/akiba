@@ -1,6 +1,6 @@
 //! AFS Location Operations
 
-const types = @import("../types/types.zig");
+const types = @import("shared").afs.types;
 
 const StackRecord = types.catalog.StackRecord;
 const UnitRecord = types.catalog.UnitRecord;

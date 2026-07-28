@@ -1,6 +1,6 @@
 //! AFS Allocation Operations
 
-const errors = @import("../errors/errors.zig");
+const errors = @import("shared").afs.errors;
 
 const AllocationError = errors.allocate.AllocationError;
 

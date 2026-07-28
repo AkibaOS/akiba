@@ -2,8 +2,8 @@
 
 const interrupt = @import("asm").interrupts;
 
-const table = @import("../table/table.zig");
-const types = @import("../types/types.zig");
+const table = @import("mirai").interrupts.table;
+const types = @import("mirai").interrupts.types;
 
 const Descriptor = types.descriptor.Descriptor;
 

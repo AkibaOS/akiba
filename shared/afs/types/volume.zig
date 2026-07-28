@@ -1,6 +1,6 @@
 //! AFS Volume Types
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").afs.constants;
 
 pub const VolumeHeader = extern struct {
     Signature: u64 = constants.magic.SIGNATURE,

@@ -1,9 +1,9 @@
 //! Port Lookup (Thread → Kata → Host Chain)
 
-const host = @import("host.zig");
-const kata = @import("kata.zig");
-const thread = @import("thread.zig");
-const types = @import("../types/types.zig");
+const host = @import("mirai").crimson.ports.host;
+const kata = @import("mirai").crimson.ports.kata;
+const thread = @import("mirai").crimson.ports.thread;
+const types = @import("mirai").crimson.types;
 
 const Exception = types.exception.Exception;
 const ExceptionType = types.kind.ExceptionType;

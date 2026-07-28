@@ -1,9 +1,9 @@
 //! Zone Garbage Collection
 
-const alloc = @import("alloc.zig");
-const bootstrap = @import("bootstrap.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
+const alloc = @import("mirai").memory.zone.alloc;
+const bootstrap = @import("mirai").memory.zone.bootstrap;
+const pmm = @import("mirai").pmm;
+const types = @import("mirai").memory.types;
 
 const Zone = types.zone.Zone;
 const ZonePageMeta = types.zone.ZonePageMeta;

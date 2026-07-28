@@ -1,6 +1,6 @@
 //! Kernel Stack Allocator State
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").memory.types;
 
 pub const State = struct {
     NextSlot: u64,

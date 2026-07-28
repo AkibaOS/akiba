@@ -2,12 +2,12 @@
 
 const std = @import("std");
 
-const afs = @import("../afs/afs.zig");
-const constants = @import("../constants/constants.zig");
-const esp = @import("esp.zig");
-const gpt = @import("gpt.zig");
-const mbr = @import("mbr.zig");
-const strings = @import("../strings/strings.zig");
+const afs = @import("mkafsdisk").afs;
+const constants = @import("mkafsdisk").constants;
+const esp = @import("mkafsdisk").image.esp;
+const gpt = @import("mkafsdisk").image.gpt;
+const mbr = @import("mkafsdisk").image.mbr;
+const strings = @import("mkafsdisk").strings;
 
 const disk = constants.disk;
 const messages = strings.messages;

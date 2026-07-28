@@ -3,9 +3,9 @@
 const common = @import("common");
 
 const boot = @import("shared").boot;
-const constants = @import("../constants/constants.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const state = @import("state.zig");
+const constants = @import("mirai").boot.constants;
+const pmm = @import("mirai").pmm;
+const state = @import("mirai").boot.regions.state;
 
 const limits = constants.regions.limits;
 const sizes = common.constants.memory.sizes;

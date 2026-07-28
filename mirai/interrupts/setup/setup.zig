@@ -4,11 +4,11 @@ const common = @import("common");
 
 const interrupt = @import("asm").interrupts;
 
-const boot = @import("../../boot/boot.zig");
-const handlers = @import("../handlers/handlers.zig");
-const load = @import("../load/load.zig");
-const pic = @import("../pic/pic.zig");
-const table = @import("../table/table.zig");
+const boot = @import("mirai").boot;
+const handlers = @import("mirai").interrupts.handlers;
+const load = @import("mirai").interrupts.load;
+const pic = @import("mirai").interrupts.pic;
+const table = @import("mirai").interrupts.table;
 
 const vectors = common.constants.interrupts.vectors;
 

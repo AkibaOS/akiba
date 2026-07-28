@@ -1,6 +1,6 @@
 //! Hikari Graphics Output Locator
 
-const efi = @import("../../efi/efi.zig");
+const efi = @import("hikari").efi;
 
 pub fn getGraphicsOutput(boot_services: *efi.services.boot.BootServices) ?*efi.protocols.graphics.GraphicsOutputProtocol {
     var graphics_output: ?*anyopaque = null;

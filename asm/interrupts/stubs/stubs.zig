@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("asm").interrupts.constants;
+const strings = @import("asm").interrupts.strings;
 
 pub fn pushVector(comptime vector: u8) []const u8 {
     return comptime std.fmt.comptimePrint(strings.stubs.PUSH_VECTOR_FORMAT, .{vector});

@@ -1,9 +1,9 @@
 //! Hikari AFS Reader
 
 const afs = @import("shared").afs;
-const btree = @import("btree.zig");
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
+const btree = @import("hikari").fs.afs.btree;
+const efi = @import("hikari").efi;
+const errors = @import("hikari").fs.errors;
 
 const ReadError = errors.afs.ReadError;
 const VolumeHeader = afs.types.volume.VolumeHeader;

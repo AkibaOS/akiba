@@ -1,10 +1,10 @@
 //! Hikari GPT Parser
 
-const constants = @import("../constants/constants.zig");
-const crc = @import("crc.zig");
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
-const types = @import("../types/types.zig");
+const constants = @import("hikari").disk.constants;
+const crc = @import("hikari").disk.gpt.crc;
+const efi = @import("hikari").efi;
+const errors = @import("hikari").disk.errors;
+const types = @import("hikari").disk.types;
 
 const ParseError = errors.gpt.ParseError;
 

@@ -1,6 +1,6 @@
 //! Hikari ELF Types
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("hikari").loader.constants;
 
 pub const Elf64Header = extern struct {
     Magic: [4]u8,

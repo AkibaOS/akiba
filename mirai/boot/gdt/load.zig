@@ -2,11 +2,11 @@
 
 const gdt = @import("asm").gdt;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").boot.constants;
 
 const selectors = constants.gdt.selectors;
 
-pub fn loadTable(descriptor: *const gdt.types.GDTR) void {
+pub fn loadTable(descriptor: *const gdt.types.register.GDTR) void {
     gdt.table.loadGlobalDescriptorTable(descriptor);
 }
 

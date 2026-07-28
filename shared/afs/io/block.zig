@@ -1,6 +1,6 @@
 //! AFS Block I/O Interface
 
-const errors = @import("../errors/errors.zig");
+const errors = @import("shared").afs.errors;
 
 const BlockError = errors.block.BlockError;
 

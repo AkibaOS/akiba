@@ -1,9 +1,9 @@
 //! AFS Unit Read Operations
 
-const constants = @import("../constants/constants.zig");
-const errors = @import("../errors/errors.zig");
-const io = @import("../io/io.zig");
-const types = @import("../types/types.zig");
+const constants = @import("shared").afs.constants;
+const errors = @import("shared").afs.errors;
+const io = @import("shared").afs.io;
+const types = @import("shared").afs.types;
 
 const BlockReader = io.block.BlockReader;
 const ChannelInfo = types.volume.ChannelInfo;

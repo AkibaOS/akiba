@@ -1,7 +1,7 @@
 //! FAT32 Entry Creation
 
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const constants = @import("shared").fat32.constants;
+const types = @import("shared").fat32.types;
 
 const StackEntry = types.entry.StackEntry;
 

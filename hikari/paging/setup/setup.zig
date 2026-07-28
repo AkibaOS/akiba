@@ -1,11 +1,11 @@
 //! Hikari Page Table Setup
 
 const common = @import("common");
-const constants = @import("../constants/constants.zig");
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
-const index = @import("../index/index.zig");
-const types = @import("../types/types.zig");
+const constants = @import("hikari").paging.constants;
+const efi = @import("hikari").efi;
+const errors = @import("hikari").paging.errors;
+const index = @import("hikari").paging.index;
+const types = @import("hikari").paging.types;
 
 const flags = common.constants.paging.flags;
 const layout = common.constants.memory.layout;

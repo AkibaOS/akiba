@@ -1,6 +1,6 @@
 //! TSS Structure Type
 
-const constants = @import("../../constants/constants.zig");
+const constants = @import("mirai").boot.constants;
 
 const limits = constants.tss.limits;
 

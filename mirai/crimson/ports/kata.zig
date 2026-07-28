@@ -1,8 +1,8 @@
 //! Kata Exception Ports
 
-const array = @import("array.zig");
-const constants = @import("../constants/constants.zig");
-const types = @import("../types/types.zig");
+const array = @import("mirai").crimson.ports.array;
+const constants = @import("mirai").crimson.constants;
+const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 

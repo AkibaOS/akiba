@@ -4,8 +4,8 @@ const std = @import("std");
 
 const afs = @import("shared").afs;
 
-const constants = @import("../constants/constants.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("mkafsdisk").constants;
+const strings = @import("mkafsdisk").strings;
 
 const disk = constants.disk;
 const gpt = constants.gpt;

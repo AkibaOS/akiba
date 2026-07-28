@@ -2,10 +2,10 @@
 
 const common = @import("common");
 
-const bootstrap = @import("bootstrap.zig");
-const convert = @import("../convert/convert.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
+const bootstrap = @import("mirai").memory.zone.bootstrap;
+const convert = @import("mirai").memory.convert;
+const pmm = @import("mirai").pmm;
+const types = @import("mirai").memory.types;
 
 const sizes = common.constants.memory.sizes;
 

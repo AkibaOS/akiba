@@ -1,9 +1,9 @@
 //! Exception Triage
 
-const chain = @import("chain.zig");
-const entry = @import("../handlers/entry.zig");
-const ports = @import("../ports/ports.zig");
-const types = @import("../types/types.zig");
+const chain = @import("mirai").crimson.propagate.chain;
+const entry = @import("mirai").crimson.handlers.entry;
+const ports = @import("mirai").crimson.ports;
+const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
 const Exception = types.exception.Exception;

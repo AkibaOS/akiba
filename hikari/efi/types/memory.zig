@@ -1,6 +1,6 @@
 //! Hikari EFI Memory Types
 
-const base = @import("base.zig");
+const base = @import("hikari").efi.types.base;
 
 pub const MemoryType = enum(u32) {
     Reserved = 0,

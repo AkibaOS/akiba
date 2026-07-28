@@ -1,7 +1,7 @@
 //! Hikari AFS Partition Locator
 
-const disk = @import("../../disk/disk.zig");
-const efi = @import("../../efi/efi.zig");
+const disk = @import("hikari").disk;
+const efi = @import("hikari").efi;
 
 pub const PartitionInfo = struct {
     BlockIO: *efi.protocols.block.BlockIoProtocol,

@@ -1,8 +1,8 @@
 //! Hikari Text Renderer
 
 const constants = @import("constants/constants.zig");
-const framebuffer = @import("../framebuffer/framebuffer.zig");
-const font = @import("../font/font.zig");
+const framebuffer = @import("hikari").display.framebuffer;
+const font = @import("hikari").display.font;
 const strings = @import("strings/strings.zig");
 
 pub const TextRenderer = struct {

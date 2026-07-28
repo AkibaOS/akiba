@@ -2,8 +2,8 @@
 
 const common = @import("common");
 
-const bitmap = @import("../bitmap/bitmap.zig");
-const state = @import("../state/state.zig");
+const bitmap = @import("mirai").pmm.bitmap;
+const state = @import("mirai").pmm.state;
 
 const sizes = common.constants.memory.sizes;
 

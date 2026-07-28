@@ -1,6 +1,6 @@
 //! Loaded Module Info
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").crimson.constants;
 
 const limits = constants.limits;
 

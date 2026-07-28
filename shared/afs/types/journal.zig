@@ -1,6 +1,6 @@
 //! AFS Journal Types
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").afs.constants;
 
 pub const JournalInfoCell = extern struct {
     Flags: u32 = 0,

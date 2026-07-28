@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("shared").fat32.constants;
 
 pub const StackEntry = extern struct {
     Identity: [8]u8,

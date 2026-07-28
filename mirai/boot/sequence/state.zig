@@ -1,6 +1,6 @@
 //! Boot Sequence State
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").boot.types;
 
 const BootInfo = types.sequence.info.BootInfo;
 const Phase = types.sequence.phase.Phase;

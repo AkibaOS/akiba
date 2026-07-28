@@ -1,12 +1,12 @@
 //! Trigger Collapse (Panic)
 
-const constants = @import("../constants/constants.zig");
-const gather = @import("gather.zig");
-const halt = @import("halt.zig");
-const render = @import("../render/render.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").crimson.constants;
+const gather = @import("mirai").crimson.panic.gather;
+const halt = @import("mirai").crimson.panic.halt;
+const render = @import("mirai").crimson.render;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 const messages = strings.messages;

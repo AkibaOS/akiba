@@ -1,9 +1,9 @@
 //! Hikari Menu Renderer
 
-const constants = @import("../constants/constants.zig");
-const display = @import("../../display/display.zig");
-const strings = @import("../strings/strings.zig");
-const theme = @import("../theme/theme.zig");
+const constants = @import("hikari").menu.constants;
+const display = @import("hikari").display;
+const strings = @import("hikari").menu.strings;
+const theme = @import("hikari").menu.theme;
 
 const layout = constants.layout;
 

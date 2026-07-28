@@ -1,8 +1,8 @@
 //! Raise Hardware Exception
 
-const boot = @import("../../boot/boot.zig");
-const entry = @import("../handlers/entry.zig");
-const types = @import("../types/types.zig");
+const boot = @import("mirai").boot;
+const entry = @import("mirai").crimson.handlers.entry;
+const types = @import("mirai").crimson.types;
 
 const selectors = boot.constants.gdt.selectors;
 

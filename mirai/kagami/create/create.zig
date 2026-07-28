@@ -2,11 +2,11 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const state = @import("../state/state.zig");
-const tables = @import("../tables/tables.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").kagami.constants;
+const pmm = @import("mirai").pmm;
+const state = @import("mirai").kagami.state;
+const tables = @import("mirai").kagami.tables;
+const types = @import("mirai").kagami.types;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const Kagami = types.kagami.Kagami;

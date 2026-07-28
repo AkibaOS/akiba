@@ -1,6 +1,6 @@
 //! TSS Descriptor Type (16 bytes in Long Mode)
 
-const entry = @import("entry.zig");
+const entry = @import("mirai").boot.types.gdt.entry;
 
 pub const TSSDescriptor = packed struct {
     LimitLow: u16,

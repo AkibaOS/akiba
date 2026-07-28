@@ -1,9 +1,9 @@
 //! Inspect Corpse
 
-const context = @import("../context/context.zig");
-const serial = @import("../../drivers/serial/serial.zig");
-const strings = @import("../strings/strings.zig");
-const types = @import("../types/types.zig");
+const context = @import("mirai").crimson.context;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").crimson.strings;
+const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 

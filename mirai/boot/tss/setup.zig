@@ -2,10 +2,10 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const stacks = @import("stacks.zig");
-const state = @import("state.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").boot.constants;
+const stacks = @import("mirai").boot.tss.stacks;
+const state = @import("mirai").boot.tss.state;
+const types = @import("mirai").boot.types;
 
 const limits = constants.tss.limits;
 

@@ -2,10 +2,10 @@
 
 const io = @import("asm").io;
 
-const constants = @import("../constants/constants.zig");
-const interrupts = @import("../../interrupts/interrupts.zig");
-const serial = @import("../serial/serial.zig");
-const strings = @import("../strings/strings.zig");
+const constants = @import("mirai").drivers.constants;
+const interrupts = @import("mirai").interrupts;
+const serial = @import("mirai").drivers.serial;
+const strings = @import("mirai").drivers.strings;
 
 const messages = strings.keyboard.messages;
 const ports = constants.keyboard.ports;

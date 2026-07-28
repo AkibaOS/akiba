@@ -2,8 +2,8 @@
 
 const common = @import("common");
 
-const bitmap = @import("../bitmap/bitmap.zig");
-const state = @import("../state/state.zig");
+const bitmap = @import("mirai").pmm.bitmap;
+const state = @import("mirai").pmm.state;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const layout = common.constants.memory.layout;

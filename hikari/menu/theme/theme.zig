@@ -1,6 +1,6 @@
 //! Hikari Menu Theme
 
-const display = @import("../../display/display.zig");
+const display = @import("hikari").display;
 
 const Color = display.framebuffer.Color;
 

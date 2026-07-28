@@ -1,7 +1,7 @@
 //! Hikari GPT Types
 
-const constants = @import("../constants/constants.zig");
-const efi = @import("../../efi/efi.zig");
+const constants = @import("hikari").disk.constants;
+const efi = @import("hikari").efi;
 
 pub const Header = extern struct {
     Signature: u64,

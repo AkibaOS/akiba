@@ -1,6 +1,6 @@
 //! Exception Reply
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
 const Context = types.context.Context;

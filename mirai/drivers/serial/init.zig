@@ -4,7 +4,7 @@ const common = @import("common");
 
 const io = @import("asm").io;
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").drivers.constants;
 
 const ports = common.constants.serial.ports;
 const registers = common.constants.serial.registers;

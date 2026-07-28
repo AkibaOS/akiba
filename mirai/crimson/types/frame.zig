@@ -1,6 +1,6 @@
 //! Interrupt Stack Frame
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("mirai").crimson.constants;
 
 const privileges = constants.privileges;
 

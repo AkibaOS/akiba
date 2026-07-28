@@ -1,6 +1,6 @@
 //! Hikari CRC32
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("hikari").disk.constants;
 
 const CRC32_TABLE = generateTable();
 

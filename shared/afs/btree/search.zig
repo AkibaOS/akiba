@@ -1,8 +1,8 @@
 //! AFS B-tree Search Operations
 
-const constants = @import("../constants/constants.zig");
-const node = @import("node.zig");
-const types = @import("../types/types.zig");
+const constants = @import("shared").afs.constants;
+const node = @import("shared").afs.btree.node;
+const types = @import("shared").afs.types;
 
 const IndexKey = types.btree.IndexKey;
 const StackRecord = types.catalog.StackRecord;

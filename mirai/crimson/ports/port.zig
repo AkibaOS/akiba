@@ -1,6 +1,6 @@
 //! Single Port Operations
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const Behavior = types.behavior.Behavior;
 const Flavor = types.flavor.Flavor;

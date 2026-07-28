@@ -3,7 +3,7 @@
 const cpu = @import("asm").cpu;
 const gdt = @import("asm").gdt;
 
-const types = @import("../types/types.zig");
+const types = @import("mirai").crimson.types;
 
 const Context = types.context.Context;
 const Frame = types.frame.Frame;

@@ -1,8 +1,8 @@
 //! Hikari AFS B-Tree
 
 const afs = @import("shared").afs;
-const efi = @import("../../efi/efi.zig");
-const errors = @import("../errors/errors.zig");
+const efi = @import("hikari").efi;
+const errors = @import("hikari").fs.errors;
 
 const BTreeError = errors.afs.BTreeError;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;

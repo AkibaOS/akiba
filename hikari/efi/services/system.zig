@@ -1,10 +1,10 @@
 //! Hikari EFI System Table
 
-const boot = @import("boot.zig");
-const input = @import("../protocols/input.zig");
-const output = @import("../protocols/output.zig");
-const runtime = @import("runtime.zig");
-const types = @import("../types/types.zig");
+const boot = @import("hikari").efi.services.boot;
+const input = @import("hikari").efi.protocols.input;
+const output = @import("hikari").efi.protocols.output;
+const runtime = @import("hikari").efi.services.runtime;
+const types = @import("hikari").efi.types;
 
 pub const SystemTable = extern struct {
     Header: types.table.TableHeader,

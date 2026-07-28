@@ -2,10 +2,10 @@
 
 const common = @import("common");
 
-const constants = @import("../constants/constants.zig");
-const convert = @import("../convert/convert.zig");
-const pmm = @import("../../pmm/pmm.zig");
-const types = @import("../types/types.zig");
+const constants = @import("mirai").memory.constants;
+const convert = @import("mirai").memory.convert;
+const pmm = @import("mirai").pmm;
+const types = @import("mirai").memory.types;
 
 const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
