@@ -3,7 +3,7 @@ zig-out
 .zig-cache/
 iso/
 
-# Legacy system, kept locally for reference
+# Legacy reference files
 akiba.old
 
 # OS and IDE files
