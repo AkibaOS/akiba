@@ -20,6 +20,7 @@ pub const PageTableSetup = struct {
     L4: *types.table.TableL4,
     AllocatedTables: [constants.limits.MAX_ALLOCATED_TABLES]*types.table.PageTable,
     AllocatedCount: usize,
+    PhysmapL3: ?*types.table.TableL3,
 
     pub fn initialize(boot_services: *efi.services.boot.BootServices) SetupError!PageTableSetup {
         var l4_address: efi.types.base.PhysicalAddress = 0;
@@ -42,6 +43,7 @@ pub const PageTableSetup = struct {
             .L4 = l4,
             .AllocatedTables = undefined,
             .AllocatedCount = 0,
+            .PhysmapL3 = null,
         };
     }
 
@@ -84,6 +86,7 @@ pub const PageTableSetup = struct {
 
     pub fn mapPhysmap(self: *PageTableSetup, max_physical: u64) SetupError!void {
         const l3 = try self.allocateTable();
+        self.PhysmapL3 = @ptrCast(l3);
 
         const l4_entry = types.entry.PageTableEntry.fromAddress(
             @intFromPtr(l3),
@@ -107,6 +110,57 @@ pub const PageTableSetup = struct {
             );
             l3.setEntry(@truncate(gigabyte_index), l3_entry);
         }
+    }
+
+    pub fn mapFramebuffer(self: *PageTableSetup, base: u64, size: u64) SetupError!void {
+        if (base == 0 or size == 0) {
+            return SetupError.InvalidMapping;
+        }
+
+        const start = math.integer.alignDown(base, sizes.LARGE_PAGE_SIZE);
+        const end = math.integer.alignUp(base + size, sizes.LARGE_PAGE_SIZE);
+        const device_flags = flags.PRESENT | flags.WRITABLE | flags.CACHE_DISABLED;
+
+        try self.mapRange(start, start, end - start, device_flags);
+
+        var physical = start;
+        while (physical < end) : (physical += sizes.LARGE_PAGE_SIZE) {
+            const l2 = try self.splitPhysmapGigabyte(physical / sizes.HUGE_PAGE_SIZE);
+            const index = (physical % sizes.HUGE_PAGE_SIZE) / sizes.LARGE_PAGE_SIZE;
+            const entry = types.entry.PageTableEntry.fromAddress(
+                physical,
+                device_flags | flags.HUGE_PAGE | flags.GLOBAL,
+            );
+            l2.setEntry(@truncate(index), entry);
+        }
+    }
+
+    fn splitPhysmapGigabyte(self: *PageTableSetup, gigabyte_index: u64) SetupError!*types.table.TableL2 {
+        const l3 = self.PhysmapL3 orelse return SetupError.InvalidMapping;
+        const existing = l3.getEntry(@truncate(gigabyte_index));
+
+        if (existing.isPresent() and !existing.isHuge()) {
+            return @ptrFromInt(existing.getAddress());
+        }
+
+        const l2: *types.table.TableL2 = @ptrCast(try self.allocateTable());
+
+        var index: u64 = 0;
+        while (index < sizes.ENTRIES_PER_PAGE_TABLE) : (index += 1) {
+            const physical = gigabyte_index * sizes.HUGE_PAGE_SIZE + index * sizes.LARGE_PAGE_SIZE;
+            const entry = types.entry.PageTableEntry.fromAddress(
+                physical,
+                flags.PRESENT | flags.WRITABLE | flags.HUGE_PAGE | flags.GLOBAL,
+            );
+            l2.setEntry(@truncate(index), entry);
+        }
+
+        l3.setEntry(
+            @truncate(gigabyte_index),
+            types.entry.PageTableEntry.fromAddress(@intFromPtr(l2), flags.PRESENT | flags.WRITABLE),
+        );
+
+        return l2;
     }
 
     pub fn mapRange(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, page_flags: u64) SetupError!void {
