@@ -1,8 +1,8 @@
 //! Hikari Menu Theme
 
-const display = @import("hikari").display;
+const graphics = @import("shared").graphics;
 
-const Color = display.framebuffer.Color;
+const Color = graphics.types.color.Color;
 
 pub const Theme = struct {
     Background: Color,

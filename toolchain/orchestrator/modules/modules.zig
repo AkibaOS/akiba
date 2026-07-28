@@ -24,6 +24,7 @@ pub fn create(builder: *std.Build) types.Modules {
     shared.addImport(names.MODULE_COMMON, common);
     shared.addImport(names.MODULE_SHARED, shared);
     shared.addImport(names.MODULE_UTILS, utils);
+    shared.addAnonymousImport(names.IMPORT_FONT, .{ .root_source_file = builder.path(paths.FONT_RESOURCE) });
 
     const assembly = builder.createModule(.{
         .root_source_file = builder.path(paths.ASSEMBLY_ROOT),

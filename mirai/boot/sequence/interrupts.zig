@@ -3,24 +3,27 @@
 const interrupts = @import("mirai").interrupts;
 const keyboard = @import("mirai").drivers.keyboard;
 const pit = @import("mirai").drivers.pit;
-const serial = @import("mirai").drivers.serial;
+const print = @import("mirai").boot.sequence.print;
 const strings = @import("mirai").boot.strings;
 
 const messages = strings.sequence.messages;
+const status = strings.sequence.status;
 
 pub fn execute() bool {
-    serial.write.printf(messages.IDT_SETUP, .{});
+    print.phase(status.SYSTEM_SERVICES);
+
+    print.log(messages.IDT_SETUP, .{});
     interrupts.setup.initialize();
 
-    serial.write.printf(messages.TIMER_SETUP, .{});
+    print.log(messages.TIMER_SETUP, .{});
     pit.init.initDefault();
     pit.handler.register();
 
-    serial.write.printf(messages.KEYBOARD_SETUP, .{});
+    print.log(messages.KEYBOARD_SETUP, .{});
     keyboard.handler.register();
 
     interrupts.setup.enable();
-    serial.write.printf(messages.INTERRUPTS_ENABLED, .{});
+    print.log(messages.INTERRUPTS_ENABLED, .{});
 
     return true;
 }

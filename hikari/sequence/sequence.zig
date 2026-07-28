@@ -6,4 +6,5 @@ pub const constants = @import("constants/constants.zig");
 pub const graphics = @import("graphics/graphics.zig");
 pub const partition = @import("partition/partition.zig");
 pub const run = @import("run/run.zig");
+pub const splash = @import("splash/splash.zig");
 pub const strings = @import("strings/strings.zig");

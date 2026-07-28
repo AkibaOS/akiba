@@ -6,13 +6,13 @@ const boot = @import("shared").boot;
 const common = @import("common");
 const console = @import("hikari").sequence.console;
 const constants = @import("hikari").sequence.constants;
-const display = @import("hikari").display;
 const efi = @import("hikari").efi;
 const fs = @import("hikari").fs;
 const graphics = @import("hikari").sequence.graphics;
 const loader = @import("hikari").loader;
 const paging = @import("hikari").paging;
 const partition = @import("hikari").sequence.partition;
+const splash = @import("hikari").sequence.splash;
 const strings = @import("hikari").sequence.strings;
 
 const messages = strings.messages;
@@ -25,64 +25,59 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     const console_output = system_table.ConsoleOutput;
 
     _ = console_output.ClearScreen(console_output);
-    console.print(console_output, messages.TITLE);
-    console.print(console_output, messages.TITLE_UNDERLINE);
 
-    console.print(console_output, messages.INITIALIZING_GRAPHICS);
     const gop = graphics.getGraphicsOutput(boot_services) orelse {
-        console.print(console_output, messages.ERROR_GRAPHICS_OUTPUT);
+        console.print(console_output, messages.ERROR_DISPLAY);
         return status.UNSUPPORTED;
     };
 
-    const framebuffer = display.framebuffer.Framebuffer.initialize(gop);
-    _ = framebuffer;
+    _ = splash.initialize(gop, console_output);
+    splash.report(messages.INITIALIZING_DISPLAY);
 
-    console.print(console_output, messages.LOCATING_AFS_PARTITION);
+    splash.report(messages.LOCATING_FILE_SYSTEM);
     const afs_partition = partition.findAfsPartition(boot_services) orelse {
-        console.print(console_output, messages.ERROR_AFS_PARTITION_NOT_FOUND);
+        splash.fail(messages.ERROR_FILE_SYSTEM_NOT_FOUND);
         return status.NOT_FOUND;
     };
 
-    console.print(console_output, messages.INITIALIZING_AFS);
+    splash.report(messages.INITIALIZING_FILE_SYSTEM);
     var afs_reader = fs.afs.reader.Reader.initialize(
         afs_partition.BlockIO,
         boot_services,
         afs_partition.StartLBA,
     ) catch {
-        console.print(console_output, messages.ERROR_AFS_INITIALIZE);
+        splash.fail(messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
 
-    console.print(console_output, messages.LOADING_KERNEL);
-    console.print(console_output, paths.KERNEL_LOCATION);
-    console.print(console_output, messages.NEWLINE);
+    splash.report(messages.LOADING_KERNEL);
 
     const kernel_unit = afs_reader.openLocation(paths.KERNEL_LOCATION) catch {
-        console.print(console_output, messages.ERROR_KERNEL_NOT_FOUND);
+        splash.fail(messages.ERROR_KERNEL_NOT_FOUND);
         return status.NOT_FOUND;
     };
 
     const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit) catch {
-        console.print(console_output, messages.ERROR_KERNEL_READ);
+        splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };
 
-    console.print(console_output, messages.VALIDATING_ELF);
+    splash.report(messages.VERIFYING_KERNEL);
     if (!loader.elf.loader.validateElf(kernel_data.Buffer, kernel_data.Size)) {
-        console.print(console_output, messages.ERROR_INVALID_ELF);
+        splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
 
-    console.print(console_output, messages.LOADING_KERNEL_MEMORY);
+    splash.report(messages.PREPARING_KERNEL);
     var elf_loader = loader.elf.loader.Loader.initialize(boot_services);
     const loaded_image = elf_loader.load(kernel_data.Buffer, kernel_data.Size) catch {
-        console.print(console_output, messages.ERROR_KERNEL_LOAD);
+        splash.fail(messages.ERROR_KERNEL_LOAD);
         return status.LOAD_ERROR;
     };
 
-    console.print(console_output, messages.SETTING_UP_PAGE_TABLES);
+    splash.report(messages.PREPARING_MEMORY);
     var page_setup = paging.setup.PageTableSetup.initialize(boot_services) catch {
-        console.print(console_output, messages.ERROR_PAGE_TABLES);
+        splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
 
@@ -90,22 +85,22 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     page_setup.mapKernel(loaded_image.BaseAddress, loaded_image.totalSize()) catch {};
     page_setup.mapPhysmap(constants.memory.PHYSMAP_MAP_SIZE) catch {};
 
-    console.print(console_output, messages.ALLOCATING_KERNEL_STACK);
+    splash.report(messages.RESERVING_KERNEL_MEMORY);
     const stack_size = layout.KERNEL_STACK_SIZE;
     const stack_pages = layout.KERNEL_STACK_PAGES;
     var stack_base: efi.types.base.PhysicalAddress = 0;
     const stack_status = boot_services.AllocatePages(.AnyPages, .LoaderData, stack_pages, &stack_base);
     if (efi.types.base.isError(stack_status)) {
-        console.print(console_output, messages.ERROR_STACK_ALLOCATION);
+        splash.fail(messages.ERROR_KERNEL_MEMORY);
         return status.OUT_OF_RESOURCES;
     }
     const stack_top = stack_base + stack_size;
 
-    console.print(console_output, messages.PREPARING_BOOT_PARAMETERS);
+    splash.report(messages.PREPARING_STARTUP);
     var params_address: efi.types.base.PhysicalAddress = 0;
     const params_status = boot_services.AllocatePages(.AnyPages, .LoaderData, 1, &params_address);
     if (efi.types.base.isError(params_status)) {
-        console.print(console_output, messages.ERROR_BOOT_PARAMS_ALLOCATION);
+        splash.fail(messages.ERROR_STARTUP);
         return status.OUT_OF_RESOURCES;
     }
 
@@ -146,7 +141,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
 
     boot_params.ACPI = acpi.findACPI(system_table);
 
-    console.print(console_output, messages.GETTING_MEMORY_MAP);
+    splash.report(messages.SURVEYING_MEMORY);
     var memory_map_size: usize = 0;
     var map_key: usize = 0;
     var descriptor_size: usize = 0;
@@ -175,7 +170,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     );
 
     if (efi.types.base.isError(map_status)) {
-        console.print(console_output, messages.ERROR_MEMORY_MAP);
+        splash.fail(messages.ERROR_MEMORY_SURVEY);
         return status.DEVICE_ERROR;
     }
 
@@ -187,7 +182,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         .Reserved = 0,
     };
 
-    console.print(console_output, messages.EXITING_BOOT_SERVICES);
+    splash.report(messages.STARTING_AKIBA);
     const exit_status = boot_services.ExitBootServices(image_handle, map_key);
     if (efi.types.base.isError(exit_status)) {
         _ = boot_services.GetMemoryMap(
@@ -199,6 +194,8 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         );
         _ = boot_services.ExitBootServices(image_handle, map_key);
     }
+
+    boot_params.Splash = splash.getState().*;
 
     assembly.jump.jumpToKernel(
         loaded_image.EntryPoint,

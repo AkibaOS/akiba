@@ -1,7 +1,7 @@
 //! Hikari Menu Renderer
 
 const constants = @import("hikari").menu.constants;
-const display = @import("hikari").display;
+const graphics = @import("shared").graphics;
 const strings = @import("hikari").menu.strings;
 const theme = @import("hikari").menu.theme;
 
@@ -14,8 +14,8 @@ pub const MenuItem = struct {
 };
 
 pub const Renderer = struct {
-    Framebuffer: *display.framebuffer.Framebuffer,
-    Text: *display.text.TextRenderer,
+    Surface: *graphics.types.surface.Surface,
+    Text: *graphics.console.Console,
     Theme: theme.Theme,
     MenuX: u32,
     MenuY: u32,
@@ -23,15 +23,15 @@ pub const Renderer = struct {
     VisibleItems: u32,
 
     pub fn initialize(
-        framebuffer: *display.framebuffer.Framebuffer,
-        text_renderer: *display.text.TextRenderer,
+        surface: *graphics.types.surface.Surface,
+        text_renderer: *graphics.console.Console,
         menu_theme: theme.Theme,
     ) Renderer {
         const menu_x = (text_renderer.Columns - layout.MENU_WIDTH) / 2;
         const visible_items = text_renderer.Rows - layout.RESERVED_ROWS;
 
         return Renderer{
-            .Framebuffer = framebuffer,
+            .Surface = surface,
             .Text = text_renderer,
             .Theme = menu_theme,
             .MenuX = menu_x,
@@ -42,7 +42,7 @@ pub const Renderer = struct {
     }
 
     pub fn drawBackground(self: *Renderer) void {
-        self.Framebuffer.clear(self.Theme.Background);
+        graphics.draw.clear(self.Surface, self.Theme.Background);
     }
 
     pub fn drawTitle(self: *Renderer, title: []const u8) void {

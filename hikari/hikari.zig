@@ -4,7 +4,6 @@ const std = @import("std");
 
 pub const assembly = @import("asm/asm.zig");
 pub const disk = @import("disk/disk.zig");
-pub const display = @import("display/display.zig");
 pub const efi = @import("efi/efi.zig");
 pub const fs = @import("fs/fs.zig");
 pub const loader = @import("loader/loader.zig");

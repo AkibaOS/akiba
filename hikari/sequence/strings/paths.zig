@@ -1,4 +1,3 @@
-//! Hikari Boot Sequence Paths
+//! Hikari Resource Locations
 
 pub const KERNEL_LOCATION = "/system/akiba/mirai.kernel";
-pub const FONT_LOCATION = "/system/akiba/fonts/akiba.psf";

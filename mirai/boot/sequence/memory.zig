@@ -4,7 +4,7 @@ const common = @import("common");
 
 const kagami = @import("mirai").kagami;
 const pmm = @import("mirai").pmm;
-const serial = @import("mirai").drivers.serial;
+const print = @import("mirai").boot.sequence.print;
 const stack = @import("mirai").memory.stack;
 const strings = @import("mirai").boot.strings;
 const tss = @import("mirai").boot.tss;
@@ -14,16 +14,17 @@ const math = @import("utils").math;
 
 const layout = common.constants.memory.layout;
 const messages = strings.sequence.messages;
+const status = strings.sequence.status;
 const sizes = common.constants.memory.sizes;
 
 const BootInfo = types.sequence.info.BootInfo;
 
 pub fn execute(boot_info: *const BootInfo) bool {
-    serial.write.printf(messages.DETECTING, .{});
+    print.phase(status.SYSTEM_MEMORY);
 
     const bitmap_location = findBitmapLocation(boot_info);
     if (bitmap_location == 0) {
-        serial.write.printf(messages.NO_BITMAP, .{});
+        print.log(messages.NO_BITMAP, .{});
         return false;
     }
 
@@ -33,20 +34,20 @@ pub fn execute(boot_info: *const BootInfo) bool {
     const total_megabytes = (statistics.TotalPages * sizes.PAGE_SIZE) / sizes.MEGABYTE;
     const free_megabytes = (statistics.FreePages * sizes.PAGE_SIZE) / sizes.MEGABYTE;
 
-    serial.write.printf(messages.FOUND_PAGES, .{ statistics.TotalPages, total_megabytes });
-    serial.write.printf(messages.AVAILABLE, .{ statistics.FreePages, free_megabytes });
+    print.log(messages.FOUND_PAGES, .{ statistics.TotalPages, total_megabytes });
+    print.log(messages.AVAILABLE, .{ statistics.FreePages, free_megabytes });
 
-    serial.write.printf(messages.KAGAMI_SETUP, .{});
+    print.phase(status.KAGAMI);
     kagami.state.initialize(boot_info.PML4Physical);
-    serial.write.printf(messages.PML4, .{boot_info.PML4Physical});
+    print.log(messages.PML4, .{boot_info.PML4Physical});
 
-    serial.write.printf(messages.PROVISIONING_STACK, .{});
+    print.phase(status.KERNEL_MEMORY);
     const boot_stack = stack.allocate.allocate() catch {
-        serial.write.printf(messages.NO_STACK, .{});
+        print.log(messages.NO_STACK, .{});
         return false;
     };
     tss.state.setCurrentRSP0(0, boot_stack.Top);
-    serial.write.printf(messages.STACK_INFO, .{ boot_stack.Base, boot_stack.Top });
+    print.log(messages.STACK_INFO, .{ boot_stack.Base, boot_stack.Top });
 
     return true;
 }

@@ -5,8 +5,9 @@ const boot = @import("shared").boot;
 const halt = @import("asm").cpu.halt;
 
 const constants = @import("mirai").kernel.constants;
-const framebuffer = @import("mirai").drivers.framebuffer;
+const graphics = @import("shared").graphics;
 const regions = @import("mirai").boot.regions;
+const splash = @import("mirai").boot.splash;
 const sequence = @import("mirai").boot.sequence;
 const types = @import("mirai").boot.types;
 
@@ -21,20 +22,26 @@ pub export fn mirai_entry(boot_params: *BootParams) callconv(.{ .x86_64_sysv = .
 
 pub fn main(boot_params: *BootParams) noreturn {
     const framebuffer_info = boot_params.Framebuffer;
-    _ = framebuffer.init.initialize(
-        framebuffer_info.Base,
-        framebuffer_info.Width,
-        framebuffer_info.Height,
-        framebuffer_info.Stride,
-    );
 
     if (!boot_params.isValid()) {
-        framebuffer.draw.fill(switch (framebuffer_info.PixelFormat) {
-            .BGR => colors.ERROR_BGR,
-            else => colors.ERROR_RGB,
-        });
+        if (framebuffer_info.Base == 0 or framebuffer_info.Width == 0 or
+            framebuffer_info.Height == 0 or framebuffer_info.Stride < framebuffer_info.Width)
+        {
+            halt.haltLoop();
+        }
+
+        var surface = graphics.types.surface.Surface.initialize(
+            framebuffer_info.Base,
+            framebuffer_info.Width,
+            framebuffer_info.Height,
+            framebuffer_info.Stride,
+            framebuffer_info.PixelFormat,
+        );
+        graphics.draw.clear(&surface, colors.ERROR);
         halt.haltLoop();
     }
+
+    _ = splash.adopt(boot_params);
 
     const memory_regions = regions.convert.convert(boot_params.MemoryMap);
 
