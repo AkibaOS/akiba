@@ -6,6 +6,10 @@ iso/
 # Legacy reference files
 akiba.old
 
-# OS and IDE files
+# OS System files
 .DS_Store
+.Thumbs.db
+
+# IDE files
+.idea/
 .vscode/
