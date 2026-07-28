@@ -5,8 +5,8 @@ const graphics = @import("shared").graphics;
 const Color = graphics.types.color.Color;
 
 pub const BACKGROUND = Color.rgb(0x0B, 0x07, 0x10);
-pub const PANEL_SCANLINE = Color.rgb(0x0D, 0x09, 0x13);
-pub const GHOST_KANJI = Color.rgb(0x17, 0x0E, 0x28);
+pub const VOID = Color.rgb(0x00, 0x00, 0x00);
+pub const PANEL_SCANLINE = Color.rgb(0x07, 0x04, 0x0A);
 pub const WORDMARK_CORE = Color.rgb(0xF2, 0xEC, 0xFF);
 pub const FRINGE_CYAN = Color.rgb(0x2E, 0xE6, 0xFF);
 pub const FRINGE_MAGENTA = Color.rgb(0xFF, 0x2E, 0x88);

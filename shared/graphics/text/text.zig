@@ -1,89 +1,77 @@
-//! Bitmap Text Rendering
+//! Outline Text Rendering
 
+const font = @import("shared").font;
 const graphics = @import("shared").graphics;
+const raster = @import("shared").raster;
+const typeset = @import("shared").typeset;
 
 const draw = graphics.draw;
 
 const Color = graphics.types.color.Color;
-const Font = graphics.types.font.Font;
+const Cursor = typeset.layout.Cursor;
+const Face = font.types.face.Face;
+const RowSink = raster.types.sink.RowSink;
 const Surface = graphics.types.surface.Surface;
+const TextError = graphics.errors.text.TextError;
+const TextRenderer = graphics.types.renderer.TextRenderer;
+const TextStyle = typeset.types.style.TextStyle;
 
-pub fn drawGlyph(
-    surface: *Surface,
-    font: *const Font,
-    x: i32,
-    y: i32,
-    codepoint: u32,
-    color: Color,
-    scale: i32,
-) void {
-    const glyph = font.getGlyph(codepoint) orelse return;
+const limits = raster.constants.limits;
 
-    var row: u32 = 0;
-    while (row < font.Height) : (row += 1) {
-        var column: u32 = 0;
-        while (column < font.Width) : (column += 1) {
-            if (!font.isGlyphPixelSet(glyph, column, row)) {
-                continue;
-            }
-            draw.fillRect(
-                surface,
-                x + @as(i32, @intCast(column)) * scale,
-                y + @as(i32, @intCast(row)) * scale,
-                scale,
-                scale,
-                color,
-            );
+const BlendTarget = struct {
+    Target: *Surface,
+    Foreground: Color,
+    Background: Color,
+};
+
+fn writeRow(context: *anyopaque, y: i32, x: i32, coverage: []const u8) void {
+    const blend: *BlendTarget = @ptrCast(@alignCast(context));
+
+    for (coverage, 0..) |value, offset| {
+        if (value == 0) {
+            continue;
         }
+
+        const column = x + @as(i32, @intCast(offset));
+        const color = if (value == limits.COVERAGE_FULL)
+            blend.Foreground
+        else
+            blend.Background.blend(blend.Foreground, value, @intCast(limits.COVERAGE_FULL));
+
+        draw.putPixel(blend.Target, column, y, color);
     }
 }
 
 pub fn drawString(
+    renderer: *TextRenderer,
     surface: *Surface,
-    font: *const Font,
+    face: *const Face,
+    style: TextStyle,
     x: i32,
-    y: i32,
-    message: []const u8,
-    color: Color,
-    scale: i32,
-) void {
-    drawSpacedString(surface, font, x, y, message, color, scale, 0);
-}
+    baseline_y: i32,
+    text: []const u8,
+    foreground: Color,
+    background: Color,
+) TextError!void {
+    var blend = BlendTarget{ .Target = surface, .Foreground = foreground, .Background = background };
+    const sink = RowSink{ .Context = &blend, .WriteRow = writeRow };
+    const scale = face.scaleFor(style.PixelSize);
 
-pub fn drawSpacedString(
-    surface: *Surface,
-    font: *const Font,
-    x: i32,
-    y: i32,
-    message: []const u8,
-    color: Color,
-    scale: i32,
-    spacing: i32,
-) void {
-    const advance = glyphAdvance(font, scale, spacing);
-    var pen = x;
-    for (message) |character| {
-        drawGlyph(surface, font, pen, y, character, color, scale);
-        pen += advance;
+    var cursor = Cursor.initialize(face, style, text, x);
+
+    while (try cursor.next()) |placed| {
+        try font.outline.load(face, placed.GlyphId, &renderer.Glyphs);
+        if (renderer.Glyphs.Shape.ContourCount == 0) {
+            continue;
+        }
+
+        try raster.flatten.flatten(
+            &renderer.Glyphs.Shape,
+            scale,
+            placed.PenX,
+            baseline_y * limits.ONE_PIXEL,
+            &renderer.Shape,
+        );
+        try raster.fill.fill(&renderer.Shape, &renderer.Workspace, sink);
     }
-}
-
-pub fn measureString(font: *const Font, message: []const u8, scale: i32) i32 {
-    return measureSpacedString(font, message, scale, 0);
-}
-
-pub fn measureSpacedString(font: *const Font, message: []const u8, scale: i32, spacing: i32) i32 {
-    if (message.len == 0) {
-        return 0;
-    }
-    const advance = glyphAdvance(font, scale, spacing);
-    return advance * @as(i32, @intCast(message.len)) - spacing;
-}
-
-pub fn lineHeight(font: *const Font, scale: i32) i32 {
-    return @as(i32, @intCast(font.Height)) * scale;
-}
-
-fn glyphAdvance(font: *const Font, scale: i32, spacing: i32) i32 {
-    return @as(i32, @intCast(font.Width)) * scale + spacing;
 }

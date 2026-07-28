@@ -13,8 +13,6 @@ pub const SplashState = extern struct {
     ProgressTotal: u8,
     Active: u8,
     Failed: u8,
-    FontAddress: u64,
-    FontSize: u64,
 
     pub fn initialize(total_steps: u8) SplashState {
         return SplashState{
@@ -24,8 +22,6 @@ pub const SplashState = extern struct {
             .ProgressTotal = total_steps,
             .Active = 0,
             .Failed = 0,
-            .FontAddress = 0,
-            .FontSize = 0,
         };
     }
 

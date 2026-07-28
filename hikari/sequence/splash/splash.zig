@@ -2,17 +2,19 @@
 
 const console = @import("hikari").sequence.console;
 const efi = @import("hikari").efi;
+const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const splash = @import("shared").splash;
 
 const Canvas = splash.types.canvas.Canvas;
-const Font = graphics.types.font.Font;
 const SplashState = splash.types.state.SplashState;
 const Surface = graphics.types.surface.Surface;
+const TextRenderer = graphics.types.renderer.TextRenderer;
 
 const limits = splash.constants.limits;
 
 var canvas: Canvas = undefined;
+var renderer: TextRenderer = undefined;
 var state: SplashState = SplashState.initialize(limits.BOOT_STEPS);
 var ready: bool = false;
 var fallback: ?*efi.protocols.output.SimpleTextOutputProtocol = null;
@@ -36,7 +38,7 @@ pub fn initialize(
         return false;
     }
 
-    const font = Font.load(&graphics.assets.font.DEFAULT, graphics.assets.font.DEFAULT.len) orelse return false;
+    const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
 
     const surface = Surface.initialize(
         mode.FramebufferBase,
@@ -50,11 +52,11 @@ pub fn initialize(
         },
     );
 
-    canvas = Canvas.initialize(surface, font);
+    canvas = Canvas.initialize(surface, face, &renderer);
     state.Active = 1;
-    ready = true;
 
-    splash.render.paint(&canvas, &state);
+    splash.render.paint(&canvas, &state) catch return false;
+    ready = true;
     return true;
 }
 
@@ -64,7 +66,7 @@ pub fn report(message: []const u8) void {
         return;
     }
     state.pushMessage(message);
-    splash.render.refresh(&canvas, &state);
+    splash.render.refresh(&canvas, &state) catch {};
 }
 
 pub fn fail(message: []const u8) void {
@@ -74,7 +76,7 @@ pub fn fail(message: []const u8) void {
     }
     state.Failed = 1;
     state.pushMessage(message);
-    splash.render.refresh(&canvas, &state);
+    splash.render.refresh(&canvas, &state) catch {};
 }
 
 fn reportToFirmware(message: []const u8) void {

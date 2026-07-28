@@ -1,36 +1,42 @@
-//! Splash Layout Proportions
+//! Splash Layout
 
 pub const PER_MILLE: i32 = 1000;
 
-pub const WORDMARK_WIDTH: i32 = 456;
-pub const WORDMARK_TOP: i32 = 237;
-pub const GHOST_PERCENT: i32 = 135;
+pub const WORDMARK_BASELINE: i32 = 432;
+pub const WORDMARK_SIZE: i32 = 160;
+pub const WORDMARK_TRACKING: i32 = 22;
+pub const FRINGE_OFFSET: i32 = 3;
 
-pub const LABEL_TOP: i32 = 515;
-pub const LABEL_SPACING: i32 = 14;
+pub const ROMAJI_BASELINE: i32 = 500;
+pub const ROMAJI_SIZE: i32 = 21;
+pub const ROMAJI_TRACKING: i32 = 21;
 
-pub const PROGRESS_WIDTH: i32 = 408;
-pub const PROGRESS_TOP: i32 = 570;
-pub const PROGRESS_THICKNESS: i32 = 3;
-pub const PROGRESS_MARKER: i32 = 9;
+pub const RULE_TOP: i32 = 564;
+pub const RULE_WIDTH: i32 = 460;
+pub const RULE_THICKNESS: i32 = 3;
+pub const MARKER_WIDTH: i32 = 6;
+pub const MARKER_HEIGHT: i32 = 9;
+pub const MARKER_RISE: i32 = 3;
 
-pub const TRAIL_TOP: i32 = 652;
-pub const TRAIL_STEP: i32 = 50;
+pub const TRAIL_BASELINE: i32 = 659;
+pub const TRAIL_STEP: i32 = 47;
+pub const TRAIL_SIZE: i32 = 19;
 
-pub const FOOTER_TOP: i32 = 893;
-pub const FOOTER_LEFT: i32 = 114;
-pub const FOOTER_RIGHT: i32 = 886;
+pub const FOOTER_BASELINE: i32 = 922;
+pub const FOOTER_SIZE: i32 = 16;
+pub const FOOTER_TRACKING: i32 = 1;
+pub const FOOTER_MARGIN: i32 = 94;
 
-pub const BRACKET_LEFT: i32 = 65;
-pub const BRACKET_RIGHT: i32 = 935;
-pub const BRACKET_TOP: i32 = 53;
-pub const BRACKET_BOTTOM: i32 = 932;
-pub const BRACKET_ARM: i32 = 30;
+pub const BRACKET_INSET_X: i32 = 39;
+pub const BRACKET_INSET_Y: i32 = 52;
+pub const BRACKET_ARM: i32 = 40;
 pub const BRACKET_THICKNESS: i32 = 2;
 
-pub const SCANLINE_SPACING: i32 = 3;
-pub const STRIPE_PERIOD: i32 = 6;
-pub const STRIPE_GAP: i32 = 2;
-pub const FRINGE_OFFSET: i32 = 24;
+pub const SCANLINE_PERIOD: i32 = 3;
 
-pub const SCALE_DIVISOR: i32 = 900;
+pub const VIGNETTE_RADIUS: i32 = 720;
+pub const VIGNETTE_CENTRE_X: i32 = 500;
+pub const VIGNETTE_CENTRE_Y: i32 = 440;
+pub const VIGNETTE_START: i32 = 141;
+pub const VIGNETTE_EDGE: i32 = 256;
+pub const VIGNETTE_STRENGTH: i32 = 158;

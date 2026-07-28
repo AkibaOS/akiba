@@ -3,45 +3,33 @@
 const graphics = @import("shared").graphics;
 const splash = @import("shared").splash;
 
-const constants = splash.constants;
-
 const Canvas = splash.types.canvas.Canvas;
 const Color = graphics.types.color.Color;
-const Quad = graphics.types.geometry.Quad;
-const Stripe = graphics.types.geometry.Stripe;
+const TextError = graphics.errors.text.TextError;
 
-const geometry = constants.wordmark;
-const layout = constants.layout;
-const palette = constants.palette;
+const labels = splash.strings.splash;
+const layout = splash.constants.layout;
+const palette = splash.constants.palette;
 
-pub fn draw(canvas: *Canvas, origin_x: i32, origin_y: i32, unit_scale: i32, color: Color, stripe: ?Stripe) void {
-    var pen = origin_x;
+pub fn render(canvas: *Canvas) TextError!void {
+    const style = Canvas.styleFor(layout.WORDMARK_SIZE, layout.WORDMARK_TRACKING);
+    const origin = try splash.measure.centredOrigin(canvas, style, labels.WORDMARK);
 
-    for (geometry.GLYPHS) |glyph| {
-        for (glyph.Strokes) |stroke| {
-            var quad: Quad = undefined;
-            var corner: usize = 0;
-            while (corner < quad.len) : (corner += 1) {
-                quad[corner] = .{
-                    .X = pen + @divTrunc(stroke[corner].X * unit_scale, geometry.GLYPH_BOX),
-                    .Y = origin_y + @divTrunc(stroke[corner].Y * unit_scale, geometry.GLYPH_BOX),
-                };
-            }
-            graphics.draw.fillQuad(&canvas.Surface, quad, color, stripe);
-        }
-        pen += @divTrunc((glyph.Extent + geometry.GLYPH_GAP) * unit_scale, geometry.GLYPH_BOX);
-    }
+    try paint(canvas, origin - layout.FRINGE_OFFSET, palette.FRINGE_CYAN);
+    try paint(canvas, origin + layout.FRINGE_OFFSET, palette.FRINGE_MAGENTA);
+    try paint(canvas, origin, palette.WORDMARK_CORE);
 }
 
-pub fn drawGhost(canvas: *Canvas) void {
-    draw(canvas, canvas.GhostX, canvas.GhostY, canvas.GhostScale, palette.GHOST_KANJI, null);
-}
-
-pub fn drawCore(canvas: *Canvas) void {
-    const stripe = Stripe{ .Period = layout.STRIPE_PERIOD, .Gap = layout.STRIPE_GAP };
-    const fringe = @divTrunc(canvas.WordmarkScale * layout.FRINGE_OFFSET, layout.PER_MILLE);
-
-    draw(canvas, canvas.WordmarkX - fringe, canvas.WordmarkY, canvas.WordmarkScale, palette.FRINGE_CYAN, stripe);
-    draw(canvas, canvas.WordmarkX + fringe, canvas.WordmarkY, canvas.WordmarkScale, palette.FRINGE_MAGENTA, stripe);
-    draw(canvas, canvas.WordmarkX, canvas.WordmarkY, canvas.WordmarkScale, palette.WORDMARK_CORE, stripe);
+fn paint(canvas: *Canvas, origin: i32, color: Color) TextError!void {
+    try graphics.text.drawString(
+        canvas.Renderer,
+        &canvas.Surface,
+        &canvas.Face,
+        Canvas.styleFor(layout.WORDMARK_SIZE, layout.WORDMARK_TRACKING),
+        origin,
+        canvas.WordmarkBaseline,
+        labels.WORDMARK,
+        color,
+        palette.BACKGROUND,
+    );
 }

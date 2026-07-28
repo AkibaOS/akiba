@@ -5,26 +5,29 @@ const splash = @import("shared").splash;
 
 const draw = graphics.draw;
 
-const constants = splash.constants;
-
 const Canvas = splash.types.canvas.Canvas;
 const SplashState = splash.types.state.SplashState;
 
-const layout = constants.layout;
-const palette = constants.palette;
+const layout = splash.constants.layout;
+const palette = splash.constants.palette;
 
 pub fn render(canvas: *Canvas, state: *const SplashState) void {
-    const thickness = layout.PROGRESS_THICKNESS;
-    const marker = layout.PROGRESS_MARKER;
-
     splash.panel.fillRegion(
         canvas,
-        canvas.ProgressX - marker,
-        canvas.ProgressY - marker,
-        canvas.ProgressWidth + marker * 2,
-        thickness + marker * 2,
+        canvas.RuleX - layout.MARKER_WIDTH,
+        canvas.RuleY - layout.MARKER_RISE,
+        layout.RULE_WIDTH + layout.MARKER_WIDTH * 2,
+        layout.MARKER_HEIGHT + layout.MARKER_RISE,
     );
-    draw.fillRect(&canvas.Surface, canvas.ProgressX, canvas.ProgressY, canvas.ProgressWidth, thickness, palette.RULE_TRACK);
+
+    draw.fillRect(
+        &canvas.Surface,
+        canvas.RuleX,
+        canvas.RuleY,
+        layout.RULE_WIDTH,
+        layout.RULE_THICKNESS,
+        palette.RULE_TRACK,
+    );
 
     if (state.ProgressTotal == 0) {
         return;
@@ -32,16 +35,16 @@ pub fn render(canvas: *Canvas, state: *const SplashState) void {
 
     const step: i32 = @intCast(state.ProgressStep);
     const total: i32 = @intCast(state.ProgressTotal);
-    const filled = @divTrunc(canvas.ProgressWidth * step, total);
+    const filled = @divTrunc(layout.RULE_WIDTH * step, total);
 
-    draw.fillRect(&canvas.Surface, canvas.ProgressX, canvas.ProgressY, filled, thickness, palette.FRINGE_CYAN);
+    draw.fillRect(&canvas.Surface, canvas.RuleX, canvas.RuleY, filled, layout.RULE_THICKNESS, palette.FRINGE_CYAN);
 
     draw.fillRect(
         &canvas.Surface,
-        canvas.ProgressX + filled - @divTrunc(marker, 2),
-        canvas.ProgressY + @divTrunc(thickness - marker, 2),
-        marker,
-        marker,
+        canvas.RuleX + filled - @divTrunc(layout.MARKER_WIDTH, 2),
+        canvas.RuleY - layout.MARKER_RISE,
+        layout.MARKER_WIDTH,
+        layout.MARKER_HEIGHT,
         palette.FRINGE_MAGENTA,
     );
 }
