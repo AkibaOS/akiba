@@ -80,11 +80,14 @@ pub fn drawBrackets(canvas: *Canvas) void {
 }
 
 fn drawCorner(canvas: *Canvas, x: i32, y: i32, horizontal: i32, vertical: i32, thickness: i32) void {
-    const left = if (horizontal < 0) x + horizontal else x;
-    const top = if (vertical < 0) y + vertical else y;
-    const span_x = if (horizontal < 0) -horizontal else horizontal;
-    const span_y = if (vertical < 0) -vertical else vertical;
+    const reach_x = if (horizontal < 0) -horizontal else horizontal;
+    const reach_y = if (vertical < 0) -vertical else vertical;
 
-    draw.fillRect(&canvas.Surface, left, y, span_x, thickness, palette.FRAME_BRACKET);
-    draw.fillRect(&canvas.Surface, x, top, thickness, span_y, palette.FRAME_BRACKET);
+    const arm_left = if (horizontal < 0) x + horizontal + 1 else x;
+    const arm_top = if (vertical < 0) y + vertical + 1 else y;
+    const stroke_left = if (horizontal < 0) x - thickness + 1 else x;
+    const stroke_top = if (vertical < 0) y - thickness + 1 else y;
+
+    draw.fillRect(&canvas.Surface, arm_left, stroke_top, reach_x, thickness, palette.FRAME_BRACKET);
+    draw.fillRect(&canvas.Surface, stroke_left, arm_top, thickness, reach_y, palette.FRAME_BRACKET);
 }
