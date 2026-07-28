@@ -1,9 +1,0 @@
-.{
-    .name = "kata",
-    .version = "1.0.0",
-    .type = .library,
-    .dependencies = .{
-        .sys,
-    },
-    .entry = "kata.zig",
-}

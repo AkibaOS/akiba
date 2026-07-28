@@ -1,6 +1,0 @@
-.{
-    .name = "params",
-    .version = "1.0.0",
-    .type = .library,
-    .entry = "params.zig",
-}

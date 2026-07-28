@@ -9,6 +9,9 @@ zig-out
 .akiba-build-*
 iso/
 
+# Legacy reference files
+*.old
+
 # Object files and logs
 *.o
 *.elf
@@ -26,4 +29,3 @@ toolchain*/grub-afs/grub.*
 # IDE files
 .vscode/
 .idea/
-.claude/
