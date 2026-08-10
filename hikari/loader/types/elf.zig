@@ -171,6 +171,7 @@ pub const LoadedSegment = struct {
 
 pub const LoadedImage = struct {
     EntryPoint: u64,
+    VirtualBase: u64,
     BaseAddress: u64,
     EndAddress: u64,
     Segments: [constants.elf.MAX_SEGMENTS]LoadedSegment,

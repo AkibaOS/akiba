@@ -75,9 +75,9 @@ pub const PageTableSetup = struct {
         try self.mapRange(start, start, size, flags.PRESENT | flags.WRITABLE);
     }
 
-    pub fn mapKernel(self: *PageTableSetup, physical: u64, size: u64) SetupError!void {
+    pub fn mapKernel(self: *PageTableSetup, virtual: u64, physical: u64, size: u64) SetupError!void {
         try self.mapRange(
-            layout.KERNEL_BASE + physical,
+            virtual,
             physical,
             size,
             flags.PRESENT | flags.WRITABLE | flags.GLOBAL,

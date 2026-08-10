@@ -44,6 +44,7 @@ pub const Loader = struct {
         const program_headers = header.getProgramHeaders(unit_data);
 
         var load_base: u64 = std.math.maxInt(u64);
+        var virtual_base: u64 = std.math.maxInt(u64);
         var load_end: u64 = 0;
         var loadable_count: usize = 0;
 
@@ -56,6 +57,10 @@ pub const Loader = struct {
 
             if (program_header.PhysicalAddress < load_base) {
                 load_base = program_header.PhysicalAddress;
+            }
+
+            if (program_header.VirtualAddress < virtual_base) {
+                virtual_base = program_header.VirtualAddress;
             }
 
             const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
@@ -102,6 +107,7 @@ pub const Loader = struct {
 
         var image = types.elf.LoadedImage{
             .EntryPoint = header.Entry,
+            .VirtualBase = virtual_base,
             .BaseAddress = physical_base,
             .EndAddress = physical_base + total_size,
             .Segments = undefined,

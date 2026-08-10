@@ -82,7 +82,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     };
 
     page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {};
-    page_setup.mapKernel(loaded_image.BaseAddress, loaded_image.totalSize()) catch {};
+    page_setup.mapKernel(loaded_image.VirtualBase, loaded_image.BaseAddress, loaded_image.totalSize()) catch {};
     page_setup.mapPhysmap(constants.memory.PHYSMAP_MAP_SIZE) catch {};
     page_setup.mapFramebuffer(gop.Mode.FramebufferBase, gop.Mode.FramebufferSize) catch {};
 
@@ -130,7 +130,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
 
     boot_params.Kernel = boot.types.kernel.KernelInfo{
         .PhysicalBase = loaded_image.BaseAddress,
-        .VirtualBase = layout.KERNEL_BASE + loaded_image.BaseAddress,
+        .VirtualBase = loaded_image.VirtualBase,
         .Size = loaded_image.totalSize(),
         .EntryPoint = loaded_image.EntryPoint,
         .PML4Address = page_setup.getL4Address(),
