@@ -31,6 +31,9 @@ pub fn ensurePDPT(kagami: *Kagami, virtual_address: u64) AllocationError!*Table 
     const entry = pml4.getEntry(pml4_index);
 
     if (entry.isPresent()) {
+        if (entry.isHuge()) {
+            return AllocationError.HugeMappingConflict;
+        }
         return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 
@@ -52,6 +55,9 @@ pub fn ensurePD(kagami: *Kagami, pdpt: *Table, virtual_address: u64) AllocationE
     const entry = pdpt.getEntry(pdpt_index);
 
     if (entry.isPresent()) {
+        if (entry.isHuge()) {
+            return AllocationError.HugeMappingConflict;
+        }
         return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 
@@ -75,6 +81,9 @@ pub fn ensurePT(kagami: *Kagami, pd: *Table, virtual_address: u64) AllocationErr
     const entry = pd.getEntry(pd_index);
 
     if (entry.isPresent()) {
+        if (entry.isHuge()) {
+            return AllocationError.HugeMappingConflict;
+        }
         return walk.getTableFromPhysical(entry.getPhysicalAddress());
     }
 

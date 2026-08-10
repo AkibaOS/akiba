@@ -53,6 +53,7 @@ pub fn execute(boot_info: *const BootInfo) bool {
 
     print.phase(status.KAGAMI);
     kagami.state.initialize(boot_info.PML4Physical);
+
     print.log(messages.PML4, .{boot_info.PML4Physical});
 
     print.phase(status.KERNEL_MEMORY);

@@ -8,4 +8,5 @@ pub const AllocationError = error{
     ZoneExhausted,
     NotInitialized,
     SizeTooLarge,
+    HugeMappingConflict,
 };

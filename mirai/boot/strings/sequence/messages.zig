@@ -6,6 +6,7 @@ pub const LINE = "%s\n";
 pub const STARTING = "Starting Akiba boot sequence\n";
 pub const POWERED = "Powered by the Mirai kernel\n\n";
 
+pub const NO_EXECUTE_UNAVAILABLE = "  Processor rejected no-execute page protection\n";
 pub const TSS_SETUP = "Setting up Task State Segment for CPU exceptions\n";
 pub const GDT_SETUP = "Setting up Global Descriptor Table with kernel and user segments\n";
 

@@ -2,6 +2,7 @@
 
 const constants = @import("mirai").boot.constants;
 const gdt = @import("mirai").boot.gdt;
+const msr = @import("asm").cpu.msr;
 const print = @import("mirai").boot.sequence.print;
 const strings = @import("mirai").boot.strings;
 const tss = @import("mirai").boot.tss;
@@ -11,6 +12,11 @@ const status = strings.sequence.status;
 
 pub fn execute() bool {
     print.phase(status.PROCESSOR);
+
+    if (!msr.enableNoExecute()) {
+        print.log(messages.NO_EXECUTE_UNAVAILABLE, .{});
+        return false;
+    }
 
     print.log(messages.TSS_SETUP, .{});
     tss.setup.initializeBoot();
