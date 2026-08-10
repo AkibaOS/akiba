@@ -130,7 +130,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
 
     boot_params.Kernel = boot.types.kernel.KernelInfo{
         .PhysicalBase = loaded_image.BaseAddress,
-        .VirtualBase = layout.KERNEL_BASE,
+        .VirtualBase = layout.KERNEL_BASE + loaded_image.BaseAddress,
         .Size = loaded_image.totalSize(),
         .EntryPoint = loaded_image.EntryPoint,
         .PML4Address = page_setup.getL4Address(),

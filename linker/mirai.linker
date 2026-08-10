@@ -2,29 +2,32 @@
 
 ENTRY(mirai)
 
+KERNEL_VIRTUAL_BASE = 0xFFFFFFFF80000000;
+KERNEL_PHYSICAL_BASE = 0x100000;
+
 SECTIONS
 {
-    . = 0x100000;
+    . = KERNEL_VIRTUAL_BASE + KERNEL_PHYSICAL_BASE;
 
-    .text : ALIGN(4K)
+    .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VIRTUAL_BASE)
     {
         *(.text)
         *(.text.*)
     }
 
-    .rodata : ALIGN(4K)
+    .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VIRTUAL_BASE)
     {
         *(.rodata)
         *(.rodata.*)
     }
 
-    .data : ALIGN(4K)
+    .data ALIGN(4K) : AT(ADDR(.data) - KERNEL_VIRTUAL_BASE)
     {
         *(.data)
         *(.data.*)
     }
 
-    .bss : ALIGN(4K)
+    .bss ALIGN(4K) : AT(ADDR(.bss) - KERNEL_VIRTUAL_BASE)
     {
         *(COMMON)
         *(.bss)

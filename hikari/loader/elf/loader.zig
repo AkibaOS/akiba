@@ -54,11 +54,11 @@ pub const Loader = struct {
 
             loadable_count += 1;
 
-            if (program_header.VirtualAddress < load_base) {
-                load_base = program_header.VirtualAddress;
+            if (program_header.PhysicalAddress < load_base) {
+                load_base = program_header.PhysicalAddress;
             }
 
-            const segment_end = program_header.VirtualAddress + program_header.MemorySize;
+            const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
             if (segment_end > load_end) {
                 load_end = segment_end;
             }
@@ -113,7 +113,7 @@ pub const Loader = struct {
                 continue;
             }
 
-            const segment_offset = program_header.VirtualAddress - load_base;
+            const segment_offset = program_header.PhysicalAddress - load_base;
             const destination = destination_base + segment_offset;
             const source = unit_data + program_header.Offset;
 
@@ -128,58 +128,7 @@ pub const Loader = struct {
             image.SegmentCount += 1;
         }
 
-        if (physical_base != load_base) {
-            image.EntryPoint = (header.Entry - load_base) + physical_base;
-        }
-
         return image;
-    }
-
-    pub fn getMemoryRequirements(unit_data: [*]const u8) LoadError!struct { Base: u64, Size: u64 } {
-        const header: *const types.elf.Elf64Header = @ptrCast(@alignCast(unit_data));
-
-        if (!header.isValid()) {
-            return LoadError.InvalidElfHeader;
-        }
-
-        const program_headers = header.getProgramHeaders(unit_data);
-
-        var load_base: u64 = std.math.maxInt(u64);
-        var load_end: u64 = 0;
-
-        for (program_headers) |*program_header| {
-            if (!program_header.isLoadable()) {
-                continue;
-            }
-
-            if (program_header.VirtualAddress < load_base) {
-                load_base = program_header.VirtualAddress;
-            }
-
-            const segment_end = program_header.VirtualAddress + program_header.MemorySize;
-            if (segment_end > load_end) {
-                load_end = segment_end;
-            }
-        }
-
-        if (load_base == std.math.maxInt(u64)) {
-            return LoadError.NoLoadableSegments;
-        }
-
-        return .{
-            .Base = load_base,
-            .Size = load_end - load_base,
-        };
-    }
-
-    pub fn getEntryPoint(unit_data: [*]const u8) LoadError!u64 {
-        const header: *const types.elf.Elf64Header = @ptrCast(@alignCast(unit_data));
-
-        if (!header.isValid()) {
-            return LoadError.InvalidElfHeader;
-        }
-
-        return header.Entry;
     }
 };
 
