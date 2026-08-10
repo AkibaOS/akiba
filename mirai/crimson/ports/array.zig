@@ -11,10 +11,10 @@ const Port = types.port.Port;
 pub const PortArray = struct {
     Ports: [limits.EXCEPTION_TYPE_COUNT]Port,
 
+    pub const EMPTY = PortArray{ .Ports = [_]Port{Port.EMPTY} ** limits.EXCEPTION_TYPE_COUNT };
+
     pub fn init() PortArray {
-        var array = PortArray{ .Ports = undefined };
-        for (&array.Ports) |*port| port.clear();
-        return array;
+        return EMPTY;
     }
 
     pub fn get(self: *PortArray, exception_type: ExceptionType) *Port {

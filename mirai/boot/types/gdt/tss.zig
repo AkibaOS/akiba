@@ -1,6 +1,4 @@
-//! TSS Descriptor Type (16 bytes in Long Mode)
-
-const entry = @import("mirai").boot.types.gdt.entry;
+//! TSS Descriptor Type
 
 pub const TSSDescriptor = packed struct {
     LimitLow: u16,
@@ -23,21 +21,5 @@ pub const TSSDescriptor = packed struct {
             .BaseHigh = @truncate(base >> @bitSizeOf(u32)),
             .Reserved = 0,
         };
-    }
-
-    pub fn getBase(self: TSSDescriptor) u64 {
-        return @as(u64, self.BaseHigh) << @bitSizeOf(u32) |
-            @as(u64, self.BaseMiddleHigh) << 24 |
-            @as(u64, self.BaseMiddleLow) << @bitSizeOf(u16) |
-            @as(u64, self.BaseLow);
-    }
-
-    pub fn getLimit(self: TSSDescriptor) u20 {
-        return @as(u20, @truncate(self.LimitHighAndFlags & 0x0F)) << @bitSizeOf(u16) |
-            @as(u20, self.LimitLow);
-    }
-
-    pub fn asEntries(self: *TSSDescriptor) *[2]entry.Entry {
-        return @ptrCast(self);
     }
 };

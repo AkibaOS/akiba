@@ -20,17 +20,4 @@ pub const Table = extern struct {
             .Base = base,
         };
     }
-
-    pub fn getEntry(self: *Table, index: u16) ?*entry.Entry {
-        const entries: [*]entry.Entry = @ptrCast(self);
-        const max_entries = @sizeOf(Table) / @sizeOf(entry.Entry);
-        if (index >= max_entries) {
-            return null;
-        }
-        return &entries[index];
-    }
-
-    pub fn getTSSDescriptor(self: *Table) *tss.TSSDescriptor {
-        return &self.TSS;
-    }
 };

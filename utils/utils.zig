@@ -1,6 +1,7 @@
 //! Utility Functions
 
 pub const address = @import("address/address.zig");
+pub const analysis = @import("analysis/analysis.zig");
 pub const bits = @import("bits/bits.zig");
 pub const crc = @import("crc/crc.zig");
 pub const format = @import("format/format.zig");

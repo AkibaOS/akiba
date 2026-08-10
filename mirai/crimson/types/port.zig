@@ -18,11 +18,20 @@ pub const Port = struct {
     OwnerId: u64,
     Active: bool,
 
+    pub const EMPTY = Port{
+        .PortId = 0,
+        .Behavior = .Default,
+        .Flavor = .None,
+        .Owner = .None,
+        .OwnerId = 0,
+        .Active = false,
+    };
+
     pub fn isValid(self: *const Port) bool {
         return self.PortId != 0 and self.Active;
     }
 
     pub fn clear(self: *Port) void {
-        self.* = Port{ .PortId = 0, .Behavior = .Default, .Flavor = .None, .Owner = .None, .OwnerId = 0, .Active = false };
+        self.* = EMPTY;
     }
 };

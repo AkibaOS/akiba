@@ -12,15 +12,7 @@ const Flavor = types.flavor.Flavor;
 const Port = types.port.Port;
 const PortArray = array.PortArray;
 
-var kata_ports: [limits.MAX_KATAS]PortArray = initAll();
-
-fn initAll() [limits.MAX_KATAS]PortArray {
-    var arrays: [limits.MAX_KATAS]PortArray = undefined;
-    for (&arrays) |*port_array| {
-        port_array.* = PortArray.init();
-    }
-    return arrays;
-}
+var kata_ports: [limits.MAX_KATAS]PortArray = [_]PortArray{PortArray.EMPTY} ** limits.MAX_KATAS;
 
 pub fn getPort(kata_id: u64, exception_type: ExceptionType) *const Port {
     if (kata_id >= limits.MAX_KATAS) {

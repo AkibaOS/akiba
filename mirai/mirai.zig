@@ -2,6 +2,8 @@
 
 const std = @import("std");
 
+const force = @import("utils").analysis.force;
+
 pub const common = @import("common");
 pub const shared = @import("shared");
 
@@ -16,7 +18,14 @@ pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
 
 comptime {
-    _ = kernel.entry;
+    force.all(boot);
+    force.all(crimson);
+    force.all(drivers);
+    force.all(interrupts);
+    force.all(kagami);
+    force.all(kernel);
+    force.all(memory);
+    force.all(pmm);
 }
 
 fn panicHandler(message: []const u8, first_trace_address: ?usize) noreturn {

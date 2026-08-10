@@ -3,15 +3,18 @@
 const common = @import("common");
 
 const kagami = @import("mirai").kagami;
+const kalloc = @import("mirai").memory.kalloc;
 const pmm = @import("mirai").pmm;
 const print = @import("mirai").boot.sequence.print;
 const stack = @import("mirai").memory.stack;
 const strings = @import("mirai").boot.strings;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
+const zone = @import("mirai").memory.zone;
 
 const math = @import("utils").math;
 
+const kalloc_sizes = @import("mirai").memory.constants.kalloc.sizes;
 const layout = common.constants.memory.layout;
 const messages = strings.sequence.messages;
 const status = strings.sequence.status;
@@ -36,6 +39,17 @@ pub fn execute(boot_info: *const BootInfo) bool {
 
     print.log(messages.FOUND_PAGES, .{ statistics.TotalPages, total_megabytes });
     print.log(messages.AVAILABLE, .{ statistics.FreePages, free_megabytes });
+
+    print.phase(status.ALLOCATOR);
+    zone.bootstrap.init() catch {
+        print.log(messages.NO_ZONES, .{});
+        return false;
+    };
+    kalloc.init() catch {
+        print.log(messages.NO_KALLOC, .{});
+        return false;
+    };
+    print.log(messages.ALLOCATOR_READY, .{kalloc_sizes.ZONE_SIZES.len});
 
     print.phase(status.KAGAMI);
     kagami.state.initialize(boot_info.PML4Physical);

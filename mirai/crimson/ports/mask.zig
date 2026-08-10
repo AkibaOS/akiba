@@ -6,20 +6,17 @@ const ExceptionType = types.kind.ExceptionType;
 const Mask = types.mask.Mask;
 
 pub fn includes(mask: Mask, exception_type: ExceptionType) bool {
-    const bit: Mask = @as(Mask, 1) << @intFromEnum(exception_type);
-    return (mask & bit) != 0;
+    return (mask & fromType(exception_type)) != 0;
 }
 
 pub fn add(mask: Mask, exception_type: ExceptionType) Mask {
-    const bit: Mask = @as(Mask, 1) << @intFromEnum(exception_type);
-    return mask | bit;
+    return mask | fromType(exception_type);
 }
 
 pub fn remove(mask: Mask, exception_type: ExceptionType) Mask {
-    const bit: Mask = @as(Mask, 1) << @intFromEnum(exception_type);
-    return mask & ~bit;
+    return mask & ~fromType(exception_type);
 }
 
 pub fn fromType(exception_type: ExceptionType) Mask {
-    return @as(Mask, 1) << @intFromEnum(exception_type);
+    return @as(Mask, 1) << @intCast(@intFromEnum(exception_type));
 }

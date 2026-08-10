@@ -2,6 +2,8 @@
 
 const std = @import("std");
 
+const force = @import("utils").analysis.force;
+
 pub const assembly = @import("asm/asm.zig");
 pub const disk = @import("disk/disk.zig");
 pub const efi = @import("efi/efi.zig");
@@ -10,6 +12,16 @@ pub const loader = @import("loader/loader.zig");
 pub const menu = @import("menu/menu.zig");
 pub const paging = @import("paging/paging.zig");
 pub const sequence = @import("sequence/sequence.zig");
+
+comptime {
+    force.all(assembly);
+    force.all(disk);
+    force.all(fs);
+    force.all(loader);
+    force.all(menu);
+    force.all(paging);
+    force.all(sequence);
+}
 
 pub fn main() void {
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);

@@ -2,6 +2,7 @@
 
 pub const PROCESSOR = "Initializing Processor";
 pub const SYSTEM_MEMORY = "Detecting System Memory";
+pub const ALLOCATOR = "Preparing Kernel Allocator";
 pub const KAGAMI = "Initializing Kagami";
 pub const KERNEL_MEMORY = "Provisioning Kernel Memory";
 pub const SYSTEM_SERVICES = "Starting System Services";

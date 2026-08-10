@@ -12,15 +12,7 @@ const Flavor = types.flavor.Flavor;
 const Port = types.port.Port;
 const PortArray = array.PortArray;
 
-var thread_ports: [limits.MAX_THREADS]PortArray = initAll();
-
-fn initAll() [limits.MAX_THREADS]PortArray {
-    var arrays: [limits.MAX_THREADS]PortArray = undefined;
-    for (&arrays) |*port_array| {
-        port_array.* = PortArray.init();
-    }
-    return arrays;
-}
+var thread_ports: [limits.MAX_THREADS]PortArray = [_]PortArray{PortArray.EMPTY} ** limits.MAX_THREADS;
 
 pub fn getPort(thread_id: u64, exception_type: ExceptionType) *const Port {
     if (thread_id >= limits.MAX_THREADS) {
