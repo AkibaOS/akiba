@@ -81,10 +81,25 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         return status.OUT_OF_RESOURCES;
     };
 
-    page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {};
-    page_setup.mapKernel(loaded_image.VirtualBase, loaded_image.BaseAddress, loaded_image.totalSize()) catch {};
-    page_setup.mapPhysmap(constants.memory.PHYSMAP_MAP_SIZE) catch {};
-    page_setup.mapFramebuffer(gop.Mode.FramebufferBase, gop.Mode.FramebufferSize) catch {};
+    page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {
+        splash.fail(messages.ERROR_MEMORY);
+        return status.OUT_OF_RESOURCES;
+    };
+    page_setup.mapKernel(loaded_image.VirtualBase, loaded_image.BaseAddress, loaded_image.totalSize()) catch {
+        splash.fail(messages.ERROR_MEMORY);
+        return status.OUT_OF_RESOURCES;
+    };
+    page_setup.mapPhysmap(constants.memory.PHYSMAP_MAP_SIZE) catch {
+        splash.fail(messages.ERROR_MEMORY);
+        return status.OUT_OF_RESOURCES;
+    };
+
+    if (splash.isReady()) {
+        page_setup.mapFramebuffer(gop.Mode.FramebufferBase, gop.Mode.FramebufferSize) catch {
+            splash.fail(messages.ERROR_MEMORY);
+            return status.OUT_OF_RESOURCES;
+        };
+    }
 
     splash.report(messages.RESERVING_KERNEL_MEMORY);
     const stack_size = layout.KERNEL_STACK_SIZE;
