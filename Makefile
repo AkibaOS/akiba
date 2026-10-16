@@ -4,7 +4,23 @@
 # Platform Detection
 # ═══════════════════════════════════════════════════════════════════════════
 
+DOCKER_SOURCE = $(CURDIR)
+ifeq ($(OS),Windows_NT)
+    MSYS2_ROOT ?= C:/msys64
+    MSYS2_DIR := $(subst \,/,$(MSYS2_ROOT))
+    ifeq ($(or $(findstring msys,$(MAKE_HOST)),$(findstring cygwin,$(MAKE_HOST))),)
+        SHELL := $(MSYS2_DIR)/usr/bin/bash.exe
+        export PATH := $(MSYS2_DIR)/usr/bin;$(PATH)
+    else
+        SHELL := /bin/bash
+        DOCKER_SOURCE = $(shell cygpath -m "$(CURDIR)")
+    endif
+    DOCKER_ENV = MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+endif
+
 ifdef DOCKER_BUILD
+    BUILD_MODE = native
+else ifeq ($(OS),Windows_NT)
     BUILD_MODE = native
 else
     UNAME_S := $(shell uname -s)
@@ -28,6 +44,9 @@ DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 DISK_SIZE_MB = 64
 RESOURCES_DIR = resources
+ZIG ?= zig
+EXE_EXT = $(if $(filter Windows_NT,$(OS)),.exe)
+RUN_SCRIPT = $(if $(filter Windows_NT,$(OS)),powershell.exe -NoProfile -File scripts/run.ps1 -DiskImage "$(DISK_IMAGE)",./scripts/run.sh "$(DISK_IMAGE)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Docker Build Mode
@@ -41,14 +60,14 @@ docker-build:
 	@echo "═══════════════════════════════════════════════════════════"
 	@echo " Building Akiba OS (Docker mode)"
 	@echo "═══════════════════════════════════════════════════════════"
-	@docker build -t akiba-builder ./toolchain
-	@docker run --rm -v $(PWD):/akiba -e DOCKER_BUILD=1 akiba-builder make all
+	@docker build --platform linux/amd64 -t akiba-builder ./toolchain
+	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make all
 
 clean:
-	@docker run --rm -v $(PWD):/akiba -e DOCKER_BUILD=1 akiba-builder make clean 2>/dev/null || rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
+	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make clean 2>/dev/null || rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
 
 run: all
-	@./scripts/run.sh
+	@$(RUN_SCRIPT)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Native Build Mode
@@ -62,7 +81,7 @@ clean:
 	@rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
 
 run: all
-	@./scripts/run.sh
+	@$(RUN_SCRIPT)
 
 endif
 
@@ -72,17 +91,17 @@ endif
 
 hikari:
 	@echo "→ Building Hikari bootloader..."
-	@zig build hikari
+	@"$(ZIG)" build hikari
 	@echo "  ✓ Hikari built"
 
 mirai:
 	@echo "→ Building Mirai kernel..."
-	@zig build mirai
+	@"$(ZIG)" build mirai
 	@echo "  ✓ Mirai built"
 
 mkafsdisk:
 	@echo "→ Building mkafsdisk tool..."
-	@zig build mkafsdisk
+	@"$(ZIG)" build mkafsdisk
 	@echo "  ✓ mkafsdisk built"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -95,13 +114,13 @@ prepare-filesystem: hikari mirai
 	@mkdir -p $(FS_ROOT)/system/akiba
 	@mkdir -p $(FS_ROOT)/system/libraries
 	@mkdir -p $(FS_ROOT)/binaries
-	
+
 	@echo "→ Copying bootloader..."
 	@cp zig-out/EFI/BOOT/BOOTX64.EFI $(FS_ROOT)/EFI/BOOT/
-	
+
 	@echo "→ Copying kernel..."
 	@cp zig-out/system/akiba/mirai.kernel $(FS_ROOT)/system/akiba/
-	
+
 	@echo "→ Copying resources..."
 	@for dir in $(RESOURCES_DIR)/*/; do \
 		if [ -d "$$dir" ]; then \
@@ -111,13 +130,13 @@ prepare-filesystem: hikari mirai
 			echo "  ✓ /$$dirname"; \
 		fi; \
 	done
-	
+
 	@echo "  ✓ Filesystem prepared"
 
 $(DISK_IMAGE): prepare-filesystem mkafsdisk
 	@echo "→ Creating bootable disk image..."
 	@mkdir -p iso
-	@zig-out/bin/mkafsdisk $(FS_ROOT) $(DISK_IMAGE) $(DISK_SIZE_MB)
+	@"zig-out/bin/mkafsdisk$(EXE_EXT)" "$(FS_ROOT)" "$(DISK_IMAGE)" $(DISK_SIZE_MB)
 	@echo "  ✓ Disk image created: $(DISK_IMAGE)"
 
 disk: $(DISK_IMAGE)

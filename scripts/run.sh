@@ -1,5 +1,10 @@
 #!/bin/bash
 
+DISK_IMAGE="${1:-iso/akiba.img}"
+if [ "$#" -gt 0 ]; then
+    shift
+fi
+
 UEFI_FW="/opt/homebrew/share/qemu/edk2-x86_64-code.fd"
 if [ ! -f "$UEFI_FW" ]; then
     UEFI_FW="/usr/share/edk2/x64/OVMF_CODE.4m.fd"
@@ -23,6 +28,7 @@ fi
 qemu-system-x86_64 \
     -M q35 \
     -drive if=pflash,format=raw,readonly=on,file="$UEFI_FW" \
-    -drive file=iso/akiba.img,format=raw \
+    -drive "file=$DISK_IMAGE,format=raw" \
     -m 2048M \
-    -serial stdio
+    -serial stdio \
+    "$@"
