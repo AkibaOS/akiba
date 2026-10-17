@@ -51,16 +51,6 @@ pub const Elf64Header = extern struct {
     pub fn isX8664(self: *const Elf64Header) bool {
         return self.Machine == constants.elf.MACHINE_X86_64;
     }
-
-    pub fn getProgramHeaders(self: *const Elf64Header, base: [*]const u8) []const Elf64ProgramHeader {
-        const program_header_pointer: [*]const Elf64ProgramHeader = @ptrCast(@alignCast(base + self.ProgramHeaderOffset));
-        return program_header_pointer[0..self.ProgramHeaderCount];
-    }
-
-    pub fn getSectionHeaders(self: *const Elf64Header, base: [*]const u8) []const Elf64SectionHeader {
-        const section_header_pointer: [*]const Elf64SectionHeader = @ptrCast(@alignCast(base + self.SectionHeaderOffset));
-        return section_header_pointer[0..self.SectionHeaderCount];
-    }
 };
 
 pub const Elf64ProgramHeader = extern struct {
@@ -87,10 +77,6 @@ pub const Elf64ProgramHeader = extern struct {
 
     pub fn isReadable(self: *const Elf64ProgramHeader) bool {
         return (self.Flags & constants.elf.SEGMENT_FLAG_READ) != 0;
-    }
-
-    pub fn getData(self: *const Elf64ProgramHeader, base: [*]const u8) []const u8 {
-        return (base + self.Offset)[0..self.UnitSize];
     }
 };
 
@@ -120,10 +106,6 @@ pub const Elf64SectionHeader = extern struct {
 
     pub fn isNobits(self: *const Elf64SectionHeader) bool {
         return self.SectionType == constants.elf.SECTION_NOBITS;
-    }
-
-    pub fn getData(self: *const Elf64SectionHeader, base: [*]const u8) []const u8 {
-        return (base + self.Offset)[0..self.Size];
     }
 };
 
@@ -160,6 +142,15 @@ pub const Elf64Rela = extern struct {
     pub fn getType(self: *const Elf64Rela) u32 {
         return @truncate(self.Info);
     }
+};
+
+pub const ImageLayout = struct {
+    EntryPoint: u64,
+    VirtualBase: u64,
+    PhysicalBase: u64,
+    Size: u64,
+    Segments: [constants.elf.MAX_SEGMENTS]Elf64ProgramHeader,
+    SegmentCount: usize,
 };
 
 pub const LoadedSegment = struct {

@@ -83,6 +83,7 @@ pub const SECTION_INDEX_COMMON: u16 = 0xFFF2;
 pub const ELF64_HEADER_SIZE: usize = 64;
 pub const ELF64_PROGRAM_HEADER_SIZE: usize = 56;
 pub const ELF64_SECTION_HEADER_SIZE: usize = 64;
+pub const PROGRAM_HEADER_COUNT_EXTENDED: u16 = 0xFFFF;
 
 pub const MAX_SEGMENTS: usize = 16;
 

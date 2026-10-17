@@ -3,15 +3,15 @@
 const std = @import("std");
 
 const common = @import("common");
-const constants = @import("hikari").loader.constants;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").loader.errors;
 const types = @import("hikari").loader.types;
+const validation = @import("hikari").loader.elf.validation;
 
-const math = @import("utils").math;
+const sizes = common.constants.memory.sizes;
 
 const LoadError = errors.elf.LoadError;
-const sizes = common.constants.memory.sizes;
+const LoadedImage = types.elf.LoadedImage;
 
 pub const Loader = struct {
     BootServices: *efi.services.boot.BootServices,
@@ -22,65 +22,11 @@ pub const Loader = struct {
         };
     }
 
-    pub fn load(self: *Loader, unit_data: [*]const u8, unit_size: u64) LoadError!types.elf.LoadedImage {
-        if (unit_size < constants.elf.ELF64_HEADER_SIZE) {
-            return LoadError.InvalidElfHeader;
-        }
+    pub fn load(self: *Loader, unit_data: []const u8) LoadError!LoadedImage {
+        const image_layout = try validation.validateImage(unit_data);
+        const pages_needed: usize = @intCast(image_layout.Size / sizes.PAGE_SIZE);
 
-        const header: *const types.elf.Elf64Header = @ptrCast(@alignCast(unit_data));
-
-        if (!header.isValid()) {
-            return LoadError.InvalidElfHeader;
-        }
-
-        if (!header.isX8664()) {
-            return LoadError.UnsupportedArchitecture;
-        }
-
-        if (!header.isExecutable()) {
-            return LoadError.UnsupportedElfType;
-        }
-
-        const program_headers = header.getProgramHeaders(unit_data);
-
-        var load_base: u64 = std.math.maxInt(u64);
-        var virtual_base: u64 = std.math.maxInt(u64);
-        var load_end: u64 = 0;
-        var loadable_count: usize = 0;
-
-        for (program_headers) |*program_header| {
-            if (!program_header.isLoadable()) {
-                continue;
-            }
-
-            loadable_count += 1;
-
-            if (program_header.PhysicalAddress < load_base) {
-                load_base = program_header.PhysicalAddress;
-            }
-
-            if (program_header.VirtualAddress < virtual_base) {
-                virtual_base = program_header.VirtualAddress;
-            }
-
-            const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
-            if (segment_end > load_end) {
-                load_end = segment_end;
-            }
-        }
-
-        if (loadable_count == 0) {
-            return LoadError.NoLoadableSegments;
-        }
-
-        if (loadable_count > constants.elf.MAX_SEGMENTS) {
-            return LoadError.TooManySegments;
-        }
-
-        const total_size = load_end - load_base;
-        const pages_needed = math.integer.divideCeil(total_size, sizes.PAGE_SIZE);
-
-        var physical_base: efi.types.base.PhysicalAddress = load_base;
+        var physical_base: efi.types.base.PhysicalAddress = image_layout.PhysicalBase;
         const allocation_status = self.BootServices.AllocatePages(
             .Address,
             .LoaderData,
@@ -102,34 +48,42 @@ pub const Loader = struct {
             }
         }
 
-        const destination_base: [*]u8 = @ptrFromInt(physical_base);
-        @memset(destination_base[0..total_size], 0);
+        if (physical_base == 0 or (physical_base & sizes.PAGE_MASK) != 0 or
+            image_layout.Size > std.math.maxInt(u64) - physical_base)
+        {
+            _ = self.BootServices.FreePages(physical_base, pages_needed);
+            return LoadError.AllocationFailed;
+        }
 
-        var image = types.elf.LoadedImage{
-            .EntryPoint = header.Entry,
-            .VirtualBase = virtual_base,
+        const destination_base: [*]u8 = @ptrFromInt(physical_base);
+        const allocation_size: usize = @intCast(image_layout.Size);
+        @memset(destination_base[0..allocation_size], 0);
+
+        var image = LoadedImage{
+            .EntryPoint = image_layout.EntryPoint,
+            .VirtualBase = image_layout.VirtualBase,
             .BaseAddress = physical_base,
-            .EndAddress = physical_base + total_size,
+            .EndAddress = physical_base + image_layout.Size,
             .Segments = undefined,
             .SegmentCount = 0,
         };
 
-        for (program_headers) |*program_header| {
-            if (!program_header.isLoadable()) {
-                continue;
+        for (image_layout.Segments[0..image_layout.SegmentCount]) |segment| {
+            const memory_offset: usize = @intCast(segment.PhysicalAddress - image_layout.PhysicalBase);
+
+            if (segment.UnitSize != 0) {
+                const source_offset: usize = @intCast(segment.Offset);
+                const source_size: usize = @intCast(segment.UnitSize);
+                const source = unit_data[source_offset..][0..source_size];
+                const destination = destination_base + memory_offset;
+                @memcpy(destination[0..source_size], source);
             }
 
-            const segment_offset = program_header.PhysicalAddress - load_base;
-            const destination = destination_base + segment_offset;
-            const source = unit_data + program_header.Offset;
-
-            @memcpy(destination[0..program_header.UnitSize], source[0..program_header.UnitSize]);
-
             image.Segments[image.SegmentCount] = types.elf.LoadedSegment{
-                .VirtualAddress = program_header.VirtualAddress,
-                .PhysicalAddress = physical_base + segment_offset,
-                .MemorySize = program_header.MemorySize,
-                .Flags = program_header.Flags,
+                .VirtualAddress = segment.VirtualAddress,
+                .PhysicalAddress = physical_base + memory_offset,
+                .MemorySize = segment.MemorySize,
+                .Flags = segment.Flags,
             };
             image.SegmentCount += 1;
         }
@@ -138,11 +92,7 @@ pub const Loader = struct {
     }
 };
 
-pub fn validateElf(data: [*]const u8, size: u64) bool {
-    if (size < constants.elf.ELF64_HEADER_SIZE) {
-        return false;
-    }
-
-    const header: *const types.elf.Elf64Header = @ptrCast(@alignCast(data));
-    return header.isValid() and header.isX8664();
+pub fn validateElf(data: []const u8) bool {
+    _ = validation.validateImage(data) catch return false;
+    return true;
 }

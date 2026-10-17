@@ -62,15 +62,17 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         return status.DEVICE_ERROR;
     };
 
+    const kernel_bytes = kernel_data.Buffer[0..kernel_data.Size];
+
     splash.report(messages.VERIFYING_KERNEL);
-    if (!loader.elf.loader.validateElf(kernel_data.Buffer, kernel_data.Size)) {
+    if (!loader.elf.loader.validateElf(kernel_bytes)) {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
 
     splash.report(messages.PREPARING_KERNEL);
     var elf_loader = loader.elf.loader.Loader.initialize(boot_services);
-    const loaded_image = elf_loader.load(kernel_data.Buffer, kernel_data.Size) catch {
+    const loaded_image = elf_loader.load(kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_LOAD);
         return status.LOAD_ERROR;
     };

@@ -2,6 +2,10 @@
 
 pub const LoadError = error{
     InvalidElfHeader,
+    InvalidProgramHeaders,
+    InvalidSegment,
+    InvalidEntryPoint,
+    UnsupportedImageLayout,
     UnsupportedArchitecture,
     UnsupportedElfType,
     NoLoadableSegments,
