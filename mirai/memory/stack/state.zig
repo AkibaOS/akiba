@@ -3,7 +3,7 @@
 const bits = @import("utils").bits;
 const common = @import("common");
 const cpu = @import("asm").cpu;
-const kagami = @import("mirai").kagami;
+const guard = @import("asm").interrupts.guard;
 const limits = @import("mirai").memory.constants.stack.limits;
 const types = @import("mirai").memory.types.stack;
 
@@ -34,8 +34,8 @@ pub fn commitBoot(base: u64, top: u64) bool {
 }
 
 pub fn retain(base: u64) bool {
-    const previous_flags = kagami.synchronize.acquire();
-    defer kagami.synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     const index = slotIndex(base) orelse return false;
     if (!bits.operations.testBit(&global_state.AllocatedSlots, index) or
         bits.operations.testBit(&global_state.RetainedSlots, index) or
@@ -45,8 +45,8 @@ pub fn retain(base: u64) bool {
 }
 
 pub fn release(base: u64) bool {
-    const previous_flags = kagami.synchronize.acquire();
-    defer kagami.synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     const index = slotIndex(base) orelse return false;
     if (!bits.operations.testBit(&global_state.AllocatedSlots, index) or
         !bits.operations.testBit(&global_state.RetainedSlots, index) or isLive(base)) return false;

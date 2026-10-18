@@ -2,8 +2,8 @@
 
 const common = @import("common");
 const cpu = @import("asm").cpu;
+const guard = @import("asm").interrupts.guard;
 const policy = @import("mirai").kagami.policy;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -11,8 +11,8 @@ const sizes = common.constants.memory.sizes;
 const Kagami = types.kagami.Kagami;
 
 pub fn remove(kagami: *Kagami, virtual_address: u64) ?u64 {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     policy.canMutate(kagami, virtual_address) catch return null;
     const entry = tables.walk.walkToOwnedEntry(kagami.PML4Physical, virtual_address) orelse return null;
     if (!entry.Present) return null;
@@ -27,8 +27,8 @@ pub fn remove(kagami: *Kagami, virtual_address: u64) ?u64 {
 }
 
 pub fn removeRange(kagami: *Kagami, start_address: u64, page_count: u64) u64 {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     var removed_count: u64 = 0;
     var offset: u64 = 0;
     var virtual_address = start_address;

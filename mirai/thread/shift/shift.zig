@@ -3,12 +3,12 @@
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const errors = @import("mirai").thread.errors.ownership;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const messages = @import("mirai").thread.strings.shift.messages;
 const stacks = @import("mirai").memory.stack;
 const state = @import("mirai").thread.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").thread.types;
 
@@ -52,8 +52,8 @@ pub fn dispatch(next: *Thread, previous_status: State) OwnershipError!void {
 }
 
 fn transfer(next: *Thread, previous_status: State, managed: bool) OwnershipError!void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     const previous = state.getCurrent() orelse return OwnershipError.NotInitialized;
     if (!isCurrentValid(previous)) return OwnershipError.InvalidState;
     if (!state.owns(next)) return OwnershipError.InvalidThread;

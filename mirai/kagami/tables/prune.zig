@@ -4,8 +4,8 @@ const allocate = @import("mirai").kagami.tables.allocate;
 const common = @import("common");
 const constants = @import("mirai").kagami.constants.bootstrap;
 const cpu = @import("asm").cpu;
+const guard = @import("asm").interrupts.guard;
 const policy = @import("mirai").kagami.policy;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kagami.types;
 const walk = @import("mirai").kagami.tables.walk;
 
@@ -14,8 +14,8 @@ const Entry = types.entry.Entry;
 const Kagami = types.kagami.Kagami;
 
 pub fn prune(kagami: *Kagami, virtual_address: u64) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     policy.canMutate(kagami, virtual_address) catch return;
     var parents: [constants.MAX_INTERMEDIATE_TABLES]*Entry = undefined;
     var children: [constants.MAX_INTERMEDIATE_TABLES]u64 = undefined;

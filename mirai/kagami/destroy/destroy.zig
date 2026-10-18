@@ -6,8 +6,8 @@ const common = @import("common");
 const constants = @import("mirai").kagami.constants;
 const cpu = @import("asm").cpu;
 const create = @import("mirai").kagami.create;
+const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").kagami.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -16,8 +16,8 @@ const sizes = common.constants.memory.sizes;
 const Kagami = types.kagami.Kagami;
 
 pub fn destroy(kagami: *Kagami) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (kagami.ExecutionOwners != 0) return;
     if (!create.owns(kagami) or kagami.Ownership != .User or !kagami.SharesKernel or
         kagami == state.getCurrentKagami() or kagami == state.getKernelKagami() or
@@ -76,8 +76,8 @@ fn collectOwned(physical_address: u64, level: u8, owned_frames: *[constants.boot
 }
 
 pub fn reference(kagami: *Kagami) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (create.owns(kagami) and kagami.ReferenceCount != std.math.maxInt(u32)) kagami.ReferenceCount += 1;
 }
 

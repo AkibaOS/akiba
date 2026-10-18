@@ -3,6 +3,7 @@
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const errors = @import("mirai").kagami.errors.bootstrap;
+const guard = @import("asm").interrupts.guard;
 const image = @import("mirai").boot.image;
 const imagetypes = @import("mirai").boot.types.image;
 const limits = @import("mirai").kagami.constants.bootstrap;
@@ -11,7 +12,6 @@ const sequence = @import("mirai").boot.types.sequence.info;
 const stack = @import("mirai").memory.stack;
 const stacklimits = @import("mirai").memory.constants.stack.limits;
 const state = @import("mirai").kagami.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
@@ -25,8 +25,8 @@ pub const mapping = @import("mapping.zig");
 var pending: PreparedRoot = .{ .Kagami = .{ .ReferenceCount = 0 } };
 
 pub fn prepare(info: *const sequence.BootInfo) errors.BootError!*PreparedRoot {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (pending.Phase != .Empty or state.hasOwnedKernel()) return errors.BootError.BootstrapBusy;
     if (!pmm.state.isInitialized() or !stack.state.canCommitBoot()) return errors.BootError.NotInitialized;
     try validateCPU();
@@ -143,8 +143,8 @@ fn mapImageRegion(prepared: *PreparedRoot, region: Region) errors.BootError!void
 }
 
 pub fn abort(prepared: *PreparedRoot) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (prepared != &pending or (prepared.Phase != .Preparing and prepared.Phase != .Prepared) or
         (prepared.Kagami.PML4Physical != 0 and (cpu.control.readCR3() & indices.ADDRESS_MASK) == prepared.Kagami.PML4Physical)) return;
     while (prepared.StackCount != 0) {
@@ -164,8 +164,8 @@ pub fn abort(prepared: *PreparedRoot) void {
 }
 
 pub fn finishActivation(prepared: *PreparedRoot) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     const stack_pointer = cpu.state.readStackPointer();
     if (prepared != &pending or prepared.Phase != .Prepared or
         (cpu.control.readCR3() & indices.ADDRESS_MASK) != prepared.Kagami.PML4Physical or

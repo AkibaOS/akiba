@@ -2,9 +2,9 @@
 
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
+const guard = @import("asm").interrupts.guard;
 const pmm = @import("mirai").pmm;
 const policy = @import("mirai").kagami.policy;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kagami.types;
 const walk = @import("mirai").kagami.tables.walk;
 
@@ -30,8 +30,8 @@ pub fn freeTable(physical_address: u64) void {
 }
 
 pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || MappingError)!*Entry {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     try policy.canMutate(kagami, virtual_address);
     const user_half = virtual_address <= common.constants.memory.layout.USER_SPACE_END;
     var current_physical = kagami.PML4Physical;

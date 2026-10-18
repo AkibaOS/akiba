@@ -1,8 +1,8 @@
 //! Thread Descriptor And Active Execution State
 
 const constants = @import("mirai").thread.constants.pool;
+const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").thread.types;
 
 const Kata = kata.types.kata.Kata;
@@ -53,8 +53,8 @@ pub fn owns(thread: *const Thread) bool {
 }
 
 pub fn reserve(owner: *Kata) ?*Thread {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!boot_initialized or !kata.state.owns(owner)) return null;
     for (&occupied, 0..) |*used, index| {
         if (used.*) continue;

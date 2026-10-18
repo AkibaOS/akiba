@@ -6,11 +6,11 @@ const common = @import("common");
 const cpu = @import("asm").cpu;
 const entry = @import("mirai").thread.entry;
 const errors = @import("mirai").thread.errors.ownership;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const stack = @import("mirai").memory.stack;
 const state = @import("mirai").thread.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").thread.types;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
@@ -21,8 +21,8 @@ const OwnershipError = errors.OwnershipError;
 const Thread = types.thread.Thread;
 
 pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationError || MappingError || OwnershipError)!*Thread {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (state.getCurrent() == null) return OwnershipError.NotInitialized;
     if (!kata.state.owns(owner)) return OwnershipError.InvalidOwner;
     if (owner.ThreadCount == std.math.maxInt(u64) or owner.AddressSpace.ExecutionOwners == 0 or

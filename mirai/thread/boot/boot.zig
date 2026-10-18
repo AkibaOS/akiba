@@ -1,16 +1,16 @@
 //! Existing Kernel Execution Adoption
 
 const cpu = @import("asm").cpu;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const stack = @import("mirai").memory.stack;
 const state = @import("mirai").thread.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tss = @import("mirai").boot.tss;
 
 pub fn initialize() bool {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (state.getCurrent() != null or !tss.state.isInitialized() or tss.state.getCoreCount() != 0) return false;
     const stacks = stack.state.getState();
     const pointer = cpu.state.readStackPointer();

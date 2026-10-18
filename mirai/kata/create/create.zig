@@ -2,9 +2,9 @@
 
 const common = @import("common");
 const errors = @import("mirai").kata.errors.ownership;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const state = @import("mirai").kata.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kata.types;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
@@ -12,8 +12,8 @@ const Kata = types.kata.Kata;
 const OwnershipError = errors.OwnershipError;
 
 pub fn create() (AllocationError || OwnershipError)!*Kata {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (state.getKernel() == null) return AllocationError.NotInitialized;
     if (!state.canReserve()) return AllocationError.OutOfMemory;
     const root = try kagami.create.create();

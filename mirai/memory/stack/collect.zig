@@ -2,6 +2,7 @@
 
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const pmm = @import("mirai").pmm;
 const state = @import("mirai").memory.stack.state;
@@ -10,8 +11,8 @@ const limits = constants.stack.limits;
 const sizes = common.constants.memory.sizes;
 
 pub fn collect() u64 {
-    const previous_flags = kagami.synchronize.acquire();
-    defer kagami.synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!kagami.state.hasOwnedKernel()) return 0;
     const allocator_state = state.getState();
     const kernel_kagami = kagami.state.getKernelKagami();

@@ -1,8 +1,8 @@
 //! Effective Mapping Address And Permission Queries
 
 const create = @import("mirai").kagami.create;
+const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").kagami.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -10,8 +10,8 @@ const Kagami = types.kagami.Kagami;
 const Lookup = types.lookup.Lookup;
 
 pub fn lookup(kagami: *const Kagami, virtual_address: u64) ?Lookup {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!state.hasOwnedKernel() or
         !(kagami.isKernel() or create.owns(kagami))) return null;
     return tables.walk.lookup(kagami.PML4Physical, virtual_address);

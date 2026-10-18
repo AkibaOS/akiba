@@ -1,14 +1,14 @@
 //! Kernel Stack Free
 
 const bits = @import("utils").bits;
-const kagami = @import("mirai").kagami;
+const guard = @import("asm").interrupts.guard;
 const limits = @import("mirai").memory.constants.stack.limits;
 const state = @import("mirai").memory.stack.state;
 const types = @import("mirai").memory.types;
 
 pub fn free(stack: types.stack.kernel.KernelStack) void {
-    const previous_flags = kagami.synchronize.acquire();
-    defer kagami.synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!state.isAllocatedBase(stack.Base) or stack.Top != stack.Base + limits.STACK_SIZE or
         state.isPinned(stack.Base)) return;
     const allocator_state = state.getState();

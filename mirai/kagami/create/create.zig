@@ -3,8 +3,8 @@
 const bits = @import("utils").bits;
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
+const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").kagami.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -16,8 +16,8 @@ var kagami_pool: [pool.MAX_KAGAMI]Kagami = [_]Kagami{.{}} ** pool.MAX_KAGAMI;
 var kagami_pool_bitmap: [pool.POOL_BITMAP_BYTES]u8 = [_]u8{0} ** pool.POOL_BITMAP_BYTES;
 
 pub fn create() AllocationError!*Kagami {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!state.hasOwnedKernel()) return AllocationError.NotInitialized;
     const kernel_kagami = state.getKernelKagami();
     if (!tables.walk.isValidTable(kernel_kagami.PML4Physical)) return AllocationError.NotInitialized;

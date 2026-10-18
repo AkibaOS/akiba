@@ -3,6 +3,7 @@
 const bits = @import("utils").bits;
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const pmm = @import("mirai").pmm;
 const state = @import("mirai").memory.stack.state;
@@ -16,8 +17,8 @@ const Kagami = kagami.types.kagami.Kagami;
 const KernelStack = types.stack.kernel.KernelStack;
 
 pub fn allocate() (AllocationError || MappingError)!KernelStack {
-    const previous_flags = kagami.synchronize.acquire();
-    defer kagami.synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!kagami.state.hasOwnedKernel()) return AllocationError.NotInitialized;
     const allocator_state = state.getState();
     while (allocator_state.FreeList) |node| {

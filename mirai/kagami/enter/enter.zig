@@ -2,8 +2,8 @@
 
 const common = @import("common");
 const cpu = @import("asm").cpu;
+const guard = @import("asm").interrupts.guard;
 const policy = @import("mirai").kagami.policy;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -20,8 +20,8 @@ pub fn enterReplace(kagami: *Kagami, virtual_address: u64, physical_address: u64
 }
 
 fn insert(kagami: *Kagami, virtual_address: u64, physical_address: u64, protection: u8, replace: bool) (MappingError || AllocationError)!void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     try policy.validateMapping(kagami, virtual_address, physical_address, protection);
     const entry = try tables.allocate.ensureTables(kagami, virtual_address);
     const was_present = entry.Present;

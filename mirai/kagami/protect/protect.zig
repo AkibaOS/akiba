@@ -2,8 +2,8 @@
 
 const common = @import("common");
 const cpu = @import("asm").cpu;
+const guard = @import("asm").interrupts.guard;
 const policy = @import("mirai").kagami.policy;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -12,8 +12,8 @@ const sizes = common.constants.memory.sizes;
 const Kagami = types.kagami.Kagami;
 
 pub fn protect(kagami: *Kagami, virtual_address: u64, protection: u8) MappingError!void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     try policy.canMutate(kagami, virtual_address);
     const entry = tables.walk.walkToOwnedEntry(kagami.PML4Physical, virtual_address) orelse return MappingError.NotMapped;
     if (!entry.Present) return MappingError.NotMapped;
@@ -27,8 +27,8 @@ pub fn protect(kagami: *Kagami, virtual_address: u64, protection: u8) MappingErr
 }
 
 pub fn protectRange(kagami: *Kagami, start_address: u64, page_count: u64, protection: u8) u64 {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     var protected_count: u64 = 0;
     var offset: u64 = 0;
     var virtual_address = start_address;

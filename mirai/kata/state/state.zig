@@ -3,8 +3,8 @@
 const std = @import("std");
 
 const constants = @import("mirai").kata.constants.pool;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kata.types;
 
 const Kagami = kagami.types.kagami.Kagami;
@@ -17,8 +17,8 @@ var occupied: [constants.MAX_KATAS]bool = [_]bool{false} ** constants.MAX_KATAS;
 var next_id: u64 = constants.KERNEL_ID + 1;
 
 pub fn initializeKernel() bool {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (initialized) return false;
     const root = kagami.state.getKernelKagami();
     if (!kagami.state.hasOwnedKernel() or kagami.state.getCurrentKagami() != root or
@@ -41,8 +41,8 @@ pub fn canReserve() bool {
 }
 
 pub fn reserve(root: *Kagami) ?*Kata {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!initialized or next_id == std.math.maxInt(u64) or
         !kagami.create.owns(root) or root.ExecutionOwners != 1) return null;
     for (&occupied, 0..) |*used, index| {

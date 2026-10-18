@@ -4,8 +4,8 @@ const common = @import("common");
 const constants = @import("mirai").kagami.constants;
 const cpu = @import("asm").cpu;
 const create = @import("mirai").kagami.create;
+const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").kagami.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
@@ -14,8 +14,8 @@ const sizes = common.constants.memory.sizes;
 const Kagami = types.kagami.Kagami;
 
 pub fn activate(kagami: *Kagami) void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!canActivate(kagami)) return;
     cpu.control.flushAllTLB();
     cpu.control.writeCR3(kagami.PML4Physical);
@@ -23,8 +23,8 @@ pub fn activate(kagami: *Kagami) void {
 }
 
 pub fn canActivate(kagami: *const Kagami) bool {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!state.hasOwnedKernel() or
         !(kagami == state.getKernelKagami() or create.owns(kagami)) or
         !tables.walk.isValidTable(kagami.PML4Physical) or

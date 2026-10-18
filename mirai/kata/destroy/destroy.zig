@@ -1,17 +1,17 @@
 //! Inactive Kata Resource Destruction
 
 const errors = @import("mirai").kata.errors.ownership;
+const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const state = @import("mirai").kata.state;
-const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kata.types;
 
 const Kata = types.kata.Kata;
 const OwnershipError = errors.OwnershipError;
 
 pub fn destroy(owner: *Kata) OwnershipError!void {
-    const previous_flags = synchronize.acquire();
-    defer synchronize.release(previous_flags);
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (!state.owns(owner)) return OwnershipError.InvalidKata;
     if (owner.Permanent or owner.ThreadCount != 0) return OwnershipError.InUse;
     const root = owner.AddressSpace;
