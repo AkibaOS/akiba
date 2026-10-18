@@ -16,11 +16,22 @@ const Kagami = types.kagami.Kagami;
 pub fn activate(kagami: *Kagami) void {
     const previous_flags = synchronize.acquire();
     defer synchronize.release(previous_flags);
-    if (!state.hasOwnedKernel() or !tables.walk.isValidTable(kagami.PML4Physical) or
+    if (!canActivate(kagami)) return;
+    cpu.control.flushAllTLB();
+    cpu.control.writeCR3(kagami.PML4Physical);
+    state.setCurrentKagami(kagami);
+}
+
+pub fn canActivate(kagami: *const Kagami) bool {
+    const previous_flags = synchronize.acquire();
+    defer synchronize.release(previous_flags);
+    if (!state.hasOwnedKernel() or
+        !(kagami == state.getKernelKagami() or create.owns(kagami)) or
+        !tables.walk.isValidTable(kagami.PML4Physical) or
         (cpu.control.readCR4() & (cpu.constants.control.CR4_PCID_ENABLE | cpu.constants.control.CR4_LINEAR_ADDRESS_57_ENABLE)) != 0 or
-        (cpu.control.readCR0() & cpu.constants.control.CR0_WRITE_PROTECT) == 0) return;
-    if (!kagami.isKernel()) {
-        if (!create.owns(kagami) or !kagami.SharesKernel) return;
+        (cpu.control.readCR0() & cpu.constants.control.CR0_WRITE_PROTECT) == 0) return false;
+    if (kagami != state.getKernelKagami()) {
+        if (!kagami.SharesKernel) return false;
         const root = tables.walk.getPML4(kagami.PML4Physical);
         const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
         var index: usize = constants.tables.KERNEL_PML4_START;
@@ -28,12 +39,10 @@ pub fn activate(kagami: *Kagami) void {
             const shared = root.Entries[index];
             if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or
                 (shared.AvailableLow & constants.ownership.SHARED_TABLE) == 0 or
-                shared.getPhysicalAddress() != kernel.Entries[index].getPhysicalAddress()) return;
+                shared.getPhysicalAddress() != kernel.Entries[index].getPhysicalAddress()) return false;
         }
     }
-    cpu.control.flushAllTLB();
-    cpu.control.writeCR3(kagami.PML4Physical);
-    state.setCurrentKagami(kagami);
+    return true;
 }
 
 pub fn activateKernel() void {

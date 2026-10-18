@@ -1,6 +1,7 @@
 //! CPU Operations
 
 pub const constants = @import("constants/constants.zig");
+pub const context = @import("context/context.zig");
 pub const control = @import("control/control.zig");
 pub const cpuid = @import("cpuid/cpuid.zig");
 pub const debug = @import("debug/debug.zig");

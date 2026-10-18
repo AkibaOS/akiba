@@ -18,6 +18,7 @@ const Kagami = types.kagami.Kagami;
 pub fn destroy(kagami: *Kagami) void {
     const previous_flags = synchronize.acquire();
     defer synchronize.release(previous_flags);
+    if (kagami.ExecutionOwners != 0) return;
     if (!create.owns(kagami) or kagami.Ownership != .User or !kagami.SharesKernel or
         kagami == state.getCurrentKagami() or kagami == state.getKernelKagami() or
         (cpu.control.readCR3() & indices.ADDRESS_MASK) == kagami.PML4Physical) return;

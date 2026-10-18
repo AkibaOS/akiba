@@ -1,5 +1,6 @@
 //! Kernel Stack Allocation
 
+const bits = @import("utils").bits;
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
 const kagami = @import("mirai").kagami;
@@ -20,10 +21,11 @@ pub fn allocate() (AllocationError || MappingError)!KernelStack {
     if (!kagami.state.hasOwnedKernel()) return AllocationError.NotInitialized;
     const allocator_state = state.getState();
     while (allocator_state.FreeList) |node| {
+        const stack_base = @intFromPtr(node);
+        if (state.isPinned(stack_base)) break;
         allocator_state.FreeList = node.Next;
         allocator_state.FreeCount -= 1;
-        const stack_base = @intFromPtr(node);
-        if (state.isPinned(stack_base)) continue;
+        bits.operations.setBit(&allocator_state.AllocatedSlots, (stack_base - limits.AREA_BASE) / limits.SLOT_SIZE);
         return .{ .Base = stack_base, .Top = stack_base + limits.STACK_SIZE };
     }
     return create();
@@ -49,6 +51,7 @@ fn create() (AllocationError || MappingError)!KernelStack {
             return mapping_error;
         };
     }
+    bits.operations.setBit(&allocator_state.AllocatedSlots, allocator_state.NextSlot);
     allocator_state.NextSlot += 1;
     allocator_state.TotalCount += 1;
     allocator_state.HighWatermark = @max(allocator_state.HighWatermark, allocator_state.TotalCount);

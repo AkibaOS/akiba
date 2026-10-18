@@ -11,6 +11,7 @@ const print = @import("mirai").boot.sequence.print;
 const registers = @import("asm").cpu.state;
 const state = @import("mirai").boot.sequence.state;
 const strings = @import("mirai").boot.strings;
+const thread = @import("mirai").thread;
 const transition = @import("asm").cpu.transition.activate;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
@@ -65,6 +66,10 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
     print.log(messages.LOW_IDENTITY_REMOVED, .{});
     if (!memory.finish(info)) {
         print.fail(status.ERROR_MEMORY);
+        haltOnFailure();
+    }
+    if (!thread.boot.initialize()) {
+        print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }
     state.advancePhase();

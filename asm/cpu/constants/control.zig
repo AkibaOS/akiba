@@ -11,4 +11,6 @@ pub const CR4_OS_XMM_EXCEPTION: u64 = 1 << 10;
 pub const CR4_LINEAR_ADDRESS_57_ENABLE: u64 = 1 << 12;
 pub const CR4_PCID_ENABLE: u64 = 1 << 17;
 pub const CR4_OS_XSAVE: u64 = 1 << 18;
+pub const RFLAGS_RESERVED: u64 = 1 << 1;
 pub const RFLAGS_INTERRUPT_ENABLE: u64 = 1 << 9;
+pub const RFLAGS_DIRECTION: u64 = 1 << 10;

@@ -16,5 +16,6 @@ pub const SLOT_SIZE: u64 = SLOT_PAGES * sizes.PAGE_SIZE;
 pub const AREA_BASE: u64 = layout.KERNEL_STACK_AREA_BASE;
 pub const AREA_SIZE: u64 = layout.KERNEL_STACK_AREA_SIZE;
 pub const MAX_SLOTS: u64 = AREA_SIZE / SLOT_SIZE;
+pub const SLOT_BITMAP_BYTES: u64 = (MAX_SLOTS + @bitSizeOf(u8) - 1) / @bitSizeOf(u8);
 
 pub const CACHE_TARGET: u64 = 8;

@@ -6,6 +6,7 @@ const state = @import("mirai").kagami.state;
 pub const Kagami = struct {
     PML4Physical: u64 = 0,
     ReferenceCount: u32 = 1,
+    ExecutionOwners: u64 = 0,
     ResidentPages: u64 = 0,
     WiredPages: u64 = 0,
     TablePages: u64 = 0,

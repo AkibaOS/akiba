@@ -18,10 +18,10 @@ pub fn collect() u64 {
     var released_pages: u64 = 0;
     while (allocator_state.FreeCount > limits.CACHE_TARGET) {
         const node = allocator_state.FreeList orelse break;
+        const stack_base = @intFromPtr(node);
+        if (state.isPinned(stack_base)) break;
         allocator_state.FreeList = node.Next;
         allocator_state.FreeCount -= 1;
-        const stack_base = @intFromPtr(node);
-        if (state.isPinned(stack_base)) continue;
         var page_index: u64 = 0;
         while (page_index < limits.STACK_PAGES) : (page_index += 1) {
             if (kagami.remove.remove(kernel_kagami, stack_base + page_index * sizes.PAGE_SIZE)) |physical_page| {

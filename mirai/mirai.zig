@@ -13,9 +13,11 @@ pub const crimson = @import("crimson/crimson.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const interrupts = @import("interrupts/interrupts.zig");
 pub const kagami = @import("kagami/kagami.zig");
+pub const kata = @import("kata/kata.zig");
 pub const kernel = @import("kernel/kernel.zig");
 pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
+pub const thread = @import("thread/thread.zig");
 
 comptime {
     force.all(boot);
@@ -23,9 +25,11 @@ comptime {
     force.all(drivers);
     force.all(interrupts);
     force.all(kagami);
+    force.all(kata);
     force.all(kernel);
     force.all(memory);
     force.all(pmm);
+    force.all(thread);
 }
 
 fn panicHandler(message: []const u8, first_trace_address: ?usize) noreturn {

@@ -1,5 +1,6 @@
 //! Kernel Stack Free
 
+const bits = @import("utils").bits;
 const kagami = @import("mirai").kagami;
 const limits = @import("mirai").memory.constants.stack.limits;
 const state = @import("mirai").memory.stack.state;
@@ -22,4 +23,5 @@ pub fn free(stack: types.stack.kernel.KernelStack) void {
     node.Next = allocator_state.FreeList;
     allocator_state.FreeList = node;
     allocator_state.FreeCount += 1;
+    bits.operations.clearBit(&allocator_state.AllocatedSlots, (stack.Base - limits.AREA_BASE) / limits.SLOT_SIZE);
 }
