@@ -2,6 +2,7 @@
 
 const alloc = @import("mirai").memory.zone.alloc;
 const bootstrap = @import("mirai").memory.zone.bootstrap;
+const guard = @import("asm").interrupts.guard;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").memory.types;
 
@@ -9,6 +10,11 @@ const Zone = types.zone.Zone;
 const ZonePageMeta = types.zone.ZonePageMeta;
 
 pub fn collect(zone: *Zone) usize {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+
+    if (zone == bootstrap.getPageMetaZone()) return 0;
+
     var freed: usize = 0;
     var previous: ?*ZonePageMeta = null;
     var current = zone.PartialPages;

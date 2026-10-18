@@ -3,4 +3,6 @@
 pub const State = enum {
     Ready,
     Running,
+    Blocked,
+    Stopped,
 };

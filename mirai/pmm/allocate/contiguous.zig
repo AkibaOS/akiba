@@ -1,16 +1,18 @@
 //! Contiguous Page Allocation
 
-const common = @import("common");
-
-const state = @import("mirai").pmm.state;
-
 const address = @import("utils").address;
 const bits = @import("utils").bits;
+const common = @import("common");
+const guard = @import("asm").interrupts.guard;
+const state = @import("mirai").pmm.state;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const sizes = common.constants.memory.sizes;
 
 pub fn allocateContiguous(page_count: u64) AllocationError!u64 {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+
     if (page_count == 0) {
         return AllocationError.InvalidSize;
     }
@@ -45,6 +47,9 @@ pub fn allocateContiguousZeroed(page_count: u64) AllocationError!u64 {
 }
 
 pub fn allocateAligned(page_count: u64, alignment_pages: u64) AllocationError!u64 {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+
     if (page_count == 0 or alignment_pages == 0) {
         return AllocationError.InvalidSize;
     }

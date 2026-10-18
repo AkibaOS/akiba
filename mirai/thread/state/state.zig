@@ -23,6 +23,7 @@ pub fn initializeBoot(owner: *Kata, stack: KernelStack) bool {
         .Stack = stack,
         .Context = .{ .CR3 = owner.AddressSpace.PML4Physical },
         .Status = .Running,
+        .Started = true,
         .Permanent = true,
     };
     owner.ThreadCount = 1;
@@ -66,7 +67,8 @@ pub fn reserve(owner: *Kata) ?*Thread {
 
 pub fn release(thread: *Thread) bool {
     const index = poolIndex(thread) orelse return false;
-    if (!occupied[index] or thread == current_thread or thread.Status != .Ready or thread.Permanent) return false;
+    if (!occupied[index] or thread == current_thread or
+        (thread.Status != .Ready and thread.Status != .Stopped) or thread.Permanent or thread.Managed) return false;
     occupied[index] = false;
     return true;
 }

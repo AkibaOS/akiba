@@ -1,11 +1,10 @@
 //! Hardware IRQ Stubs (Vectors 32-47)
 
 const common = @import("common");
-
-const stubgen = @import("asm").interrupts.stubs;
-
 const frame = @import("mirai").interrupts.handlers.common;
+const interrupts = @import("mirai").sensei.interrupts;
 const pic = @import("mirai").interrupts.pic;
+const stubgen = @import("asm").interrupts.stubs;
 
 const vectors = common.constants.interrupts.vectors;
 
@@ -26,10 +25,12 @@ export fn irq_dispatch(interrupt_frame: *InterruptFrame) void {
     const irq: u8 = vector - vectors.VECTOR_OFFSET;
 
     if (irq < vectors.IRQ_COUNT) {
+        interrupts.enter();
         if (irq_handlers[irq]) |handler| {
             handler(irq);
         }
         pic.eoi.send(@truncate(irq));
+        interrupts.leave();
     }
 }
 

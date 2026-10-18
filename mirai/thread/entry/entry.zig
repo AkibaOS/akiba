@@ -9,7 +9,8 @@ const types = @import("mirai").thread.types;
 const Thread = types.thread.Thread;
 
 pub fn start(thread: *Thread) callconv(.{ .x86_64_sysv = .{} }) noreturn {
-    if (state.getCurrent() != thread or !shift.finish()) @panic(messages.INVALID_CONTEXT);
+    if (state.getCurrent() != thread or thread.Started or !shift.finish()) @panic(messages.INVALID_CONTEXT);
+    thread.Started = true;
     const entry = thread.EntryPoint orelse @panic(messages.INVALID_CONTEXT);
     const argument = thread.Argument;
     if (thread.EnableInterrupts) flags.enableInterrupts();

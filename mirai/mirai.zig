@@ -17,6 +17,7 @@ pub const kata = @import("kata/kata.zig");
 pub const kernel = @import("kernel/kernel.zig");
 pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
+pub const sensei = @import("sensei/sensei.zig");
 pub const thread = @import("thread/thread.zig");
 
 comptime {
@@ -29,6 +30,7 @@ comptime {
     force.all(kernel);
     force.all(memory);
     force.all(pmm);
+    force.all(sensei);
     force.all(thread);
 }
 

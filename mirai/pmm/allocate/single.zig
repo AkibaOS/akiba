@@ -1,17 +1,19 @@
 //! Single Page Allocation
 
-const common = @import("common");
-
-const state = @import("mirai").pmm.state;
-
 const address = @import("utils").address;
 const bits = @import("utils").bits;
+const common = @import("common");
+const guard = @import("asm").interrupts.guard;
+const state = @import("mirai").pmm.state;
 
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 
 pub fn allocatePage() AllocationError!u64 {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+
     const pmm_state = state.getState();
 
     if (pmm_state.FreePages == 0) {

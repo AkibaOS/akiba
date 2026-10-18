@@ -14,6 +14,7 @@ const types = @import("mirai").thread.types;
 
 const indices = common.constants.paging.indices;
 const OwnershipError = errors.OwnershipError;
+const State = types.state.State;
 const Thread = types.thread.Thread;
 
 fn hasOwner(thread: *const Thread) bool {
@@ -42,17 +43,30 @@ fn canResume(thread: *const Thread) bool {
 }
 
 pub fn shift(next: *Thread) OwnershipError!void {
+    return transfer(next, .Ready, false);
+}
+
+pub fn dispatch(next: *Thread, previous_status: State) OwnershipError!void {
+    if (previous_status != .Ready and previous_status != .Blocked) return OwnershipError.InvalidState;
+    return transfer(next, previous_status, true);
+}
+
+fn transfer(next: *Thread, previous_status: State, managed: bool) OwnershipError!void {
     const previous_flags = synchronize.acquire();
     defer synchronize.release(previous_flags);
     const previous = state.getCurrent() orelse return OwnershipError.NotInitialized;
     if (!isCurrentValid(previous)) return OwnershipError.InvalidState;
-    if (next == previous) return;
     if (!state.owns(next)) return OwnershipError.InvalidThread;
+    if (previous.Managed != managed or next.Managed != managed) return OwnershipError.InUse;
+    if (next == previous) {
+        if (previous_status != .Ready) return OwnershipError.InvalidState;
+        return;
+    }
     if (!canResume(next) or
         (cpu.control.readCR4() & cpu.constants.control.CR4_OS_XSAVE) != 0 or
         (cpu.control.readCR0() & (cpu.constants.control.CR0_EMULATION | cpu.constants.control.CR0_TASK_SWITCHED)) != 0)
         return OwnershipError.InvalidState;
-    previous.Status = .Ready;
+    previous.Status = previous_status;
     next.Status = .Running;
     if (!state.setCurrent(next)) @panic(messages.INVALID_CONTEXT);
     tss.state.getBootTSS().setRSP0(next.Stack.Top);

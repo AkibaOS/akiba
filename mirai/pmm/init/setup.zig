@@ -4,6 +4,7 @@ const address = @import("utils").address;
 const bits = @import("utils").bits;
 const common = @import("common");
 const constants = @import("mirai").pmm.constants;
+const guard = @import("asm").interrupts.guard;
 const math = @import("utils").math;
 const state = @import("mirai").pmm.state;
 const types = @import("mirai").pmm.types;
@@ -84,6 +85,9 @@ pub fn initializeFromMemoryMap(
 }
 
 pub fn reservePhysicalRange(base_address: u64, length: u64) void {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+
     const pmm_state = state.getState();
     const limit = pmm_state.TotalPages * sizes.PAGE_SIZE;
     if (!pmm_state.Initialized or length == 0 or base_address >= limit) return;

@@ -14,7 +14,8 @@ pub fn destroy(thread: *Thread) OwnershipError!void {
     const previous_flags = synchronize.acquire();
     defer synchronize.release(previous_flags);
     if (!state.owns(thread)) return OwnershipError.InvalidThread;
-    if (thread.Permanent or thread == state.getCurrent() or thread.Status != .Ready) return OwnershipError.InUse;
+    if (thread.Permanent or thread.Managed or thread == state.getCurrent() or
+        (thread.Status != .Ready and thread.Status != .Stopped)) return OwnershipError.InUse;
     const owner = thread.Owner;
     if (!kata.state.owns(owner) or owner.ThreadCount == 0) return OwnershipError.InvalidOwner;
     if (!stack.state.release(thread.Stack.Base)) return OwnershipError.InUse;
