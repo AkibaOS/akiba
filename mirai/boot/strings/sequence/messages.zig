@@ -10,6 +10,9 @@ pub const NO_EXECUTE_UNAVAILABLE = "  Processor rejected no-execute page protect
 pub const TSS_SETUP = "Setting up Task State Segment for CPU exceptions\n";
 pub const GDT_SETUP = "Setting up Global Descriptor Table with kernel and user segments\n";
 
+pub const INVALID_PHYSMAP = "  Unsupported physical-memory mapping\n";
+pub const PHYSMAP_COVERAGE = "  Physmap coverage: %d MB\n";
+pub const BITMAP_STORAGE = "  Page bitmap: %d bytes at %x\n";
 pub const NO_BITMAP = "  No suitable location for page bitmap\n";
 pub const FOUND_PAGES = "  Found %d pages (%d MB total)\n";
 pub const AVAILABLE = "  Available: %d pages (%d MB)\n";

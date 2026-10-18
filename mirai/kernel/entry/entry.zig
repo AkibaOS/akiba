@@ -57,6 +57,8 @@ pub fn main(boot_params: *BootParams) noreturn {
         .KernelPhysicalEnd = boot_params.Kernel.PhysicalBase + boot_params.Kernel.Size,
         .KernelVirtualBase = boot_params.Kernel.VirtualBase,
         .PML4Physical = boot_params.Kernel.PML4Address,
+        .PhysmapBase = boot_params.Kernel.PhysmapBase,
+        .PhysmapSize = boot_params.Kernel.PhysmapSize,
         .RSDPAddress = boot_params.ACPI.RSDPAddress,
         .BootStackTop = boot_params.Kernel.StackTop,
     };

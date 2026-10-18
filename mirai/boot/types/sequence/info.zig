@@ -16,6 +16,8 @@ pub const BootInfo = struct {
     KernelPhysicalEnd: u64,
     KernelVirtualBase: u64,
     PML4Physical: u64,
+    PhysmapBase: u64,
+    PhysmapSize: u64,
     RSDPAddress: u64,
     BootStackTop: u64,
 

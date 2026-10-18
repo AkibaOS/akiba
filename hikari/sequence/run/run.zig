@@ -91,7 +91,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
-    page_setup.mapPhysmap(constants.memory.PHYSMAP_MAP_SIZE) catch {
+    page_setup.mapPhysmap() catch {
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
@@ -152,7 +152,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         .EntryPoint = loaded_image.EntryPoint,
         .PML4Address = page_setup.getL4Address(),
         .PhysmapBase = layout.PHYSMAP_BASE,
-        .PhysmapSize = layout.PHYSMAP_MAX_SIZE,
+        .PhysmapSize = page_setup.PhysmapSize,
         .StackTop = stack_top,
         .StackSize = stack_size,
     };

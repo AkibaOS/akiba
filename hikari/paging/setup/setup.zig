@@ -1,14 +1,13 @@
 //! Hikari Page Table Setup
 
+const address = @import("utils").address;
 const common = @import("common");
 const constants = @import("hikari").paging.constants;
+const cpuid = @import("asm").cpu.cpuid;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").paging.errors;
-
-const types = @import("hikari").paging.types;
-
-const address = @import("utils").address;
 const math = @import("utils").math;
+const types = @import("hikari").paging.types;
 
 const flags = common.constants.paging.flags;
 const layout = common.constants.memory.layout;
@@ -21,11 +20,18 @@ pub const PageTableSetup = struct {
     AllocatedTables: [constants.limits.MAX_ALLOCATED_TABLES]*types.table.PageTable,
     AllocatedCount: usize,
     PhysmapL3: ?*types.table.TableL3,
+    PhysmapLimit: u64,
+    PhysmapSize: u64,
 
     pub fn initialize(boot_services: *efi.services.boot.BootServices) SetupError!PageTableSetup {
-        var l4_address: efi.types.base.PhysicalAddress = 0;
+        const physical_bits = cpuid.physicalAddressBits() orelse return SetupError.InvalidMapping;
+        const physical_limit = if (physical_bits >= @bitSizeOf(u64))
+            layout.PHYSMAP_MAX_SIZE
+        else
+            @min(layout.PHYSMAP_MAX_SIZE, @as(u64, 1) << @as(u6, @intCast(physical_bits)));
+        var l4_address: efi.types.base.PhysicalAddress = physical_limit - 1;
         const status = boot_services.AllocatePages(
-            .AnyPages,
+            .MaxAddress,
             .LoaderData,
             1,
             &l4_address,
@@ -35,6 +41,10 @@ pub const PageTableSetup = struct {
             return SetupError.AllocationFailed;
         }
 
+        if (l4_address == 0 or (l4_address & sizes.PAGE_MASK) != 0 or l4_address > physical_limit - sizes.PAGE_SIZE) {
+            _ = boot_services.FreePages(l4_address, 1);
+            return SetupError.AllocationFailed;
+        }
         const l4: *types.table.TableL4 = @ptrFromInt(l4_address);
         l4.clear();
 
@@ -44,13 +54,16 @@ pub const PageTableSetup = struct {
             .AllocatedTables = undefined,
             .AllocatedCount = 0,
             .PhysmapL3 = null,
+            .PhysmapLimit = physical_limit,
+            .PhysmapSize = 0,
         };
     }
 
     pub fn allocateTable(self: *PageTableSetup) SetupError!*types.table.PageTable {
-        var table_address: efi.types.base.PhysicalAddress = 0;
+        if (self.AllocatedCount == constants.limits.MAX_ALLOCATED_TABLES) return SetupError.AllocationFailed;
+        var table_address: efi.types.base.PhysicalAddress = self.PhysmapLimit - 1;
         const status = self.BootServices.AllocatePages(
-            .AnyPages,
+            .MaxAddress,
             .LoaderData,
             1,
             &table_address,
@@ -60,13 +73,15 @@ pub const PageTableSetup = struct {
             return SetupError.AllocationFailed;
         }
 
+        if (table_address == 0 or (table_address & sizes.PAGE_MASK) != 0 or table_address > self.PhysmapLimit - sizes.PAGE_SIZE) {
+            _ = self.BootServices.FreePages(table_address, 1);
+            return SetupError.AllocationFailed;
+        }
         const table: *types.table.PageTable = @ptrFromInt(table_address);
         table.clear();
 
-        if (self.AllocatedCount < constants.limits.MAX_ALLOCATED_TABLES) {
-            self.AllocatedTables[self.AllocatedCount] = table;
-            self.AllocatedCount += 1;
-        }
+        self.AllocatedTables[self.AllocatedCount] = table;
+        self.AllocatedCount += 1;
 
         return table;
     }
@@ -84,7 +99,8 @@ pub const PageTableSetup = struct {
         );
     }
 
-    pub fn mapPhysmap(self: *PageTableSetup, max_physical: u64) SetupError!void {
+    pub fn mapPhysmap(self: *PageTableSetup) SetupError!void {
+        if (self.PhysmapL3 != null) return SetupError.InvalidMapping;
         const l3 = try self.allocateTable();
         self.PhysmapL3 = @ptrCast(l3);
 
@@ -94,15 +110,15 @@ pub const PageTableSetup = struct {
         );
         self.L4.setEntry(constants.indices.PML4_INDEX_PHYSMAP, l4_entry);
 
-        const size_to_map = if (max_physical > layout.PHYSMAP_MAX_SIZE)
-            layout.PHYSMAP_MAX_SIZE
-        else
-            max_physical;
+        if (!cpuid.supportsGigabytePages()) {
+            try self.mapRange(layout.PHYSMAP_BASE, 0, self.PhysmapLimit, flags.PRESENT | flags.WRITABLE | flags.GLOBAL);
+            self.PhysmapSize = self.PhysmapLimit;
+            return;
+        }
 
-        const gigabyte_count = math.integer.divideCeil(size_to_map, sizes.HUGE_PAGE_SIZE);
-
+        const gigabyte_count = self.PhysmapLimit / sizes.HUGE_PAGE_SIZE;
         var gigabyte_index: u64 = 0;
-        while (gigabyte_index < gigabyte_count and gigabyte_index < sizes.ENTRIES_PER_PAGE_TABLE) : (gigabyte_index += 1) {
+        while (gigabyte_index < gigabyte_count) : (gigabyte_index += 1) {
             const physical_address = gigabyte_index * sizes.HUGE_PAGE_SIZE;
             const l3_entry = types.entry.PageTableEntry.fromAddress(
                 physical_address,
@@ -110,10 +126,11 @@ pub const PageTableSetup = struct {
             );
             l3.setEntry(@truncate(gigabyte_index), l3_entry);
         }
+        self.PhysmapSize = self.PhysmapLimit;
     }
 
     pub fn mapFramebuffer(self: *PageTableSetup, base: u64, size: u64) SetupError!void {
-        if (base == 0 or size == 0) {
+        if (base == 0 or size == 0 or base >= self.PhysmapSize or size > self.PhysmapSize - base) {
             return SetupError.InvalidMapping;
         }
 

@@ -3,11 +3,9 @@
 const common = @import("common");
 
 const layout = common.constants.memory.layout;
-const sizes = common.constants.memory.sizes;
 
 pub const MAX_PHYSICAL_MEMORY: u64 = layout.PHYSMAP_MAX_SIZE;
-pub const MAX_PHYSICAL_PAGES: u64 = MAX_PHYSICAL_MEMORY / sizes.PAGE_SIZE;
-pub const BITMAP_SIZE_BYTES: u64 = MAX_PHYSICAL_PAGES / @bitSizeOf(u8);
+pub const BITMAP_ALL_USED: u8 = 0xFF;
 
 pub const KERNEL_RESERVED_PAGES: u64 = 0x200;
 
