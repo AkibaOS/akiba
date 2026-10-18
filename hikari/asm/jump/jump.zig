@@ -1,25 +1,12 @@
 //! Hikari Kernel Jump
 
-pub fn jumpToKernel(
-    entry_point: u64,
-    stack_top: u64,
-    boot_params: u64,
-    pml4_address: u64,
-) noreturn {
-    asm volatile (
-        \\cli
-        \\mov %[pml4], %%cr3
-        \\mov %[stack], %%rsp
-        \\mov %[params], %%rdi
-        \\xor %%rbp, %%rbp
-        \\push $0
-        \\jmp *%[entry]
-        :
-        : [pml4] "r" (pml4_address),
-          [stack] "r" (stack_top),
-          [params] "r" (boot_params),
-          [entry] "r" (entry_point),
-        : .{ .memory = true });
+const activate = @import("asm").cpu.transition.activate;
+const strings = @import("hikari").assembly.strings.jump;
+const types = @import("asm").cpu.types.transition;
 
-    unreachable;
+pub fn jumpToKernel(entry_point: u64, stack_top: u64, boot_params: u64, pml4_address: u64) noreturn {
+    asm volatile (strings.FLUSH_CACHES ::: .{ .memory = true });
+    const continuation: types.Continuation = @ptrFromInt(entry_point);
+    const context: *const anyopaque = @ptrFromInt(boot_params);
+    activate.enterKernel(pml4_address, stack_top, continuation, context);
 }

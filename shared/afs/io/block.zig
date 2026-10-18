@@ -14,14 +14,16 @@ pub const BlockReader = struct {
         if (cell >= self.TotalCells) {
             return BlockError.OutOfBounds;
         }
-        if (buffer.len < self.CellSize) {
+        if (self.CellSize == 0 or buffer.len < self.CellSize) {
             return BlockError.InvalidCell;
         }
-        return self.ReadFn(self.Context, cell, buffer);
+        return self.ReadFn(self.Context, cell, buffer[0..self.CellSize]);
     }
 
     pub fn readCells(self: *const BlockReader, start_cell: u64, buffer: []u8) BlockError!void {
+        if (self.CellSize == 0 or buffer.len % self.CellSize != 0) return BlockError.InvalidCell;
         const cells_to_read = buffer.len / self.CellSize;
+        if (start_cell > self.TotalCells or cells_to_read > self.TotalCells - start_cell) return BlockError.OutOfBounds;
         var offset: usize = 0;
         var cell = start_cell;
 
@@ -44,14 +46,16 @@ pub const BlockWriter = struct {
         if (cell >= self.TotalCells) {
             return BlockError.OutOfBounds;
         }
-        if (data.len < self.CellSize) {
+        if (self.CellSize == 0 or data.len < self.CellSize) {
             return BlockError.InvalidCell;
         }
-        return self.WriteFn(self.Context, cell, data);
+        return self.WriteFn(self.Context, cell, data[0..self.CellSize]);
     }
 
     pub fn writeCells(self: *const BlockWriter, start_cell: u64, data: []const u8) BlockError!void {
+        if (self.CellSize == 0 or data.len % self.CellSize != 0) return BlockError.InvalidCell;
         const cells_to_write = data.len / self.CellSize;
+        if (start_cell > self.TotalCells or cells_to_write > self.TotalCells - start_cell) return BlockError.OutOfBounds;
         var offset: usize = 0;
         var cell = start_cell;
 

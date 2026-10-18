@@ -2,3 +2,4 @@
 
 pub const node = @import("node.zig");
 pub const search = @import("search.zig");
+pub const validate = @import("validate.zig");

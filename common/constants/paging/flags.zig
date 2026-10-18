@@ -8,7 +8,9 @@ pub const CACHE_DISABLED: u64 = 1 << 4;
 pub const ACCESSED: u64 = 1 << 5;
 pub const DIRTY: u64 = 1 << 6;
 pub const HUGE_PAGE: u64 = 1 << 7;
+pub const PAT_PAGE: u64 = 1 << 7;
 pub const GLOBAL: u64 = 1 << 8;
+pub const PAT_LARGE: u64 = 1 << 12;
 pub const NO_EXECUTE: u64 = 1 << 63;
 
 pub const KERNEL_READ_ONLY: u64 = PRESENT | GLOBAL;
@@ -24,4 +26,4 @@ pub const USER_READ_WRITE_NO_EXECUTE: u64 = PRESENT | WRITABLE | USER_ACCESSIBLE
 pub const TABLE_FLAGS: u64 = PRESENT | WRITABLE | USER_ACCESSIBLE;
 pub const KERNEL_TABLE_FLAGS: u64 = PRESENT | WRITABLE;
 
-pub const MMIO_FLAGS: u64 = PRESENT | WRITABLE | CACHE_DISABLED | NO_EXECUTE;
+pub const MMIO_FLAGS: u64 = PRESENT | WRITABLE | WRITE_THROUGH | CACHE_DISABLED | NO_EXECUTE;

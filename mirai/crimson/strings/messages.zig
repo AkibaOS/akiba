@@ -37,13 +37,17 @@ pub const MODE_KERNEL = "  Mode: Kernel\n";
 pub const FAULTING_INSTRUCTION_HEADER = "Faulting Instruction:\n";
 pub const ADDRESS = "  Address: %x\n";
 pub const BYTES_LABEL = "  Bytes: ";
+pub const INSTRUCTION_BYTES_UNAVAILABLE = "  Instruction bytes unavailable without bounded reads\n\n";
 
 pub const MEMORY_AROUND = "Memory around %x:\n";
 pub const INSTRUCTION_BYTES = "Instruction bytes at %x:\n  ";
 
 pub const STACK_TRACE_HEADER = "Stack Trace:\n";
 pub const NO_STACK_FRAMES = "  (no stack frames available)\n";
+pub const STACK_TRACE_UNAVAILABLE = "  Stack trace unavailable without bounded reads\n\n";
 pub const RAW_STACK = "Raw Stack (from %x):\n";
+pub const RAW_STACK_UNAVAILABLE = "  Raw stack unavailable without bounded reads\n\n";
+pub const NEWLINE = "\n";
 
 pub const MODULES_NONE = "Loaded Modules: (none registered)\n\n";
 pub const MODULES_HEADER = "Loaded Modules:\n";

@@ -1,5 +1,7 @@
 //! Hikari AFS B-Tree
 
+const std = @import("std");
+
 const afs = @import("shared").afs;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
@@ -18,6 +20,7 @@ pub const BTree = struct {
     BlockIO: *efi.protocols.block.BlockIoProtocol,
     BootServices: *efi.services.boot.BootServices,
     PartitionStartLBA: u64,
+    PartitionEndLBA: u64,
     CellSize: u32,
     BaseSpan: SpanDescriptor,
     NodeSize: u32,
@@ -25,16 +28,35 @@ pub const BTree = struct {
     FirstLeaf: u32,
     LastLeaf: u32,
     Depth: u16,
-    NodeBuffer: [*]u8,
+    TotalNodes: u32,
+    NodeBuffer: [*]align(8) u8,
 
     pub fn initialize(
         block_io: *efi.protocols.block.BlockIoProtocol,
         boot_services: *efi.services.boot.BootServices,
         partition_start_lba: u64,
+        partition_end_lba: u64,
         cell_size: u32,
         base_span: SpanDescriptor,
         header: *const BTreeHeaderRecord,
     ) BTreeError!BTree {
+        const block_size = block_io.Media.BlockSize;
+        if (afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, block_size, cell_size, base_span.StartCell, cell_size) == null or
+            header.NodeSize < @sizeOf(BTreeNodeDescriptor) + @sizeOf(u16) or header.NodeSize > cell_size or
+            cell_size % header.NodeSize != 0 or header.TotalNodes == 0 or header.FreeNodes > header.TotalNodes or
+            header.Depth > std.math.maxInt(u8))
+        {
+            return BTreeError.InvalidHeader;
+        }
+        const total_cells = (partition_end_lba - partition_start_lba + 1) / (cell_size / block_size);
+        if (!afs.read.bounds.spanFits(base_span, total_cells) or
+            @as(u64, header.TotalNodes) > base_span.CellCount * (cell_size / header.NodeSize) or
+            (header.Depth != 0 and (header.RootNode == 0 or header.RootNode >= header.TotalNodes or
+                header.FirstLeafNode == 0 or header.FirstLeafNode >= header.TotalNodes or
+                header.LastLeafNode == 0 or header.LastLeafNode >= header.TotalNodes)))
+        {
+            return BTreeError.InvalidHeader;
+        }
         var node_buffer: [*]align(8) u8 = undefined;
         const allocation_status = boot_services.AllocatePool(
             .LoaderData,
@@ -49,6 +71,7 @@ pub const BTree = struct {
             .BlockIO = block_io,
             .BootServices = boot_services,
             .PartitionStartLBA = partition_start_lba,
+            .PartitionEndLBA = partition_end_lba,
             .CellSize = cell_size,
             .BaseSpan = base_span,
             .NodeSize = header.NodeSize,
@@ -56,46 +79,53 @@ pub const BTree = struct {
             .FirstLeaf = header.FirstLeafNode,
             .LastLeaf = header.LastLeafNode,
             .Depth = header.Depth,
+            .TotalNodes = header.TotalNodes,
             .NodeBuffer = node_buffer,
         };
     }
 
+    pub fn deinitialize(self: *BTree) void {
+        if (self.TotalNodes == 0) return;
+        _ = self.BootServices.FreePool(self.NodeBuffer);
+        self.TotalNodes = 0;
+        self.Depth = 0;
+    }
+
     pub fn readNode(self: *BTree, node_number: u32) BTreeError!*BTreeNodeDescriptor {
+        if (node_number >= self.TotalNodes) return BTreeError.InvalidNode;
         const cell_offset = node.getNodeCell(node_number, self.CellSize, self.NodeSize);
         const node_offset_in_cell = node.getNodeOffsetInCell(node_number, self.CellSize, self.NodeSize);
 
-        const cell_lba = self.PartitionStartLBA +
-            ((self.BaseSpan.StartCell + cell_offset) * self.CellSize / self.BlockIO.Media.BlockSize);
-
-        var cell_buffer: [*]align(8) u8 = undefined;
-        const allocation_status = self.BootServices.AllocatePool(
-            .LoaderData,
+        if (cell_offset >= self.BaseSpan.CellCount) return BTreeError.InvalidNode;
+        const cell_lba = afs.read.bounds.cellLBA(
+            self.PartitionStartLBA,
+            self.PartitionEndLBA,
+            self.BlockIO.Media.BlockSize,
             self.CellSize,
-            &cell_buffer,
-        );
-        if (efi.types.base.isError(allocation_status)) {
-            return BTreeError.AllocationFailed;
-        }
+            self.BaseSpan.StartCell + cell_offset,
+            self.CellSize,
+        ) orelse return BTreeError.InvalidNode;
 
+        var cell_buffer = efi.buffer.allocate(self.BootServices, self.CellSize, self.BlockIO.Media.IOAlign) orelse return BTreeError.AllocationFailed;
+        defer efi.buffer.release(self.BootServices, &cell_buffer);
         const read_status = self.BlockIO.ReadBlocks(
             self.BlockIO,
             self.BlockIO.Media.MediaId,
             cell_lba,
             self.CellSize,
-            cell_buffer,
+            cell_buffer.Data,
         );
         if (efi.types.base.isError(read_status)) {
             return BTreeError.ReadFailed;
         }
 
-        const node_pointer = cell_buffer + node_offset_in_cell;
+        const node_pointer = cell_buffer.Data + node_offset_in_cell;
         var index: u32 = 0;
         while (index < self.NodeSize) : (index += 1) {
             self.NodeBuffer[index] = node_pointer[index];
         }
 
-        _ = self.BootServices.FreePool(cell_buffer);
-
+        if (!afs.btree.validate.catalogNode(self.NodeBuffer[0..self.NodeSize])) return BTreeError.InvalidNode;
         return @ptrCast(@alignCast(self.NodeBuffer));
     }
 
@@ -121,6 +151,9 @@ pub const BTree = struct {
 
         while (current_depth > 0) {
             const node_descriptor = try self.readNode(current_node);
+            if (node_descriptor.Height != current_depth or node_descriptor.isLeaf() != (current_depth == 1)) {
+                return BTreeError.InvalidNode;
+            }
 
             if (node_descriptor.isLeaf()) {
                 return search.searchLeafForUnit(
@@ -164,6 +197,9 @@ pub const BTree = struct {
 
         while (current_depth > 0) {
             const node_descriptor = try self.readNode(current_node);
+            if (node_descriptor.Height != current_depth or node_descriptor.isLeaf() != (current_depth == 1)) {
+                return BTreeError.InvalidNode;
+            }
 
             if (node_descriptor.isLeaf()) {
                 return search.searchLeafForStack(
@@ -215,6 +251,9 @@ pub const BTree = struct {
 
         while (current_depth > 0) {
             const node_descriptor = try self.readNode(current_node);
+            if (node_descriptor.Height != current_depth or node_descriptor.isLeaf() != (current_depth == 1)) {
+                return BTreeError.InvalidNode;
+            }
 
             if (node_descriptor.isLeaf()) {
                 return search.searchLeafForThread(

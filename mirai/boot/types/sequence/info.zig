@@ -8,6 +8,8 @@ pub const BootInfo = struct {
     MemoryMap: [*]const MemoryRegion,
     MemoryMapCount: u64,
     FramebufferAddress: u64,
+    FramebufferPhysicalAddress: u64,
+    FramebufferSize: u64,
     FramebufferWidth: u32,
     FramebufferHeight: u32,
     FramebufferPitch: u32,
@@ -16,10 +18,12 @@ pub const BootInfo = struct {
     KernelPhysicalEnd: u64,
     KernelVirtualBase: u64,
     PML4Physical: u64,
+    LoaderPML4Physical: u64,
     PhysmapBase: u64,
     PhysmapSize: u64,
     RSDPAddress: u64,
     BootStackTop: u64,
+    BootStackSize: u64,
 
     pub fn totalMemory(self: BootInfo) u64 {
         var total: u64 = 0;

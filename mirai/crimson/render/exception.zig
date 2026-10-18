@@ -6,7 +6,6 @@ const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
 const types = @import("mirai").crimson.types;
 
-const limits = constants.limits;
 const messages = strings.messages;
 
 const Exception = types.exception.Exception;
@@ -38,7 +37,7 @@ pub fn render(exception: *const Exception) void {
         serial.write.printf(messages.KATA_THREAD, .{ exception.KataId, exception.ThreadId });
     }
 
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
 }
 
 fn renderPageFaultDetails(error_code: u64) void {
@@ -57,10 +56,5 @@ pub fn renderFaultingInstruction(rip: u64) void {
     serial.write.printf(messages.FAULTING_INSTRUCTION_HEADER, .{});
     serial.write.printf(messages.ADDRESS, .{rip});
 
-    const code_pointer: [*]const u8 = @ptrFromInt(rip);
-    serial.write.printf(messages.BYTES_LABEL, .{});
-    for (0..limits.RENDER_INSTRUCTION_BYTES) |index| {
-        serial.write.printf("%x ", .{code_pointer[index]});
-    }
-    serial.write.printf("\n\n", .{});
+    serial.write.printf(messages.INSTRUCTION_BYTES_UNAVAILABLE, .{});
 }

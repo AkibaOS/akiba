@@ -13,7 +13,7 @@ pub fn execute() bool {
     print.phase(status.SYSTEM_SERVICES);
 
     print.log(messages.IDT_SETUP, .{});
-    interrupts.setup.initialize();
+    if (!interrupts.setup.initializeHardware()) return false;
 
     print.log(messages.TIMER_SETUP, .{});
     pit.init.initDefault();

@@ -10,6 +10,7 @@ const types = @import("../types/types.zig");
 pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
     const target = builder.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
+        .cpu_model = .{ .explicit = &std.Target.x86.cpu.x86_64 },
         .os_tag = .freestanding,
         .abi = .none,
     });
@@ -19,6 +20,7 @@ pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
         .target = target,
         .optimize = .ReleaseSafe,
         .code_model = .kernel,
+        .red_zone = false,
     });
     module.addImport(names.MODULE_COMMON, modules.Common);
     module.addImport(names.MODULE_SHARED, modules.Shared);

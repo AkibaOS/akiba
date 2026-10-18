@@ -1,6 +1,7 @@
 //! Page Table Entry Type
 
 const address = @import("utils").address;
+const ownership = @import("mirai").kagami.constants.ownership;
 
 pub const Entry = packed struct {
     Present: bool = false,
@@ -31,6 +32,27 @@ pub const Entry = packed struct {
 
     pub fn isHuge(self: Entry) bool {
         return self.HugePage;
+    }
+
+    pub fn isWired(self: Entry) bool {
+        return (self.AvailableLow & ownership.WIRED) != 0;
+    }
+
+    pub fn isOwnedTable(self: Entry) bool {
+        return (self.AvailableLow & ownership.OWNED_TABLE) != 0 and
+            (self.AvailableLow & ownership.SHARED_TABLE) == 0;
+    }
+
+    pub fn setWired(self: *Entry, wired: bool) void {
+        if (wired) {
+            self.AvailableLow |= ownership.WIRED;
+        } else {
+            self.AvailableLow &= ~ownership.WIRED;
+        }
+    }
+
+    pub fn markShared(self: *Entry) void {
+        self.AvailableLow = (self.AvailableLow & ~ownership.OWNED_TABLE) | ownership.SHARED_TABLE;
     }
 
     pub fn getPhysicalAddress(self: Entry) u64 {

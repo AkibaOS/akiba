@@ -17,5 +17,7 @@ pub const ReadError = error{
     NotAStack,
     UnitTooLarge,
     InvalidSpan,
+    InvalidIdentity,
+    UnsupportedSpans,
     BTreeError,
 };

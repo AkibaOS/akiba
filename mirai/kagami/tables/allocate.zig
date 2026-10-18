@@ -1,23 +1,27 @@
-//! Page Table Allocation
+//! Transactional Owned Page Table Allocation
 
 const common = @import("common");
-
 const constants = @import("mirai").kagami.constants;
-
 const pmm = @import("mirai").pmm;
+const policy = @import("mirai").kagami.policy;
+const synchronize = @import("mirai").kagami.synchronize;
 const types = @import("mirai").kagami.types;
 const walk = @import("mirai").kagami.tables.walk;
 
-const address = @import("utils").address;
-
+const indices = common.constants.paging.indices;
+const sizes = common.constants.memory.sizes;
 const AllocationError = common.errors.memory.allocation.AllocationError;
-
+const MappingError = common.errors.memory.mapping.MappingError;
 const Entry = types.entry.Entry;
 const Kagami = types.kagami.Kagami;
-const Table = types.table.Table;
 
 pub fn allocateTable() AllocationError!u64 {
-    const physical_address = try pmm.allocate.single.allocatePageZeroed();
+    const physical_address = try pmm.allocate.single.allocatePage();
+    if (!walk.isValidTable(physical_address)) {
+        pmm.free.single.freePage(physical_address);
+        return AllocationError.OutOfMemory;
+    }
+    walk.getTableFromPhysical(physical_address).clearAll();
     return physical_address;
 }
 
@@ -25,88 +29,66 @@ pub fn freeTable(physical_address: u64) void {
     pmm.free.single.freePage(physical_address);
 }
 
-pub fn ensurePDPT(kagami: *Kagami, virtual_address: u64) AllocationError!*Table {
-    const pml4 = walk.getPML4(kagami.PML4Physical);
-    const pml4_index = address.decompose.extractPML4Index(virtual_address);
-    const entry = pml4.getEntry(pml4_index);
-
-    if (entry.isPresent()) {
-        if (entry.isHuge()) {
-            return AllocationError.HugeMappingConflict;
-        }
-        return walk.getTableFromPhysical(entry.getPhysicalAddress());
+pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || MappingError)!*Entry {
+    const previous_flags = synchronize.acquire();
+    defer synchronize.release(previous_flags);
+    try policy.canMutate(kagami, virtual_address);
+    const user_half = virtual_address <= common.constants.memory.layout.USER_SPACE_END;
+    var current_physical = kagami.PML4Physical;
+    var pending_frames: [constants.bootstrap.MAX_INTERMEDIATE_TABLES]u64 = undefined;
+    var pending_count: usize = 0;
+    var first_parent: ?*Entry = null;
+    var first_physical: u64 = 0;
+    var visited: [constants.bootstrap.MAX_INTERMEDIATE_TABLES]u64 = undefined;
+    errdefer {
+        for (pending_frames[0..pending_count]) |physical_address| freeTable(physical_address);
     }
-
-    const new_table_physical = try allocateTable();
-    kagami.addTable();
-
-    entry.* = Entry{
-        .Present = true,
-        .Writable = true,
-        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
-    };
-    entry.setPhysicalAddress(new_table_physical);
-
-    return walk.getTableFromPhysical(new_table_physical);
+    const shifts = [_]u6{ indices.PML4_SHIFT, indices.PDPT_SHIFT, indices.PD_SHIFT };
+    for (shifts, 0..) |shift, level| {
+        for (visited[0..level]) |ancestor| {
+            if (current_physical == ancestor) return MappingError.InvalidAddress;
+        }
+        visited[level] = current_physical;
+        if (!walk.isValidTable(current_physical)) return MappingError.InvalidAddress;
+        const current = walk.getTableFromPhysical(current_physical);
+        const entry = &current.Entries[@intCast((virtual_address >> shift) & indices.INDEX_MASK)];
+        if (entry.Present) {
+            if (entry.HugePage) return AllocationError.HugeMappingConflict;
+            if (!entry.isOwnedTable() or !entry.Writable or entry.NoExecute or entry.UserAccessible != user_half) return MappingError.PermissionDenied;
+            current_physical = entry.getPhysicalAddress();
+            continue;
+        }
+        if (kagami.TablePages + pending_count >= constants.bootstrap.MAX_TABLE_FRAMES) return AllocationError.RegionExhausted;
+        const new_physical = try allocateTable();
+        pending_frames[pending_count] = new_physical;
+        pending_count += 1;
+        if (first_parent == null) {
+            first_parent = entry;
+            first_physical = new_physical;
+        } else {
+            entry.* = tableEntry(new_physical, user_half);
+        }
+        current_physical = new_physical;
+    }
+    for (visited) |ancestor| {
+        if (current_physical == ancestor) return MappingError.InvalidAddress;
+    }
+    if (!walk.isValidTable(current_physical)) return MappingError.InvalidAddress;
+    const leaf = walk.getTableFromPhysical(current_physical);
+    if (first_parent) |parent| {
+        parent.* = tableEntry(first_physical, user_half);
+        kagami.TablePages += pending_count;
+    }
+    return &leaf.Entries[@intCast((virtual_address >> indices.PT_SHIFT) & indices.INDEX_MASK)];
 }
 
-pub fn ensurePD(kagami: *Kagami, pdpt: *Table, virtual_address: u64) AllocationError!*Table {
-    const pdpt_index = address.decompose.extractPDPTIndex(virtual_address);
-    const entry = pdpt.getEntry(pdpt_index);
-
-    if (entry.isPresent()) {
-        if (entry.isHuge()) {
-            return AllocationError.HugeMappingConflict;
-        }
-        return walk.getTableFromPhysical(entry.getPhysicalAddress());
-    }
-
-    const new_table_physical = try allocateTable();
-    kagami.addTable();
-
-    const pml4_index = address.decompose.extractPML4Index(virtual_address);
-
-    entry.* = Entry{
+fn tableEntry(physical_address: u64, user_accessible: bool) Entry {
+    var entry = Entry{
         .Present = true,
         .Writable = true,
-        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
+        .UserAccessible = user_accessible,
+        .AvailableLow = constants.ownership.OWNED_TABLE,
     };
-    entry.setPhysicalAddress(new_table_physical);
-
-    return walk.getTableFromPhysical(new_table_physical);
-}
-
-pub fn ensurePT(kagami: *Kagami, pd: *Table, virtual_address: u64) AllocationError!*Table {
-    const pd_index = address.decompose.extractPDIndex(virtual_address);
-    const entry = pd.getEntry(pd_index);
-
-    if (entry.isPresent()) {
-        if (entry.isHuge()) {
-            return AllocationError.HugeMappingConflict;
-        }
-        return walk.getTableFromPhysical(entry.getPhysicalAddress());
-    }
-
-    const new_table_physical = try allocateTable();
-    kagami.addTable();
-
-    const pml4_index = address.decompose.extractPML4Index(virtual_address);
-
-    entry.* = Entry{
-        .Present = true,
-        .Writable = true,
-        .UserAccessible = (pml4_index < constants.tables.KERNEL_PML4_START),
-    };
-    entry.setPhysicalAddress(new_table_physical);
-
-    return walk.getTableFromPhysical(new_table_physical);
-}
-
-pub fn ensureTables(kagami: *Kagami, virtual_address: u64) AllocationError!*Entry {
-    const pdpt = try ensurePDPT(kagami, virtual_address);
-    const pd = try ensurePD(kagami, pdpt, virtual_address);
-    const pt = try ensurePT(kagami, pd, virtual_address);
-
-    const pt_index = address.decompose.extractPTIndex(virtual_address);
-    return pt.getEntry(pt_index);
+    entry.setPhysicalAddress(physical_address);
+    return entry;
 }

@@ -9,4 +9,5 @@ pub const halt = @import("halt/halt.zig");
 pub const msr = @import("msr/msr.zig");
 pub const state = @import("state/state.zig");
 pub const strings = @import("strings/strings.zig");
+pub const transition = @import("transition/transition.zig");
 pub const types = @import("types/types.zig");

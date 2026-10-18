@@ -27,8 +27,20 @@ pub fn maximumExtendedLeaf() u32 {
 pub fn physicalAddressBits() ?u8 {
     if (maximumExtendedLeaf() < constants.LEAF_ADDRESS_WIDTH) return null;
     const width: u8 = @intCast(query(constants.LEAF_ADDRESS_WIDTH, constants.SUBLEAF_DEFAULT).EAX & constants.PHYSICAL_ADDRESS_BITS_MASK);
-    if (width < @bitSizeOf(u32) or width > @bitSizeOf(u64)) return null;
+    if (width < constants.MIN_PHYSICAL_ADDRESS_BITS or width > constants.MAX_PHYSICAL_ADDRESS_BITS) return null;
     return width;
+}
+
+pub fn supportsNoExecute() bool {
+    if (maximumExtendedLeaf() < constants.LEAF_EXTENDED_FEATURES) return false;
+    return (query(constants.LEAF_EXTENDED_FEATURES, constants.SUBLEAF_DEFAULT).EDX & constants.FEATURE_NO_EXECUTE) != 0;
+}
+
+pub fn supportsPageAttributeTable() bool {
+    if (query(constants.LEAF_BASIC_MAXIMUM, constants.SUBLEAF_DEFAULT).EAX < constants.LEAF_BASIC_FEATURES) return false;
+    const features = query(constants.LEAF_BASIC_FEATURES, constants.SUBLEAF_DEFAULT).EDX;
+    const required = constants.FEATURE_MODEL_SPECIFIC_REGISTERS | constants.FEATURE_PAGE_ATTRIBUTE_TABLE;
+    return (features & required) == required;
 }
 
 pub fn supportsGigabytePages() bool {

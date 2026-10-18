@@ -1,38 +1,42 @@
-//! Extract Physical Address
+//! Effective Mapping Address And Permission Queries
 
-const common = @import("common");
-
+const create = @import("mirai").kagami.create;
+const state = @import("mirai").kagami.state;
+const synchronize = @import("mirai").kagami.synchronize;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
-const indices = common.constants.paging.indices;
-
 const Kagami = types.kagami.Kagami;
+const Lookup = types.lookup.Lookup;
+
+pub fn lookup(kagami: *const Kagami, virtual_address: u64) ?Lookup {
+    const previous_flags = synchronize.acquire();
+    defer synchronize.release(previous_flags);
+    if (!state.hasOwnedKernel() or
+        !(kagami.isKernel() or create.owns(kagami))) return null;
+    return tables.walk.lookup(kagami.PML4Physical, virtual_address);
+}
 
 pub fn extract(kagami: *const Kagami, virtual_address: u64) ?u64 {
-    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return null;
-
-    if (!entry.isPresent()) {
-        return null;
-    }
-
-    const physical_base = entry.getPhysicalAddress();
-    const offset = virtual_address & indices.OFFSET_MASK;
-
-    return physical_base | offset;
+    const resolved = lookup(kagami, virtual_address) orelse return null;
+    return resolved.PhysicalAddress;
 }
 
 pub fn isMapped(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
-    return entry.isPresent();
+    return lookup(kagami, virtual_address) != null;
 }
 
 pub fn isWritable(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
-    return entry.isPresent() and entry.isWritable();
+    const resolved = lookup(kagami, virtual_address) orelse return false;
+    return resolved.Writable;
 }
 
 pub fn isUserAccessible(kagami: *const Kagami, virtual_address: u64) bool {
-    const entry = tables.walk.walkToEntry(kagami.PML4Physical, virtual_address) orelse return false;
-    return entry.isPresent() and entry.isUser();
+    const resolved = lookup(kagami, virtual_address) orelse return false;
+    return resolved.UserAccessible;
+}
+
+pub fn isExecutable(kagami: *const Kagami, virtual_address: u64) bool {
+    const resolved = lookup(kagami, virtual_address) orelse return false;
+    return resolved.Executable;
 }

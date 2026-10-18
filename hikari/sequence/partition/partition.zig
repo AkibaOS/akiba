@@ -6,6 +6,7 @@ const efi = @import("hikari").efi;
 pub const PartitionInfo = struct {
     BlockIO: *efi.protocols.block.BlockIoProtocol,
     StartLBA: u64,
+    EndLBA: u64,
 };
 
 pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?PartitionInfo {
@@ -23,6 +24,8 @@ pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?Partiti
     if (efi.types.base.isError(status)) {
         return null;
     }
+
+    defer _ = boot_services.FreePool(@ptrCast(handles));
 
     var index: usize = 0;
     while (index < handle_count) : (index += 1) {
@@ -47,11 +50,13 @@ pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?Partiti
             continue;
         };
 
+        defer gpt_parser.deinitialize();
         const afs_partition = gpt_parser.findPartitionByType(efi.constants.guids.GPT_PARTITION_TYPE_AKIBA_AFS);
         if (afs_partition) |partition| {
             return PartitionInfo{
                 .BlockIO = block_io_protocol,
                 .StartLBA = partition.StartingLBA,
+                .EndLBA = partition.EndingLBA,
             };
         }
     }

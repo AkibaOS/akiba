@@ -1,3 +1,4 @@
 //! Interrupt Constants
 
-pub const VECTOR_OFFSET = @import("vectors.zig").VECTOR_OFFSET;
+pub const dispatch = @import("dispatch.zig");
+pub const vectors = @import("vectors.zig");

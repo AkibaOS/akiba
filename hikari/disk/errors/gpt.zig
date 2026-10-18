@@ -8,6 +8,8 @@ pub const ParseError = error{
     InvalidHeaderSize,
     InvalidHeaderCRC,
     InvalidEntriesCRC,
+    InvalidLayout,
+    AllocationFailed,
     NoPartitions,
     PartitionNotFound,
 };

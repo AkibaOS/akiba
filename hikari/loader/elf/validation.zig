@@ -47,10 +47,17 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
         }
 
         const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
+        const physical_start = math.integer.alignDown(program_header.PhysicalAddress, sizes.PAGE_SIZE);
+        const physical_limit = math.integer.alignUp(segment_end, sizes.PAGE_SIZE);
+        const virtual_start = math.integer.alignDown(program_header.VirtualAddress, sizes.PAGE_SIZE);
+        const virtual_limit = math.integer.alignUp(program_header.VirtualAddress + program_header.MemorySize, sizes.PAGE_SIZE);
         for (image.Segments[0..image.SegmentCount]) |previous| {
-            const previous_end = previous.PhysicalAddress + previous.MemorySize;
-            if (program_header.PhysicalAddress < previous_end and
-                previous.PhysicalAddress < segment_end)
+            const previous_physical_start = math.integer.alignDown(previous.PhysicalAddress, sizes.PAGE_SIZE);
+            const previous_physical_limit = math.integer.alignUp(previous.PhysicalAddress + previous.MemorySize, sizes.PAGE_SIZE);
+            const previous_virtual_start = math.integer.alignDown(previous.VirtualAddress, sizes.PAGE_SIZE);
+            const previous_virtual_limit = math.integer.alignUp(previous.VirtualAddress + previous.MemorySize, sizes.PAGE_SIZE);
+            if ((physical_start < previous_physical_limit and previous_physical_start < physical_limit) or
+                (virtual_start < previous_virtual_limit and previous_virtual_start < virtual_limit))
             {
                 return LoadError.SegmentOverlap;
             }
@@ -129,7 +136,11 @@ fn readProgramHeaders(data: []const u8, header: *const Elf64Header) LoadError![]
 }
 
 fn validateSegment(data_size: usize, segment: *const Elf64ProgramHeader) LoadError!void {
-    if (segment.UnitSize > segment.MemorySize) return LoadError.InvalidSegment;
+    if (segment.UnitSize > segment.MemorySize or
+        (segment.isWritable() and segment.isExecutable()))
+    {
+        return LoadError.InvalidSegment;
+    }
     if (segment.UnitSize != 0 and
         (segment.Offset > data_size or segment.UnitSize > data_size - segment.Offset))
     {
@@ -137,8 +148,10 @@ fn validateSegment(data_size: usize, segment: *const Elf64ProgramHeader) LoadErr
     }
     if (segment.MemorySize == 0) return;
 
-    if (segment.MemorySize > std.math.maxInt(u64) - segment.PhysicalAddress or
-        segment.MemorySize > std.math.maxInt(u64) - segment.VirtualAddress)
+    if (segment.PhysicalAddress > std.math.maxInt(u64) - sizes.PAGE_MASK or
+        segment.VirtualAddress > std.math.maxInt(u64) - sizes.PAGE_MASK or
+        segment.MemorySize > std.math.maxInt(u64) - sizes.PAGE_MASK - segment.PhysicalAddress or
+        segment.MemorySize > std.math.maxInt(u64) - sizes.PAGE_MASK - segment.VirtualAddress)
     {
         return LoadError.InvalidSegment;
     }

@@ -15,29 +15,31 @@ const LoadedImage = types.elf.LoadedImage;
 
 pub const Loader = struct {
     BootServices: *efi.services.boot.BootServices,
+    PhysicalLimit: u64,
 
-    pub fn initialize(boot_services: *efi.services.boot.BootServices) Loader {
+    pub fn initialize(boot_services: *efi.services.boot.BootServices, physical_limit: u64) Loader {
         return Loader{
             .BootServices = boot_services,
+            .PhysicalLimit = physical_limit,
         };
     }
 
     pub fn load(self: *Loader, unit_data: []const u8) LoadError!LoadedImage {
         const image_layout = try validation.validateImage(unit_data);
+        if (self.PhysicalLimit == 0 or (self.PhysicalLimit & sizes.PAGE_MASK) != 0 or
+            image_layout.Size > self.PhysicalLimit) return LoadError.UnsupportedImageLayout;
         const pages_needed: usize = @intCast(image_layout.Size / sizes.PAGE_SIZE);
 
         var physical_base: efi.types.base.PhysicalAddress = image_layout.PhysicalBase;
-        const allocation_status = self.BootServices.AllocatePages(
-            .Address,
-            .LoaderData,
-            pages_needed,
-            &physical_base,
-        );
+        const allocation_status = if (physical_base != 0 and physical_base <= self.PhysicalLimit - image_layout.Size)
+            self.BootServices.AllocatePages(.Address, .LoaderData, pages_needed, &physical_base)
+        else
+            efi.constants.status.UNSUPPORTED;
 
         if (efi.types.base.isError(allocation_status)) {
-            physical_base = 0;
+            physical_base = self.PhysicalLimit - 1;
             const fallback_status = self.BootServices.AllocatePages(
-                .AnyPages,
+                .MaxAddress,
                 .LoaderData,
                 pages_needed,
                 &physical_base,
@@ -49,6 +51,7 @@ pub const Loader = struct {
         }
 
         if (physical_base == 0 or (physical_base & sizes.PAGE_MASK) != 0 or
+            physical_base > self.PhysicalLimit - image_layout.Size or
             image_layout.Size > std.math.maxInt(u64) - physical_base)
         {
             _ = self.BootServices.FreePages(physical_base, pages_needed);

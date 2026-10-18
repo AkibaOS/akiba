@@ -2,14 +2,20 @@
 
 const common = @import("common");
 
-const io = @import("asm").io;
-
 const constants = @import("mirai").drivers.constants;
+const io = @import("asm").io;
+const poll = @import("mirai").drivers.serial.poll;
+const state = @import("mirai").drivers.serial.state;
 
 const ports = common.constants.serial.ports;
 const registers = common.constants.serial.registers;
 
 pub fn initialize(port: u16) bool {
+    if (state.isAvailable() and state.getPort() == port) return true;
+
+    state.selectPort(port);
+    state.setAvailable(false);
+
     io.port.writeByte(port + registers.INTERRUPT_ENABLE_REGISTER, 0x00);
 
     io.port.writeByte(port + registers.LINE_CONTROL_REGISTER, registers.LINE_CONTROL_DLAB);
@@ -25,13 +31,14 @@ pub fn initialize(port: u16) bool {
     io.port.writeByte(port + registers.MODEM_CONTROL_REGISTER, registers.MODEM_DTR | registers.MODEM_RTS | registers.MODEM_OUT1 | registers.MODEM_OUT2 | registers.MODEM_LOOPBACK);
 
     io.port.writeByte(port + registers.DATA_REGISTER, constants.serial.format.LOOPBACK_TEST_BYTE);
-
-    if (io.port.readByte(port + registers.DATA_REGISTER) != constants.serial.format.LOOPBACK_TEST_BYTE) {
-        return false;
-    }
+    const loopback_ready = poll.waitForStatus(port, registers.LINE_STATUS_DATA_READY);
+    const loopback_valid = loopback_ready and io.port.readByte(port + registers.DATA_REGISTER) == constants.serial.format.LOOPBACK_TEST_BYTE;
 
     io.port.writeByte(port + registers.MODEM_CONTROL_REGISTER, registers.MODEM_DTR | registers.MODEM_RTS | registers.MODEM_OUT1 | registers.MODEM_OUT2);
 
+    if (!loopback_valid) return false;
+
+    state.setAvailable(true);
     return true;
 }
 

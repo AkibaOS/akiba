@@ -1,10 +1,9 @@
 //! Page Table Type
 
 const common = @import("common");
-
+const constants = @import("mirai").kagami.constants;
 const entry = @import("mirai").kagami.types.entry;
 
-const constants = @import("mirai").kagami.constants;
 const sizes = common.constants.memory.sizes;
 
 pub const Table = struct {
@@ -19,24 +18,21 @@ pub const Table = struct {
     }
 
     pub fn clearAll(self: *Table) void {
-        for (&self.Entries) |*table_entry| {
-            table_entry.clear();
-        }
+        for (&self.Entries) |*table_entry| table_entry.clear();
     }
 
     pub fn copyKernelEntries(self: *Table, source: *const Table) void {
         var index: usize = constants.tables.KERNEL_PML4_START;
         while (index < constants.tables.KERNEL_PML4_END) : (index += 1) {
             self.Entries[index] = source.Entries[index];
+            if (self.Entries[index].Present) self.Entries[index].markShared();
         }
     }
 
     pub fn countPresent(self: *const Table) u32 {
         var count: u32 = 0;
         for (self.Entries) |table_entry| {
-            if (table_entry.isPresent()) {
-                count += 1;
-            }
+            if (table_entry.Present) count += 1;
         }
         return count;
     }

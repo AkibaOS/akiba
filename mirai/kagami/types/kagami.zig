@@ -1,18 +1,20 @@
 //! Kagami Structure
 
+const ownership = @import("mirai").kagami.types.ownership;
 const state = @import("mirai").kagami.state;
 
 pub const Kagami = struct {
-    PML4Physical: u64,
-    ReferenceCount: u32,
-    ResidentPages: u64,
-    WiredPages: u64,
-    TablePages: u64,
-    Lock: bool,
+    PML4Physical: u64 = 0,
+    ReferenceCount: u32 = 1,
+    ResidentPages: u64 = 0,
+    WiredPages: u64 = 0,
+    TablePages: u64 = 0,
+    Lock: bool = false,
+    Ownership: ownership.Ownership = .Borrowed,
+    SharesKernel: bool = false,
 
     pub fn isKernel(self: *const Kagami) bool {
-        const kernel_kagami = state.getKernelKagami();
-        return self.PML4Physical == kernel_kagami.PML4Physical;
+        return self == state.getKernelKagami() and self.Ownership == .Kernel;
     }
 
     pub fn incrementReference(self: *Kagami) void {

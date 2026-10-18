@@ -83,6 +83,16 @@ pub fn initializeFromMemoryMap(
     return true;
 }
 
+pub fn reservePhysicalRange(base_address: u64, length: u64) void {
+    const pmm_state = state.getState();
+    const limit = pmm_state.TotalPages * sizes.PAGE_SIZE;
+    if (!pmm_state.Initialized or length == 0 or base_address >= limit) return;
+    const end = base_address + @min(length, limit - base_address);
+    const start_page = address.translate.addressToPage(base_address);
+    const end_page = math.integer.divideCeil(end, sizes.PAGE_SIZE);
+    reservePages(start_page, end_page - start_page);
+}
+
 fn markRegionFree(base_address: u64, length: u64) void {
     const pmm_state = state.getState();
     const limit = pmm_state.TotalPages * sizes.PAGE_SIZE;

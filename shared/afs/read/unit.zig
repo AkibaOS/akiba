@@ -1,5 +1,8 @@
 //! AFS Unit Read Operations
 
+const std = @import("std");
+
+const bounds = @import("shared").afs.read.bounds;
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
 const io = @import("shared").afs.io;
@@ -17,6 +20,8 @@ pub fn readSpan(
     buffer: []u8,
     cell_buffer: []u8,
 ) ReadError!u64 {
+    if (reader.CellSize == 0 or cell_buffer.len < reader.CellSize) return ReadError.BufferTooSmall;
+    if (!bounds.spanFits(span.*, reader.TotalCells) or span.CellCount > std.math.maxInt(u64) / reader.CellSize) return ReadError.InvalidSpan;
     const span_bytes = span.byteSize(reader.CellSize);
     const bytes_to_read = if (buffer.len < span_bytes) buffer.len else span_bytes;
 
@@ -50,6 +55,12 @@ pub fn readUnitInlineSpans(
     cell_buffer: []u8,
 ) ReadError!u64 {
     const unit_size = channel.LogicalSize;
+    if (reader.CellSize == 0 or cell_buffer.len < reader.CellSize) return ReadError.BufferTooSmall;
+    if (channel.TotalCells > reader.TotalCells or unit_size > channel.PhysicalSize or
+        channel.PhysicalSize > @as(u64, channel.TotalCells) * reader.CellSize)
+    {
+        return ReadError.InvalidSpan;
+    }
 
     if (buffer.len < unit_size) {
         return ReadError.BufferTooSmall;
@@ -57,6 +68,7 @@ pub fn readUnitInlineSpans(
 
     var bytes_read: u64 = 0;
     var span_index: usize = 0;
+    var cells_used: u64 = 0;
 
     while (bytes_read < unit_size and span_index < constants.sizes.SPAN_INLINE_COUNT) {
         const span = channel.getSpan(span_index);
@@ -64,14 +76,17 @@ pub fn readUnitInlineSpans(
             break;
         }
 
+        if (!bounds.spanFits(span.?.*, reader.TotalCells) or span.?.CellCount > channel.TotalCells - cells_used) return ReadError.InvalidSpan;
         const span_bytes = span.?.byteSize(reader.CellSize);
         const bytes_remaining = unit_size - bytes_read;
         const bytes_to_read = if (bytes_remaining < span_bytes) bytes_remaining else span_bytes;
 
         const destination_slice = buffer[@intCast(bytes_read)..@intCast(bytes_read + bytes_to_read)];
-        _ = try readSpan(reader, span.?, destination_slice, cell_buffer);
+        const completed = try readSpan(reader, span.?, destination_slice, cell_buffer);
+        if (completed != bytes_to_read) return ReadError.ReadFailed;
 
         bytes_read += bytes_to_read;
+        cells_used += span.?.CellCount;
         span_index += 1;
     }
 
@@ -84,5 +99,7 @@ pub fn readUnit(
     buffer: []u8,
     cell_buffer: []u8,
 ) ReadError!u64 {
-    return readUnitInlineSpans(reader, &unit.DataChannel, buffer, cell_buffer);
+    const completed = try readUnitInlineSpans(reader, &unit.DataChannel, buffer, cell_buffer);
+    if (completed != unit.DataChannel.LogicalSize) return ReadError.InvalidSpan;
+    return completed;
 }

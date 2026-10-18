@@ -1,137 +1,153 @@
 //! Hikari Boot Sequence Runner
 
+const std = @import("std");
+
 const acpi = @import("hikari").sequence.acpi;
 const assembly = @import("hikari").assembly;
 const boot = @import("shared").boot;
 const common = @import("common");
 const console = @import("hikari").sequence.console;
 const constants = @import("hikari").sequence.constants;
+const control = @import("asm").cpu.control;
 const efi = @import("hikari").efi;
+const fpu = @import("asm").cpu.fpu;
 const fs = @import("hikari").fs;
 const graphics = @import("hikari").sequence.graphics;
+const handoff = @import("hikari").sequence.handoff;
 const loader = @import("hikari").loader;
-const paging = @import("hikari").paging;
+const math = @import("utils").math;
+const msr = @import("asm").cpu.msr;
 const partition = @import("hikari").sequence.partition;
+const paging = @import("hikari").paging;
+const processor = @import("asm").cpu.constants;
 const splash = @import("hikari").sequence.splash;
 const strings = @import("hikari").sequence.strings;
 
 const messages = strings.messages;
 const paths = strings.paths;
 const layout = common.constants.memory.layout;
+const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
 pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.system.SystemTable) efi.types.base.Status {
     const boot_services = system_table.BootServices;
     const console_output = system_table.ConsoleOutput;
-
     _ = console_output.ClearScreen(console_output);
-
     const gop = graphics.getGraphicsOutput(boot_services) orelse {
         console.print(console_output, messages.ERROR_DISPLAY);
         return status.UNSUPPORTED;
     };
-
+    const mode = gop.Mode;
+    const info = mode.Info;
+    const row_bytes = @as(u64, info.PixelsPerScanLine) * @sizeOf(u32);
+    if (mode.FramebufferBase == 0 or mode.FramebufferSize == 0 or info.HorizontalResolution == 0 or
+        mode.FramebufferSize > std.math.maxInt(u64) - mode.FramebufferBase or
+        info.VerticalResolution == 0 or info.PixelsPerScanLine < info.HorizontalResolution or row_bytes == 0 or
+        info.VerticalResolution > mode.FramebufferSize / row_bytes)
+    {
+        console.print(console_output, messages.ERROR_DISPLAY);
+        return status.UNSUPPORTED;
+    }
     _ = splash.initialize(gop, console_output);
     splash.report(messages.INITIALIZING_DISPLAY);
-
     splash.report(messages.LOCATING_FILE_SYSTEM);
     const afs_partition = partition.findAfsPartition(boot_services) orelse {
         splash.fail(messages.ERROR_FILE_SYSTEM_NOT_FOUND);
         return status.NOT_FOUND;
     };
-
     splash.report(messages.INITIALIZING_FILE_SYSTEM);
-    var afs_reader = fs.afs.reader.Reader.initialize(
-        afs_partition.BlockIO,
-        boot_services,
-        afs_partition.StartLBA,
-    ) catch {
+    var afs_reader = fs.afs.reader.Reader.initialize(afs_partition.BlockIO, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
         splash.fail(messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
-
+    defer afs_reader.deinitialize();
     splash.report(messages.LOADING_KERNEL);
-
     const kernel_unit = afs_reader.openLocation(paths.KERNEL_LOCATION) catch {
         splash.fail(messages.ERROR_KERNEL_NOT_FOUND);
         return status.NOT_FOUND;
     };
-
     const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit) catch {
         splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };
-
-    const kernel_bytes = kernel_data.Buffer[0..kernel_data.Size];
-
+    var kernel_buffer_live = true;
+    defer if (kernel_buffer_live) {
+        _ = boot_services.FreePool(@alignCast(kernel_data.Buffer));
+    };
+    afs_reader.deinitialize();
     splash.report(messages.VERIFYING_KERNEL);
+    const kernel_bytes = kernel_data.Buffer[0..kernel_data.Size];
     if (!loader.elf.loader.validateElf(kernel_bytes)) {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
-
-    splash.report(messages.PREPARING_KERNEL);
-    var elf_loader = loader.elf.loader.Loader.initialize(boot_services);
-    const loaded_image = elf_loader.load(kernel_bytes) catch {
-        splash.fail(messages.ERROR_KERNEL_LOAD);
-        return status.LOAD_ERROR;
-    };
-
+    if (!msr.enableNoExecute() or !control.enableWriteProtect()) {
+        splash.fail(messages.ERROR_MEMORY);
+        return status.UNSUPPORTED;
+    }
     splash.report(messages.PREPARING_MEMORY);
     var page_setup = paging.setup.PageTableSetup.initialize(boot_services) catch {
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
+    defer page_setup.deinitialize();
+    splash.report(messages.PREPARING_KERNEL);
+    var elf_loader = loader.elf.loader.Loader.initialize(boot_services, page_setup.PhysmapLimit);
+    const loaded_image = elf_loader.load(kernel_bytes) catch {
+        splash.fail(messages.ERROR_KERNEL_LOAD);
+        return status.LOAD_ERROR;
+    };
+    defer _ = boot_services.FreePages(loaded_image.BaseAddress, @intCast(loaded_image.totalSize() / sizes.PAGE_SIZE));
+    const release_buffer = boot_services.FreePool(@alignCast(kernel_data.Buffer));
+    if (efi.types.base.isError(release_buffer)) return status.DEVICE_ERROR;
+    kernel_buffer_live = false;
 
     page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
-    page_setup.mapKernel(loaded_image.VirtualBase, loaded_image.BaseAddress, loaded_image.totalSize()) catch {
-        splash.fail(messages.ERROR_MEMORY);
-        return status.OUT_OF_RESOURCES;
-    };
-    page_setup.mapPhysmap() catch {
-        splash.fail(messages.ERROR_MEMORY);
-        return status.OUT_OF_RESOURCES;
-    };
-
-    if (splash.isReady()) {
-        page_setup.mapFramebuffer(gop.Mode.FramebufferBase, gop.Mode.FramebufferSize) catch {
-            splash.fail(messages.ERROR_MEMORY);
-            return status.OUT_OF_RESOURCES;
-        };
+    var image_protocol: ?*anyopaque = null;
+    const image_status = boot_services.HandleProtocol(image_handle, &efi.constants.guids.LOADED_IMAGE_PROTOCOL, &image_protocol);
+    if (efi.types.base.isError(image_status) or image_protocol == null) return status.LOAD_ERROR;
+    const current_image: *const efi.protocols.image.LoadedImageProtocol = @ptrCast(@alignCast(image_protocol.?));
+    if (current_image.ImageSize == 0) return status.LOAD_ERROR;
+    page_setup.mapIdentity(@intFromPtr(current_image.ImageBase), current_image.ImageSize) catch return status.NO_MAPPING;
+    page_setup.mapPhysmap() catch return status.OUT_OF_RESOURCES;
+    if (mode.FramebufferBase >= page_setup.PhysmapSize or mode.FramebufferSize > page_setup.PhysmapSize - mode.FramebufferBase) return status.NO_MAPPING;
+    const framebuffer_start = math.integer.alignDown(mode.FramebufferBase, sizes.LARGE_PAGE_SIZE);
+    const framebuffer_end = math.integer.alignUp(mode.FramebufferBase + mode.FramebufferSize, sizes.LARGE_PAGE_SIZE);
+    if (framebuffer_start < loaded_image.EndAddress and loaded_image.BaseAddress < framebuffer_end) return status.NO_MAPPING;
+    page_setup.mapFramebuffer(mode.FramebufferBase, mode.FramebufferSize) catch return status.NO_MAPPING;
+    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |segment| {
+        page_setup.mapKernelSegment(
+            segment.VirtualAddress,
+            segment.PhysicalAddress,
+            segment.MemorySize,
+            (segment.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) != 0,
+            (segment.Flags & loader.constants.elf.SEGMENT_FLAG_EXECUTE) != 0,
+        ) catch return status.NO_MAPPING;
+    }
+    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |segment| {
+        if ((segment.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) == 0) {
+            page_setup.protectKernelAliases(segment.PhysicalAddress, segment.MemorySize) catch return status.NO_MAPPING;
+        }
     }
 
     splash.report(messages.RESERVING_KERNEL_MEMORY);
-    const stack_size = layout.KERNEL_STACK_SIZE;
-    const stack_pages = layout.KERNEL_STACK_PAGES;
-    var stack_base: efi.types.base.PhysicalAddress = 0;
-    const stack_status = boot_services.AllocatePages(.AnyPages, .LoaderData, stack_pages, &stack_base);
-    if (efi.types.base.isError(stack_status)) {
-        splash.fail(messages.ERROR_KERNEL_MEMORY);
-        return status.OUT_OF_RESOURCES;
-    }
-    const stack_top = stack_base + stack_size;
-
-    splash.report(messages.PREPARING_STARTUP);
-    var params_address: efi.types.base.PhysicalAddress = 0;
-    const params_status = boot_services.AllocatePages(.AnyPages, .LoaderData, 1, &params_address);
-    if (efi.types.base.isError(params_status)) {
+    var startup = handoff.initialize(boot_services, page_setup.PhysmapSize) catch {
         splash.fail(messages.ERROR_STARTUP);
         return status.OUT_OF_RESOURCES;
-    }
-
-    const boot_params: *boot.types.params.BootParams = @ptrFromInt(params_address);
-    boot_params.* = boot.types.params.BootParams.initialize();
-
+    };
+    defer handoff.deinitialize(&startup);
+    splash.report(messages.PREPARING_STARTUP);
+    const boot_params = handoff.parameters(&startup);
     boot_params.Framebuffer = boot.types.framebuffer.FramebufferInfo{
-        .Base = gop.Mode.FramebufferBase,
-        .Size = gop.Mode.FramebufferSize,
-        .Width = gop.Mode.Info.HorizontalResolution,
-        .Height = gop.Mode.Info.VerticalResolution,
-        .Stride = gop.Mode.Info.PixelsPerScanLine,
-        .PixelFormat = switch (gop.Mode.Info.PixelFormat) {
+        .Base = mode.FramebufferBase,
+        .Size = mode.FramebufferSize,
+        .Width = info.HorizontalResolution,
+        .Height = info.VerticalResolution,
+        .Stride = info.PixelsPerScanLine,
+        .PixelFormat = switch (info.PixelFormat) {
             .RGB => .RGB,
             .BGR => .BGR,
             else => .Unknown,
@@ -144,8 +160,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         .BlueMaskShift = 0,
         .Reserved = .{ 0, 0 },
     };
-
-    boot_params.Kernel = boot.types.kernel.KernelInfo{
+    boot_params.Kernel = .{
         .PhysicalBase = loaded_image.BaseAddress,
         .VirtualBase = loaded_image.VirtualBase,
         .Size = loaded_image.totalSize(),
@@ -153,72 +168,23 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         .PML4Address = page_setup.getL4Address(),
         .PhysmapBase = layout.PHYSMAP_BASE,
         .PhysmapSize = page_setup.PhysmapSize,
-        .StackTop = stack_top,
-        .StackSize = stack_size,
+        .StackTop = handoff.stackTop(&startup),
+        .StackSize = startup.StackPages * sizes.PAGE_SIZE,
     };
-
     boot_params.ACPI = acpi.findACPI(system_table);
-
     splash.report(messages.SURVEYING_MEMORY);
-    var memory_map_size: usize = 0;
-    var map_key: usize = 0;
-    var descriptor_size: usize = 0;
-    var descriptor_version: u32 = 0;
-    var memory_map: [*]efi.types.memory.MemoryDescriptor = undefined;
-
-    _ = boot_services.GetMemoryMap(
-        &memory_map_size,
-        memory_map,
-        &map_key,
-        &descriptor_size,
-        &descriptor_version,
-    );
-
-    memory_map_size += constants.memory.MEMORY_MAP_EXTRA_DESCRIPTORS * descriptor_size;
-    var map_buffer: [*]align(8) u8 = undefined;
-    _ = boot_services.AllocatePool(.LoaderData, memory_map_size, &map_buffer);
-    memory_map = @ptrCast(@alignCast(map_buffer));
-
-    const map_status = boot_services.GetMemoryMap(
-        &memory_map_size,
-        memory_map,
-        &map_key,
-        &descriptor_size,
-        &descriptor_version,
-    );
-
-    if (efi.types.base.isError(map_status)) {
-        splash.fail(messages.ERROR_MEMORY_SURVEY);
-        return status.DEVICE_ERROR;
-    }
-
-    boot_params.MemoryMap = boot.types.memory.MemoryMapInfo{
-        .Entries = @intFromPtr(memory_map),
-        .EntryCount = @truncate(memory_map_size / descriptor_size),
-        .EntrySize = @truncate(descriptor_size),
-        .DescriptorVersion = descriptor_version,
-        .Reserved = 0,
-    };
-
     splash.report(messages.STARTING_AKIBA);
-    const exit_status = boot_services.ExitBootServices(image_handle, map_key);
-    if (efi.types.base.isError(exit_status)) {
-        _ = boot_services.GetMemoryMap(
-            &memory_map_size,
-            memory_map,
-            &map_key,
-            &descriptor_size,
-            &descriptor_version,
-        );
-        _ = boot_services.ExitBootServices(image_handle, map_key);
-    }
-
     boot_params.Splash = splash.getState().*;
-
-    assembly.jump.jumpToKernel(
-        loaded_image.EntryPoint,
-        stack_top,
-        params_address,
-        page_setup.getL4Address(),
-    );
+    handoff.exit(&startup, image_handle) catch {
+        if (splash.isReady()) splash.fail(messages.ERROR_MEMORY_SURVEY);
+        return status.LOAD_ERROR;
+    };
+    const floating_control = processor.control;
+    control.writeCR0((control.readCR0() | floating_control.CR0_MONITOR_COPROCESSOR | floating_control.CR0_NUMERIC_ERROR) &
+        ~(floating_control.CR0_EMULATION | floating_control.CR0_TASK_SWITCHED));
+    control.writeCR4((control.readCR4() | floating_control.CR4_OS_FXSAVE | floating_control.CR4_OS_XMM_EXCEPTION) & ~floating_control.CR4_OS_XSAVE);
+    fpu.initializeFpu();
+    const mxcsr = processor.fpu.DEFAULT_MXCSR;
+    fpu.loadMXCSR(&mxcsr);
+    assembly.jump.jumpToKernel(loaded_image.EntryPoint, handoff.stackTop(&startup), handoff.parameterAlias(&startup), page_setup.getL4Address());
 }

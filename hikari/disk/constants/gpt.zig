@@ -5,7 +5,7 @@ pub const REVISION_1_0: u32 = 0x00010000;
 
 pub const HEADER_SIZE_MINIMUM: u32 = 92;
 pub const HEADER_LBA: u64 = 1;
-pub const HEADER_BUFFER_SIZE: u32 = 512;
+pub const HEADER_BUFFER_SIZE: u32 = 4096;
 
 pub const PARTITION_ENTRY_SIZE_MINIMUM: u32 = 128;
 pub const PARTITION_ENTRIES_START_LBA: u64 = 2;

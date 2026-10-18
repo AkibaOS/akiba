@@ -5,7 +5,7 @@ const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const splash = @import("shared").splash;
 
-const BootParams = boot.types.params.BootParams;
+const FramebufferInfo = boot.types.framebuffer.FramebufferInfo;
 const Canvas = splash.types.canvas.Canvas;
 const SplashState = splash.types.state.SplashState;
 const Surface = graphics.types.surface.Surface;
@@ -16,13 +16,13 @@ var renderer: TextRenderer = undefined;
 var state: SplashState = SplashState.initialize(0);
 var ready: bool = false;
 
-pub fn adopt(boot_params: *const BootParams) bool {
-    if (!boot_params.Splash.isActive()) {
-        return false;
-    }
-
-    const info = boot_params.Framebuffer;
-    if (info.Base == 0 or info.Width == 0 or info.Height == 0) {
+pub fn adopt(info: FramebufferInfo, initial_state: SplashState) bool {
+    if (!initial_state.isActive()) return false;
+    const row_bytes = @as(u64, info.Stride) * @sizeOf(u32);
+    if (info.Base == 0 or info.Size == 0 or info.Width == 0 or info.Height == 0 or
+        info.Stride < info.Width or row_bytes == 0 or info.Height > info.Size / row_bytes or
+        (info.PixelFormat != .RGB and info.PixelFormat != .BGR))
+    {
         return false;
     }
 
@@ -33,7 +33,7 @@ pub fn adopt(boot_params: *const BootParams) bool {
         face,
         &renderer,
     );
-    state = boot_params.Splash;
+    state = initial_state;
     ready = true;
     return true;
 }

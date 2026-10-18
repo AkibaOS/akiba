@@ -1,7 +1,8 @@
 //! Interrupt Stub Assembly Strings
 
+pub const EMPTY = "";
+pub const NEWLINE = "\n";
 pub const PUSH_ZERO = "push $0\n";
-
 pub const PUSH_VECTOR_FORMAT = "push ${d}\n";
 
 pub const PUSH_ALL =
@@ -45,12 +46,20 @@ pub const IRET_CLEANUP =
     \\iretq
 ;
 
-pub const CALL_EXCEPTION_DISPATCH =
+pub const SAVE_DISPATCH_FORMAT =
     \\mov %%rsp, %%rdi
-    \\call exception_dispatch
+    \\sub ${d}, %%rsp
+    \\fxsave64 (%%rsp)
+    \\fninit
+    \\movl ${d}, {d}(%%rsp)
+    \\ldmxcsr {d}(%%rsp)
+    \\cld
 ;
 
-pub const CALL_IRQ_DISPATCH =
-    \\mov %%rsp, %%rdi
-    \\call irq_dispatch
+pub const RESTORE_DISPATCH_FORMAT =
+    \\fxrstor64 (%%rsp)
+    \\add ${d}, %%rsp
 ;
+
+pub const CALL_EXCEPTION_DISPATCH = "call exception_dispatch";
+pub const CALL_IRQ_DISPATCH = "call irq_dispatch";

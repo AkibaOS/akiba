@@ -30,6 +30,7 @@ pub fn create(builder: *std.Build) types.Modules {
         .root_source_file = builder.path(paths.ASSEMBLY_ROOT),
     });
     assembly.addImport(names.MODULE_ASSEMBLY, assembly);
+    assembly.addImport(names.MODULE_COMMON, common);
 
     return types.Modules{
         .Common = common,

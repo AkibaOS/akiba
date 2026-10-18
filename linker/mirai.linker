@@ -4,39 +4,109 @@ ENTRY(mirai_entry)
 
 KERNEL_VIRTUAL_BASE = 0xFFFFFFFF80000000;
 KERNEL_PHYSICAL_BASE = 0x100000;
+KERNEL_PAGE_SIZE = 4K;
+KERNEL_IST_SIZE = 16K;
+
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    rodata PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+    ist_df PT_LOAD FLAGS(6);
+    ist_nmi PT_LOAD FLAGS(6);
+    ist_mc PT_LOAD FLAGS(6);
+    ist_debug PT_LOAD FLAGS(6);
+}
 
 SECTIONS
 {
     . = KERNEL_VIRTUAL_BASE + KERNEL_PHYSICAL_BASE;
+    __kernel_image_start = .;
 
-    .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VIRTUAL_BASE)
+    .text ALIGN(KERNEL_PAGE_SIZE) : AT(ADDR(.text) - KERNEL_VIRTUAL_BASE)
     {
+        __kernel_text_start = .;
         *(.text)
         *(.text.*)
-    }
+        . = ALIGN(KERNEL_PAGE_SIZE);
+        __kernel_text_end = .;
+    } :text
 
-    .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VIRTUAL_BASE)
+    .rodata ALIGN(KERNEL_PAGE_SIZE) : AT(ADDR(.rodata) - KERNEL_VIRTUAL_BASE)
     {
+        __kernel_rodata_start = .;
         *(.rodata)
         *(.rodata.*)
-    }
+        *(.srodata)
+        *(.srodata.*)
+        . = ALIGN(KERNEL_PAGE_SIZE);
+        __kernel_rodata_end = .;
+    } :rodata
 
-    .data ALIGN(4K) : AT(ADDR(.data) - KERNEL_VIRTUAL_BASE)
+    .data ALIGN(KERNEL_PAGE_SIZE) : AT(ADDR(.data) - KERNEL_VIRTUAL_BASE)
     {
+        __kernel_data_start = .;
         *(.data)
         *(.data.*)
-    }
+        *(.sdata)
+        *(.sdata.*)
+        *(.got)
+        *(.got.*)
+        . = ALIGN(KERNEL_PAGE_SIZE);
+        __kernel_data_end = .;
+    } :data
 
-    .bss ALIGN(4K) : AT(ADDR(.bss) - KERNEL_VIRTUAL_BASE)
+    .bss ALIGN(KERNEL_PAGE_SIZE) (NOLOAD) : AT(ADDR(.bss) - KERNEL_VIRTUAL_BASE)
     {
+        __kernel_bss_start = .;
         *(COMMON)
         *(.bss)
         *(.bss.*)
-    }
+        *(.sbss)
+        *(.sbss.*)
+        . = ALIGN(KERNEL_PAGE_SIZE);
+        __kernel_bss_end = .;
+    } :data
+
+    . += KERNEL_PAGE_SIZE;
+    .boot_ist_df ALIGN(KERNEL_PAGE_SIZE) (NOLOAD) : AT(ADDR(.boot_ist_df) - KERNEL_VIRTUAL_BASE)
+    {
+        __boot_ist_df_start = .;
+        . += KERNEL_IST_SIZE;
+        __boot_ist_df_end = .;
+    } :ist_df
+
+    . += KERNEL_PAGE_SIZE;
+    .boot_ist_nmi ALIGN(KERNEL_PAGE_SIZE) (NOLOAD) : AT(ADDR(.boot_ist_nmi) - KERNEL_VIRTUAL_BASE)
+    {
+        __boot_ist_nmi_start = .;
+        . += KERNEL_IST_SIZE;
+        __boot_ist_nmi_end = .;
+    } :ist_nmi
+
+    . += KERNEL_PAGE_SIZE;
+    .boot_ist_mc ALIGN(KERNEL_PAGE_SIZE) (NOLOAD) : AT(ADDR(.boot_ist_mc) - KERNEL_VIRTUAL_BASE)
+    {
+        __boot_ist_mc_start = .;
+        . += KERNEL_IST_SIZE;
+        __boot_ist_mc_end = .;
+    } :ist_mc
+
+    . += KERNEL_PAGE_SIZE;
+    .boot_ist_debug ALIGN(KERNEL_PAGE_SIZE) (NOLOAD) : AT(ADDR(.boot_ist_debug) - KERNEL_VIRTUAL_BASE)
+    {
+        __boot_ist_debug_start = .;
+        . += KERNEL_IST_SIZE;
+        __boot_ist_debug_end = .;
+    } :ist_debug
+
+    __kernel_image_end = .;
+    . += KERNEL_PAGE_SIZE;
 
     /DISCARD/ :
     {
         *(.eh_frame)
+        *(.eh_frame_hdr)
         *(.comment)
         *(.note.*)
     }

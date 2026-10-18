@@ -2,6 +2,7 @@
 
 pub const base = @import("base.zig");
 pub const block = @import("block.zig");
+pub const buffer = @import("buffer.zig");
 pub const graphics = @import("graphics.zig");
 pub const input = @import("input.zig");
 pub const memory = @import("memory.zig");

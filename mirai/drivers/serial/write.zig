@@ -2,34 +2,41 @@
 
 const common = @import("common");
 
-const io = @import("asm").io;
-
-const constants = @import("mirai").drivers.constants;
-
 const format = @import("utils").format;
+const io = @import("asm").io;
+const poll = @import("mirai").drivers.serial.poll;
+const state = @import("mirai").drivers.serial.state;
 
-const ports = common.constants.serial.ports;
 const limits = format.constants.format;
 const registers = common.constants.serial.registers;
 
-var current_port: u16 = ports.DEFAULT_PORT;
-
 pub fn setPort(port: u16) void {
-    current_port = port;
+    state.selectPort(port);
 }
 
-fn isTransmitEmpty(port: u16) bool {
-    return (io.port.readByte(port + registers.LINE_STATUS_REGISTER) & registers.LINE_STATUS_TRANSMIT_EMPTY) != 0;
-}
+fn writeChar(char: u8) bool {
+    if (!state.isAvailable()) return false;
 
-fn writeChar(port: u16, char: u8) void {
-    while (!isTransmitEmpty(port)) {
-        io.port.ioWait();
+    const port = state.getPort();
+    if (!poll.waitForStatus(port, registers.LINE_STATUS_TRANSMIT_EMPTY)) {
+        state.setAvailable(false);
+        return false;
     }
     io.port.writeByte(port + registers.DATA_REGISTER, char);
+    return true;
+}
+
+fn writeText(text: []const u8) bool {
+    for (text) |char| {
+        if (char == '\n' and !writeChar('\r')) return false;
+        if (!writeChar(char)) return false;
+    }
+    return true;
 }
 
 pub fn printf(comptime fmt: []const u8, args: anytype) void {
+    if (!state.isAvailable()) return;
+
     const ArgsType = @TypeOf(args);
     const fields = @typeInfo(ArgsType).@"struct".fields;
 
@@ -41,55 +48,47 @@ pub fn printf(comptime fmt: []const u8, args: anytype) void {
             switch (fmt[position + 1]) {
                 's' => {
                     const text = @field(args, fields[argument_index].name);
-                    for (text) |char| {
-                        if (char == '\n') writeChar(current_port, '\r');
-                        writeChar(current_port, char);
-                    }
+                    if (!writeText(text)) return;
                     argument_index += 1;
                     position += 2;
                 },
                 'd' => {
                     const value = @field(args, fields[argument_index].name);
-                    printDecimalValue(@intCast(value));
+                    if (!printDecimalValue(@intCast(value))) return;
                     argument_index += 1;
                     position += 2;
                 },
                 'x' => {
                     const value = @field(args, fields[argument_index].name);
-                    printHexValue(@intCast(value));
+                    if (!printHexValue(@intCast(value))) return;
                     argument_index += 1;
                     position += 2;
                 },
                 '%' => {
-                    writeChar(current_port, '%');
+                    if (!writeChar('%')) return;
                     position += 2;
                 },
                 else => {
-                    writeChar(current_port, fmt[position]);
+                    if (!writeChar(fmt[position])) return;
                     position += 1;
                 },
             }
         } else {
-            if (fmt[position] == '\n') writeChar(current_port, '\r');
-            writeChar(current_port, fmt[position]);
+            if (fmt[position] == '\n' and !writeChar('\r')) return;
+            if (!writeChar(fmt[position])) return;
             position += 1;
         }
     }
 }
 
-fn printDecimalValue(value: u64) void {
+fn printDecimalValue(value: u64) bool {
     var digits: [limits.MAX_DECIMAL_DIGITS]u8 = undefined;
-    for (format.number.decimal(value, &digits)) |digit| {
-        writeChar(current_port, digit);
-    }
+    return writeText(format.number.decimal(value, &digits));
 }
 
-fn printHexValue(value: u64) void {
-    writeChar(current_port, '0');
-    writeChar(current_port, 'x');
+fn printHexValue(value: u64) bool {
+    if (!writeChar('0') or !writeChar('x')) return false;
 
     var digits: [limits.MAX_HEX_DIGITS]u8 = undefined;
-    for (format.number.hexLower(value, &digits)) |digit| {
-        writeChar(current_port, digit);
-    }
+    return writeText(format.number.hexLower(value, &digits));
 }

@@ -1,5 +1,7 @@
 //! Boot Parameters
 
+const std = @import("std");
+
 const acpi = @import("shared").boot.types.acpi;
 const framebuffer = @import("shared").boot.types.framebuffer;
 const kernel = @import("shared").boot.types.kernel;
@@ -23,7 +25,7 @@ pub const BootParams = extern struct {
     Reserved: [constants.params.RESERVED_SIZE]u8,
 
     pub fn initialize() BootParams {
-        var params: BootParams = undefined;
+        var params = std.mem.zeroes(BootParams);
         params.Magic = constants.params.MAGIC;
         params.Version = constants.params.VERSION;
         params.Size = @sizeOf(BootParams);
