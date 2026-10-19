@@ -62,4 +62,5 @@ pub const RESTORE_DISPATCH_FORMAT =
 ;
 
 pub const CALL_EXCEPTION_DISPATCH = "call exception_dispatch";
+pub const CALL_INVOCATION_DISPATCH = "call invocation_dispatch";
 pub const CALL_IRQ_DISPATCH = "call irq_dispatch";

@@ -9,6 +9,7 @@ pub const interrupts = @import("interrupts/interrupts.zig");
 pub const preemption = @import("preemption/preemption.zig");
 pub const queue = @import("queue/queue.zig");
 pub const registry = @import("registry/registry.zig");
+pub const retire = @import("retire/retire.zig");
 pub const run = @import("run/run.zig");
 pub const state = @import("state/state.zig");
 pub const strings = @import("strings/strings.zig");

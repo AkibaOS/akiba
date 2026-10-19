@@ -5,6 +5,7 @@ const std = @import("std");
 const constants = @import("asm").interrupts.constants;
 const fpu = @import("asm").cpu.constants.fpu;
 const strings = @import("asm").interrupts.strings;
+const vectors = @import("common").constants.interrupts.vectors;
 
 pub fn pushVector(comptime vector: u8) []const u8 {
     return comptime std.fmt.comptimePrint(strings.stubs.PUSH_VECTOR_FORMAT, .{vector});
@@ -34,6 +35,17 @@ pub fn exceptionStub(comptime vector: u8, comptime has_error_code: bool) []const
         strings.stubs.IRET_CLEANUP;
 }
 
+fn invocationStub() []const u8 {
+    return strings.stubs.PUSH_ZERO ++
+        pushVector(vectors.INVOCATION_VECTOR) ++
+        strings.stubs.PUSH_ALL ++ strings.stubs.NEWLINE ++
+        saveDispatch() ++ strings.stubs.NEWLINE ++
+        strings.stubs.CALL_INVOCATION_DISPATCH ++ strings.stubs.NEWLINE ++
+        restoreDispatch() ++ strings.stubs.NEWLINE ++
+        strings.stubs.POP_ALL ++ strings.stubs.NEWLINE ++
+        strings.stubs.IRET_CLEANUP;
+}
+
 pub fn irqStub(comptime irq: u8) []const u8 {
     return strings.stubs.PUSH_ZERO ++
         pushVector(irq + constants.vectors.VECTOR_OFFSET) ++
@@ -49,6 +61,14 @@ pub fn makeExceptionHandler(comptime vector: u8, comptime has_error_code: bool) 
     return struct {
         fn handler() callconv(.naked) void {
             asm volatile (exceptionStub(vector, has_error_code));
+        }
+    }.handler;
+}
+
+pub fn makeInvocationHandler() fn () callconv(.naked) void {
+    return struct {
+        fn handler() callconv(.naked) void {
+            asm volatile (invocationStub());
         }
     }.handler;
 }

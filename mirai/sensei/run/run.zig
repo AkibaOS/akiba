@@ -10,6 +10,7 @@ const queue = @import("mirai").sensei.queue;
 const registry = @import("mirai").sensei.registry;
 const shift = @import("mirai").thread.shift;
 const state = @import("mirai").sensei.state;
+const thread = @import("mirai").thread;
 
 const SchedulingError = errors.SchedulingError;
 
@@ -55,4 +56,25 @@ pub fn reschedule(blocked: bool) void {
     scheduler.RemainingTicks = policy.QUANTUM_TICKS;
     scheduler.Switches +%= 1;
     shift.dispatch(target, if (blocked) .Blocked else .Ready) catch @panic(messages.INVALID_TRANSFER);
+}
+
+pub fn stopCurrent() noreturn {
+    const scheduler = state.getState();
+    if (!scheduler.Initialized or (cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE) != 0 or
+        scheduler.IRQDepth != 0 or scheduler.PreemptionDepth != 0) @panic(messages.INVALID_STATE);
+    const current = registry.current() orelse @panic(messages.INVALID_STATE);
+    const previous = current.Thread orelse @panic(messages.INVALID_STATE);
+    const idle = scheduler.Idle orelse @panic(messages.INVALID_STATE);
+    if (!thread.state.owns(previous) or !previous.Managed or previous.Permanent or previous.Status != .Running or
+        current == idle or current.Queue != null or current.Next != null) @panic(messages.INVALID_STATE);
+    if (!queue.append(&scheduler.Retired, current)) @panic(messages.INVALID_QUEUE);
+    const next = queue.take(&scheduler.Ready) orelse idle;
+    if (next == current or next.Queue != null) @panic(messages.INVALID_STATE);
+    const target = next.Thread orelse @panic(messages.INVALID_STATE);
+    if (!target.Managed or target.Status != .Ready) @panic(messages.INVALID_STATE);
+    scheduler.Pending = false;
+    scheduler.RemainingTicks = policy.QUANTUM_TICKS;
+    scheduler.Switches +%= 1;
+    shift.dispatch(target, .Stopped) catch @panic(messages.INVALID_TRANSFER);
+    @panic(messages.INVALID_TRANSFER);
 }

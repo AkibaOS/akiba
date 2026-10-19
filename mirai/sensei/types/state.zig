@@ -7,6 +7,7 @@ const Record = @import("mirai").sensei.types.record.Record;
 pub const State = struct {
     Records: [policy.MAX_RECORDS]Record = [_]Record{.{}} ** policy.MAX_RECORDS,
     Ready: Queue = .{},
+    Retired: Queue = .{},
     Idle: ?*Record = null,
     RegisteredCount: u16 = 0,
     IRQDepth: u32 = 0,

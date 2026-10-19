@@ -7,6 +7,7 @@ const types = @import("mirai").thread.types;
 
 const Kata = kata.types.kata.Kata;
 const KernelStack = @import("mirai").memory.types.stack.kernel.KernelStack;
+const SwitchHandler = types.callbacks.SwitchHandler;
 const Thread = types.thread.Thread;
 
 var boot_thread: Thread = undefined;
@@ -14,6 +15,19 @@ var boot_initialized: bool = false;
 var current_thread: ?*Thread = null;
 var descriptors: [constants.MAX_THREADS]Thread = undefined;
 var occupied: [constants.MAX_THREADS]bool = [_]bool{false} ** constants.MAX_THREADS;
+var switch_handler: ?SwitchHandler = null;
+
+pub fn setSwitchHandler(handler: SwitchHandler) bool {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    if (switch_handler != null) return false;
+    switch_handler = handler;
+    return true;
+}
+
+pub fn completeSwitch() void {
+    if (switch_handler) |handler| handler();
+}
 
 pub fn initializeBoot(owner: *Kata, stack: KernelStack) bool {
     if (boot_initialized or current_thread != null or owner != kata.state.getKernel() or

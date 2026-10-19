@@ -47,7 +47,8 @@ pub fn shift(next: *Thread) OwnershipError!void {
 }
 
 pub fn dispatch(next: *Thread, previous_status: State) OwnershipError!void {
-    if (previous_status != .Ready and previous_status != .Blocked) return OwnershipError.InvalidState;
+    if (previous_status != .Ready and previous_status != .Blocked and previous_status != .Stopped)
+        return OwnershipError.InvalidState;
     return transfer(next, previous_status, true);
 }
 
@@ -83,5 +84,7 @@ pub fn finish() bool {
         (cpu.control.readCR3() & indices.ADDRESS_MASK) != current.Owner.AddressSpace.PML4Physical or
         tss.state.getBootTSS().RSP0 != current.Stack.Top) return false;
     kagami.state.setCurrentKagami(current.Owner.AddressSpace);
-    return kagami.state.getCurrentKagami() == current.Owner.AddressSpace;
+    if (kagami.state.getCurrentKagami() != current.Owner.AddressSpace) return false;
+    state.completeSwitch();
+    return true;
 }

@@ -13,6 +13,6 @@ pub fn start(thread: *Thread) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     thread.Started = true;
     const entry = thread.EntryPoint orelse @panic(messages.INVALID_CONTEXT);
     const argument = thread.Argument;
-    if (thread.EnableInterrupts) flags.enableInterrupts();
+    if (thread.EnableInterrupts and thread.Mode == .Kernel) flags.enableInterrupts();
     entry(argument);
 }

@@ -7,6 +7,7 @@ const messages = @import("mirai").sensei.strings.messages;
 const pit = @import("mirai").drivers.pit;
 const queue = @import("mirai").sensei.queue;
 const registry = @import("mirai").sensei.registry;
+const retire = @import("mirai").sensei.retire;
 const state = @import("mirai").sensei.state;
 const thread = @import("mirai").thread;
 
@@ -21,10 +22,14 @@ pub fn initialize() bool {
     const current = thread.state.getCurrent() orelse return false;
     if (!thread.state.owns(current) or !current.Permanent or current.Managed or current.Status != .Running) return false;
     const idle = registry.reserve(current) orelse return false;
+    if (!thread.state.setSwitchHandler(&retire.collect)) {
+        if (!registry.release(idle)) @panic(messages.INVALID_STATE);
+        return false;
+    }
     current.Managed = true;
     scheduler.Idle = idle;
-    scheduler.Initialized = true;
     pit.handler.setCallback(&clock.tick);
+    scheduler.Initialized = true;
     return true;
 }
 

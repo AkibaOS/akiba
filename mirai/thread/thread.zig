@@ -10,3 +10,4 @@ pub const shift = @import("shift/shift.zig");
 pub const state = @import("state/state.zig");
 pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");
+pub const user = @import("user/user.zig");

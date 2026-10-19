@@ -12,6 +12,7 @@ pub const boot = @import("boot/boot.zig");
 pub const crimson = @import("crimson/crimson.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const interrupts = @import("interrupts/interrupts.zig");
+pub const invocations = @import("invocations/invocations.zig");
 pub const kagami = @import("kagami/kagami.zig");
 pub const kata = @import("kata/kata.zig");
 pub const kernel = @import("kernel/kernel.zig");
@@ -19,12 +20,14 @@ pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
 pub const sensei = @import("sensei/sensei.zig");
 pub const thread = @import("thread/thread.zig");
+pub const user = @import("user/user.zig");
 
 comptime {
     force.all(boot);
     force.all(crimson);
     force.all(drivers);
     force.all(interrupts);
+    force.all(invocations);
     force.all(kagami);
     force.all(kata);
     force.all(kernel);
@@ -32,6 +35,7 @@ comptime {
     force.all(pmm);
     force.all(sensei);
     force.all(thread);
+    force.all(user);
 }
 
 fn panicHandler(message: []const u8, first_trace_address: ?usize) noreturn {

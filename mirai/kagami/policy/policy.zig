@@ -3,6 +3,8 @@
 const common = @import("common");
 const constants = @import("mirai").kagami.constants.protection;
 const create = @import("mirai").kagami.create;
+const ledger = @import("mirai").user.state.ledger;
+const mapping = @import("mirai").user.state.mapping;
 const stacklimits = @import("mirai").memory.constants.stack.limits;
 const state = @import("mirai").kagami.state;
 const types = @import("mirai").kagami.types;
@@ -51,11 +53,13 @@ pub fn validateMapping(kagami: *const Kagami, virtual_address: u64, physical_add
     const executable = (protection & constants.EXECUTE) != 0;
     const user_accessible = (protection & constants.USER) != 0;
     if ((writable and executable) or (user_accessible and virtual_address > layout.USER_SPACE_END)) return MappingError.PermissionDenied;
+    const owned_frame = ledger.ownsPhysical(physical_address);
+    if (!mapping.permitsMapping(kagami, virtual_address, physical_address, protection)) return MappingError.PermissionDenied;
     const text = policy.Image.Text;
     const rodata = policy.Image.Rodata;
     const text_alias = contains(physical_address, text.PhysicalStart, text.VirtualEnd - text.VirtualStart);
     const rodata_alias = contains(physical_address, rodata.PhysicalStart, rodata.VirtualEnd - rodata.VirtualStart);
-    if ((writable and (text_alias or rodata_alias)) or (executable and !text_alias) or
+    if ((writable and (text_alias or rodata_alias)) or (executable and !text_alias and !owned_frame) or
         (user_accessible and contains(physical_address, policy.Image.PhysicalStart, policy.Image.PhysicalEnd - policy.Image.PhysicalStart)))
     {
         return MappingError.PermissionDenied;
