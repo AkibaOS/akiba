@@ -8,6 +8,7 @@ const interrupts = @import("mirai").boot.sequence.interrupts;
 const invocations = @import("mirai").invocations;
 const kagami = @import("mirai").kagami;
 const memory = @import("mirai").boot.sequence.memory;
+const postman = @import("mirai").postman;
 const print = @import("mirai").boot.sequence.print;
 const registers = @import("asm").cpu.state;
 const sensei = @import("mirai").sensei;
@@ -70,7 +71,7 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
         print.fail(status.ERROR_MEMORY);
         haltOnFailure();
     }
-    if (!thread.boot.initialize() or !sensei.control.initialize() or !invocations.setup.initialize()) {
+    if (!thread.boot.initialize() or !sensei.control.initialize() or !invocations.setup.initialize() or !postman.control.initialize()) {
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }

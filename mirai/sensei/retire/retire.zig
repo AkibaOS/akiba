@@ -21,6 +21,7 @@ pub fn collect() void {
         if (record == idle or target == current or !thread.state.owns(target) or target.Permanent or
             !target.Managed or target.Status != .Stopped or registry.find(target) != record)
             @panic(messages.INVALID_STATE);
+        thread.state.notifyInactive(target);
         target.Managed = false;
         if (!registry.release(record)) @panic(messages.INVALID_STATE);
     }

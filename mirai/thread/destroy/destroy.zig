@@ -18,6 +18,7 @@ pub fn destroy(thread: *Thread) OwnershipError!void {
         (thread.Status != .Ready and thread.Status != .Stopped)) return OwnershipError.InUse;
     const owner = thread.Owner;
     if (!kata.state.owns(owner) or owner.ThreadCount == 0) return OwnershipError.InvalidOwner;
+    state.notifyInactive(thread);
     if (!stack.state.release(thread.Stack.Base)) return OwnershipError.InUse;
     stack.free.free(thread.Stack);
     owner.ThreadCount -= 1;

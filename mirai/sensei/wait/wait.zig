@@ -1,5 +1,7 @@
 //! Atomic Condition Waiting And Wakeup
 
+const control = @import("asm").cpu.constants.control;
+const cpu = @import("asm").cpu.state;
 const errors = @import("mirai").sensei.errors.scheduling;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").sensei.strings.messages;
@@ -16,20 +18,42 @@ const Record = types.record.Record;
 const SchedulingError = errors.SchedulingError;
 const Thread = thread.types.thread.Thread;
 
+fn block(waiters: *Queue, predicate: Predicate, context: ?*anyopaque, current: *Record, preferred: ?*Thread) void {
+    const target = current.Thread orelse @panic(messages.INVALID_STATE);
+    var handoff = preferred;
+    while (!predicate(context)) {
+        if (!queue.append(waiters, current)) @panic(messages.INVALID_QUEUE);
+        run.rescheduleTo(true, handoff);
+        if (registry.current() != current or thread.state.getCurrent() != target or
+            current.Thread != target or current.Queue != null or current.Next != null) @panic(messages.INVALID_STATE);
+        handoff = null;
+    }
+}
+
 pub fn blockUntil(waiters: *Queue, predicate: Predicate, context: ?*anyopaque) SchedulingError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     const scheduler = state.getState();
     if (!scheduler.Initialized) return SchedulingError.NotInitialized;
     if (!run.canCall(previous_flags)) return SchedulingError.UnsafeContext;
-    if (waiters == &scheduler.Ready) return SchedulingError.InvalidQueue;
+    if (waiters == &scheduler.Ready or waiters == &scheduler.Retired) return SchedulingError.InvalidQueue;
     const current = registry.current() orelse return SchedulingError.InvalidState;
     if (current == scheduler.Idle) return SchedulingError.InUse;
-    while (!predicate(context)) {
-        if (!queue.append(waiters, current)) @panic(messages.INVALID_QUEUE);
-        run.reschedule(true);
-        if (registry.current() != current or current.Queue != null) @panic(messages.INVALID_STATE);
-    }
+    block(waiters, predicate, context, current, null);
+}
+
+pub fn blockFromInvocation(waiters: *Queue, predicate: Predicate, context: ?*anyopaque, preferred: ?*Thread) SchedulingError!void {
+    const scheduler = state.getState();
+    if (!scheduler.Initialized) return SchedulingError.NotInitialized;
+    if ((cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE) != 0 or
+        scheduler.IRQDepth != 0 or scheduler.PreemptionDepth != 0) return SchedulingError.UnsafeContext;
+    if (waiters == &scheduler.Ready or waiters == &scheduler.Retired) return SchedulingError.InvalidQueue;
+    const current = registry.current() orelse return SchedulingError.InvalidState;
+    if (current == scheduler.Idle) return SchedulingError.InUse;
+    const target = current.Thread orelse return SchedulingError.InvalidState;
+    if (!thread.state.owns(target) or !target.Managed or target.Status != .Running or target.Mode != .User or
+        current.Queue != null or current.Next != null) return SchedulingError.InvalidState;
+    block(waiters, predicate, context, current, preferred);
 }
 
 fn makeReady(record: *Record) void {
@@ -41,15 +65,19 @@ fn makeReady(record: *Record) void {
     if (registry.current() == scheduler.Idle) scheduler.Pending = true;
 }
 
-pub fn wakeOne(waiters: *Queue) SchedulingError!bool {
+pub fn wakeOldest(waiters: *Queue) SchedulingError!?*Thread {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     const scheduler = state.getState();
     if (!scheduler.Initialized) return SchedulingError.NotInitialized;
     if (waiters == &scheduler.Ready) return SchedulingError.InvalidQueue;
-    const record = queue.take(waiters) orelse return false;
+    const record = queue.take(waiters) orelse return null;
     makeReady(record);
-    return true;
+    return record.Thread;
+}
+
+pub fn wakeOne(waiters: *Queue) SchedulingError!bool {
+    return (try wakeOldest(waiters)) != null;
 }
 
 pub fn wakeAll(waiters: *Queue) SchedulingError!u16 {

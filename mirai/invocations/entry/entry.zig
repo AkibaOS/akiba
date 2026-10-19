@@ -2,6 +2,7 @@
 
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
+const ipc = @import("mirai").invocations.postman;
 const messages = @import("mirai").thread.strings.shift.messages;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const sensei = @import("mirai").sensei;
@@ -25,6 +26,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
     frame.RFLAGS = (frame.RFLAGS & constants.USER_FLAGS_MASK) | constants.USER_FLAGS_REQUIRED;
     const service = frame.RAX;
+    if (service >= @intFromEnum(types.Service.Send) and service <= @intFromEnum(types.Service.Close)) {
+        ipc.dispatch(current, frame, service);
+        return;
+    }
     frame.RAX = @intFromEnum(types.Status.Success);
     frame.RDX = 0;
     switch (service) {

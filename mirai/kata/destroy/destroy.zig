@@ -27,5 +27,6 @@ pub fn destroy(owner: *Kata) (OwnershipError || UserError)!void {
         _ = kagami.retain.acquire(root);
         return OwnershipError.InvalidState;
     }
+    state.notifyRelease(owner);
     if (!state.release(owner)) return OwnershipError.InvalidState;
 }

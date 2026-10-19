@@ -65,6 +65,7 @@ pub fn detach(target: *Thread) SchedulingError!void {
         if (!queue.remove(owner, record)) @panic(messages.INVALID_QUEUE);
     }
     target.Status = .Stopped;
+    thread.state.notifyInactive(target);
     target.Managed = false;
     if (!registry.release(record)) @panic(messages.INVALID_STATE);
 }

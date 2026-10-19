@@ -11,8 +11,11 @@ const registry = @import("mirai").sensei.registry;
 const shift = @import("mirai").thread.shift;
 const state = @import("mirai").sensei.state;
 const thread = @import("mirai").thread;
+const types = @import("mirai").sensei.types;
 
+const Record = types.record.Record;
 const SchedulingError = errors.SchedulingError;
+const Thread = thread.types.thread.Thread;
 
 pub fn canCall(previous_flags: u64) bool {
     const scheduler = state.getState();
@@ -28,7 +31,21 @@ pub fn yield() SchedulingError!void {
     reschedule(false);
 }
 
+fn takeReady(preferred: ?*Thread, current: *Record, idle: *Record) ?*Record {
+    const scheduler = state.getState();
+    const target = preferred orelse return queue.take(&scheduler.Ready);
+    if (!thread.state.owns(target) or !target.Managed or target.Status != .Ready) @panic(messages.INVALID_STATE);
+    const record = registry.find(target) orelse @panic(messages.INVALID_STATE);
+    if (record == idle or record == current or record.Queue != &scheduler.Ready) @panic(messages.INVALID_STATE);
+    if (!queue.remove(&scheduler.Ready, record)) @panic(messages.INVALID_QUEUE);
+    return record;
+}
+
 pub fn reschedule(blocked: bool) void {
+    rescheduleTo(blocked, null);
+}
+
+pub fn rescheduleTo(blocked: bool, preferred: ?*Thread) void {
     const scheduler = state.getState();
     if (!scheduler.Initialized) return;
     if ((cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_STATE);
@@ -43,7 +60,7 @@ pub fn reschedule(blocked: bool) void {
     if (!previous.Managed or previous.Status != .Running or
         (!blocked and current.Queue != null) or (blocked and (current == idle or current.Queue == null)))
         @panic(messages.INVALID_STATE);
-    const next = queue.take(&scheduler.Ready) orelse if (blocked) idle else {
+    const next = takeReady(preferred, current, idle) orelse if (blocked) idle else {
         scheduler.Pending = false;
         scheduler.RemainingTicks = policy.QUANTUM_TICKS;
         return;

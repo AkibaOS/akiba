@@ -9,12 +9,38 @@ const types = @import("mirai").kata.types;
 
 const Kagami = kagami.types.kagami.Kagami;
 const Kata = types.kata.Kata;
+const ReleaseObserver = types.callbacks.ReleaseObserver;
 
 var kernel_kata: Kata = undefined;
 var initialized: bool = false;
 var descriptors: [constants.MAX_KATAS]Kata = undefined;
 var occupied: [constants.MAX_KATAS]bool = [_]bool{false} ** constants.MAX_KATAS;
 var next_id: u64 = constants.KERNEL_ID + 1;
+var release_observer: ?ReleaseObserver = null;
+
+pub fn setReleaseObserver(handler: ReleaseObserver) bool {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    if (release_observer != null) return false;
+    release_observer = handler;
+    return true;
+}
+
+pub fn notifyRelease(owner: *Kata) void {
+    if (release_observer) |handler| handler(owner);
+}
+
+pub fn findByID(id: u64) ?*Kata {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    for (occupied, 0..) |used, index| {
+        if (!used) continue;
+        const owner = &descriptors[index];
+        if (owner.Permanent or owner.ID != id) continue;
+        return owner;
+    }
+    return null;
+}
 
 pub fn initializeKernel() bool {
     const previous_flags = guard.acquire();
