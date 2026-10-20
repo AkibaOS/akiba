@@ -13,8 +13,6 @@ const names = strings.names;
 const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
 const IndexKey = afs.types.btree.IndexKey;
-const JournalHeader = afs.types.journal.JournalHeader;
-const JournalInfoCell = afs.types.journal.JournalInfoCell;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 const StackRecord = afs.types.catalog.StackRecord;
 const UnitRecord = afs.types.catalog.UnitRecord;
@@ -37,8 +35,6 @@ pub const Writer = struct {
     AllocationMapCells: u32,
     IndexStartCell: u32,
     IndexCells: u32,
-    JournalStartCell: u32,
-    JournalCells: u32,
     DataStartCell: u32,
 
     IndexRecordOffset: usize,
@@ -72,8 +68,6 @@ pub const Writer = struct {
             .AllocationMapCells = layout.ALLOCATION_MAP_CELLS,
             .IndexStartCell = index_start,
             .IndexCells = layout.INDEX_CELLS,
-            .JournalStartCell = layout.JOURNAL_START_CELL,
-            .JournalCells = layout.JOURNAL_CELLS,
             .DataStartCell = data_start,
             .IndexRecordOffset = @sizeOf(BTreeNodeDescriptor),
         };
@@ -83,9 +77,6 @@ pub const Writer = struct {
         std.debug.print(messages.AFS_CREATING, .{});
         std.debug.print(messages.AFS_TOTAL_CELLS, .{self.TotalCells});
         std.debug.print(messages.AFS_CELL_SIZE, .{self.CellSize});
-
-        try self.writeJournalInfo();
-        try self.writeJournalHeader();
 
         const index_buffer = try self.Allocator.alloc(u8, self.IndexCells * self.CellSize);
         defer self.Allocator.free(index_buffer);
@@ -296,42 +287,6 @@ pub const Writer = struct {
         try self.File.writeAll(data[0..self.CellSize]);
     }
 
-    fn writeJournalInfo(self: *Self) !void {
-        var info = JournalInfoCell{
-            .Flags = 0,
-            .DeviceSignature = [_]u32{0} ** 32,
-            .Offset = @as(u64, self.JournalStartCell) * self.CellSize,
-            .Size = @as(u64, self.JournalCells) * self.CellSize,
-            .Reserved = [_]u8{0} ** 128,
-        };
-
-        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = [_]u8{0} ** afs.constants.sizes.DEFAULT_CELL_SIZE;
-        @memcpy(buffer[0..@sizeOf(JournalInfoCell)], std.mem.asBytes(&info));
-
-        try self.writeCell(@intCast(afs.constants.sizes.JOURNAL_INFO_CELL), &buffer);
-    }
-
-    fn writeJournalHeader(self: *Self) !void {
-        const journal_size = @as(u64, self.JournalCells) * self.CellSize;
-
-        var header = JournalHeader{
-            .Magic = afs.constants.magic.JOURNAL_SIGNATURE,
-            .Endian = afs.constants.magic.JOURNAL_ENDIAN_MARKER,
-            .Start = 0,
-            .End = 0,
-            .Size = journal_size,
-            .CellSize = self.CellSize,
-            .ChecksumType = 0,
-            .Checksum = 0,
-            .Sequence = layout.JOURNAL_INITIAL_SEQUENCE,
-        };
-
-        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = [_]u8{0} ** afs.constants.sizes.DEFAULT_CELL_SIZE;
-        @memcpy(buffer[0..@sizeOf(JournalHeader)], std.mem.asBytes(&header));
-
-        try self.writeCell(self.JournalStartCell, &buffer);
-    }
-
     fn writeAllocationMap(self: *Self) !void {
         const bitmap_size = afs.write.allocate.bitmapSize(self.TotalCells);
         const bitmap = try self.Allocator.alloc(u8, self.AllocationMapCells * self.CellSize);
@@ -407,8 +362,6 @@ pub const Writer = struct {
             .SpanOverflowSpan = .{},
             .AttributesSpan = .{},
             .StartupSpan = .{},
-            .JournalInfoCell = afs.constants.sizes.JOURNAL_INFO_CELL,
-            .JournalInfoSize = afs.constants.sizes.JOURNAL_HEADER_SIZE,
             .CompressionType = afs.constants.flags.COMPRESSION_NONE,
             .EncryptionType = afs.constants.flags.ENCRYPTION_NONE,
             .Reserved = [_]u8{0} ** 64,
@@ -416,6 +369,15 @@ pub const Writer = struct {
 
         var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = [_]u8{0} ** afs.constants.sizes.DEFAULT_CELL_SIZE;
         @memcpy(buffer[0..@sizeOf(VolumeHeader)], std.mem.asBytes(&header));
+        const fields = @typeInfo(VolumeHeader).@"struct".fields;
+        inline for (fields, 0..) |field, index| {
+            const padding_start = @offsetOf(VolumeHeader, field.name) + @sizeOf(field.type);
+            const padding_end = if (index + 1 < fields.len)
+                @offsetOf(VolumeHeader, fields[index + 1].name)
+            else
+                @sizeOf(VolumeHeader);
+            @memset(buffer[padding_start..padding_end], 0);
+        }
 
         try self.writeCell(@intCast(afs.constants.sizes.VOLUME_HEADER_CELL), &buffer);
     }

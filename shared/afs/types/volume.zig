@@ -1,6 +1,9 @@
 //! AFS Volume Types
 
 const constants = @import("shared").afs.constants;
+const strings = @import("shared").afs.strings.layout;
+
+const layout = constants.layout;
 
 pub const VolumeHeader = extern struct {
     Signature: u64 = constants.magic.SIGNATURE,
@@ -54,8 +57,6 @@ pub const VolumeHeader = extern struct {
     SpanOverflowSpan: SpanDescriptor = .{},
     AttributesSpan: SpanDescriptor = .{},
     StartupSpan: SpanDescriptor = .{},
-    JournalInfoCell: u64 = constants.sizes.JOURNAL_INFO_CELL,
-    JournalInfoSize: u32 = constants.sizes.JOURNAL_HEADER_SIZE,
     CompressionType: u32 = constants.flags.COMPRESSION_NONE,
     EncryptionType: u32 = constants.flags.ENCRYPTION_NONE,
     Reserved: [64]u8 = [_]u8{0} ** 64,
@@ -114,3 +115,33 @@ pub const ChannelInfo = extern struct {
         return &self.Spans[index];
     }
 };
+
+comptime {
+    if (@sizeOf(VolumeHeader) != layout.VOLUME_HEADER_BYTES or
+        @alignOf(VolumeHeader) != layout.VOLUME_HEADER_ALIGNMENT or
+        @sizeOf(VolumeHeader) > constants.sizes.VOLUME_HEADER_SIZE or
+        @sizeOf(VolumeHeader) > constants.sizes.MINIMUM_CELL_SIZE)
+    {
+        @compileError(strings.INVALID_VOLUME_HEADER_LAYOUT);
+    }
+    const fields = @typeInfo(VolumeHeader).@"struct".fields;
+    if (fields.len != layout.VOLUME_HEADER_OFFSETS.len or
+        fields.len != layout.VOLUME_HEADER_FIELD_BYTES.len)
+    {
+        @compileError(strings.INVALID_VOLUME_HEADER_LAYOUT);
+    }
+    for (fields, 0..) |field, index| {
+        if (@offsetOf(VolumeHeader, field.name) != layout.VOLUME_HEADER_OFFSETS[index] or
+            @sizeOf(field.type) != layout.VOLUME_HEADER_FIELD_BYTES[index])
+        {
+            @compileError(strings.INVALID_VOLUME_HEADER_LAYOUT);
+        }
+    }
+    if (@sizeOf(SpanDescriptor) != layout.SPAN_DESCRIPTOR_BYTES or
+        @alignOf(SpanDescriptor) != layout.SPAN_DESCRIPTOR_ALIGNMENT or
+        @offsetOf(SpanDescriptor, strings.SPAN_START_FIELD) != layout.SPAN_START_OFFSET or
+        @offsetOf(SpanDescriptor, strings.SPAN_COUNT_FIELD) != layout.SPAN_COUNT_OFFSET)
+    {
+        @compileError(strings.INVALID_SPAN_DESCRIPTOR_LAYOUT);
+    }
+}
