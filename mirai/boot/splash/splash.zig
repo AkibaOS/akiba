@@ -43,6 +43,7 @@ pub fn report(message: []const u8) void {
         return;
     }
     state.pushMessage(message);
+    canvas.ActivityFrame +%= 1;
     splash.render.refresh(&canvas, &state) catch {};
 }
 

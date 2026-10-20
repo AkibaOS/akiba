@@ -21,8 +21,8 @@ pub fn paint(canvas: *Canvas, state: *const SplashState) TextError!void {
 }
 
 pub fn refresh(canvas: *Canvas, state: *const SplashState) TextError!void {
+    defer splash.progress.render(canvas, state);
     try splash.trail.render(canvas, state);
-    splash.progress.render(canvas, state);
 }
 
 fn drawRomaji(canvas: *Canvas) TextError!void {
@@ -37,7 +37,7 @@ fn drawRomaji(canvas: *Canvas) TextError!void {
         canvas.RomajiBaseline,
         labels.ROMAJI,
         palette.DIM_CHROME,
-        palette.BACKGROUND,
+        null,
     );
 }
 
@@ -54,7 +54,7 @@ fn drawFooter(canvas: *Canvas) TextError!void {
         canvas.FooterBaseline,
         labels.FOOTER_LEFT,
         palette.FOOTER,
-        palette.BACKGROUND,
+        null,
     );
 
     try graphics.text.drawString(
@@ -66,6 +66,6 @@ fn drawFooter(canvas: *Canvas) TextError!void {
         canvas.FooterBaseline,
         labels.FOOTER_RIGHT,
         palette.FOOTER,
-        palette.BACKGROUND,
+        null,
     );
 }

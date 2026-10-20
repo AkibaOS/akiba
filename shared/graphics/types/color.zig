@@ -26,6 +26,16 @@ pub const Color = struct {
         };
     }
 
+    pub fn fromPixel(pixel: u32, format: PixelFormat) Color {
+        const low: u8 = @truncate(pixel >> channels.SHIFT_LOW);
+        const middle: u8 = @truncate(pixel >> channels.SHIFT_MIDDLE);
+        const high: u8 = @truncate(pixel >> channels.SHIFT_HIGH);
+        return switch (format) {
+            .RGB => Color.rgb(low, middle, high),
+            else => Color.rgb(high, middle, low),
+        };
+    }
+
     pub fn blend(self: Color, other: Color, numerator: u32, denominator: u32) Color {
         return Color{
             .R = mix(self.R, other.R, numerator, denominator),

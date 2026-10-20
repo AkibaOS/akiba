@@ -13,7 +13,7 @@ const palette = splash.constants.palette;
 
 pub fn render(canvas: *Canvas) TextError!void {
     const style = Canvas.styleFor(layout.WORDMARK_SIZE, layout.WORDMARK_TRACKING);
-    const origin = try splash.measure.centredOrigin(canvas, style, labels.WORDMARK);
+    const origin = try splash.measure.centredOrigin(canvas, style, labels.WORDMARK) + layout.WORDMARK_OFFSET;
 
     try paint(canvas, origin - layout.FRINGE_OFFSET, palette.FRINGE_CYAN);
     try paint(canvas, origin + layout.FRINGE_OFFSET, palette.FRINGE_MAGENTA);
@@ -30,6 +30,6 @@ fn paint(canvas: *Canvas, origin: i32, color: Color) TextError!void {
         canvas.WordmarkBaseline,
         labels.WORDMARK,
         color,
-        palette.BACKGROUND,
+        null,
     );
 }

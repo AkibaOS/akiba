@@ -1,4 +1,4 @@
-//! Progress Rule Rendering
+//! Progress Bar Rendering
 
 const graphics = @import("shared").graphics;
 const splash = @import("shared").splash;
@@ -11,40 +11,34 @@ const SplashState = splash.types.state.SplashState;
 const layout = splash.constants.layout;
 const palette = splash.constants.palette;
 
+pub fn targetWidth(state: *const SplashState) i32 {
+    if (state.ProgressTotal == 0) return 0;
+    const step: i32 = @min(state.ProgressStep, state.ProgressTotal);
+    const width = layout.RULE_WIDTH - layout.RULE_PADDING * 2;
+    return @divTrunc(width * step, state.ProgressTotal);
+}
+
 pub fn render(canvas: *Canvas, state: *const SplashState) void {
-    splash.panel.fillRegion(
-        canvas,
-        canvas.RuleX - layout.MARKER_WIDTH,
-        canvas.RuleY - layout.MARKER_RISE,
-        layout.RULE_WIDTH + layout.MARKER_WIDTH * 2,
-        layout.MARKER_HEIGHT + layout.MARKER_RISE,
-    );
-
+    const filled = targetWidth(state);
+    const inner_height = layout.RULE_HEIGHT - layout.RULE_PADDING * 2;
+    splash.panel.fillRegion(canvas, canvas.RuleX, canvas.RuleY, layout.RULE_WIDTH, layout.RULE_PADDING);
+    splash.panel.fillRegion(canvas, canvas.RuleX, canvas.RuleY + layout.RULE_HEIGHT - layout.RULE_PADDING, layout.RULE_WIDTH, layout.RULE_PADDING);
+    splash.panel.fillRegion(canvas, canvas.RuleX, canvas.RuleY + layout.RULE_PADDING, layout.RULE_PADDING, inner_height);
+    splash.panel.fillRegion(canvas, canvas.RuleX + layout.RULE_PADDING + filled, canvas.RuleY + layout.RULE_PADDING, layout.RULE_WIDTH - layout.RULE_PADDING - filled, inner_height);
+    const border = layout.RULE_BORDER;
+    const right = canvas.RuleX + layout.RULE_WIDTH - border;
+    const bottom = canvas.RuleY + layout.RULE_HEIGHT - border;
+    const color = if (state.hasFailed()) palette.FRINGE_MAGENTA else palette.RULE_BORDER;
+    draw.fillRect(&canvas.Surface, canvas.RuleX, canvas.RuleY, layout.RULE_WIDTH, border, color);
+    draw.fillRect(&canvas.Surface, canvas.RuleX, bottom, layout.RULE_WIDTH, border, color);
+    draw.fillRect(&canvas.Surface, canvas.RuleX, canvas.RuleY, border, layout.RULE_HEIGHT, color);
+    draw.fillRect(&canvas.Surface, right, canvas.RuleY, border, layout.RULE_HEIGHT, color);
     draw.fillRect(
         &canvas.Surface,
-        canvas.RuleX,
-        canvas.RuleY,
-        layout.RULE_WIDTH,
-        layout.RULE_THICKNESS,
-        palette.RULE_TRACK,
-    );
-
-    if (state.ProgressTotal == 0) {
-        return;
-    }
-
-    const step: i32 = @intCast(state.ProgressStep);
-    const total: i32 = @intCast(state.ProgressTotal);
-    const filled = @divTrunc(layout.RULE_WIDTH * step, total);
-
-    draw.fillRect(&canvas.Surface, canvas.RuleX, canvas.RuleY, filled, layout.RULE_THICKNESS, palette.FRINGE_CYAN);
-
-    draw.fillRect(
-        &canvas.Surface,
-        canvas.RuleX + filled - @divTrunc(layout.MARKER_WIDTH, 2),
-        canvas.RuleY - layout.MARKER_RISE,
-        layout.MARKER_WIDTH,
-        layout.MARKER_HEIGHT,
-        palette.FRINGE_MAGENTA,
+        canvas.RuleX + layout.RULE_PADDING,
+        canvas.RuleY + layout.RULE_PADDING,
+        filled,
+        inner_height,
+        if (state.hasFailed()) palette.FRINGE_MAGENTA else palette.RULE_FILL,
     );
 }
