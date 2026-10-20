@@ -4,6 +4,7 @@ const common = @import("common");
 
 const constants = @import("mirai").boot.constants;
 const cpu = @import("asm").cpu;
+const errors = @import("mirai").boot.errors;
 const stacks = @import("mirai").boot.tss.stacks;
 const state = @import("mirai").boot.tss.state;
 const types = @import("mirai").boot.types;
@@ -13,10 +14,9 @@ const limits = constants.tss.limits;
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
+const CoreError = errors.tss.CoreError;
 const CoreTSS = types.tss.core.CoreTSS;
 const TSS = types.tss.structure.TSS;
-
-pub const CoreError = AllocationError || error{TooManyCores};
 
 extern var __boot_ist_df_start: u8;
 extern var __boot_ist_df_end: u8;

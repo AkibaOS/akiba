@@ -9,7 +9,7 @@ const types = @import("mirai").crimson.types;
 const messages = strings.messages;
 
 const Exception = types.exception.Exception;
-const PageFaultError = classify.analyze.PageFaultError;
+const PageFaultError = types.faults.PageFaultError;
 
 pub fn render(exception: *const Exception) void {
     serial.write.printf(messages.EXCEPTION_LINE, .{

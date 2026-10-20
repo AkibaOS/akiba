@@ -16,6 +16,7 @@ pub const sequence = @import("sequence/sequence.zig");
 comptime {
     force.all(assembly);
     force.all(disk);
+    force.all(efi);
     force.all(fs);
     force.all(loader);
     force.all(menu);
@@ -25,7 +26,7 @@ comptime {
 
 pub fn main() void {
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
-    const system_table: *efi.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
+    const system_table: *efi.types.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
     _ = sequence.run.run(image_handle, system_table);
 }
 

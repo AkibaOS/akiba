@@ -3,9 +3,8 @@
 const constants = @import("mirai").crimson.constants;
 const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
-const types = @import("mirai").crimson.types;
-
 const text = @import("utils").text;
+const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 const messages = strings.messages;
@@ -49,7 +48,7 @@ pub fn render() void {
         });
     }
 
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
 }
 
 pub fn findModuleForAddress(address: u64) ?*const ModuleInfo {

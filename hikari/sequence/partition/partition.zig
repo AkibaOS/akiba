@@ -2,14 +2,11 @@
 
 const disk = @import("hikari").disk;
 const efi = @import("hikari").efi;
+const types = @import("hikari").sequence.types;
 
-pub const PartitionInfo = struct {
-    BlockIO: *efi.protocols.block.BlockIoProtocol,
-    StartLBA: u64,
-    EndLBA: u64,
-};
+const PartitionInfo = types.partition.PartitionInfo;
 
-pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?PartitionInfo {
+pub fn findAfsPartition(boot_services: *efi.types.services.boot.BootServices) ?PartitionInfo {
     var handle_count: usize = 0;
     var handles: [*]efi.types.base.Handle = undefined;
 
@@ -21,7 +18,7 @@ pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?Partiti
         &handles,
     );
 
-    if (efi.types.base.isError(status)) {
+    if (efi.status.isError(status)) {
         return null;
     }
 
@@ -36,17 +33,17 @@ pub fn findAfsPartition(boot_services: *efi.services.boot.BootServices) ?Partiti
             &block_io,
         );
 
-        if (efi.types.base.isError(block_io_status)) {
+        if (efi.status.isError(block_io_status)) {
             continue;
         }
 
-        const block_io_protocol: *efi.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(block_io));
+        const block_io_protocol: *efi.types.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(block_io));
 
         if (block_io_protocol.Media.LogicalPartition) {
             continue;
         }
 
-        var gpt_parser = disk.gpt.parser.Parser.initialize(block_io_protocol, boot_services) catch {
+        var gpt_parser = disk.types.parser.Parser.initialize(block_io_protocol, boot_services) catch {
             continue;
         };
 

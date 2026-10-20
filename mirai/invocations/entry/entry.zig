@@ -9,7 +9,7 @@ const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const types = @import("mirai").invocations.types.abi;
 
-const InterruptFrame = @import("mirai").interrupts.handlers.common.InterruptFrame;
+const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 
 export fn invocation_dispatch(frame: *InterruptFrame) void {
     if ((frame.CS & cpu.constants.user.SELECTOR_RPL_MASK) != cpu.constants.user.SELECTOR_RPL_USER) {

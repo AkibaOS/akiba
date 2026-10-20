@@ -2,12 +2,11 @@
 
 const std = @import("std");
 
-const fat32 = @import("shared").fat32;
-
 const constants = @import("mkafsdisk").constants;
-const strings = @import("mkafsdisk").strings;
-
+const errors = @import("mkafsdisk").errors;
+const fat32 = @import("shared").fat32;
 const math = @import("utils").math;
+const strings = @import("mkafsdisk").strings;
 
 const disk = constants.disk;
 const esp = constants.esp;
@@ -15,6 +14,7 @@ const messages = strings.messages;
 const names = strings.names;
 
 const BootSector = fat32.types.boot.BootSector;
+const ImageError = errors.image.ImageError;
 const StackEntry = fat32.types.entry.StackEntry;
 
 pub fn createEsp(
@@ -36,7 +36,7 @@ pub fn createEsp(
 
     const boot_sector = BootSector{
         .JumpBoot = fat32.constants.defaults.DEFAULT_JUMP_BOOT,
-        .OemName = fat32.constants.defaults.DEFAULT_OEM_NAME,
+        .OemName = fat32.strings.identity.DEFAULT_OEM_NAME,
         .BytesPerSector = disk.SECTOR_SIZE,
         .SectorsPerCluster = esp.SECTORS_PER_CLUSTER,
         .ReservedSectors = esp.RESERVED_SECTORS,
@@ -61,7 +61,7 @@ pub fn createEsp(
         .BootSignature = fat32.constants.defaults.DEFAULT_EXTENDED_BOOT_SIGNATURE,
         .VolumeId = esp.VOLUME_ID,
         .VolumeLabel = names.FAT_VOLUME_LABEL,
-        .FsType = fat32.constants.magic.FS_TYPE_FAT32,
+        .FsType = fat32.strings.identity.FS_TYPE_FAT32,
         .BootCode = [_]u8{0} ** 420,
         .Signature = fat32.constants.magic.BOOT_SIGNATURE,
     };
@@ -174,7 +174,7 @@ pub fn createEsp(
 
     if (total_clusters < disk.FAT32_MINIMUM_CLUSTERS) {
         std.debug.print(messages.ESP_TOO_SMALL, .{ total_clusters, disk.FAT32_MINIMUM_CLUSTERS });
-        return error.EspTooSmall;
+        return ImageError.EspTooSmall;
     }
 
     std.debug.print(messages.ESP_CREATED, .{total_clusters});

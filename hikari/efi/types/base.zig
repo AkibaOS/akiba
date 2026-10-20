@@ -23,11 +23,3 @@ pub const GUID = extern struct {
             @as(u64, @bitCast(self.ClockSequenceAndNode)) == @as(u64, @bitCast(other.ClockSequenceAndNode));
     }
 };
-
-pub fn isError(status: Status) bool {
-    return (status >> (@bitSizeOf(Status) - 1)) == 1;
-}
-
-pub fn isSuccess(status: Status) bool {
-    return status == 0;
-}

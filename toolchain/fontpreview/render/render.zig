@@ -4,10 +4,11 @@ const std = @import("std");
 
 const common = @import("common");
 const font = @import("shared").font;
+const preview = @import("fontpreview");
 const raster = @import("shared").raster;
-
 const utf8 = @import("utils").text.utf8;
 
+const Canvas = preview.types.canvas.Canvas;
 const Face = font.types.face.Face;
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 const GlyphBuffer = font.types.outline.GlyphBuffer;
@@ -16,16 +17,31 @@ const Shape = raster.types.shape.Shape;
 const Workspace = raster.types.workspace.Workspace;
 
 const limits = raster.constants.limits;
+const output = preview.constants.limits;
+const strings = preview.strings.render;
 
 var glyph_buffer: GlyphBuffer = undefined;
 var shape: Shape = undefined;
 var workspace: Workspace = undefined;
 
-pub const Canvas = struct {
-    Pixels: []u8,
-    Width: i32,
-    Height: i32,
-};
+pub fn renderText(allocator: std.mem.Allocator, data: []const u8, args: [][:0]u8) !void {
+    const face = try font.face.load(data);
+
+    const pixel_size = try std.fmt.parseInt(i32, args[3], 10);
+    const text = args[4];
+    const width = try std.fmt.parseInt(i32, args[5], 10);
+    const height = try std.fmt.parseInt(i32, args[6], 10);
+
+    const pixels = try allocator.alloc(u8, @intCast(width * height));
+    defer allocator.free(pixels);
+    @memset(pixels, 0);
+
+    var canvas = Canvas{ .Pixels = pixels, .Width = width, .Height = height };
+
+    const baseline = @divTrunc(@as(i32, face.Ascender) * pixel_size, @as(i32, face.UnitsPerEm));
+    try drawText(&face, text, pixel_size, 0, baseline, &canvas);
+    try writePortableGrayMap(&canvas, args[7]);
+}
 
 fn writeRow(context: *anyopaque, y: i32, x: i32, coverage: []const u8) void {
     const canvas: *Canvas = @ptrCast(@alignCast(context));
@@ -86,8 +102,8 @@ pub fn writePortableGrayMap(canvas: *const Canvas, path: []const u8) !void {
     const file = try std.fs.cwd().createFile(path, .{});
     defer file.close();
 
-    var header: [64]u8 = undefined;
-    const written = try std.fmt.bufPrint(&header, "P5\n{d} {d}\n255\n", .{ canvas.Width, canvas.Height });
+    var header: [output.HEADER_BYTES]u8 = undefined;
+    const written = try std.fmt.bufPrint(&header, strings.PGM_HEADER, .{ canvas.Width, canvas.Height });
 
     try file.writeAll(written);
     try file.writeAll(canvas.Pixels);

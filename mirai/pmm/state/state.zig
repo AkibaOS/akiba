@@ -2,17 +2,7 @@
 
 const types = @import("mirai").pmm.types;
 
-pub const State = struct {
-    Bitmap: []u8,
-    BitmapSize: u64,
-    TotalPages: u64,
-    FreePages: u64,
-    UsedPages: u64,
-    ReservedPages: u64,
-    WiredPages: u64,
-    SearchStart: u64,
-    Initialized: bool,
-};
+const State = types.state.State;
 
 var global_state: State = .{
     .Bitmap = &[_]u8{},

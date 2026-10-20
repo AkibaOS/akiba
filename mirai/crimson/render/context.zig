@@ -19,7 +19,7 @@ pub fn render(context: *const Context) void {
     serial.write.printf(messages.REG_R12_R13, .{ context.R12, context.R13 });
     serial.write.printf(messages.REG_R14_R15, .{ context.R14, context.R15 });
     serial.write.printf(messages.REG_RIP_RFLAGS, .{ context.RIP, context.RFLAGS });
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
 
     renderControlRegisters(context);
     renderSegmentRegisters(context);
@@ -29,12 +29,12 @@ fn renderControlRegisters(context: *const Context) void {
     serial.write.printf(messages.CONTROL_REGISTERS_HEADER, .{});
     serial.write.printf(messages.REG_CR0_CR2, .{ context.CR0, context.CR2 });
     serial.write.printf(messages.REG_CR3_CR4, .{ context.CR3, context.CR4 });
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
 }
 
 fn renderSegmentRegisters(context: *const Context) void {
     serial.write.printf(messages.SEGMENT_REGISTERS_HEADER, .{});
     serial.write.printf(messages.REG_CS_DS_ES, .{ context.CS, context.DS, context.ES });
     serial.write.printf(messages.REG_FS_GS_SS, .{ context.FS, context.GS, context.SS });
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
 }

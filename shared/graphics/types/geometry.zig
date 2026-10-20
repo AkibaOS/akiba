@@ -7,6 +7,11 @@ pub const Point = struct {
 
 pub const Quad = [4]Point;
 
+pub const Span = struct {
+    Left: i32,
+    Right: i32,
+};
+
 pub const Stripe = struct {
     Period: i32,
     Gap: i32,

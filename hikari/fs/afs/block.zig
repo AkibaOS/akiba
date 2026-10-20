@@ -2,17 +2,11 @@
 
 const afs = @import("shared").afs;
 const efi = @import("hikari").efi;
+const types = @import("hikari").fs.types;
 
-const BlockReader = afs.io.block.BlockReader;
 const BlockError = afs.errors.block.BlockError;
-
-pub const EfiBlockContext = struct {
-    BlockIO: *efi.protocols.block.BlockIoProtocol,
-    BootServices: *efi.services.boot.BootServices,
-    PartitionStartLBA: u64,
-    BlockSize: u32,
-    CellSize: u32,
-};
+const BlockReader = afs.types.block.BlockReader;
+const EfiBlockContext = types.afs.block.EfiBlockContext;
 
 pub fn efiReadCell(context: *anyopaque, cell: u64, buffer: []u8) BlockError!void {
     const block_context: *EfiBlockContext = @ptrCast(@alignCast(context));
@@ -27,7 +21,7 @@ pub fn efiReadCell(context: *anyopaque, cell: u64, buffer: []u8) BlockError!void
         buffer.ptr,
     );
 
-    if (efi.types.base.isError(read_status)) {
+    if (efi.status.isError(read_status)) {
         return BlockError.ReadFailed;
     }
 }

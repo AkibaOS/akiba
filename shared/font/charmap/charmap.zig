@@ -8,8 +8,6 @@ const constants = font.constants.charmap;
 const FontError = font.errors.font.FontError;
 const Reader = sfnt.types.reader.Reader;
 
-const ENCODING_RECORD_SIZE: usize = 8;
-
 pub fn select(table: []const u8) FontError![]const u8 {
     var reader = Reader.initialize(table);
     _ = try reader.readU16();
@@ -20,7 +18,7 @@ pub fn select(table: []const u8) FontError![]const u8 {
 
     var index: u16 = 0;
     while (index < record_count) : (index += 1) {
-        try reader.seek(4 + @as(usize, index) * ENCODING_RECORD_SIZE);
+        try reader.seek(4 + @as(usize, index) * constants.ENCODING_RECORD_SIZE);
         const platform = try reader.readU16();
         const encoding = try reader.readU16();
         const offset = try reader.readU32();
@@ -135,14 +133,13 @@ fn lookupSegmentedCoverage(subtable: []const u8, codepoint: u32) FontError!u16 {
     const group_count = try reader.readU32();
 
     const groups: usize = 16;
-    const GROUP_SIZE: usize = 12;
 
     var low: u32 = 0;
     var high: u32 = group_count;
 
     while (low < high) {
         const middle = low + (high - low) / 2;
-        try reader.seek(groups + @as(usize, middle) * GROUP_SIZE);
+        try reader.seek(groups + @as(usize, middle) * constants.GROUP_SIZE);
         const start_character = try reader.readU32();
         const end_character = try reader.readU32();
         const start_glyph = try reader.readU32();

@@ -6,27 +6,9 @@ const Context = types.context.Context;
 const ExceptionType = types.kind.ExceptionType;
 const Identity = types.identity.Identity;
 
-pub const ReceivedExceptionDefault = struct {
-    PortId: u64,
-    ThreadId: u64,
-    KataId: u64,
-    ExceptionType: ExceptionType,
-    Code: u64,
-    Subcode: u64,
-};
-
-pub const ReceivedExceptionState = struct {
-    Base: ReceivedExceptionDefault,
-    Context: *Context,
-};
-
-pub const ReceivedExceptionStateIdentity = struct {
-    Base: ReceivedExceptionDefault,
-    Context: *Context,
-    Identity: *Identity,
-    ThreadPort: u64,
-    KataPort: u64,
-};
+const ReceivedExceptionDefault = types.receive.catcher.ReceivedExceptionDefault;
+const ReceivedExceptionState = types.receive.catcher.ReceivedExceptionState;
+const ReceivedExceptionStateIdentity = types.receive.catcher.ReceivedExceptionStateIdentity;
 
 pub fn catchExceptionRaise(port_id: u64, thread_id: u64, kata_id: u64, exception_type: ExceptionType, code: u64, subcode: u64) ReceivedExceptionDefault {
     return ReceivedExceptionDefault{

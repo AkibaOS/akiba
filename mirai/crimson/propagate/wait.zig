@@ -6,12 +6,7 @@ const types = @import("mirai").crimson.types;
 const Action = types.behavior.Action;
 const Exception = types.exception.Exception;
 const Port = types.port.Port;
-
-pub const Reply = struct {
-    Action: Action,
-    NewState: bool,
-    Valid: bool,
-};
+const Reply = types.propagate.reply.Reply;
 
 pub fn waitForReply(exception: *Exception, port: *const Port) Action {
     _ = port;

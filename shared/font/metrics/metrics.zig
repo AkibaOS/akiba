@@ -8,7 +8,7 @@ const FontError = font.errors.font.FontError;
 const GlyphMetrics = font.types.metrics.GlyphMetrics;
 const Reader = sfnt.types.reader.Reader;
 
-const LONG_METRIC_SIZE: usize = 4;
+const constants = font.constants.metrics;
 
 pub fn glyphMetrics(face: *const Face, glyph_id: u16) FontError!GlyphMetrics {
     if (glyph_id >= face.GlyphCount) {
@@ -21,17 +21,17 @@ pub fn glyphMetrics(face: *const Face, glyph_id: u16) FontError!GlyphMetrics {
     var reader = Reader.initialize(face.Hmtx);
 
     if (glyph_id < face.LongMetricCount) {
-        try reader.seek(@as(usize, glyph_id) * LONG_METRIC_SIZE);
+        try reader.seek(@as(usize, glyph_id) * constants.LONG_METRIC_SIZE);
         return GlyphMetrics{
             .AdvanceWidth = try reader.readU16(),
             .LeftSideBearing = try reader.readI16(),
         };
     }
 
-    try reader.seek(@as(usize, face.LongMetricCount - 1) * LONG_METRIC_SIZE);
+    try reader.seek(@as(usize, face.LongMetricCount - 1) * constants.LONG_METRIC_SIZE);
     const advance = try reader.readU16();
 
-    const trailing = @as(usize, face.LongMetricCount) * LONG_METRIC_SIZE +
+    const trailing = @as(usize, face.LongMetricCount) * constants.LONG_METRIC_SIZE +
         @as(usize, glyph_id - face.LongMetricCount) * 2;
     try reader.seek(trailing);
 

@@ -1,6 +1,5 @@
 //! Breach Handler (Page Fault, Segment Fault)
 
-const classify = @import("mirai").crimson.classify;
 const constants = @import("mirai").crimson.constants;
 const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
@@ -10,7 +9,7 @@ const messages = strings.messages;
 
 const Action = types.behavior.Action;
 const Exception = types.exception.Exception;
-const PageFaultError = classify.analyze.PageFaultError;
+const PageFaultError = types.faults.PageFaultError;
 
 pub fn handle(exception: *Exception) Action {
     if (exception.Vector == constants.vectors.PAGE_FAULT_VECTOR) {

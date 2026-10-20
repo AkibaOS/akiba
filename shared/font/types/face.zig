@@ -3,7 +3,7 @@
 const common = @import("common");
 const sfnt = @import("shared").sfnt;
 
-const Directory = sfnt.directory.Directory;
+const Directory = sfnt.types.directory.Directory;
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 
 pub const Face = struct {

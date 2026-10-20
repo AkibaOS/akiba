@@ -29,7 +29,7 @@ const paths = strings.paths;
 const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
-pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.system.SystemTable) efi.types.base.Status {
+pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable) efi.types.base.Status {
     const boot_services = system_table.BootServices;
     const console_output = system_table.ConsoleOutput;
     _ = console_output.ClearScreen(console_output);
@@ -56,7 +56,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         return status.NOT_FOUND;
     };
     splash.report(messages.INITIALIZING_FILE_SYSTEM);
-    var afs_reader = fs.afs.reader.Reader.initialize(afs_partition.BlockIO, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
+    var afs_reader = fs.types.afs.reader.Reader.initialize(afs_partition.BlockIO, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
         splash.fail(messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
@@ -91,7 +91,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         return status.UNSUPPORTED;
     }
     splash.report(messages.PREPARING_MEMORY);
-    var page_setup = paging.setup.PageTableSetup.initialize(boot_services) catch {
+    var page_setup = paging.types.setup.PageTableSetup.initialize(boot_services) catch {
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
@@ -103,7 +103,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     };
     defer _ = boot_services.FreePages(loaded_image.BaseAddress, @intCast(loaded_image.totalSize() / sizes.PAGE_SIZE));
     const release_buffer = boot_services.FreePool(@alignCast(kernel_data.Buffer));
-    if (efi.types.base.isError(release_buffer)) return status.DEVICE_ERROR;
+    if (efi.status.isError(release_buffer)) return status.DEVICE_ERROR;
     kernel_buffer_live = false;
 
     page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {
@@ -112,8 +112,8 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     };
     var image_protocol: ?*anyopaque = null;
     const image_status = boot_services.HandleProtocol(image_handle, &efi.constants.guids.LOADED_IMAGE_PROTOCOL, &image_protocol);
-    if (efi.types.base.isError(image_status) or image_protocol == null) return status.LOAD_ERROR;
-    const current_image: *const efi.protocols.image.LoadedImageProtocol = @ptrCast(@alignCast(image_protocol.?));
+    if (efi.status.isError(image_status) or image_protocol == null) return status.LOAD_ERROR;
+    const current_image: *const efi.types.protocols.image.LoadedImageProtocol = @ptrCast(@alignCast(image_protocol.?));
     if (current_image.ImageSize == 0) return status.LOAD_ERROR;
     page_setup.mapIdentity(@intFromPtr(current_image.ImageBase), current_image.ImageSize) catch return status.NO_MAPPING;
     page_setup.mapPhysmap() catch return status.OUT_OF_RESOURCES;

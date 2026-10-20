@@ -2,12 +2,14 @@
 
 const std = @import("std");
 
-const afs = @import("mkafsdisk").afs;
 const constants = @import("mkafsdisk").constants;
 const esp = @import("mkafsdisk").image.esp;
 const gpt = @import("mkafsdisk").image.gpt;
 const mbr = @import("mkafsdisk").image.mbr;
 const strings = @import("mkafsdisk").strings;
+const types = @import("mkafsdisk").types;
+
+const Writer = types.writer.Writer;
 
 const disk = constants.disk;
 const messages = strings.messages;
@@ -41,7 +43,7 @@ pub fn createDiskImage(
     const partition_start_byte: u64 = @as(u64, afs_start_sector) * disk.SECTOR_SIZE;
     const partition_size_bytes: u64 = @as(u64, afs_end_sector - afs_start_sector + 1) * disk.SECTOR_SIZE;
 
-    var writer = afs.writer.Writer.initialize(
+    var writer = Writer.initialize(
         file,
         partition_start_byte,
         partition_size_bytes,

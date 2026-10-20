@@ -2,6 +2,7 @@
 
 const constants = @import("mirai").interrupts.constants;
 const gate = @import("mirai").interrupts.types.gate;
+const strings = @import("mirai").interrupts.strings.layout;
 
 const IDT_ENTRIES = constants.idt.limits.IDT_ENTRIES;
 
@@ -18,5 +19,5 @@ pub const Descriptor = packed struct(u80) {
 };
 
 comptime {
-    if (@bitSizeOf(Descriptor) != 80) @compileError("Descriptor must be 80 bits");
+    if (@bitSizeOf(Descriptor) != constants.layout.DESCRIPTOR_BITS) @compileError(strings.INVALID_DESCRIPTOR_SIZE);
 }

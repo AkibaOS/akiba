@@ -9,7 +9,7 @@ const draw = graphics.draw;
 
 const BlendTarget = graphics.types.renderer.BlendTarget;
 const Color = graphics.types.color.Color;
-const Cursor = typeset.layout.Cursor;
+const Cursor = typeset.types.cursor.Cursor;
 const Face = font.types.face.Face;
 const RowSink = raster.types.sink.RowSink;
 const Surface = graphics.types.surface.Surface;

@@ -3,7 +3,7 @@
 const boot = @import("shared").boot;
 const efi = @import("hikari").efi;
 
-pub fn findACPI(system_table: *efi.services.system.SystemTable) boot.types.acpi.ACPIInfo {
+pub fn findACPI(system_table: *efi.types.services.system.SystemTable) boot.types.acpi.ACPIInfo {
     var index: usize = 0;
     while (index < system_table.NumberOfTableEntries) : (index += 1) {
         const entry = &system_table.ConfigurationTable[index];

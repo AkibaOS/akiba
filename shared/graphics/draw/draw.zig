@@ -4,6 +4,7 @@ const graphics = @import("shared").graphics;
 
 const Color = graphics.types.color.Color;
 const Quad = graphics.types.geometry.Quad;
+const Span = graphics.types.geometry.Span;
 const Stripe = graphics.types.geometry.Stripe;
 const Surface = graphics.types.surface.Surface;
 
@@ -125,11 +126,6 @@ fn copyRow(
         surface.Base[destination + column] = surface.Base[source + column];
     }
 }
-
-const Span = struct {
-    Left: i32,
-    Right: i32,
-};
 
 fn spanAt(quad: Quad, row: i32) ?Span {
     var left: i32 = 0;

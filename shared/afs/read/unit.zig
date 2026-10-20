@@ -5,10 +5,9 @@ const std = @import("std");
 const bounds = @import("shared").afs.read.bounds;
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
-const io = @import("shared").afs.io;
 const types = @import("shared").afs.types;
 
-const BlockReader = io.block.BlockReader;
+const BlockReader = types.block.BlockReader;
 const ChannelInfo = types.volume.ChannelInfo;
 const ReadError = errors.read.ReadError;
 const SpanDescriptor = types.volume.SpanDescriptor;

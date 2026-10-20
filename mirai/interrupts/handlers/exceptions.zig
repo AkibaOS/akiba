@@ -3,21 +3,14 @@
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const crimson = @import("mirai").crimson;
-const frame = @import("mirai").interrupts.handlers.common;
+const frame = @import("mirai").interrupts.types.frame;
+const metadata = @import("mirai").interrupts.constants.idt.exceptions;
 const stubgen = @import("asm").interrupts.stubs;
 const user = @import("mirai").thread.user;
 
 const vectors = common.constants.interrupts.vectors;
 
 const InterruptFrame = frame.InterruptFrame;
-
-const HAS_ERROR_CODE = blk: {
-    var table = [_]bool{false} ** vectors.EXCEPTION_COUNT;
-    for ([_]u8{ 8, 10, 11, 12, 13, 14, 17, 21, 29, 30 }) |vector| {
-        table[vector] = true;
-    }
-    break :blk table;
-};
 
 export fn exception_dispatch(interrupt_frame: *InterruptFrame) void {
     const vector: u8 = @truncate(interrupt_frame.Vector);
@@ -68,7 +61,7 @@ export fn exception_dispatch(interrupt_frame: *InterruptFrame) void {
 pub const stubs = blk: {
     var array: [vectors.EXCEPTION_COUNT]*const fn () callconv(.naked) void = undefined;
     for (0..vectors.EXCEPTION_COUNT) |vector| {
-        array[vector] = &stubgen.makeExceptionHandler(@intCast(vector), HAS_ERROR_CODE[vector]);
+        array[vector] = &stubgen.makeExceptionHandler(@intCast(vector), metadata.HAS_ERROR_CODE[vector]);
     }
     break :blk array;
 };

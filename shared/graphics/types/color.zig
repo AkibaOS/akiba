@@ -43,16 +43,13 @@ pub const Color = struct {
             .B = mix(self.B, other.B, numerator, denominator),
         };
     }
-};
 
-pub const BLACK = Color.rgb(0x00, 0x00, 0x00);
-pub const WHITE = Color.rgb(0xFF, 0xFF, 0xFF);
-
-fn mix(from: u8, to: u8, numerator: u32, denominator: u32) u8 {
-    const start: u32 = from;
-    const end: u32 = to;
-    if (end >= start) {
-        return @truncate(start + (end - start) * numerator / denominator);
+    fn mix(from: u8, to: u8, numerator: u32, denominator: u32) u8 {
+        const start: u32 = from;
+        const end: u32 = to;
+        if (end >= start) {
+            return @truncate(start + (end - start) * numerator / denominator);
+        }
+        return @truncate(start - (start - end) * numerator / denominator);
     }
-    return @truncate(start - (start - end) * numerator / denominator);
-}
+};

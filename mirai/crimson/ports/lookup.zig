@@ -7,12 +7,7 @@ const types = @import("mirai").crimson.types;
 
 const Exception = types.exception.Exception;
 const ExceptionType = types.kind.ExceptionType;
-const Port = types.port.Port;
-
-pub const LookupResult = struct {
-    Port: *const Port,
-    Found: bool,
-};
+const LookupResult = types.ports.lookup.LookupResult;
 
 pub fn findPort(exception: *const Exception) LookupResult {
     return findPortFor(exception.ThreadId, exception.KataId, exception.ExceptionType);

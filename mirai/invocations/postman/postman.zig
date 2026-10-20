@@ -13,7 +13,7 @@ const types = @import("mirai").invocations.types.postman;
 
 const ArgumentError = arguments.ArgumentError;
 const Header = postman.types.letter.Header;
-const InterruptFrame = @import("mirai").interrupts.handlers.common.InterruptFrame;
+const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Result = types.Result;
 const Thread = @import("mirai").thread.types.thread.Thread;
 const View = postman.types.letter.View;

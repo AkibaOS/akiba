@@ -6,14 +6,7 @@ const types = @import("mirai").crimson.types;
 const replies = constants.replies;
 
 const Action = types.behavior.Action;
-const Context = types.context.Context;
-
-pub const ParsedAction = struct {
-    Action: Action,
-    ModifyState: bool,
-    NewContext: ?*Context,
-    Valid: bool,
-};
+const ParsedAction = types.receive.actions.ParsedAction;
 
 pub fn parseActionCode(code: u64) ParsedAction {
     const action_value: u8 = @truncate(code & replies.ACTION_MASK);

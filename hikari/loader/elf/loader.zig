@@ -11,7 +11,7 @@ const validation = @import("hikari").loader.elf.validation;
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
-pub fn load(boot_services: *efi.services.boot.BootServices, physical_limit: u64, unit_data: []const u8) errors.LoadError!types.LoadedImage {
+pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64, unit_data: []const u8) errors.LoadError!types.LoadedImage {
     const image_layout = try validation.validateImage(unit_data);
     if (physical_limit == 0 or (physical_limit & sizes.PAGE_MASK) != 0 or
         image_layout.Size > physical_limit)
@@ -24,10 +24,10 @@ pub fn load(boot_services: *efi.services.boot.BootServices, physical_limit: u64,
         boot_services.AllocatePages(.Address, .LoaderData, pages_needed, &physical_base)
     else
         efi.constants.status.UNSUPPORTED;
-    if (efi.types.base.isError(allocation_status)) {
+    if (efi.status.isError(allocation_status)) {
         physical_base = physical_limit - 1;
         const fallback_status = boot_services.AllocatePages(.MaxAddress, .LoaderData, pages_needed, &physical_base);
-        if (efi.types.base.isError(fallback_status)) return error.AllocationFailed;
+        if (efi.status.isError(fallback_status)) return error.AllocationFailed;
     }
     if (physical_base == 0 or (physical_base & sizes.PAGE_MASK) != 0 or
         physical_base > physical_limit - image_layout.Size or

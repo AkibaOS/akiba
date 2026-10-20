@@ -1,14 +1,12 @@
 //! Serial Write Operations
 
-const common = @import("common");
-
-const format = @import("utils").format;
+const bounds = @import("common").constants.serial.format;
 const io = @import("asm").io;
+const limits = @import("mirai").drivers.constants.serial.number;
+const number = @import("mirai").drivers.serial.number;
 const poll = @import("mirai").drivers.serial.poll;
+const registers = @import("common").constants.serial.registers;
 const state = @import("mirai").drivers.serial.state;
-
-const limits = format.constants.format;
-const registers = common.constants.serial.registers;
 
 pub fn setPort(port: u16) void {
     state.selectPort(port);
@@ -82,13 +80,13 @@ pub fn printf(comptime fmt: []const u8, args: anytype) void {
 }
 
 fn printDecimalValue(value: u64) bool {
-    var digits: [limits.MAX_DECIMAL_DIGITS]u8 = undefined;
-    return writeText(format.number.decimal(value, &digits));
+    var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
+    return writeText(number.decimal(value, &digits));
 }
 
 fn printHexValue(value: u64) bool {
     if (!writeChar('0') or !writeChar('x')) return false;
 
     var digits: [limits.MAX_HEX_DIGITS]u8 = undefined;
-    return writeText(format.number.hexLower(value, &digits));
+    return writeText(number.hexLower(value, &digits));
 }

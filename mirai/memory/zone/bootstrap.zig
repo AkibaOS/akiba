@@ -1,15 +1,15 @@
 //! Bootstrap Zones
 
+const address = @import("utils").address;
 const common = @import("common");
-
 const constants = @import("mirai").memory.constants;
+const math = @import("utils").math;
 const pmm = @import("mirai").pmm;
+const strings = @import("mirai").memory.strings;
+const text = @import("utils").text;
 const types = @import("mirai").memory.types;
 
-const address = @import("utils").address;
-const math = @import("utils").math;
-const text = @import("utils").text;
-
+const labels = strings.zone.labels;
 const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
 
@@ -29,8 +29,8 @@ var initialized: bool = false;
 pub fn init() AllocationError!void {
     if (initialized) return;
 
-    initZone(&zone_zone, "zone_zone", @sizeOf(Zone));
-    initZone(&page_meta_zone, "page_meta_zone", @sizeOf(ZonePageMeta));
+    initZone(&zone_zone, labels.ZONE, @sizeOf(Zone));
+    initZone(&page_meta_zone, labels.PAGE_METADATA, @sizeOf(ZonePageMeta));
 
     try expandZoneEarly(&zone_zone);
     try expandZoneEarly(&page_meta_zone);

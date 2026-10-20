@@ -2,8 +2,10 @@
 
 const constants = @import("shared").fat32.constants;
 const errors = @import("shared").fat32.errors;
+const types = @import("shared").fat32.types;
 
 const ClusterError = errors.cluster.ClusterError;
+const FatPosition = types.position.FatPosition;
 
 pub fn isValidCluster(cluster: u32) bool {
     return cluster >= constants.clusters.CLUSTER_DATA_START and
@@ -15,7 +17,7 @@ pub fn isEndOfChain(cluster: u32) bool {
     return (cluster & constants.clusters.CLUSTER_MASK) >= constants.clusters.CLUSTER_EOC_START;
 }
 
-pub fn getFatPosition(cluster: u32, bytes_per_sector: u32) struct { Sector: u32, Offset: u32 } {
+pub fn getFatPosition(cluster: u32, bytes_per_sector: u32) FatPosition {
     const fat_offset = cluster * @sizeOf(u32);
     return .{
         .Sector = fat_offset / bytes_per_sector,

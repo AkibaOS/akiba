@@ -27,7 +27,7 @@ pub fn inspect(corpse: *const Corpse) void {
         serial.write.printf(messages.CORPSE_FAULT_ADDRESS, .{corpse.FaultAddress});
     }
 
-    serial.write.printf("\n", .{});
+    serial.write.printf(messages.NEWLINE, .{});
     context.dump.dumpContext(&corpse.Context);
 }
 

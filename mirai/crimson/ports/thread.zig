@@ -1,6 +1,5 @@
 //! Thread Exception Ports
 
-const array = @import("mirai").crimson.ports.array;
 const constants = @import("mirai").crimson.constants;
 const types = @import("mirai").crimson.types;
 
@@ -10,7 +9,7 @@ const Behavior = types.behavior.Behavior;
 const ExceptionType = types.kind.ExceptionType;
 const Flavor = types.flavor.Flavor;
 const Port = types.port.Port;
-const PortArray = array.PortArray;
+const PortArray = types.ports.array.PortArray;
 
 var thread_ports: [limits.MAX_THREADS]PortArray = [_]PortArray{PortArray.EMPTY} ** limits.MAX_THREADS;
 

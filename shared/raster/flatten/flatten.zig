@@ -6,24 +6,11 @@ const raster = @import("shared").raster;
 
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 const Outline = font.types.outline.Outline;
+const Placement = raster.types.placement.Placement;
 const RasterError = raster.errors.raster.RasterError;
 const Shape = raster.types.shape.Shape;
 
 const limits = raster.constants.limits;
-
-const Placement = struct {
-    Scale: Fixed16Dot16,
-    OriginX: i32,
-    BaselineY: i32,
-
-    fn deviceX(self: Placement, units: i32) i32 {
-        return self.OriginX + self.Scale.applyToUnits(units).Raw;
-    }
-
-    fn deviceY(self: Placement, units: i32) i32 {
-        return self.BaselineY - self.Scale.applyToUnits(units).Raw;
-    }
-};
 
 pub fn flatten(
     outline: *const Outline,

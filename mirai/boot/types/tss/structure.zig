@@ -1,6 +1,7 @@
 //! TSS Structure Type
 
 const constants = @import("mirai").boot.constants;
+const strings = @import("mirai").boot.strings.tss.layout;
 
 const limits = constants.tss.limits;
 
@@ -70,6 +71,6 @@ pub const TSS = extern struct {
 
 comptime {
     if (@sizeOf(TSS) != limits.TSS_SIZE) {
-        @compileError("TSS size must be 104 bytes");
+        @compileError(strings.INVALID_TSS_SIZE);
     }
 }

@@ -5,7 +5,7 @@ const sfnt = @import("shared").sfnt;
 
 const constants = font.constants;
 
-const Directory = sfnt.directory.Directory;
+const Directory = sfnt.types.directory.Directory;
 const Face = font.types.face.Face;
 const FontError = font.errors.font.FontError;
 const Reader = sfnt.types.reader.Reader;

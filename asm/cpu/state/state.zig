@@ -1,8 +1,10 @@
 //! CPU State Operations
 
+const strings = @import("asm").cpu.strings.state;
+
 pub fn readStackPointer() u64 {
     var value: u64 = undefined;
-    asm volatile ("mov %%rsp, %[value]"
+    asm volatile (strings.READ_STACK_POINTER
         : [value] "=r" (value),
     );
     return value;
@@ -10,7 +12,7 @@ pub fn readStackPointer() u64 {
 
 pub fn readBasePointer() u64 {
     var value: u64 = undefined;
-    asm volatile ("mov %%rbp, %[value]"
+    asm volatile (strings.READ_BASE_POINTER
         : [value] "=r" (value),
     );
     return value;
@@ -18,7 +20,7 @@ pub fn readBasePointer() u64 {
 
 pub fn readFlags() u64 {
     var value: u64 = undefined;
-    asm volatile ("pushfq; pop %[value]"
+    asm volatile (strings.READ_FLAGS
         : [value] "=r" (value),
     );
     return value;
@@ -27,7 +29,7 @@ pub fn readFlags() u64 {
 pub fn readTimeStampCounter() u64 {
     var low: u32 = undefined;
     var high: u32 = undefined;
-    asm volatile ("rdtsc"
+    asm volatile (strings.READ_TIME_STAMP_COUNTER
         : [low] "={eax}" (low),
           [high] "={edx}" (high),
     );
@@ -35,9 +37,5 @@ pub fn readTimeStampCounter() u64 {
 }
 
 pub fn clearTaskSwitched() void {
-    asm volatile (
-        \\mov %%cr0, %%rax
-        \\and $~8, %%rax
-        \\mov %%rax, %%cr0
-        ::: .{ .rax = true });
+    asm volatile (strings.CLEAR_TASK_SWITCHED ::: .{ .rax = true });
 }

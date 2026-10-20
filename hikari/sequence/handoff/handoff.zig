@@ -16,7 +16,7 @@ const memory = boot.constants.memory;
 const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
-pub fn initialize(boot_services: *efi.services.boot.BootServices, physical_limit: u64) HandoffError!Handoff {
+pub fn initialize(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64) HandoffError!Handoff {
     if (physical_limit < sizes.PAGE_SIZE or physical_limit > layout.PHYSMAP_MAX_SIZE or
         (physical_limit & sizes.PAGE_MASK) != 0) return HandoffError.AllocationFailed;
     var state = Handoff{ .BootServices = boot_services, .PhysicalLimit = physical_limit };
@@ -55,7 +55,7 @@ fn allocatePages(state: *const Handoff, pages: usize) HandoffError!u64 {
     if (pages == 0 or pages > state.PhysicalLimit / sizes.PAGE_SIZE) return HandoffError.AllocationFailed;
     var address: efi.types.base.PhysicalAddress = state.PhysicalLimit - 1;
     const allocation = state.BootServices.AllocatePages(.MaxAddress, .LoaderData, pages, &address);
-    if (efi.types.base.isError(allocation)) return HandoffError.AllocationFailed;
+    if (efi.status.isError(allocation)) return HandoffError.AllocationFailed;
     if (address == 0 or (address & sizes.PAGE_MASK) != 0 or address > state.PhysicalLimit - pages * sizes.PAGE_SIZE) {
         _ = state.BootServices.FreePages(address, pages);
         return HandoffError.AllocationFailed;
@@ -72,7 +72,7 @@ fn growMap(state: *Handoff, required: usize, descriptor_size: usize) HandoffErro
     const address = try allocatePages(state, pages);
     if (state.MapPhysical != 0) {
         const release = state.BootServices.FreePages(state.MapPhysical, state.MapPages);
-        if (efi.types.base.isError(release)) {
+        if (efi.status.isError(release)) {
             _ = state.BootServices.FreePages(address, pages);
             return HandoffError.AllocationFailed;
         }
@@ -98,7 +98,7 @@ pub fn exit(state: *Handoff, image_handle: efi.types.base.Handle) HandoffError!v
             try growMap(state, size, descriptor_size);
             continue;
         }
-        if (efi.types.base.isError(result) or state.MapPhysical == 0 or size == 0 or
+        if (efi.status.isError(result) or state.MapPhysical == 0 or size == 0 or
             size > state.MapPages * sizes.PAGE_SIZE or descriptor_size < @sizeOf(efi.types.memory.MemoryDescriptor) or
             descriptor_size > memory.MAX_DESCRIPTOR_SIZE or descriptor_size % @alignOf(efi.types.memory.MemoryDescriptor) != 0 or
             size % descriptor_size != 0 or descriptor_version != memory.DESCRIPTOR_VERSION or size / descriptor_size > memory.MAX_REGIONS)

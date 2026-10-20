@@ -17,11 +17,11 @@ var canvas: Canvas = undefined;
 var renderer: TextRenderer = undefined;
 var state: SplashState = SplashState.initialize(limits.BOOT_STEPS);
 var ready: bool = false;
-var fallback: ?*efi.protocols.output.SimpleTextOutputProtocol = null;
+var fallback: ?*efi.types.protocols.output.SimpleTextOutputProtocol = null;
 
 pub fn initialize(
-    gop: *efi.protocols.graphics.GraphicsOutputProtocol,
-    console_output: *efi.protocols.output.SimpleTextOutputProtocol,
+    gop: *efi.types.protocols.graphics.GraphicsOutputProtocol,
+    console_output: *efi.types.protocols.output.SimpleTextOutputProtocol,
 ) bool {
     fallback = console_output;
 

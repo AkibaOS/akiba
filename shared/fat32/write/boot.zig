@@ -3,23 +3,13 @@
 const std = @import("std");
 
 const constants = @import("shared").fat32.constants;
+const math = @import("utils").math;
+const strings = @import("shared").fat32.strings.identity;
 const types = @import("shared").fat32.types;
 
-const math = @import("utils").math;
-
 const BootSector = types.boot.BootSector;
+const CreateParams = types.creation.CreateParams;
 const FsInfo = types.boot.FsInfo;
-
-pub const CreateParams = struct {
-    TotalSectors: u32,
-    HiddenSectors: u32 = 0,
-    BytesPerSector: u16 = constants.sizes.SECTOR_SIZE_MIN,
-    SectorsPerCluster: u8 = constants.defaults.DEFAULT_SECTORS_PER_CLUSTER,
-    ReservedSectors: u16 = constants.defaults.DEFAULT_RESERVED_SECTORS,
-    FatCount: u8 = constants.defaults.DEFAULT_FAT_COUNT,
-    VolumeId: u32 = constants.defaults.DEFAULT_VOLUME_ID,
-    VolumeLabel: [11]u8 = constants.defaults.DEFAULT_VOLUME_LABEL,
-};
 
 pub fn calculateFatSize(params: CreateParams) u32 {
     const data_sectors = params.TotalSectors - params.ReservedSectors;
@@ -33,7 +23,7 @@ pub fn createBootSector(params: CreateParams) BootSector {
 
     return BootSector{
         .JumpBoot = constants.defaults.DEFAULT_JUMP_BOOT,
-        .OemName = constants.defaults.DEFAULT_OEM_NAME,
+        .OemName = strings.DEFAULT_OEM_NAME,
         .BytesPerSector = params.BytesPerSector,
         .SectorsPerCluster = params.SectorsPerCluster,
         .ReservedSectors = params.ReservedSectors,
@@ -58,7 +48,7 @@ pub fn createBootSector(params: CreateParams) BootSector {
         .BootSignature = constants.defaults.DEFAULT_EXTENDED_BOOT_SIGNATURE,
         .VolumeId = params.VolumeId,
         .VolumeLabel = params.VolumeLabel,
-        .FsType = constants.magic.FS_TYPE_FAT32,
+        .FsType = strings.FS_TYPE_FAT32,
         .BootCode = [_]u8{0} ** 420,
         .Signature = constants.magic.BOOT_SIGNATURE,
     };

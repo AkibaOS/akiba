@@ -1,10 +1,10 @@
 //! ASCII Text Utilities
 
-const CASE_DISTANCE: u8 = 'a' - 'A';
+const constants = @import("utils").text.constants.ascii;
 
 pub fn toUpper(character: u8) u8 {
     if (character >= 'a' and character <= 'z') {
-        return character - CASE_DISTANCE;
+        return character - constants.CASE_DISTANCE;
     }
     return character;
 }

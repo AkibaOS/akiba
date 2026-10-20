@@ -1,4 +1,5 @@
 //! Graphics Constants
 
 pub const console = @import("console.zig");
+pub const palette = @import("palette.zig");
 pub const pixel = @import("pixel.zig");

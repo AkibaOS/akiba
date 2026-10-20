@@ -1,10 +1,11 @@
 //! FAT32 Entry Creation
 
 const constants = @import("shared").fat32.constants;
+const strings = @import("shared").fat32.strings.identity;
+const text = @import("utils").text;
 const types = @import("shared").fat32.types;
 
-const text = @import("utils").text;
-
+const ParsedIdentity = types.identity.ParsedIdentity;
 const StackEntry = types.entry.StackEntry;
 
 pub fn createEntry(
@@ -47,15 +48,15 @@ pub fn createStackEntry(
     identity: []const u8,
     first_cluster: u32,
 ) StackEntry {
-    return createEntry(identity, "", constants.attributes.ATTR_STACK, first_cluster, 0);
+    return createEntry(identity, strings.EMPTY, constants.attributes.ATTR_STACK, first_cluster, 0);
 }
 
 pub fn createDotEntry(cluster: u32) StackEntry {
-    return createEntry(".", "", constants.attributes.ATTR_STACK, cluster, 0);
+    return createEntry(strings.DOT, strings.EMPTY, constants.attributes.ATTR_STACK, cluster, 0);
 }
 
 pub fn createDotDotEntry(parent_cluster: u32) StackEntry {
-    return createEntry("..", "", constants.attributes.ATTR_STACK, parent_cluster, 0);
+    return createEntry(strings.PARENT, strings.EMPTY, constants.attributes.ATTR_STACK, parent_cluster, 0);
 }
 
 pub fn createUnitEntry(
@@ -67,14 +68,7 @@ pub fn createUnitEntry(
     return createEntry(identity, extension, constants.attributes.ATTR_ARCHIVE, first_cluster, unit_size);
 }
 
-fn toUpper(char: u8) u8 {
-    if (char >= 'a' and char <= 'z') {
-        return char - ('a' - 'A');
-    }
-    return char;
-}
-
-pub fn parseIdentity(identity: []const u8) struct { Name: []const u8, Extension: []const u8 } {
+pub fn parseIdentity(identity: []const u8) ParsedIdentity {
     var dot_position: ?usize = null;
     var index: usize = identity.len;
     while (index > 0) {
@@ -88,12 +82,12 @@ pub fn parseIdentity(identity: []const u8) struct { Name: []const u8, Extension:
     if (dot_position) |position| {
         return .{
             .Name = identity[0..position],
-            .Extension = if (position + 1 < identity.len) identity[position + 1 ..] else "",
+            .Extension = if (position + 1 < identity.len) identity[position + 1 ..] else strings.EMPTY,
         };
     } else {
         return .{
             .Name = identity,
-            .Extension = "",
+            .Extension = strings.EMPTY,
         };
     }
 }

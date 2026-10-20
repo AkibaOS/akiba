@@ -7,51 +7,12 @@ const constants = font.constants.glyf;
 
 const Face = font.types.face.Face;
 const FontError = font.errors.font.FontError;
+const GlyphBounds = font.types.bounds.GlyphBounds;
 const GlyphBuffer = font.types.outline.GlyphBuffer;
-const Point = font.types.outline.Point;
 const Reader = sfnt.types.reader.Reader;
+const Transform = font.types.transform.Transform;
 
 const limits = font.constants.limits;
-
-const Transform = struct {
-    A: i32,
-    B: i32,
-    C: i32,
-    D: i32,
-    Dx: i32,
-    Dy: i32,
-
-    fn identity() Transform {
-        return Transform{
-            .A = constants.TRANSFORM_ONE,
-            .B = 0,
-            .C = 0,
-            .D = constants.TRANSFORM_ONE,
-            .Dx = 0,
-            .Dy = 0,
-        };
-    }
-
-    fn apply(self: Transform, x: i32, y: i32) Point {
-        return Point{
-            .X = ((self.A * x + self.C * y) >> constants.TRANSFORM_FRACTION_BITS) + self.Dx,
-            .Y = ((self.B * x + self.D * y) >> constants.TRANSFORM_FRACTION_BITS) + self.Dy,
-            .OnCurve = false,
-        };
-    }
-
-    fn compose(parent: Transform, child: Transform) Transform {
-        const shift = constants.TRANSFORM_FRACTION_BITS;
-        return Transform{
-            .A = (parent.A * child.A + parent.C * child.B) >> shift,
-            .B = (parent.B * child.A + parent.D * child.B) >> shift,
-            .C = (parent.A * child.C + parent.C * child.D) >> shift,
-            .D = (parent.B * child.C + parent.D * child.D) >> shift,
-            .Dx = ((parent.A * child.Dx + parent.C * child.Dy) >> shift) + parent.Dx,
-            .Dy = ((parent.B * child.Dx + parent.D * child.Dy) >> shift) + parent.Dy,
-        };
-    }
-};
 
 pub fn load(face: *const Face, glyph_id: u16, buffer: *GlyphBuffer) FontError!void {
     buffer.Shape.reset();
@@ -90,7 +51,7 @@ fn appendGlyph(
     try appendCompositeGlyph(face, &reader, transform, depth, buffer);
 }
 
-fn glyphBounds(face: *const Face, glyph_id: u16) FontError!struct { Start: usize, End: usize } {
+fn glyphBounds(face: *const Face, glyph_id: u16) FontError!GlyphBounds {
     if (glyph_id >= face.GlyphCount) {
         return FontError.GlyphOutOfRange;
     }

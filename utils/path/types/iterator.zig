@@ -1,6 +1,6 @@
 //! Location Component Iterator
 
-const constants = @import("../constants/constants.zig");
+const constants = @import("utils").path.constants;
 
 const separators = constants.separators;
 
@@ -39,8 +39,8 @@ pub const LocationIterator = struct {
 
         return self.Location[start..self.Position];
     }
-};
 
-fn isSeparator(character: u8) bool {
-    return character == separators.FORWARD_SLASH or character == separators.BACK_SLASH;
-}
+    fn isSeparator(character: u8) bool {
+        return character == separators.FORWARD_SLASH or character == separators.BACK_SLASH;
+    }
+};

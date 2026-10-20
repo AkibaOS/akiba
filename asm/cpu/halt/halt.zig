@@ -7,7 +7,7 @@ pub fn waitForInterrupt() void {
 }
 
 pub fn halt() void {
-    asm volatile ("hlt");
+    asm volatile (strings.HALT);
 }
 
 pub fn haltLoop() noreturn {
@@ -17,5 +17,5 @@ pub fn haltLoop() noreturn {
 }
 
 pub fn pause() void {
-    asm volatile ("pause");
+    asm volatile (strings.PAUSE);
 }

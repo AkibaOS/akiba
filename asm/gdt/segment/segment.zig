@@ -1,8 +1,10 @@
 //! Segment Register Operations
 
+const strings = @import("asm").gdt.strings.segment;
+
 pub fn readCodeSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%cs, %[value]"
+    asm volatile (strings.READ_CODE_SEGMENT
         : [value] "=r" (value),
     );
     return value;
@@ -10,7 +12,7 @@ pub fn readCodeSegment() u16 {
 
 pub fn readDataSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%ds, %[value]"
+    asm volatile (strings.READ_DATA_SEGMENT
         : [value] "=r" (value),
     );
     return value;
@@ -18,7 +20,7 @@ pub fn readDataSegment() u16 {
 
 pub fn readStackSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%ss, %[value]"
+    asm volatile (strings.READ_STACK_SEGMENT
         : [value] "=r" (value),
     );
     return value;
@@ -26,7 +28,7 @@ pub fn readStackSegment() u16 {
 
 pub fn readExtraSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%es, %[value]"
+    asm volatile (strings.READ_EXTRA_SEGMENT
         : [value] "=r" (value),
     );
     return value;
@@ -34,7 +36,7 @@ pub fn readExtraSegment() u16 {
 
 pub fn readFsSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%fs, %[value]"
+    asm volatile (strings.READ_FS_SEGMENT
         : [value] "=r" (value),
     );
     return value;
@@ -42,39 +44,28 @@ pub fn readFsSegment() u16 {
 
 pub fn readGsSegment() u16 {
     var value: u16 = undefined;
-    asm volatile ("mov %%gs, %[value]"
+    asm volatile (strings.READ_GS_SEGMENT
         : [value] "=r" (value),
     );
     return value;
 }
 
 pub fn reloadCodeSegment(code_selector: u16) void {
-    asm volatile (
-        \\push %[selector]
-        \\lea 1f(%%rip), %%rax
-        \\push %%rax
-        \\lretq
-        \\1:
+    asm volatile (strings.RELOAD_CODE_SEGMENT
         :
         : [selector] "r" (@as(u64, code_selector)),
         : .{ .rax = true, .memory = true });
 }
 
 pub fn reloadDataSegments(data_selector: u16) void {
-    asm volatile (
-        \\mov %[selector], %%ax
-        \\mov %%ax, %%ds
-        \\mov %%ax, %%es
-        \\mov %%ax, %%fs
-        \\mov %%ax, %%gs
-        \\mov %%ax, %%ss
+    asm volatile (strings.RELOAD_DATA_SEGMENTS
         :
         : [selector] "r" (data_selector),
         : .{ .rax = true, .memory = true });
 }
 
 pub fn loadTaskStateSegment(selector: u16) void {
-    asm volatile ("ltr %[selector]"
+    asm volatile (strings.LOAD_TASK_STATE_SEGMENT
         :
         : [selector] "r" (selector),
     );

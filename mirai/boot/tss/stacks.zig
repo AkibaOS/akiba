@@ -1,21 +1,16 @@
 //! TSS Stack Allocation
 
+const address = @import("utils").address;
 const common = @import("common");
-
 const constants = @import("mirai").boot.constants;
 const pmm = @import("mirai").pmm;
-
-const address = @import("utils").address;
+const types = @import("mirai").boot.types;
 
 const limits = constants.tss.limits;
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
-
-pub const StackRange = struct {
-    Base: u64,
-    Top: u64,
-};
+const StackRange = types.tss.stacks.StackRange;
 
 pub fn allocateKernelStack() AllocationError!StackRange {
     return allocateStack(limits.DEFAULT_STACK_SIZE);

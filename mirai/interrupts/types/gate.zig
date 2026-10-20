@@ -1,5 +1,8 @@
 //! IDT Gate Descriptor (64-bit)
 
+const layout = @import("mirai").interrupts.constants.layout;
+const strings = @import("mirai").interrupts.strings.layout;
+
 pub const GateType = enum(u4) {
     Interrupt = 0xE,
     Trap = 0xF,
@@ -63,5 +66,5 @@ pub const Gate64 = packed struct(u128) {
 };
 
 comptime {
-    if (@sizeOf(Gate64) != 16) @compileError("Gate64 must be 16 bytes");
+    if (@sizeOf(Gate64) != layout.GATE_BYTES) @compileError(strings.INVALID_GATE_SIZE);
 }

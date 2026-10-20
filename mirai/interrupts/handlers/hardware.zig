@@ -1,7 +1,7 @@
 //! Hardware IRQ Stubs (Vectors 32-47)
 
 const common = @import("common");
-const frame = @import("mirai").interrupts.handlers.common;
+const frame = @import("mirai").interrupts.types.frame;
 const interrupts = @import("mirai").sensei.interrupts;
 const pic = @import("mirai").interrupts.pic;
 const stubgen = @import("asm").interrupts.stubs;

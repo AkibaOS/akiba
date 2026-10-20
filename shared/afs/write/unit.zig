@@ -2,12 +2,10 @@
 
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
-const io = @import("shared").afs.io;
+const math = @import("utils").math;
 const types = @import("shared").afs.types;
 
-const math = @import("utils").math;
-
-const BlockWriter = io.block.BlockWriter;
+const BlockWriter = types.block.BlockWriter;
 const ChannelInfo = types.volume.ChannelInfo;
 const SpanDescriptor = types.volume.SpanDescriptor;
 const WriteError = errors.write.WriteError;

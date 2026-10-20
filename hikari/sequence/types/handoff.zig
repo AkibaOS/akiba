@@ -3,7 +3,7 @@
 const efi = @import("hikari").efi;
 
 pub const Handoff = struct {
-    BootServices: *efi.services.boot.BootServices,
+    BootServices: *efi.types.services.boot.BootServices,
     PhysicalLimit: u64,
     StackPhysical: u64 = 0,
     StackPages: usize = 0,
