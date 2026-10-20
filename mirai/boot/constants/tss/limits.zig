@@ -9,7 +9,6 @@ pub const IST_NMI: u8 = 2;
 pub const IST_MACHINE_CHECK: u8 = 3;
 pub const IST_DEBUG: u8 = 4;
 
-pub const BOOT_INTERRUPT_STACK_SIZE: u64 = 16 * 1024;
 pub const DEFAULT_STACK_SIZE: u64 = 16 * 1024;
 pub const INTERRUPT_STACK_SIZE: u64 = 8 * 1024;
 pub const STACK_ALIGNMENT: u64 = 16;

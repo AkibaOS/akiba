@@ -169,14 +169,16 @@ pub const Reader = struct {
         }
     }
 
-    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord) ReadError!struct { Buffer: [*]u8, Size: u64 } {
+    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64) ReadError!struct { Buffer: [*]u8, Size: u64 } {
         const unit_size = unit.DataChannel.LogicalSize;
-        if (unit_size == 0 or unit_size > @as(u64, self.VolumeHeader.TotalCells) * self.CellSize) return ReadError.UnitTooLarge;
+        if (unit_size == 0 or unit_size > max_size) return ReadError.UnitTooLarge;
+        const volume_size = @mulWithOverflow(@as(u64, self.VolumeHeader.TotalCells), @as(u64, self.CellSize));
+        if (volume_size[1] != 0 or unit_size > volume_size[0]) return ReadError.UnitTooLarge;
         var buffer: [*]align(8) u8 = undefined;
         const allocation_status = self.BootServices.AllocatePool(.LoaderData, unit_size, &buffer);
         if (efi.types.base.isError(allocation_status)) return ReadError.AllocationFailed;
         errdefer _ = self.BootServices.FreePool(buffer);
-        const bytes_read = try self.readUnit(unit, buffer, unit_size);
+        const bytes_read = try self.readUnit(unit, buffer, max_size);
         return .{ .Buffer = buffer, .Size = bytes_read };
     }
 };

@@ -17,15 +17,15 @@ const handoff = @import("hikari").sequence.handoff;
 const loader = @import("hikari").loader;
 const math = @import("utils").math;
 const msr = @import("asm").cpu.msr;
-const partition = @import("hikari").sequence.partition;
 const paging = @import("hikari").paging;
+const partition = @import("hikari").sequence.partition;
 const processor = @import("asm").cpu.constants;
 const splash = @import("hikari").sequence.splash;
 const strings = @import("hikari").sequence.strings;
 
+const layout = common.constants.memory.layout;
 const messages = strings.messages;
 const paths = strings.paths;
-const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
@@ -66,7 +66,12 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
         splash.fail(messages.ERROR_KERNEL_NOT_FOUND);
         return status.NOT_FOUND;
     };
-    const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit) catch {
+    const kernel_size = kernel_unit.DataChannel.LogicalSize;
+    if (kernel_size < loader.constants.elf.ELF64_HEADER_SIZE or kernel_size > loader.constants.kernel.MAX_UNIT_SIZE) {
+        splash.fail(messages.ERROR_KERNEL_DAMAGED);
+        return status.INVALID_PARAMETER;
+    }
+    const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit, loader.constants.kernel.MAX_UNIT_SIZE) catch {
         splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };
@@ -77,10 +82,10 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     afs_reader.deinitialize();
     splash.report(messages.VERIFYING_KERNEL);
     const kernel_bytes = kernel_data.Buffer[0..kernel_data.Size];
-    if (!loader.elf.loader.validateElf(kernel_bytes)) {
+    _ = loader.elf.validation.validateImage(kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
-    }
+    };
     if (!msr.enableNoExecute() or !control.enableWriteProtect()) {
         splash.fail(messages.ERROR_MEMORY);
         return status.UNSUPPORTED;
@@ -92,8 +97,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     };
     defer page_setup.deinitialize();
     splash.report(messages.PREPARING_KERNEL);
-    var elf_loader = loader.elf.loader.Loader.initialize(boot_services, page_setup.PhysmapLimit);
-    const loaded_image = elf_loader.load(kernel_bytes) catch {
+    const loaded_image = loader.elf.loader.load(boot_services, page_setup.PhysmapLimit, kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_LOAD);
         return status.LOAD_ERROR;
     };
@@ -118,18 +122,19 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.services.syst
     const framebuffer_end = math.integer.alignUp(mode.FramebufferBase + mode.FramebufferSize, sizes.LARGE_PAGE_SIZE);
     if (framebuffer_start < loaded_image.EndAddress and loaded_image.BaseAddress < framebuffer_end) return status.NO_MAPPING;
     page_setup.mapFramebuffer(mode.FramebufferBase, mode.FramebufferSize) catch return status.NO_MAPPING;
-    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |segment| {
+    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |region| {
         page_setup.mapKernelSegment(
-            segment.VirtualAddress,
-            segment.PhysicalAddress,
-            segment.MemorySize,
-            (segment.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) != 0,
-            (segment.Flags & loader.constants.elf.SEGMENT_FLAG_EXECUTE) != 0,
+            region.VirtualAddress,
+            region.PhysicalAddress,
+            region.MemorySize,
+            (region.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) != 0,
+            (region.Flags & loader.constants.elf.SEGMENT_FLAG_EXECUTE) != 0,
         ) catch return status.NO_MAPPING;
     }
-    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |segment| {
-        if ((segment.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) == 0) {
-            page_setup.protectKernelAliases(segment.PhysicalAddress, segment.MemorySize) catch return status.NO_MAPPING;
+    page_setup.protectKernelAliases(loaded_image.BaseAddress, loaded_image.totalSize(), true) catch return status.NO_MAPPING;
+    for (loaded_image.Segments[0..loaded_image.SegmentCount]) |region| {
+        if ((region.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) == 0) {
+            page_setup.protectKernelAliases(region.PhysicalAddress, region.MemorySize, false) catch return status.NO_MAPPING;
         }
     }
 

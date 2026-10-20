@@ -129,15 +129,16 @@ pub const PageTableSetup = struct {
         const start = math.integer.alignDown(base, sizes.LARGE_PAGE_SIZE);
         const end = math.integer.alignUp(base + size, sizes.LARGE_PAGE_SIZE);
         if (end > self.PhysmapSize) return SetupError.InvalidMapping;
-        try self.modifyAlias(start, start, end - start, false, false);
-        try self.modifyAlias(layout.PHYSMAP_BASE + start, start, end - start, false, true);
+        try self.modifyAlias(start, start, end - start, .Framebuffer, false);
+        try self.modifyAlias(layout.PHYSMAP_BASE + start, start, end - start, .Framebuffer, true);
     }
 
-    pub fn protectKernelAliases(self: *PageTableSetup, physical: u64, size: u64) SetupError!void {
+    pub fn protectKernelAliases(self: *PageTableSetup, physical: u64, size: u64, writable: bool) SetupError!void {
         if (size == 0) return;
         if (physical >= self.PhysmapSize or size > self.PhysmapSize - physical) return SetupError.InvalidMapping;
-        try self.modifyAlias(layout.PHYSMAP_BASE + physical, physical, size, true, true);
-        try self.modifyAlias(physical, physical, size, true, false);
+        const mode: types.mapping.AliasMode = if (writable) .KernelReadWrite else .KernelReadOnly;
+        try self.modifyAlias(layout.PHYSMAP_BASE + physical, physical, size, mode, true);
+        try self.modifyAlias(physical, physical, size, mode, false);
     }
 
     pub fn mapRange(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, page_flags: u64) SetupError!void {
@@ -279,7 +280,7 @@ pub const PageTableSetup = struct {
         leaf.Entry.* = types.entry.PageTableEntry.fromAddress(@intFromPtr(child), flags.KERNEL_TABLE_FLAGS);
     }
 
-    fn modifyAlias(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, protect: bool, required: bool) SetupError!void {
+    fn modifyAlias(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, mode: types.mapping.AliasMode, required: bool) SetupError!void {
         var remaining = try self.validateRange(virtual, physical, size);
         var virtual_address = math.integer.alignDown(virtual, sizes.PAGE_SIZE);
         var physical_address = math.integer.alignDown(physical, sizes.PAGE_SIZE);
@@ -297,17 +298,19 @@ pub const PageTableSetup = struct {
                     continue;
                 }
                 var raw = leaf.Entry.toRaw();
-                if (protect) {
-                    raw = (raw & ~flags.WRITABLE) | flags.NO_EXECUTE;
-                } else {
-                    const pat_flag = if (leaf.Size == sizes.PAGE_SIZE) flags.PAT_PAGE else flags.PAT_LARGE;
-                    raw = (raw & ~(flags.WRITE_THROUGH | flags.CACHE_DISABLED | pat_flag)) | flags.WRITE_THROUGH | flags.CACHE_DISABLED | flags.NO_EXECUTE;
+                switch (mode) {
+                    .KernelReadOnly => raw = (raw & ~flags.WRITABLE) | flags.NO_EXECUTE,
+                    .KernelReadWrite => raw |= flags.WRITABLE | flags.NO_EXECUTE,
+                    .Framebuffer => {
+                        const pat_flag = if (leaf.Size == sizes.PAGE_SIZE) flags.PAT_PAGE else flags.PAT_LARGE;
+                        raw = (raw & ~(flags.WRITE_THROUGH | flags.CACHE_DISABLED | pat_flag)) | flags.WRITE_THROUGH | flags.CACHE_DISABLED | flags.NO_EXECUTE;
+                    },
                 }
                 leaf.Entry.* = @bitCast(raw);
                 changed_size = leaf.Size;
             } else {
                 if (required) return SetupError.InvalidMapping;
-                if (protect) {
+                if (mode != .Framebuffer) {
                     changed_size = @min(remaining, leaf.Size - (virtual_address & (leaf.Size - 1)));
                 } else {
                     if (leaf.Size >= sizes.LARGE_PAGE_SIZE and remaining >= sizes.LARGE_PAGE_SIZE and

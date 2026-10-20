@@ -1,33 +1,26 @@
-FROM ubuntu:20.04
+# //! Pinned Linux Native Build Environment
+
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    grub-efi-amd64-bin \
-    grub-common \
-    xorriso \
-    mtools \
-    dosfstools \
-    parted \
-    gdisk \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
+    make \
     xz-utils \
-    bison \
-    flex \
-    autoconf \
-    automake \
-    gettext \
-    help2man \
-    texinfo \
-    python3 \
-    gawk \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://zig.linus.dev/zig/0.15.2/zig-x86_64-linux-0.15.2.tar.xz -o zig.tar.xz && \
-    tar -xf zig.tar.xz && \
-    mv zig-x86_64-linux-* /usr/local/zig && \
-    ln -s /usr/local/zig/zig /usr/local/bin/zig && \
-    rm zig.tar.xz
+RUN mkdir /tmp/akiba-zig-input /opt/zig && \
+    curl --fail --show-error --location --proto '=https' --tlsv1.2 \
+        https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz \
+        --output /tmp/akiba-zig-input/zig.tar.xz && \
+    printf '%s  %s\n' \
+        02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239 \
+        /tmp/akiba-zig-input/zig.tar.xz | sha256sum --check --strict - && \
+    tar --extract --xz --file /tmp/akiba-zig-input/zig.tar.xz \
+        --directory /opt/zig --strip-components=1 && \
+    ln -s /opt/zig/zig /usr/local/bin/zig && \
+    rm -rf /tmp/akiba-zig-input
 
 WORKDIR /akiba

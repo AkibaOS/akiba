@@ -5,5 +5,5 @@ const std = @import("std");
 const orchestrator = @import("toolchain/orchestrator/orchestrator.zig");
 
 pub fn build(builder: *std.Build) void {
-    orchestrator.build(builder);
+    orchestrator.run.execute.build(builder);
 }

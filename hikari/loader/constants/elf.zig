@@ -85,7 +85,7 @@ pub const ELF64_PROGRAM_HEADER_SIZE: usize = 56;
 pub const ELF64_SECTION_HEADER_SIZE: usize = 64;
 pub const PROGRAM_HEADER_COUNT_EXTENDED: u16 = 0xFFFF;
 
-pub const MAX_SEGMENTS: usize = 16;
+pub const MAX_SEGMENTS: usize = 7;
 
 pub const SYMBOL_BINDING_SHIFT: u3 = 4;
 pub const SYMBOL_TYPE_MASK: u8 = 0x0F;

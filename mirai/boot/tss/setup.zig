@@ -64,7 +64,7 @@ fn isBootstrapStack(stack_top: u64) bool {
 fn isBootISTStackValid(stack_start: u64, stack_end: u64) bool {
     return stack_start >= layout.KERNEL_BASE and
         stack_end > stack_start and
-        stack_end - stack_start == limits.BOOT_INTERRUPT_STACK_SIZE and
+        stack_end - stack_start == layout.BOOT_INTERRUPT_STACK_SIZE and
         stack_start % sizes.PAGE_SIZE == 0 and
         stack_end % sizes.PAGE_SIZE == 0;
 }

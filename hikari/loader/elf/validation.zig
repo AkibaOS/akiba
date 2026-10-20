@@ -5,6 +5,7 @@ const std = @import("std");
 const common = @import("common");
 const constants = @import("hikari").loader.constants;
 const errors = @import("hikari").loader.errors;
+const kernel = @import("hikari").loader.elf.kernel;
 const math = @import("utils").math;
 const types = @import("hikari").loader.types;
 
@@ -18,6 +19,7 @@ const ImageLayout = types.elf.ImageLayout;
 const LoadError = errors.elf.LoadError;
 
 pub fn validateImage(data: []const u8) LoadError!ImageLayout {
+    if (data.len > constants.kernel.MAX_UNIT_SIZE) return LoadError.ImageTooLarge;
     const header = try validateHeader(data);
     const program_headers = try readProgramHeaders(data, header);
 
@@ -41,10 +43,8 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
         if (!program_header.isLoadable()) continue;
 
         try validateSegment(data.len, program_header);
-        if (program_header.MemorySize == 0) continue;
-        if (image.SegmentCount == elf.MAX_SEGMENTS) {
-            return LoadError.TooManySegments;
-        }
+        if (program_header.MemorySize == 0) return LoadError.InvalidSegment;
+        if (image.SegmentCount == elf.MAX_SEGMENTS) return LoadError.TooManySegments;
 
         const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
         const physical_start = math.integer.alignDown(program_header.PhysicalAddress, sizes.PAGE_SIZE);
@@ -81,7 +81,6 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
 
     image.PhysicalBase = math.integer.alignDown(image.PhysicalBase, sizes.PAGE_SIZE);
     image.VirtualBase = math.integer.alignDown(image.VirtualBase, sizes.PAGE_SIZE);
-
     for (image.Segments[0..image.SegmentCount]) |segment| {
         if (segment.VirtualAddress - image.VirtualBase != segment.PhysicalAddress - image.PhysicalBase) {
             return LoadError.UnsupportedImageLayout;
@@ -89,22 +88,21 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
     }
 
     const memory_size = physical_end - image.PhysicalBase;
-    if (memory_size > std.math.maxInt(u64) - sizes.PAGE_MASK) {
-        return LoadError.UnsupportedImageLayout;
-    }
+    if (memory_size > std.math.maxInt(u64) - sizes.PAGE_MASK) return LoadError.UnsupportedImageLayout;
     image.Size = math.integer.alignUp(memory_size, sizes.PAGE_SIZE);
+    if (image.Size > constants.kernel.MAX_MEMORY_SIZE) return LoadError.ImageTooLarge;
     if (image.Size > std.math.maxInt(u64) - image.PhysicalBase or
-        image.Size > std.math.maxInt(u64) - image.VirtualBase)
+        image.VirtualBase > std.math.maxInt(u64) - sizes.PAGE_SIZE or
+        image.Size > std.math.maxInt(u64) - sizes.PAGE_SIZE - image.VirtualBase)
     {
         return LoadError.UnsupportedImageLayout;
     }
-
+    try kernel.validate(&image);
     return image;
 }
 
 fn validateHeader(data: []const u8) LoadError!*const Elf64Header {
     if (data.len < elf.ELF64_HEADER_SIZE) return LoadError.InvalidElfHeader;
-
     const header: *const Elf64Header = @ptrCast(data.ptr);
     if (!header.isValid() or header.ElfVersion != elf.VERSION_CURRENT or
         header.HeaderSize != elf.ELF64_HEADER_SIZE)
@@ -113,7 +111,6 @@ fn validateHeader(data: []const u8) LoadError!*const Elf64Header {
     }
     if (!header.isX8664()) return LoadError.UnsupportedArchitecture;
     if (!header.isExecutable()) return LoadError.UnsupportedElfType;
-
     return header;
 }
 
@@ -126,11 +123,9 @@ fn readProgramHeaders(data: []const u8, header: *const Elf64Header) LoadError![]
     {
         return LoadError.InvalidProgramHeaders;
     }
-
     const offset: usize = @intCast(header.ProgramHeaderOffset);
     const table_size = @as(usize, header.ProgramHeaderCount) * elf.ELF64_PROGRAM_HEADER_SIZE;
     if (table_size > data.len - offset) return LoadError.InvalidProgramHeaders;
-
     const table: [*]const Elf64ProgramHeader = @ptrCast(data.ptr + offset);
     return table[0..header.ProgramHeaderCount];
 }
@@ -147,7 +142,6 @@ fn validateSegment(data_size: usize, segment: *const Elf64ProgramHeader) LoadErr
         return LoadError.InvalidSegment;
     }
     if (segment.MemorySize == 0) return;
-
     if (segment.PhysicalAddress > std.math.maxInt(u64) - sizes.PAGE_MASK or
         segment.VirtualAddress > std.math.maxInt(u64) - sizes.PAGE_MASK or
         segment.MemorySize > std.math.maxInt(u64) - sizes.PAGE_MASK - segment.PhysicalAddress or

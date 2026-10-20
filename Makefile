@@ -1,8 +1,7 @@
-.PHONY: all clean run docker-build hikari mirai mkafsdisk disk
+# //! Native Build And Disk Orchestration
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Platform Detection
-# ═══════════════════════════════════════════════════════════════════════════
+.DEFAULT_GOAL := all
+.PHONY: all clean run docker-image docker-build native-build hikari mirai mkafsdisk prepare-filesystem disk info
 
 DOCKER_SOURCE = $(CURDIR)
 ifeq ($(OS),Windows_NT)
@@ -36,10 +35,6 @@ else
     endif
 endif
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Configuration
-# ═══════════════════════════════════════════════════════════════════════════
-
 DISK_IMAGE = iso/akiba.img
 FS_ROOT = iso/akiba
 DISK_SIZE_MB = 64
@@ -48,102 +43,75 @@ ZIG ?= zig
 EXE_EXT = $(if $(filter Windows_NT,$(OS)),.exe)
 RUN_SCRIPT = $(if $(filter Windows_NT,$(OS)),powershell.exe -NoProfile -File scripts/run.ps1 -DiskImage "$(DISK_IMAGE)",./scripts/run.sh "$(DISK_IMAGE)")
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Docker Build Mode
-# ═══════════════════════════════════════════════════════════════════════════
+docker-image:
+	@docker build --platform linux/amd64 -t akiba-builder ./toolchain
+
+docker-build: docker-image
+	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make all
 
 ifeq ($(BUILD_MODE),docker)
 
 all: docker-build
 
-docker-build:
-	@echo "═══════════════════════════════════════════════════════════"
-	@echo " Building Akiba OS (Docker mode)"
-	@echo "═══════════════════════════════════════════════════════════"
-	@docker build --platform linux/amd64 -t akiba-builder ./toolchain
-	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make all
+hikari mirai mkafsdisk prepare-filesystem disk: docker-image
+	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make "$@"
 
 clean:
-	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make clean 2>/dev/null || rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
-
-run: all
-	@$(RUN_SCRIPT)
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Native Build Mode
-# ═══════════════════════════════════════════════════════════════════════════
+	@$(DOCKER_ENV) docker run --rm --platform linux/amd64 --mount "type=bind,source=$(DOCKER_SOURCE),target=/akiba" -e DOCKER_BUILD=1 akiba-builder make clean
 
 else
 
 all: $(DISK_IMAGE)
 
-clean:
-	@rm -rf iso/ zig-out/ zig-cache/ .zig-cache/
+native-build:
+	@"$(ZIG)" build all
 
-run: all
-	@$(RUN_SCRIPT)
+hikari mirai mkafsdisk:
+	@"$(ZIG)" build "$@"
 
-endif
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Build Targets
-# ═══════════════════════════════════════════════════════════════════════════
-
-hikari:
-	@echo "→ Building Hikari bootloader..."
-	@"$(ZIG)" build hikari
-	@echo "  ✓ Hikari built"
-
-mirai:
-	@echo "→ Building Mirai kernel..."
-	@"$(ZIG)" build mirai
-	@echo "  ✓ Mirai built"
-
-mkafsdisk:
-	@echo "→ Building mkafsdisk tool..."
-	@"$(ZIG)" build mkafsdisk
-	@echo "  ✓ mkafsdisk built"
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Filesystem & Disk Image
-# ═══════════════════════════════════════════════════════════════════════════
-
-prepare-filesystem: hikari mirai
-	@echo "→ Preparing filesystem structure..."
-	@mkdir -p $(FS_ROOT)/EFI/BOOT
-	@mkdir -p $(FS_ROOT)/system/akiba
-	@mkdir -p $(FS_ROOT)/system/libraries
-	@mkdir -p $(FS_ROOT)/binaries
-
-	@echo "→ Copying bootloader..."
-	@cp zig-out/EFI/BOOT/BOOTX64.EFI $(FS_ROOT)/EFI/BOOT/
-
-	@echo "→ Copying kernel..."
-	@cp zig-out/system/akiba/mirai.kernel $(FS_ROOT)/system/akiba/
-
-	@echo "→ Copying resources..."
-	@for dir in $(RESOURCES_DIR)/*/; do \
-		if [ -d "$$dir" ]; then \
-			dirname=$$(basename $$dir); \
-			mkdir -p $(FS_ROOT)/$$dirname; \
-			cp -R $$dir* $(FS_ROOT)/$$dirname/; \
-			echo "  ✓ /$$dirname"; \
+prepare-filesystem: native-build
+	@set -eu; \
+	stage="$(FS_ROOT)"; \
+	mkdir -p -- "$$(dirname -- "$$stage")"; \
+	if [ -e "$$stage" ] || [ -L "$$stage" ]; then \
+		backup=$$(mktemp -d "$$stage.history.XXXXXXXX"); \
+		mv -- "$$stage" "$$backup/filesystem"; \
+		printf 'Previous stage retained at %s\n' "$$backup/filesystem"; \
+	fi; \
+	mkdir -- "$$stage"; \
+	cp -R -- "$(RESOURCES_DIR)/." "$$stage/"; \
+	for directory in "$$stage/EFI" "$$stage/EFI/BOOT" "$$stage/system" "$$stage/system/akiba" "$$stage/system/libraries" "$$stage/binaries"; do \
+		if [ -L "$$directory" ] || { [ -e "$$directory" ] && [ ! -d "$$directory" ]; }; then \
+			printf 'Stage directory is not an ordinary directory: %s\n' "$$directory" >&2; \
+			exit 1; \
 		fi; \
-	done
+		mkdir -p -- "$$directory"; \
+	done; \
+	cp --remove-destination -- zig-out/EFI/BOOT/BOOTX64.EFI "$$stage/EFI/BOOT/BOOTX64.EFI"; \
+	cp --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"
 
-	@echo "  ✓ Filesystem prepared"
-
-$(DISK_IMAGE): prepare-filesystem mkafsdisk
-	@echo "→ Creating bootable disk image..."
-	@mkdir -p iso
-	@"zig-out/bin/mkafsdisk$(EXE_EXT)" "$(FS_ROOT)" "$(DISK_IMAGE)" $(DISK_SIZE_MB)
-	@echo "  ✓ Disk image created: $(DISK_IMAGE)"
+$(DISK_IMAGE): prepare-filesystem
+	@set -eu; \
+	image="$(DISK_IMAGE)"; \
+	mkdir -p -- "$$(dirname -- "$$image")"; \
+	temporary=$$(mktemp "$$image.tmp.XXXXXXXX"); \
+	printf 'Building temporary disk %s\n' "$$temporary"; \
+	if ! "zig-out/bin/mkafsdisk$(EXE_EXT)" "$(FS_ROOT)" "$$temporary" "$(DISK_SIZE_MB)"; then \
+		printf 'Disk build failed; temporary retained at %s\n' "$$temporary" >&2; \
+		exit 1; \
+	fi; \
+	mv -f -- "$$temporary" "$$image"; \
+	printf 'Disk image published at %s\n' "$$image"
 
 disk: $(DISK_IMAGE)
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Info
-# ═══════════════════════════════════════════════════════════════════════════
+clean:
+	@rm -rf -- iso/ zig-out/ zig-cache/ .zig-cache/
+
+endif
+
+run: all
+	@$(RUN_SCRIPT)
 
 info:
 	@echo "AkibaOS Build System"
