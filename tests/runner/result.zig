@@ -1,0 +1,49 @@
+//! Guest Serial Result Validation
+
+const std = @import("std");
+
+const labels = @import("tests").strings.scenario;
+const strings = @import("tests").strings.runner;
+const Scenario = @import("tests").types.scenario.Scenario;
+
+pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
+    if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null) return error.GuestCheckFailed;
+    if (scenario == .PulseDeath) return expectedFatal(bytes);
+    if (std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null) return error.GuestCheckFailed;
+    if (std.mem.indexOf(u8, bytes, strings.READY) == null) return null;
+    if (std.mem.indexOf(u8, bytes, strings.CHECK_BEGIN) == null) return error.MissingGuestChecks;
+    const marker = std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) orelse return error.IncompleteGuestChecks;
+    const number = bytes[marker + strings.CHECK_COMPLETE.len ..];
+    const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return error.IncompleteGuestChecks;
+    const passed = try std.fmt.parseInt(usize, number[0..end], 10);
+    if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
+    return passed;
+}
+
+fn expectedFatal(bytes: []const u8) !?usize {
+    if (std.mem.indexOf(u8, bytes, strings.READY) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null) return error.UnexpectedFatalOutcome;
+    const panic = std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) orelse return null;
+    const tail = bytes[panic..];
+    const end = std.mem.indexOfAny(u8, tail, strings.LINE_SEPARATORS) orelse return null;
+    const expected = std.mem.trimEnd(u8, labels.PANIC, strings.LINE_SEPARATORS);
+    if (!std.mem.eql(u8, tail[0..end], expected) or
+        std.mem.count(u8, bytes, strings.KERNEL_PANIC) != 1) return error.UnexpectedFatalOutcome;
+    const begin = try uniqueLine(bytes, strings.CHECK_BEGIN) orelse return error.UnexpectedFatalOutcome;
+    const checkpoint = try uniqueLine(bytes, labels.CHECKPOINT) orelse return error.UnexpectedFatalOutcome;
+    const exact_panic = try uniqueLine(bytes, labels.PANIC) orelse return error.UnexpectedFatalOutcome;
+    if (begin >= checkpoint or checkpoint >= panic or exact_panic != panic) return error.UnexpectedFatalOutcome;
+    return 1;
+}
+
+fn uniqueLine(bytes: []const u8, expected: []const u8) !?usize {
+    const text = std.mem.trimEnd(u8, expected, strings.LINE_SEPARATORS);
+    var found: ?usize = null;
+    var lines = std.mem.tokenizeAny(u8, bytes, strings.LINE_SEPARATORS);
+    while (lines.next()) |line| {
+        if (!std.mem.eql(u8, line, text)) continue;
+        if (found != null) return error.UnexpectedFatalOutcome;
+        found = @intFromPtr(line.ptr) - @intFromPtr(bytes.ptr);
+    }
+    return found;
+}

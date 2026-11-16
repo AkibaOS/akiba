@@ -7,5 +7,6 @@ pub const FAST = [_]Suite{
     .{ .Name = "utils", .Root = "tests/fast/utils/run.zig" },
     .{ .Name = "storage", .Root = "tests/fast/shared/storage.zig" },
     .{ .Name = "render", .Root = "tests/fast/shared/render.zig" },
+    .{ .Name = "runner", .Root = "tests/fast/runner/run.zig" },
 };
 pub const EXECUTABLE = "tests-{s}";

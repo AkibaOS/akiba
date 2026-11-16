@@ -3,6 +3,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const Scenario = @import("tests").types.scenario.Scenario;
+
 pub const Paths = struct {
     Repo: []const u8,
     Run: []const u8,
@@ -30,6 +32,7 @@ pub const Stage = enum {
 };
 
 pub const Report = struct {
+    Scenario: Scenario = .Standard,
     Status: []const u8,
     Stage: Stage,
     CleanupError: ?[]const u8,

@@ -8,6 +8,8 @@ const limits = @import("tests").constants.runner;
 const paths = @import("tests").runner.paths;
 const process = @import("tests").runner.process;
 const protocol = @import("tests").runner.protocol;
+const result = @import("tests").runner.result;
+const scenario = @import("tests").strings.scenario;
 const strings = @import("tests").strings.runner;
 const terminal = @import("tests").runner.terminal;
 const types = @import("tests").types.host;
@@ -15,6 +17,7 @@ const types = @import("tests").types.host;
 const Connection = types.Connection;
 const Paths = types.Paths;
 const Process = types.Process;
+const Scenario = @import("tests").types.scenario.Scenario;
 
 fn imageHash(path: []const u8) ![64]u8 {
     var file = try std.fs.cwd().openFile(path, .{});
@@ -45,7 +48,7 @@ fn connect(allocator: std.mem.Allocator, instance: *Process, port: u16) !Connect
     return error.GuestStartTimeout;
 }
 
-fn completed(instance: *Process, inputs: *const Paths) !usize {
+fn completed(instance: *Process, inputs: *const Paths, selected: Scenario) !usize {
     var timer = try std.time.Timer.start();
     while (timer.read() < limits.CHECK_NS) {
         if (process.cancelled()) return error.Cancelled;
@@ -58,23 +61,17 @@ fn completed(instance: *Process, inputs: *const Paths) !usize {
             else => return failure,
         };
         defer std.heap.page_allocator.free(bytes);
-        if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null or std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null)
-            return error.GuestCheckFailed;
-        if (std.mem.indexOf(u8, bytes, strings.READY) != null) {
-            if (std.mem.indexOf(u8, bytes, strings.CHECK_BEGIN) == null) return error.MissingGuestChecks;
-            const marker = std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) orelse return error.IncompleteGuestChecks;
-            const number = bytes[marker + strings.CHECK_COMPLETE.len ..];
-            const end = std.mem.indexOfAny(u8, number, "\r\n") orelse return error.IncompleteGuestChecks;
-            const passed = try std.fmt.parseInt(usize, number[0..end], 10);
-            if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
-            return passed;
-        }
+        if (try result.evaluate(bytes, selected)) |passed| return passed;
         std.Thread.sleep(limits.POLL_NS);
     }
     return error.GuestCheckTimeout;
 }
 
 pub fn run() !void {
+    for (std.enums.values(Scenario)) |selected| try runScenario(selected);
+}
+
+fn runScenario(selected: Scenario) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
@@ -97,7 +94,7 @@ pub fn run() !void {
         strings.MEMORY_FLAG,                                                          strings.MEMORY,       strings.DRIVE_FLAG,                                                      try std.fmt.allocPrint(allocator, strings.CODE_DRIVE, .{inputs.FirmwareCode}), strings.DRIVE_FLAG,
         try std.fmt.allocPrint(allocator, strings.VARS_DRIVE, .{inputs.Variables}),   strings.DRIVE_FLAG,   try std.fmt.allocPrint(allocator, strings.IMAGE_DRIVE, .{inputs.Image}), strings.SNAPSHOT_FLAG,                                                         strings.SERIAL_FLAG,
         try std.fmt.allocPrint(allocator, strings.SERIAL_ARGUMENT, .{inputs.Serial}), strings.REBOOT_FLAG,  strings.NAME_FLAG,                                                       name,                                                                          strings.QMP_FLAG,
-        try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{port}),             strings.NETWORK_FLAG, strings.NETWORK_NONE,
+        try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{port}),             strings.NETWORK_FLAG, strings.NETWORK_NONE,                                                    scenario.FLAG,                                                                 try std.fmt.allocPrint(allocator, scenario.ARGUMENT, .{@tagName(selected)}),
     };
     var instance = process.init(allocator, &arguments);
     var connection: ?Connection = null;
@@ -129,7 +126,7 @@ pub fn run() !void {
         };
         owned = true;
         stage = .Checks;
-        passed = completed(&instance, &inputs) catch |reason| {
+        passed = completed(&instance, &inputs, selected) catch |reason| {
             failure = reason;
             break :work;
         };
@@ -171,6 +168,7 @@ pub fn run() !void {
         };
     }
     const report: types.Report = .{
+        .Scenario = selected,
         .Status = if (failure == null) strings.PASSED else strings.FAILED,
         .Stage = stage,
         .CleanupError = if (cleanup_error) |reason| @errorName(reason) else null,

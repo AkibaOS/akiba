@@ -9,6 +9,13 @@ const verify = @import("tests").verify;
 
 pub fn execute() void {
     serial.printf(labels.BEGIN, .{});
+    switch (guest.support.selector.selected()) {
+        .Standard => {},
+        .PulseDeath => {
+            guest.mirai.kata.fatal.run() catch |failure| verify.failure(failure);
+            return;
+        },
+    }
     serial.printf(bootlabels.GROUP, .{});
     guest.mirai.boot.invariants.run();
     serial.printf(memorylabels.GROUP_PMM, .{});

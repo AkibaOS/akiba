@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const labels = @import("tests").strings.scenario;
 const strings = @import("tests").strings.runner;
 const Report = @import("tests").types.host.Report;
 
@@ -19,6 +20,8 @@ pub fn finish(report: *const Report, bytes: ?[]const u8) void {
                     std.debug.print(strings.FAILURE_DETAIL, .{line});
             }
         }
+    } else if (report.Scenario == .PulseDeath) {
+        std.debug.print(strings.GROUP_RESULT, .{ labels.GROUP, report.Passed });
     } else if (bytes) |data| {
         var group: ?[]const u8 = null;
         var passed: usize = 0;
