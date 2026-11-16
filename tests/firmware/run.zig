@@ -8,6 +8,8 @@ const efi = @import("hikari").efi;
 const inputs = @import("tests").constants.firmware;
 const io = @import("asm").io;
 const labels = @import("tests").strings.firmware;
+const loader = @import("tests").firmware.loader;
+const loadinglabels = @import("tests").strings.loading;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
 const suite = @import("tests").firmware.handoff;
@@ -21,6 +23,8 @@ pub fn main() void {
     const system_table: *efi.types.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
     suite.run(system_table.BootServices, image_handle) catch |failure| fail(@errorName(failure));
+    writeText(loadinglabels.GROUP);
+    loader.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
     if (passed != inputs.ASSERTION_COUNT) fail(labels.COUNT_MISMATCH);
     writeText(labels.COMPLETE);
     var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
@@ -47,6 +51,7 @@ pub fn fail(reason: []const u8) noreturn {
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, return_address: ?usize) noreturn {
     _ = stack_trace;
     _ = return_address;
+    _ = loader.cleanup();
     _ = suite.cleanup();
     fail(message);
 }

@@ -6,6 +6,7 @@ pub const firmware = @import("firmware.zig");
 pub const hikari = @import("hikari.zig");
 pub const host = @import("host.zig");
 pub const image = @import("image.zig");
+pub const loading = @import("loading.zig");
 pub const memory = @import("memory.zig");
 pub const postman = @import("postman.zig");
 pub const protocol = @import("protocol.zig");

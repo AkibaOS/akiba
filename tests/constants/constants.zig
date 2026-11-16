@@ -9,6 +9,7 @@ pub const guest = @import("guest.zig");
 pub const hikari = @import("hikari.zig");
 pub const image = @import("image.zig");
 pub const invocations = @import("invocations.zig");
+pub const loading = @import("loading.zig");
 pub const memory = @import("memory.zig");
 pub const postman = @import("postman.zig");
 pub const protocol = @import("protocol.zig");
