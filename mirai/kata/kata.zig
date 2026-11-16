@@ -11,3 +11,4 @@ pub const lifecycle = @import("lifecycle/lifecycle.zig");
 pub const state = @import("state/state.zig");
 pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");
+pub const wait = @import("wait/wait.zig");

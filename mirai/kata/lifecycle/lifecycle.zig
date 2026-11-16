@@ -1,6 +1,7 @@
 //! Kata Admission Activity And Death Transitions
 
 const completion = @import("mirai").kata.completion;
+const constants = @import("mirai").kata.constants.pool;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").kata.strings.messages;
 const state = @import("mirai").kata.state;
@@ -17,11 +18,17 @@ pub fn designatePulse(owner: *Kata) bool {
     defer guard.release(previous_flags);
     if (!state.owns(owner) or owner.Permanent or owner.State != .Born or pulse_id != null) return false;
     pulse_id = owner.ID;
+    completion.adopt(constants.KERNEL_ID, owner.ID);
     return true;
 }
 
 pub fn discard(owner: *const Kata) void {
-    if (owner.State == .Born and pulse_id == owner.ID) pulse_id = null;
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    if (owner.State == .Born and pulse_id == owner.ID) {
+        completion.adopt(owner.ID, constants.KERNEL_ID);
+        pulse_id = null;
+    }
 }
 
 pub fn admit(owner: *Kata) bool {
@@ -29,6 +36,7 @@ pub fn admit(owner: *Kata) bool {
     defer guard.release(previous_flags);
     if (!state.owns(owner) or owner.State == .Dead or owner.LiveThreadCount >= owner.ThreadCount or
         owner.RunnableThreadCount > owner.LiveThreadCount) return false;
+    if (!owner.Permanent and owner.State == .Born and !completion.publish(owner.ID)) return false;
     owner.LiveThreadCount += 1;
     owner.RunnableThreadCount += 1;
     owner.State = .Alive;
@@ -69,4 +77,5 @@ pub fn die(owner: *Kata, outcome: Outcome) void {
         !completion.commit(owner.ID, outcome)) @panic(messages.INVALID_COMPLETION);
     owner.State = .Dead;
     if (pulse_id == owner.ID) @panic(messages.PULSE_EXIT);
+    completion.adopt(owner.ID, pulse_id orelse constants.KERNEL_ID);
 }

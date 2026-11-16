@@ -28,6 +28,7 @@ pub fn setInactiveObserver(handler: InactiveObserver) bool {
 }
 
 pub fn notifyInactive(target: *Thread) void {
+    kata.wait.cancel(target);
     if (inactive_observer) |handler| handler(target);
 }
 

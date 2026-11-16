@@ -68,14 +68,14 @@ pub fn canReserve() bool {
     return false;
 }
 
-pub fn reserve(root: *Kagami) ?*Kata {
+pub fn reserve(root: *Kagami, launcher_id: u64) ?*Kata {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!initialized or next_id == std.math.maxInt(u64) or
         !kagami.create.owns(root) or root.ExecutionOwners != 1) return null;
     for (&occupied, 0..) |*used, index| {
         if (used.*) continue;
-        if (!completion.reserve(next_id)) return null;
+        if (!completion.reserve(next_id, launcher_id)) return null;
         descriptors[index] = .{ .ID = next_id, .AddressSpace = root };
         next_id += 1;
         used.* = true;
