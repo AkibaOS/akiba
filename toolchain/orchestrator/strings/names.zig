@@ -14,7 +14,6 @@ pub const IMPORT_FONT = "font";
 pub const MODULE_TESTS = "tests";
 pub const MODULE_OPTIONS = "options";
 pub const OPTION_GUEST_CHECKS = "GUEST_CHECKS";
-pub const EXECUTABLE_TESTS = "tests";
 pub const EXECUTABLE_GUEST = "mirai-tests";
 pub const STEP_FAST_CHECKS = "test-fast";
 pub const STEP_GUEST_CHECKS = "test-guest-kernel";

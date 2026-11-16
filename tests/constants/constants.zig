@@ -3,3 +3,4 @@
 pub const guest = @import("guest.zig");
 pub const invocations = @import("invocations.zig");
 pub const runner = @import("runner.zig");
+pub const utils = @import("utils.zig");

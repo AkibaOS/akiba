@@ -15,7 +15,6 @@ pub const MIRAI_OUTPUT = "system/akiba/mirai.kernel";
 pub const OUTPUT_DIRECTORY = "zig-out";
 pub const CACHE_DIRECTORY = ".zig-cache";
 pub const TESTS_ROOT = "tests/tests.zig";
-pub const FAST_TESTS_ROOT = "tests/fast/run.zig";
 pub const GUEST_OUTPUT = "tests/system/akiba/mirai.kernel";
 pub const RUNNER_ROOT = "tests/runner/run.zig";
 pub const RESOURCES_ROOT = "resources";

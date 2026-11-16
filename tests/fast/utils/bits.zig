@@ -99,3 +99,16 @@ pub fn boundedContiguousClear() !void {
     try std.testing.expectEqual(@as(?u64, null), operations.findContiguousClear(&bitmap, 9, 13, 5));
     try std.testing.expectEqual(@as(?u64, null), operations.findContiguousClear(&bitmap, 13, 13, 1));
 }
+
+pub fn zeroLengthContiguousClear() !void {
+    const occupied = [_]u8{ 0xff, 0xff };
+    const empty = [_]u8{};
+
+    try std.testing.expectEqual(@as(?u64, 0), operations.findContiguousClear(&occupied, 0, 16, 0));
+    try std.testing.expectEqual(@as(?u64, 5), operations.findContiguousClear(&occupied, 5, 16, 0));
+    try std.testing.expectEqual(@as(?u64, 16), operations.findContiguousClear(&occupied, 16, 16, 0));
+    try std.testing.expectEqual(@as(?u64, null), operations.findContiguousClear(&occupied, 17, 16, 0));
+    try std.testing.expectEqual(@as(?u64, 0), operations.findContiguousClear(&empty, 0, 0, 0));
+    try std.testing.expectEqual(@as(?u64, 5), operations.findContiguousClear(&empty, 5, 8, 0));
+    try std.testing.expectEqual(@as(?u64, 0xffffffffffffffff), operations.findContiguousClear(&empty, 0xffffffffffffffff, 0xffffffffffffffff, 0));
+}

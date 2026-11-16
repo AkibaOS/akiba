@@ -6,6 +6,7 @@ const kernel = @import("../kernel/kernel.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
+const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
 pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std.Build.Step.Compile, packer: *std.Build.Step.Compile) void {
@@ -14,16 +15,23 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
     checks.addImport(names.MODULE_UTILS, modules.Utils);
-    const root = builder.createModule(.{
-        .root_source_file = builder.path(paths.FAST_TESTS_ROOT),
-        .target = builder.graph.host,
-        .optimize = .Debug,
-    });
-    root.addImport(names.MODULE_TESTS, checks);
-    const tests = builder.addTest(.{ .name = names.EXECUTABLE_TESTS, .root_module = root });
-    const run = builder.addRunArtifact(tests);
     const step = builder.step(names.STEP_FAST_CHECKS, steps.FAST_CHECKS_DESCRIPTION);
-    step.dependOn(&run.step);
+    for (suites.FAST) |suite| {
+        const root = builder.createModule(.{
+            .root_source_file = builder.path(suite.Root),
+            .target = builder.graph.host,
+            .optimize = .Debug,
+        });
+        root.addImport(names.MODULE_TESTS, checks);
+        root.addImport(names.MODULE_COMMON, modules.Common);
+        root.addImport(names.MODULE_SHARED, modules.Shared);
+        root.addImport(names.MODULE_UTILS, modules.Utils);
+        const executable_name = builder.fmt(suites.EXECUTABLE, .{suite.Name});
+        const tests = builder.addTest(.{ .name = executable_name, .root_module = root });
+        const run = builder.addRunArtifact(tests);
+        run.has_side_effects = true;
+        step.dependOn(&run.step);
+    }
     const guest = kernel.compile.addGuest(builder, modules);
     const stage = builder.addWriteFiles();
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});

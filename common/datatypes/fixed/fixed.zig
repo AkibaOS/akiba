@@ -94,7 +94,9 @@ pub const Fixed16Dot16 = struct {
 };
 
 fn roundedDivide(numerator: i64, denominator: i64) i64 {
-    const half = @divTrunc(denominator, 2);
-    const biased = if (numerator >= 0) numerator + half else numerator - half;
-    return @divTrunc(biased, denominator);
+    const divisor = if (denominator < 0) -denominator else denominator;
+    const dividend = if (denominator < 0) -numerator else numerator;
+    const half = @divTrunc(divisor, 2);
+    const biased = if (dividend >= 0) dividend + half else dividend - half;
+    return @divTrunc(biased, divisor);
 }
