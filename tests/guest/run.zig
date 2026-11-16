@@ -7,6 +7,7 @@ const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
 const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
+const postmanlabels = @import("tests").strings.postman;
 const retentionlabels = @import("tests").strings.retention;
 const senseilabels = @import("tests").strings.sensei;
 const serial = @import("mirai").drivers.serial.write;
@@ -57,6 +58,8 @@ pub fn execute() void {
     check(guest.mirai.thread.persona.run);
     serial.printf(labels.GROUP_TERMINATION, .{});
     check(guest.mirai.invocations.termination.run);
+    serial.printf(postmanlabels.GROUP, .{});
+    check(guest.mirai.postman.scenarios.run);
     serial.printf(contextlabels.GROUP, .{});
     check(guest.mirai.thread.context.run);
     serial.printf(crimsonlabels.GROUP, .{});
