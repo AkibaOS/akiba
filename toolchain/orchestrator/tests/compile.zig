@@ -33,7 +33,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
         root.addImport(names.MODULE_SHARED, modules.Shared);
         root.addImport(names.MODULE_UTILS, modules.Utils);
         const executable_name = builder.fmt(suites.EXECUTABLE, .{suite.Name});
-        const tests = builder.addTest(.{ .name = executable_name, .root_module = root });
+        const tests = builder.addTest(.{ .name = executable_name, .root_module = root, .use_llvm = true });
         const run = builder.addRunArtifact(tests);
         run.has_side_effects = true;
         step.dependOn(&run.step);
