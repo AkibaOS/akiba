@@ -3,6 +3,7 @@
 const bootlabels = @import("tests").strings.boot;
 const guest = @import("tests").guest;
 const labels = @import("tests").strings.guest;
+const memorylabels = @import("tests").strings.memory;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
 
@@ -10,6 +11,20 @@ pub fn execute() void {
     serial.printf(labels.BEGIN, .{});
     serial.printf(bootlabels.GROUP, .{});
     guest.mirai.boot.invariants.run();
+    serial.printf(memorylabels.GROUP_PMM, .{});
+    guest.mirai.pmm.frames.run() catch |failure| verify.failure(failure);
+    guest.mirai.pmm.ranges.run() catch |failure| verify.failure(failure);
+    guest.mirai.pmm.reservation.run() catch |failure| verify.failure(failure);
+    serial.printf(memorylabels.GROUP_KERNEL, .{});
+    guest.mirai.memory.allocation.run() catch |failure| verify.failure(failure);
+    guest.mirai.memory.zone.run() catch |failure| verify.failure(failure);
+    guest.mirai.memory.stack.run() catch |failure| verify.failure(failure);
+    serial.printf(memorylabels.GROUP_KAGAMI, .{});
+    guest.mirai.kagami.mapping.run() catch |failure| verify.failure(failure);
+    guest.mirai.kagami.ownership.run() catch |failure| verify.failure(failure);
+    guest.mirai.kagami.rejection.run() catch |failure| verify.failure(failure);
+    serial.printf(memorylabels.GROUP_OWNED, .{});
+    guest.mirai.user.regressions.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_MEMORY, .{});
     guest.mirai.user.memory.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_LIFECYCLE, .{});
