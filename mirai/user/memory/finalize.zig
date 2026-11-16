@@ -20,7 +20,7 @@ const UserError = usererrors.UserError;
 pub fn finalize(owner: *Kata, virtual_address: u64, protection: Protection) UserError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
+    if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     const record = ledger.find(owner, virtual_address) orelse return UserError.NotOwned;
     if (record.Stage != .Loading) return UserError.SealedPage;

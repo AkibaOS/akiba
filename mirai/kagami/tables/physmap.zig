@@ -26,7 +26,7 @@ const UserError = usererrors.UserError;
 pub fn prepare(owner: *const Kata, virtual_address: u64) UserError!*Entry {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
+    if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
     const record = ledger.find(owner, virtual_address) orelse return UserError.NotOwned;
     if (record.Stage != .Loading) return UserError.SealedPage;
     const resolved = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;

@@ -15,7 +15,7 @@ pub fn find(owner: *const Kata) ?*Mailbox {
 }
 
 pub fn get(owner: *Kata) PostError!*Mailbox {
-    if (!kata.state.owns(owner) or owner.Permanent) return PostError.InvalidPeer;
+    if (!kata.state.owns(owner) or owner.Permanent or owner.State == .Born or owner.State == .Dead) return PostError.InvalidPeer;
     if (find(owner)) |mailbox| return mailbox;
     for (&state.getState().Mailboxes) |*mailbox| {
         if (mailbox.Owner != null) continue;

@@ -63,7 +63,7 @@ fn writeOwned(owner: *const Kata, user_address: u64, source: []const u8, loading
 
 fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool, loading_only: bool) UserError!Plan {
     if (length > limits.MAX_COPY_BYTES) return UserError.CopyTooLarge;
-    if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
+    if (!checks.isValidOwner(owner) or (write_access and owner.State == .Dead)) return UserError.InvalidOwner;
     if (!checks.isValidRange(address, length)) return UserError.InvalidUserRange;
     var plan = Plan{};
     if (length == 0) return plan;

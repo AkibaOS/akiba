@@ -36,7 +36,7 @@ pub fn permitsRemoval(root: *const Kagami, virtual_address: u64, physical_addres
 }
 
 fn permitsOwned(record: *const Record, permissions: u8) bool {
-    if (!checks.isValidOwner(record.Owner) or
+    if (!checks.isValidOwner(record.Owner) or record.Owner.State == .Dead or
         (permissions & protection.USER) == 0 or (permissions & protection.NOCACHE) != 0) return false;
     const writable = (permissions & protection.WRITE) != 0;
     const executable = (permissions & protection.EXECUTE) != 0;

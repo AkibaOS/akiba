@@ -66,9 +66,11 @@ pub fn initializeBoot(owner: *Kata, stack: KernelStack) bool {
         .Context = .{ .CR3 = owner.AddressSpace.PML4Physical },
         .Status = .Running,
         .Started = true,
+        .Admitted = true,
         .Permanent = true,
     };
     owner.ThreadCount = 1;
+    if (!kata.lifecycle.admit(owner)) return false;
     current_thread = &boot_thread;
     boot_initialized = true;
     return true;
@@ -94,10 +96,15 @@ pub fn owns(thread: *const Thread) bool {
     return occupied[index];
 }
 
+pub fn at(index: usize) ?*Thread {
+    if (index >= descriptors.len or !occupied[index]) return null;
+    return &descriptors[index];
+}
+
 pub fn reserve(owner: *Kata) ?*Thread {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (!boot_initialized or !kata.state.owns(owner)) return null;
+    if (!boot_initialized or !kata.state.owns(owner) or owner.State == .Dead) return null;
     for (&occupied, 0..) |*used, index| {
         if (used.*) continue;
         descriptors[index] = .{ .Owner = owner, .Stack = .{ .Base = 0, .Top = 0 } };
@@ -110,7 +117,8 @@ pub fn reserve(owner: *Kata) ?*Thread {
 pub fn release(thread: *Thread) bool {
     const index = poolIndex(thread) orelse return false;
     if (!occupied[index] or thread == current_thread or
-        (thread.Status != .Ready and thread.Status != .Stopped) or thread.Permanent or thread.Managed) return false;
+        (thread.Status != .Ready and thread.Status != .Stopped) or thread.Permanent or thread.Managed or
+        (thread.Admitted and thread.Status != .Stopped)) return false;
     occupied[index] = false;
     return true;
 }

@@ -25,7 +25,7 @@ pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationErro
     defer guard.release(previous_flags);
     if (state.getCurrent() == null) return OwnershipError.NotInitialized;
     if (!kata.state.owns(owner)) return OwnershipError.InvalidOwner;
-    if (owner.ThreadCount == std.math.maxInt(u64) or owner.AddressSpace.ExecutionOwners == 0 or
+    if (owner.State == .Dead or owner.ThreadCount == std.math.maxInt(u64) or owner.AddressSpace.ExecutionOwners == 0 or
         !kagami.activate.canActivate(owner.AddressSpace)) return OwnershipError.InvalidState;
     const thread = state.reserve(owner) orelse return AllocationError.OutOfMemory;
     errdefer _ = state.release(thread);

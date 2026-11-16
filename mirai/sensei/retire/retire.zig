@@ -2,6 +2,7 @@
 
 const control = @import("asm").cpu.constants.control;
 const cpu = @import("asm").cpu.state;
+const kata = @import("mirai").kata;
 const messages = @import("mirai").sensei.strings.messages;
 const queue = @import("mirai").sensei.queue;
 const registry = @import("mirai").sensei.registry;
@@ -24,5 +25,7 @@ pub fn collect() void {
         thread.state.notifyInactive(target);
         target.Managed = false;
         if (!registry.release(record)) @panic(messages.INVALID_STATE);
+        if (target.Owner.State != .Dead) thread.destroy.destroy(target) catch @panic(messages.INVALID_STATE);
     }
+    kata.collect.collect();
 }

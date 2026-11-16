@@ -56,13 +56,15 @@ pub fn blockFromInvocation(waiters: *Queue, predicate: Predicate, context: ?*any
     block(waiters, predicate, context, current, preferred);
 }
 
-fn makeReady(record: *Record) void {
+fn makeReady(record: *Record) bool {
     const scheduler = state.getState();
     const target = record.Thread orelse @panic(messages.INVALID_STATE);
     if (!target.Managed or target.Status != .Blocked or record.Queue != null) @panic(messages.INVALID_STATE);
-    target.Status = .Ready;
+    if (target.Owner.State == .Dead) return false;
+    thread.execution.change(target, .Ready);
     if (!queue.append(&scheduler.Ready, record)) @panic(messages.INVALID_QUEUE);
     if (registry.current() == scheduler.Idle) scheduler.Pending = true;
+    return true;
 }
 
 pub fn wakeOldest(waiters: *Queue) SchedulingError!?*Thread {
@@ -71,9 +73,10 @@ pub fn wakeOldest(waiters: *Queue) SchedulingError!?*Thread {
     const scheduler = state.getState();
     if (!scheduler.Initialized) return SchedulingError.NotInitialized;
     if (waiters == &scheduler.Ready) return SchedulingError.InvalidQueue;
-    const record = queue.take(waiters) orelse return null;
-    makeReady(record);
-    return record.Thread;
+    while (queue.take(waiters)) |record| {
+        if (makeReady(record)) return record.Thread;
+    }
+    return null;
 }
 
 pub fn wakeOne(waiters: *Queue) SchedulingError!bool {
@@ -88,8 +91,7 @@ pub fn wakeAll(waiters: *Queue) SchedulingError!u16 {
     if (waiters == &scheduler.Ready) return SchedulingError.InvalidQueue;
     var count: u16 = 0;
     while (queue.take(waiters)) |record| {
-        makeReady(record);
-        count += 1;
+        if (makeReady(record)) count += 1;
     }
     return count;
 }
@@ -101,9 +103,8 @@ pub fn wake(target: *Thread) SchedulingError!bool {
     if (!scheduler.Initialized) return SchedulingError.NotInitialized;
     if (!thread.state.owns(target)) return SchedulingError.InvalidThread;
     const record = registry.find(target) orelse return SchedulingError.NotManaged;
-    if (target.Status != .Blocked) return false;
+    if (target.Status != .Blocked or target.Owner.State == .Dead) return false;
     const waiters = record.Queue orelse return SchedulingError.InvalidState;
     if (waiters == &scheduler.Ready or !queue.remove(waiters, record)) @panic(messages.INVALID_QUEUE);
-    makeReady(record);
-    return true;
+    return makeReady(record);
 }

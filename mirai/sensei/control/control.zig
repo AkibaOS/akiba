@@ -41,9 +41,14 @@ pub fn start(target: *Thread) SchedulingError!void {
     if (scheduler.IRQDepth != 0 or scheduler.PreemptionDepth != 0) return SchedulingError.UnsafeContext;
     if (!thread.state.owns(target)) return SchedulingError.InvalidThread;
     if (target.Managed or registry.find(target) != null) return SchedulingError.AlreadyManaged;
-    if (target.Permanent or target.Started or target.Status != .Ready or target.EntryPoint == null)
+    if (target.Permanent or target.Owner.State == .Dead or target.Admitted or target.Started or
+        target.Status != .Ready or target.EntryPoint == null)
         return SchedulingError.InvalidState;
     const record = registry.reserve(target) orelse return SchedulingError.CapacityReached;
+    if (!thread.execution.admit(target)) {
+        if (!registry.release(record)) @panic(messages.INVALID_STATE);
+        return SchedulingError.InvalidState;
+    }
     target.Managed = true;
     target.EnableInterrupts = true;
     if (!queue.append(&scheduler.Ready, record)) @panic(messages.INVALID_QUEUE);
@@ -61,10 +66,11 @@ pub fn detach(target: *Thread) SchedulingError!void {
     if (!target.Managed) return SchedulingError.InvalidState;
     if (target == thread.state.getCurrent() or target.Permanent or record == scheduler.Idle) return SchedulingError.InUse;
     if (target.Status != .Ready and target.Status != .Blocked) return SchedulingError.InvalidState;
+    if (!target.Admitted or (target.Owner.State != .Dead and target.Owner.LiveThreadCount == 1)) return SchedulingError.InUse;
     if (record.Queue) |owner| {
         if (!queue.remove(owner, record)) @panic(messages.INVALID_QUEUE);
     }
-    target.Status = .Stopped;
+    thread.execution.change(target, .Stopped);
     thread.state.notifyInactive(target);
     target.Managed = false;
     if (!registry.release(record)) @panic(messages.INVALID_STATE);

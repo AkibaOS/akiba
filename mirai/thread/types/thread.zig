@@ -17,6 +17,7 @@ pub const Thread = struct {
     EntryPoint: ?Entry = null,
     Argument: ?*anyopaque = null,
     EnableInterrupts: bool = false,
+    Admitted: bool = false,
     Managed: bool = false,
     Started: bool = false,
     Status: State = .Ready,

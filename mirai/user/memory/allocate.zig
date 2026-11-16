@@ -18,7 +18,7 @@ const UserError = usererrors.UserError;
 pub fn allocate(owner: *Kata, virtual_address: u64) UserError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
+    if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     if (!checks.isValidRange(virtual_address, sizes.PAGE_SIZE)) return UserError.InvalidUserRange;
     if (ledger.find(owner, virtual_address) != null) return UserError.AlreadyOwned;

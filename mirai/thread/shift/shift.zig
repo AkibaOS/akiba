@@ -3,6 +3,7 @@
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const errors = @import("mirai").thread.errors.ownership;
+const execution = @import("mirai").thread.execution;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
@@ -32,7 +33,8 @@ fn isCurrentValid(thread: *const Thread) bool {
 }
 
 fn canResume(thread: *const Thread) bool {
-    if (!hasOwner(thread) or thread.Status != .Ready or !kagami.activate.canActivate(thread.Owner.AddressSpace)) return false;
+    if (!hasOwner(thread) or thread.Owner.State == .Dead or thread.Status != .Ready or
+        !kagami.activate.canActivate(thread.Owner.AddressSpace)) return false;
     const context = &thread.Context;
     const text = kagami.state.getPolicy().Image.Text;
     return context.CR3 == thread.Owner.AddressSpace.PML4Physical and
@@ -67,8 +69,9 @@ fn transfer(next: *Thread, previous_status: State, managed: bool) OwnershipError
         (cpu.control.readCR4() & cpu.constants.control.CR4_OS_XSAVE) != 0 or
         (cpu.control.readCR0() & (cpu.constants.control.CR0_EMULATION | cpu.constants.control.CR0_TASK_SWITCHED)) != 0)
         return OwnershipError.InvalidState;
-    previous.Status = previous_status;
-    next.Status = .Running;
+    if (!next.Admitted and !execution.admit(next)) return OwnershipError.InvalidState;
+    execution.change(previous, previous_status);
+    execution.change(next, .Running);
     if (!state.setCurrent(next)) @panic(messages.INVALID_CONTEXT);
     tss.state.getBootTSS().setRSP0(next.Stack.Top);
     cpu.context.transfer(&previous.Context, &next.Context);

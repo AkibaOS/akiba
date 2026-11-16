@@ -16,7 +16,8 @@ pub fn destroy(owner: *Kata) (OwnershipError || UserError)!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!state.owns(owner)) return OwnershipError.InvalidKata;
-    if (owner.Permanent or owner.ThreadCount != 0) return OwnershipError.InUse;
+    if (owner.Permanent or owner.ThreadCount != 0 or owner.LiveThreadCount != 0 or owner.RunnableThreadCount != 0 or
+        (owner.State != .Born and owner.State != .Dead)) return OwnershipError.InUse;
     const root = owner.AddressSpace;
     if (root == kagami.state.getCurrentKagami() or kagami.activate.isActive(root) or
         root.ExecutionOwners != 1 or root.ReferenceCount != 1) return OwnershipError.InUse;

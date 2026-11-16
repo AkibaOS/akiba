@@ -33,8 +33,12 @@ pub fn threadInactive(target: *Thread) void {
     }
     if (entry) |owned| lifetime.clearRecord(owned);
     if (!thread.state.hasLive(owner, target)) {
-        const incoming = inbox.get(owner) catch @panic(messages.INVALID_MAILBOX);
-        lifetime.close(incoming);
+        if (mailbox) |incoming| {
+            lifetime.close(incoming);
+        } else if (owner.State != .Born and owner.State != .Dead) {
+            const incoming = inbox.get(owner) catch @panic(messages.INVALID_MAILBOX);
+            lifetime.close(incoming);
+        }
     }
 }
 

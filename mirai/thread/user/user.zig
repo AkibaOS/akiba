@@ -11,7 +11,6 @@ const kata = @import("mirai").kata;
 const limits = @import("mirai").thread.constants.user;
 const messages = @import("mirai").thread.strings.shift.messages;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
-const sensei = @import("mirai").sensei;
 const state = @import("mirai").thread.state;
 const transfer = @import("mirai").user.copy.transfer;
 const types = @import("mirai").thread.types;
@@ -27,7 +26,7 @@ const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
 pub fn validReturn(thread: *const Thread, instruction: u64, stack_pointer: u64) bool {
-    if (thread.Mode != .User or !kata.state.owns(thread.Owner) or thread.Owner.Permanent or
+    if (thread.Mode != .User or !kata.state.owns(thread.Owner) or thread.Owner.Permanent or thread.Owner.State == .Dead or
         instruction == 0 or instruction > layout.USER_SPACE_END or
         stack_pointer <= thread.User.StackBase or stack_pointer > thread.User.StackTop) return false;
     const code = kagami.tables.walk.lookup(thread.Owner.AddressSpace.PML4Physical, instruction) orelse return false;
@@ -89,7 +88,13 @@ pub fn fault(vector: u64, code: u64, address: u64, instruction: u64, stack_point
 fn stopFaulted(argument: *anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const target: *Thread = @ptrCast(@alignCast(argument));
     if (state.getCurrent() != target or !target.User.Faulted) @panic(messages.INVALID_CONTEXT);
-    sensei.run.stopCurrent();
+    kata.finish.fault(.{
+        .Vector = target.User.FaultVector,
+        .Code = target.User.FaultCode,
+        .Address = target.User.FaultAddress,
+        .Instruction = target.User.FaultRIP,
+        .StackPointer = target.User.FaultRSP,
+    });
 }
 
 fn enterUser(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
