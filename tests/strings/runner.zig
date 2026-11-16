@@ -2,6 +2,9 @@
 
 pub const ADDRESS = "127.0.0.1";
 pub const QMP_REQUEST = "{{\"execute\":\"{s}\",\"id\":{d}}}\n";
+pub const QMP_ARGUMENT_REQUEST = "{{\"execute\":\"{s}\",\"arguments\":{s},\"id\":{d}}}\n";
+pub const SEND_KEY = "send-key";
+pub const KEY_ARGUMENTS = "{\"keys\":[{\"type\":\"qcode\",\"data\":\"a\"}],\"hold-time\":50}";
 pub const QMP_MEMBER = "QMP";
 pub const QMP_ID = "id";
 pub const QMP_ERROR = "error";

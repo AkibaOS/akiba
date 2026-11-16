@@ -3,6 +3,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const driverlabels = @import("tests").strings.drivers;
 const image = @import("tests").runner.image;
 const limits = @import("tests").constants.runner;
 const paths = @import("tests").runner.paths;
@@ -48,8 +49,9 @@ fn connect(allocator: std.mem.Allocator, instance: *Process, port: u16) !Connect
     return error.GuestStartTimeout;
 }
 
-fn completed(instance: *Process, inputs: *const Paths, selected: Scenario) !usize {
+fn completed(instance: *Process, inputs: *const Paths, connection: *Connection, selected: Scenario) !usize {
     var timer = try std.time.Timer.start();
+    var input_sent = false;
     while (timer.read() < limits.CHECK_NS) {
         if (process.cancelled()) return error.Cancelled;
         if (try process.exited(instance)) return error.GuestExited;
@@ -61,7 +63,14 @@ fn completed(instance: *Process, inputs: *const Paths, selected: Scenario) !usiz
             else => return failure,
         };
         defer std.heap.page_allocator.free(bytes);
-        if (try result.evaluate(bytes, selected)) |passed| return passed;
+        if (selected == .Devices and !input_sent and std.mem.indexOf(u8, bytes, driverlabels.READY) != null) {
+            try protocol.pressKey(std.heap.page_allocator, connection);
+            input_sent = true;
+        }
+        if (try result.evaluate(bytes, selected)) |passed| {
+            if (selected == .Devices and !input_sent) return error.MissingInjectedInput;
+            return passed;
+        }
         std.Thread.sleep(limits.POLL_NS);
     }
     return error.GuestCheckTimeout;
@@ -126,7 +135,7 @@ fn runScenario(selected: Scenario) !void {
         };
         owned = true;
         stage = .Checks;
-        passed = completed(&instance, &inputs, selected) catch |reason| {
+        passed = completed(&instance, &inputs, &connection.?, selected) catch |reason| {
             failure = reason;
             break :work;
         };

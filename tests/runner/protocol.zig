@@ -58,18 +58,26 @@ pub fn open(allocator: std.mem.Allocator, port: u16) !Connection {
 }
 
 pub fn command(allocator: std.mem.Allocator, connection: *Connection, name: []const u8) !std.json.Parsed(Value) {
-    return sendRequest(allocator, connection, name, false);
+    return sendRequest(allocator, connection, name, null, false);
 }
 
 pub fn quit(allocator: std.mem.Allocator, connection: *Connection) !void {
-    const response = try sendRequest(allocator, connection, strings.QUIT, true);
+    const response = try sendRequest(allocator, connection, strings.QUIT, null, true);
     response.deinit();
 }
 
-fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, ignore_cancel: bool) !std.json.Parsed(Value) {
+pub fn pressKey(allocator: std.mem.Allocator, connection: *Connection) !void {
+    const response = try sendRequest(allocator, connection, strings.SEND_KEY, strings.KEY_ARGUMENTS, false);
+    response.deinit();
+}
+
+fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8, ignore_cancel: bool) !std.json.Parsed(Value) {
     var timer = try std.time.Timer.start();
     connection.Sequence += 1;
-    const request = try std.fmt.allocPrint(allocator, strings.QMP_REQUEST, .{ name, connection.Sequence });
+    const request = if (arguments) |values|
+        try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT_REQUEST, .{ name, values, connection.Sequence })
+    else
+        try std.fmt.allocPrint(allocator, strings.QMP_REQUEST, .{ name, connection.Sequence });
     defer allocator.free(request);
     var sent: usize = 0;
     while (sent < request.len) {

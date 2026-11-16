@@ -4,6 +4,7 @@ const accesslabels = @import("tests").strings.access;
 const bootlabels = @import("tests").strings.boot;
 const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
+const driverlabels = @import("tests").strings.drivers;
 const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
 const invocationlabels = @import("tests").strings.invocations;
@@ -21,6 +22,12 @@ pub fn execute() void {
     switch (guest.support.selector.selected()) {
         .Standard => {},
         .Firmware => @panic(scenariolabels.INVALID),
+        .Devices => {
+            serial.printf(driverlabels.GROUP, .{});
+            @call(.never_inline, guest.mirai.drivers.input.run, .{});
+            serial.printf(labels.COMPLETE, .{verify.count()});
+            return;
+        },
         .PulseDeath => {
             check(guest.mirai.kata.fatal.run);
             return;
