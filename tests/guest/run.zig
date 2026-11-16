@@ -5,6 +5,8 @@ const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
 const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
+const retentionlabels = @import("tests").strings.retention;
+const senseilabels = @import("tests").strings.sensei;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
 
@@ -39,6 +41,12 @@ pub fn execute() void {
     guest.mirai.user.regressions.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_MEMORY, .{});
     guest.mirai.user.memory.run() catch |failure| verify.failure(failure);
+    serial.printf(senseilabels.GROUP, .{});
+    guest.mirai.sensei.admission.run() catch |failure| verify.failure(failure);
+    guest.mirai.sensei.waiting.run() catch |failure| verify.failure(failure);
+    guest.mirai.sensei.deferral.run() catch |failure| verify.failure(failure);
+    serial.printf(retentionlabels.GROUP, .{});
+    guest.mirai.kata.retention.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_LIFECYCLE, .{});
     guest.mirai.kata.lifecycle.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_COMPLETION, .{});
