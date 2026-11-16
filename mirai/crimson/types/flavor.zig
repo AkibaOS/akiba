@@ -37,7 +37,7 @@ pub const Flavor = enum(u8) {
 };
 
 pub const FloatState = extern struct {
-    FCW: u16,
+    FCW: u16 align(16),
     FSW: u16,
     FTW: u8,
     Reserved1: u8,

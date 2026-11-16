@@ -11,6 +11,7 @@ pub const MAX_PACKET_BYTES: usize = 65536;
 pub const MAX_PACKETS: usize = 1024;
 pub const MAX_SERIAL_BYTES: usize = 1024 * 1024;
 pub const MAX_TOOL_BYTES: usize = 1024 * 1024;
+pub const FAILURE_TAIL_LINES: usize = 48;
 pub const JOB_KILL_ON_CLOSE: u32 = 0x2000;
 pub const JOB_EXTENDED_LIMITS: u32 = 9;
 pub const JOB_ACCOUNTING: u32 = 1;

@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const labels = @import("tests").strings.scenario;
+const limits = @import("tests").constants.runner;
 const strings = @import("tests").strings.runner;
 const Report = @import("tests").types.host.Report;
 
@@ -15,9 +16,22 @@ pub fn finish(report: *const Report, bytes: ?[]const u8) void {
         std.debug.print(strings.FAILURE_RESULT, .{ @tagName(report.Stage), reason });
         if (bytes) |data| {
             var lines = std.mem.tokenizeAny(u8, data, strings.LINE_SEPARATORS);
+            var detailed = false;
             while (lines.next()) |line| {
-                if (std.mem.startsWith(u8, line, strings.CHECK_FAIL) or std.mem.startsWith(u8, line, strings.KERNEL_PANIC))
+                if (std.mem.startsWith(u8, line, strings.CHECK_FAIL) or std.mem.startsWith(u8, line, strings.KERNEL_PANIC)) {
                     std.debug.print(strings.FAILURE_DETAIL, .{line});
+                    detailed = true;
+                }
+            }
+            if (!detailed) {
+                var start = data.len;
+                var remaining = limits.FAILURE_TAIL_LINES;
+                while (start != 0 and remaining != 0) {
+                    start -= 1;
+                    if (data[start] == '\n') remaining -= 1;
+                }
+                var tail = std.mem.tokenizeAny(u8, data[start..], strings.LINE_SEPARATORS);
+                while (tail.next()) |line| std.debug.print(strings.FAILURE_DETAIL, .{line});
             }
         }
     } else if (report.Scenario == .PulseDeath) {

@@ -1,6 +1,7 @@
 //! Regression Check Strings
 
 pub const boot = @import("boot.zig");
+pub const crimson = @import("crimson.zig");
 pub const guest = @import("guest.zig");
 pub const hikari = @import("hikari.zig");
 pub const image = @import("image.zig");
