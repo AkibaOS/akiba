@@ -1,6 +1,7 @@
 //! Explicit Guest Regression Execution
 
 const accesslabels = @import("tests").strings.access;
+const acquisitionlabels = @import("tests").strings.acquisition;
 const bootlabels = @import("tests").strings.boot;
 const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
@@ -33,6 +34,9 @@ pub fn execute() void {
             return;
         },
     }
+    serial.printf(acquisitionlabels.GROUP, .{});
+    check(guest.hikari.disk.gpt.run);
+    check(guest.hikari.disk.unit.run);
     serial.printf(hikarilabels.GROUP_ELF, .{});
     check(guest.hikari.loader.validation.run);
     serial.printf(hikarilabels.GROUP_EFI, .{});

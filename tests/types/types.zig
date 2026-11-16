@@ -1,5 +1,6 @@
 //! Regression Check Types
 
+pub const acquisition = @import("acquisition.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
 pub const firmware = @import("firmware.zig");
