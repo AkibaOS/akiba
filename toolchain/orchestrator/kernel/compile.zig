@@ -32,12 +32,19 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
     options.addOption(bool, names.OPTION_GUEST_CHECKS, guest_checks);
     module.addOptions(names.MODULE_OPTIONS, options);
     if (guest_checks) {
+        const hikari = builder.createModule(.{ .root_source_file = builder.path(paths.HIKARI_ROOT) });
+        hikari.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
+        hikari.addImport(names.MODULE_COMMON, modules.Common);
+        hikari.addImport(names.MODULE_SHARED, modules.Shared);
+        hikari.addImport(names.MODULE_UTILS, modules.Utils);
+        hikari.addImport(names.EXECUTABLE_HIKARI, hikari);
         const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
         checks.addImport(names.MODULE_TESTS, checks);
         checks.addImport(names.MODULE_COMMON, modules.Common);
         checks.addImport(names.MODULE_SHARED, modules.Shared);
         checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
         checks.addImport(names.MODULE_UTILS, modules.Utils);
+        checks.addImport(names.EXECUTABLE_HIKARI, hikari);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
         module.addImport(names.MODULE_TESTS, checks);
     }

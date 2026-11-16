@@ -1,5 +1,6 @@
 //! Regression Check Types
 
+pub const hikari = @import("hikari.zig");
 pub const host = @import("host.zig");
 pub const memory = @import("memory.zig");
 pub const render = @import("render.zig");

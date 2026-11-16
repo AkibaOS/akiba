@@ -2,6 +2,7 @@
 
 const bootlabels = @import("tests").strings.boot;
 const guest = @import("tests").guest;
+const hikarilabels = @import("tests").strings.hikari;
 const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
 const serial = @import("mirai").drivers.serial.write;
@@ -16,6 +17,10 @@ pub fn execute() void {
             return;
         },
     }
+    serial.printf(hikarilabels.GROUP_ELF, .{});
+    guest.hikari.loader.validation.run() catch |failure| verify.failure(failure);
+    serial.printf(hikarilabels.GROUP_EFI, .{});
+    guest.hikari.efi.buffer.run();
     serial.printf(bootlabels.GROUP, .{});
     guest.mirai.boot.invariants.run();
     serial.printf(memorylabels.GROUP_PMM, .{});

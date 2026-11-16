@@ -1,6 +1,7 @@
 //! Regression Check Constants
 
 pub const guest = @import("guest.zig");
+pub const hikari = @import("hikari.zig");
 pub const invocations = @import("invocations.zig");
 pub const memory = @import("memory.zig");
 pub const render = @import("render.zig");

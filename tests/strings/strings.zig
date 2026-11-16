@@ -2,6 +2,7 @@
 
 pub const boot = @import("boot.zig");
 pub const guest = @import("guest.zig");
+pub const hikari = @import("hikari.zig");
 pub const memory = @import("memory.zig");
 pub const oracle = @import("oracle.zig");
 pub const paths = @import("paths.zig");
