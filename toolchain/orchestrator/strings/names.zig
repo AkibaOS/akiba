@@ -12,6 +12,7 @@ pub const ENTRY_MIRAI = "mirai_entry";
 
 pub const IMPORT_FONT = "font";
 pub const MODULE_TESTS = "tests";
+pub const MODULE_TEST_ASSEMBLY = "testasm";
 pub const MODULE_OPTIONS = "options";
 pub const OPTION_GUEST_CHECKS = "GUEST_CHECKS";
 pub const EXECUTABLE_GUEST = "mirai-tests";

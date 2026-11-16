@@ -46,6 +46,16 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
         checks.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.EXECUTABLE_HIKARI, hikari);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
+        const probes = builder.createModule(.{
+            .root_source_file = builder.path(paths.TEST_ASSEMBLY_ROOT),
+            .target = target,
+            .optimize = .ReleaseSafe,
+            .code_model = .kernel,
+            .pic = false,
+            .red_zone = false,
+        });
+        probes.addImport(names.MODULE_TESTS, checks);
+        checks.addImport(names.MODULE_TEST_ASSEMBLY, probes);
         module.addImport(names.MODULE_TESTS, checks);
     }
     const executable = builder.addExecutable(.{

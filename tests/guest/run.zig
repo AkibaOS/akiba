@@ -1,6 +1,7 @@
 //! Explicit Guest Regression Execution
 
 const bootlabels = @import("tests").strings.boot;
+const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
 const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
@@ -56,6 +57,8 @@ pub fn execute() void {
     check(guest.mirai.thread.persona.run);
     serial.printf(labels.GROUP_TERMINATION, .{});
     check(guest.mirai.invocations.termination.run);
+    serial.printf(contextlabels.GROUP, .{});
+    check(guest.mirai.thread.context.run);
     serial.printf(crimsonlabels.GROUP, .{});
     @call(.never_inline, guest.mirai.crimson.codec.run, .{});
     @call(.never_inline, guest.mirai.crimson.ports.run, .{});
