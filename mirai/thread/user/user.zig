@@ -1,4 +1,4 @@
-//! Validated User Thread Construction And Entry
+//! Validated Persona Mode Thread Construction And Entry
 
 const common = @import("common");
 const construction = @import("mirai").thread.create;
@@ -26,7 +26,7 @@ const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
 pub fn validReturn(thread: *const Thread, instruction: u64, stack_pointer: u64) bool {
-    if (thread.Mode != .User or !kata.state.owns(thread.Owner) or thread.Owner.Permanent or thread.Owner.State == .Dead or
+    if (thread.Mode != .Persona or !kata.state.owns(thread.Owner) or thread.Owner.Permanent or thread.Owner.State == .Dead or
         instruction == 0 or instruction > layout.USER_SPACE_END or
         stack_pointer <= thread.User.StackBase or stack_pointer > thread.User.StackTop) return false;
     const code = kagami.tables.walk.lookup(thread.Owner.AddressSpace.PML4Physical, instruction) orelse return false;
@@ -55,9 +55,9 @@ pub fn create(owner: *Kata, instruction: u64, stack_base: u64, stack_size: u64, 
     defer guard.release(previous_flags);
     if (!kata.state.owns(owner) or owner.Permanent) return OwnershipError.InvalidOwner;
     if (!validStack(owner, stack_base, stack_size)) return OwnershipError.InvalidState;
-    const target = try construction.create(owner, enterUser, null);
+    const target = try construction.create(owner, enterPersona, null);
     errdefer destruction.destroy(target) catch @panic(messages.INVALID_CONTEXT);
-    target.Mode = .User;
+    target.Mode = .Persona;
     target.User = .{
         .RIP = instruction,
         .RSP = stack_base + stack_size - limits.ENTRY_STACK_BYTES,
@@ -75,7 +75,7 @@ pub fn create(owner: *Kata, instruction: u64, stack_base: u64, stack_size: u64, 
 
 pub fn fault(vector: u64, code: u64, address: u64, instruction: u64, stack_pointer: u64) noreturn {
     const target = state.getCurrent() orelse @panic(messages.INVALID_CONTEXT);
-    if (target.Mode != .User or !target.Managed or target.Status != .Running) @panic(messages.INVALID_CONTEXT);
+    if (target.Mode != .Persona or !target.Managed or target.Status != .Running) @panic(messages.INVALID_CONTEXT);
     target.User.Faulted = true;
     target.User.FaultVector = vector;
     target.User.FaultCode = code;
@@ -97,7 +97,7 @@ fn stopFaulted(argument: *anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn 
     });
 }
 
-fn enterUser(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
+fn enterPersona(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const target: *Thread = @ptrCast(@alignCast(argument orelse @panic(messages.INVALID_CONTEXT)));
     if (state.getCurrent() != target or !target.Started or !validReturn(target, target.User.RIP, target.User.RSP) or
         (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);

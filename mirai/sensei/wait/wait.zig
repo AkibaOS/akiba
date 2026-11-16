@@ -51,7 +51,7 @@ pub fn blockFromInvocation(waiters: *Queue, predicate: Predicate, context: ?*any
     const current = registry.current() orelse return SchedulingError.InvalidState;
     if (current == scheduler.Idle) return SchedulingError.InUse;
     const target = current.Thread orelse return SchedulingError.InvalidState;
-    if (!thread.state.owns(target) or !target.Managed or target.Status != .Running or target.Mode != .User or
+    if (!thread.state.owns(target) or !target.Managed or target.Status != .Running or target.Mode != .Persona or
         current.Queue != null or current.Next != null) return SchedulingError.InvalidState;
     block(waiters, predicate, context, current, preferred);
 }

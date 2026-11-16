@@ -15,7 +15,7 @@ pub fn initialized() PostError!void {
 
 pub fn live(target: *const Thread) bool {
     if (!thread.state.owns(target)) return false;
-    if (!target.Managed or target.Permanent or target.Mode != .User or target.Status == .Stopped) return false;
+    if (!target.Managed or target.Permanent or target.Mode != .Persona or target.Status == .Stopped) return false;
     return kata.state.owns(target.Owner) and !target.Owner.Permanent and
         target.Owner.State != .Born and target.Owner.State != .Dead;
 }

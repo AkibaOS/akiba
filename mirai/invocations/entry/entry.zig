@@ -1,4 +1,4 @@
-//! Controlled User Invocation Dispatch
+//! Controlled Persona Mode Invocation Dispatch
 
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
@@ -18,7 +18,7 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         return;
     }
     const current = thread.state.getCurrent() orelse @panic(messages.INVALID_CONTEXT);
-    if (current.Mode != .User or !current.Managed or current.Status != .Running or
+    if (current.Mode != .Persona or !current.Managed or current.Status != .Running or
         (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
     if (frame.CS != (@as(u64, selectors.USER_CODE_SELECTOR) | selectors.RING_3) or
         frame.SS != (@as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3) or

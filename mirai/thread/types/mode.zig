@@ -2,5 +2,5 @@
 
 pub const Mode = enum {
     Kernel,
-    User,
+    Persona,
 };
