@@ -1,7 +1,7 @@
 //! Inactive Owned User Page Release
 
+const access = @import("mirai").user.state.access;
 const checks = @import("mirai").user.state.checks;
-const common = @import("common");
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
@@ -12,7 +12,6 @@ const pmm = @import("mirai").pmm;
 const types = @import("mirai").user.types;
 const usererrors = @import("mirai").user.errors.memory;
 
-const sizes = common.constants.memory.sizes;
 const Kata = kata.types.kata.Kata;
 const Record = types.record.Record;
 const UserError = usererrors.UserError;
@@ -37,13 +36,7 @@ pub fn releaseAll(owner: *Kata) UserError!void {
 }
 
 fn validateRelease(record: *const Record) UserError!void {
-    const resolved = checks.lookupOwned(record) orelse return UserError.InvalidOwnedMapping;
-    if ((record.Stage == .Loading and resolved.Executable) or
-        (record.Stage == .Sealed and resolved.Writable)) return UserError.InvalidOwnedMapping;
-    const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
-    const loading = record.Stage == .Loading;
-    if (alias.Writable != loading or alias.Entry.Writable != loading) return UserError.InvalidPhysmap;
-    if (!loading and alias.PageSize != sizes.PAGE_SIZE) return UserError.InvalidPhysmap;
+    try access.validate(record, false);
 }
 
 fn releaseRecord(record: *Record) UserError!void {

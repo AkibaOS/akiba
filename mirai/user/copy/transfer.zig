@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const access = @import("mirai").user.state.access;
 const checks = @import("mirai").user.state.checks;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
@@ -15,13 +16,12 @@ const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 const Kata = kata.types.kata.Kata;
 const Plan = types.copy.Plan;
-const Record = types.record.Record;
 const UserError = usererrors.UserError;
 
 pub fn read(owner: *const Kata, destination: []u8, user_address: u64) UserError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    const plan = try prepare(owner, user_address, destination.len, false);
+    const plan = try prepare(owner, user_address, destination.len, false, false);
     var snapshot: [limits.MAX_COPY_BYTES]u8 = undefined;
     var offset: usize = 0;
     for (plan.Segments[0..plan.Count]) |segment| {
@@ -33,9 +33,24 @@ pub fn read(owner: *const Kata, destination: []u8, user_address: u64) UserError!
 }
 
 pub fn write(owner: *const Kata, user_address: u64, source: []const u8) UserError!void {
+    return writeOwned(owner, user_address, source, false);
+}
+
+pub fn load(owner: *const Kata, user_address: u64, source: []const u8) UserError!void {
+    return writeOwned(owner, user_address, source, true);
+}
+
+pub fn validate(owner: *const Kata, address: u64, length: usize, write_access: bool) bool {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    const plan = try prepare(owner, user_address, source.len, true);
+    _ = prepare(owner, address, length, write_access, false) catch return false;
+    return true;
+}
+
+fn writeOwned(owner: *const Kata, user_address: u64, source: []const u8, loading_only: bool) UserError!void {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    const plan = try prepare(owner, user_address, source.len, true, loading_only);
     var snapshot: [limits.MAX_COPY_BYTES]u8 = undefined;
     move(snapshot[0..source.len], source);
     var offset: usize = 0;
@@ -46,14 +61,7 @@ pub fn write(owner: *const Kata, user_address: u64, source: []const u8) UserErro
     }
 }
 
-pub fn validate(owner: *const Kata, address: u64, length: usize, write_access: bool) bool {
-    const previous_flags = guard.acquire();
-    defer guard.release(previous_flags);
-    _ = prepare(owner, address, length, write_access) catch return false;
-    return true;
-}
-
-fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool) UserError!Plan {
+fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool, loading_only: bool) UserError!Plan {
     if (length > limits.MAX_COPY_BYTES) return UserError.CopyTooLarge;
     if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
     if (!checks.isValidRange(address, length)) return UserError.InvalidUserRange;
@@ -64,7 +72,8 @@ fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool) 
     while (remaining != 0) {
         if (plan.Count == plan.Segments.len) return UserError.CopyTooLarge;
         const record = ledger.find(owner, current_address & ~sizes.PAGE_MASK) orelse return UserError.NotOwned;
-        try validatePage(record, write_access);
+        if (loading_only and record.Stage != .Loading) return UserError.SealedPage;
+        try access.validate(record, write_access);
         const length_in_page: usize = @intCast(@min(remaining, sizes.PAGE_SIZE - (current_address & sizes.PAGE_MASK)));
         plan.Segments[plan.Count] = .{
             .Alias = layout.PHYSMAP_BASE + record.PA + (current_address & sizes.PAGE_MASK),
@@ -75,17 +84,6 @@ fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool) 
         remaining -= length_in_page;
     }
     return plan;
-}
-
-fn validatePage(record: *const Record, write_access: bool) UserError!void {
-    const resolved = checks.lookupOwned(record) orelse return UserError.InvalidOwnedMapping;
-    if (write_access and record.Stage == .Sealed) return UserError.SealedPage;
-    const loading = record.Stage == .Loading;
-    if ((loading and (resolved.Executable or !resolved.Entry.NoExecute)) or
-        (!loading and (resolved.Writable or resolved.Entry.Writable))) return UserError.InvalidOwnedMapping;
-    const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
-    if (alias.Writable != loading or alias.Entry.Writable != loading) return UserError.InvalidPhysmap;
-    if (write_access and (!resolved.Writable or resolved.Executable or !alias.Writable)) return UserError.PermissionDenied;
 }
 
 fn move(destination: []u8, source: []const u8) void {

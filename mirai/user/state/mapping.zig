@@ -1,5 +1,6 @@
 //! Owned User Frame Mapping Permissions
 
+const access = @import("mirai").user.state.access;
 const checks = @import("mirai").user.state.checks;
 const kagami = @import("mirai").kagami;
 const ledger = @import("mirai").user.state.ledger;
@@ -39,8 +40,5 @@ fn permitsOwned(record: *const Record, permissions: u8) bool {
         (permissions & protection.USER) == 0 or (permissions & protection.NOCACHE) != 0) return false;
     const writable = (permissions & protection.WRITE) != 0;
     const executable = (permissions & protection.EXECUTE) != 0;
-    return switch (record.Stage) {
-        .Loading => !executable,
-        .Sealed => !writable,
-    };
+    return writable == access.isWritable(record.Stage) and executable == access.isExecutable(record.Stage);
 }

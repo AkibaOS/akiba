@@ -2,5 +2,7 @@
 
 pub const Stage = enum {
     Loading,
-    Sealed,
+    Writable,
+    ReadOnly,
+    Executable,
 };
