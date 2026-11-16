@@ -4,7 +4,28 @@ const std = @import("std");
 
 const fixtures = @import("tests").strings.oracle;
 const labels = @import("tests").strings.scenario;
+const peer = @import("tests").fast.runner.protocol;
 const result = @import("tests").runner.result;
+
+test "QMP loopback rejects invalid greetings" {
+    try peer.rejects(.InvalidGreeting, error.QmpInvalidGreeting);
+}
+
+test "QMP loopback propagates explicit command errors" {
+    try peer.rejects(.ErrorReply, error.QmpCommandFailed);
+}
+
+test "QMP loopback ignores events and unrelated sequence IDs" {
+    try peer.events();
+}
+
+test "QMP loopback reports an orderly disconnected peer" {
+    try peer.rejects(.Disconnect, error.QmpDisconnected);
+}
+
+test "QMP slow-byte peer cannot renew the overall operation deadline" {
+    try peer.deadline();
+}
 
 test "firmware oracle accepts its own nonempty completion without kernel ready" {
     try std.testing.expectEqual(@as(?usize, 8), try result.evaluate(fixtures.FIRMWARE_VALID, .Firmware));
