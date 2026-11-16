@@ -20,7 +20,7 @@ pub fn readSpan(
     cell_buffer: []u8,
 ) ReadError!u64 {
     if (reader.CellSize == 0 or cell_buffer.len < reader.CellSize) return ReadError.BufferTooSmall;
-    if (!bounds.spanFits(span.*, reader.TotalCells) or span.CellCount > std.math.maxInt(u64) / reader.CellSize) return ReadError.InvalidSpan;
+    if (!bounds.spanFits(span.*, reader.TotalCells) or span.CellCount > std.math.maxInt(u64) / @as(u64, reader.CellSize)) return ReadError.InvalidSpan;
     const span_bytes = span.byteSize(reader.CellSize);
     const bytes_to_read = if (buffer.len < span_bytes) buffer.len else span_bytes;
 
