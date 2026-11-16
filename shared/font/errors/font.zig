@@ -3,6 +3,7 @@
 pub const FontError = error{
     UnexpectedEnd,
     InvalidSignature,
+    InvalidUnitsPerEm,
     UnsupportedOutlines,
     UnsupportedCollection,
     TooManyTables,

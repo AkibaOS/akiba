@@ -27,6 +27,7 @@ pub fn load(data: []const u8) FontError!Face {
     var head_reader = Reader.initialize(head);
     try head_reader.seek(limits.OFFSET_UNITS_PER_EM);
     const units_per_em = try head_reader.readU16();
+    if (units_per_em == 0) return FontError.InvalidUnitsPerEm;
     try head_reader.seek(limits.OFFSET_INDEX_TO_LOCATION);
     const index_to_location = try head_reader.readI16();
 
