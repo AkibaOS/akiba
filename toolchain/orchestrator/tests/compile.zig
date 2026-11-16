@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const firmware = @import("firmware.zig");
 const kernel = @import("../kernel/kernel.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
@@ -48,6 +49,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     pack.addArg(paths.GUEST_IMAGE_MB);
     const runner_options = builder.addOptions();
     runner_options.addOptionPath(names.OPTION_GUEST_IMAGE, image);
+    runner_options.addOptionPath(names.OPTION_FIRMWARE_IMAGE, firmware.image(builder, modules, packer));
     const runner_checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     runner_checks.addImport(names.MODULE_TESTS, runner_checks);
     runner_checks.addOptions(names.MODULE_RUNNER_OPTIONS, runner_options);

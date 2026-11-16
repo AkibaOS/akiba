@@ -76,7 +76,7 @@ fn runScenario(selected: Scenario) !void {
     defer arena.deinit();
     const allocator = arena.allocator();
     terminal.begin();
-    const inputs = try paths.prepare(allocator);
+    const inputs = try paths.prepare(allocator, selected);
     var failure: ?anyerror = null;
     var cleanup_error: ?anyerror = null;
     var stage: types.Stage = .Prepare;

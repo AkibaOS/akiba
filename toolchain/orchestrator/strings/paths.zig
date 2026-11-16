@@ -22,3 +22,5 @@ pub const RESOURCES_ROOT = "resources";
 pub const DIRECTORY_ROOT = "";
 pub const GUEST_IMAGE_NAME = "tests.img";
 pub const GUEST_IMAGE_MB = "64";
+pub const FIRMWARE_TEST_ROOT = "tests/firmware/entry.zig";
+pub const FIRMWARE_IMAGE_NAME = "firmware.img";

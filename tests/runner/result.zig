@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const firmware = @import("tests").strings.firmware;
 const labels = @import("tests").strings.scenario;
 const strings = @import("tests").strings.runner;
 const Scenario = @import("tests").types.scenario.Scenario;
@@ -10,11 +11,25 @@ pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null) return error.GuestCheckFailed;
     if (scenario == .PulseDeath) return expectedFatal(bytes);
     if (std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null) return error.GuestCheckFailed;
+    if (scenario == .Firmware) return firmwareResult(bytes);
     if (std.mem.indexOf(u8, bytes, strings.READY) == null) return null;
     if (std.mem.indexOf(u8, bytes, strings.CHECK_BEGIN) == null) return error.MissingGuestChecks;
     const marker = std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) orelse return error.IncompleteGuestChecks;
     const number = bytes[marker + strings.CHECK_COMPLETE.len ..];
     const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return error.IncompleteGuestChecks;
+    const passed = try std.fmt.parseInt(usize, number[0..end], 10);
+    if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
+    return passed;
+}
+
+fn firmwareResult(bytes: []const u8) !?usize {
+    if (std.mem.indexOf(u8, bytes, strings.READY) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null) return error.UnexpectedFirmwareOutcome;
+    const marker = std.mem.indexOf(u8, bytes, firmware.COMPLETE) orelse return null;
+    const begin = try uniqueLine(bytes, firmware.BEGIN) orelse return error.MissingGuestChecks;
+    if (begin >= marker or std.mem.count(u8, bytes, firmware.COMPLETE) != 1) return error.IncompleteGuestChecks;
+    const number = bytes[marker + firmware.COMPLETE.len ..];
+    const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return null;
     const passed = try std.fmt.parseInt(usize, number[0..end], 10);
     if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
     return passed;

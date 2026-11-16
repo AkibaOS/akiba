@@ -8,13 +8,16 @@ const limits = @import("tests").constants.runner;
 const options = @import("runneroptions");
 const strings = @import("tests").strings.paths;
 
-pub fn prepare(allocator: std.mem.Allocator) !host.Paths {
+const Scenario = @import("tests").types.scenario.Scenario;
+
+pub fn prepare(allocator: std.mem.Allocator, selected: Scenario) !host.Paths {
     const repo = try std.fs.cwd().realpathAlloc(allocator, strings.CURRENT_DIRECTORY);
     errdefer allocator.free(repo);
     try safePath(repo);
     const qemu = try findQemu(allocator);
     errdefer allocator.free(qemu);
-    const image = (try canonicalFile(allocator, options.GUEST_IMAGE)) orelse {
+    const image_path = if (selected == .Firmware) options.FIRMWARE_IMAGE else options.GUEST_IMAGE;
+    const image = (try canonicalFile(allocator, image_path)) orelse {
         std.log.err(strings.MISSING_IMAGE, .{});
         return error.MissingCheckImage;
     };

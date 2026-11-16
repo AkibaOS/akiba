@@ -6,6 +6,16 @@ const fixtures = @import("tests").strings.oracle;
 const labels = @import("tests").strings.scenario;
 const result = @import("tests").runner.result;
 
+test "firmware oracle accepts its own nonempty completion without kernel ready" {
+    try std.testing.expectEqual(@as(?usize, 8), try result.evaluate(fixtures.FIRMWARE_VALID, .Firmware));
+}
+
+test "firmware oracle rejects standard output and an empty firmware run" {
+    try std.testing.expectError(error.UnexpectedFirmwareOutcome, result.evaluate(fixtures.VALID, .Firmware));
+    try std.testing.expectError(error.IncompleteGuestChecks, result.evaluate(fixtures.FIRMWARE_EMPTY, .Firmware));
+    try std.testing.expectError(error.GuestCheckFailed, result.evaluate(fixtures.FIRMWARE_VALID ++ fixtures.PANIC, .Firmware));
+}
+
 test "serial oracle accepts completed nonempty standard checks" {
     try std.testing.expectEqual(@as(?usize, 1), try result.evaluate(fixtures.VALID, .Standard));
 }

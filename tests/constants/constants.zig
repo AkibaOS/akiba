@@ -2,6 +2,7 @@
 
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
+pub const firmware = @import("firmware.zig");
 pub const guest = @import("guest.zig");
 pub const hikari = @import("hikari.zig");
 pub const image = @import("image.zig");

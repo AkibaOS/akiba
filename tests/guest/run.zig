@@ -9,6 +9,7 @@ const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
 const postmanlabels = @import("tests").strings.postman;
 const retentionlabels = @import("tests").strings.retention;
+const scenariolabels = @import("tests").strings.scenario;
 const senseilabels = @import("tests").strings.sensei;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
@@ -17,6 +18,7 @@ pub fn execute() void {
     serial.printf(labels.BEGIN, .{});
     switch (guest.support.selector.selected()) {
         .Standard => {},
+        .Firmware => @panic(scenariolabels.INVALID),
         .PulseDeath => {
             check(guest.mirai.kata.fatal.run);
             return;

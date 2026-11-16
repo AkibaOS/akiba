@@ -22,3 +22,5 @@ pub const EXECUTABLE_RUNNER = "tests-runner";
 pub const STEP_GUEST_RUNNER = "test-guest-runner";
 pub const MODULE_RUNNER_OPTIONS = "runneroptions";
 pub const OPTION_GUEST_IMAGE = "GUEST_IMAGE";
+pub const OPTION_FIRMWARE_IMAGE = "FIRMWARE_IMAGE";
+pub const EXECUTABLE_FIRMWARE_TESTS = "firmware-tests";
