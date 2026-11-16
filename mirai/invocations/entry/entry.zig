@@ -3,6 +3,7 @@
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
 const ipc = @import("mirai").invocations.postman;
+const lifecycle = @import("mirai").invocations.lifecycle;
 const messages = @import("mirai").thread.strings.shift.messages;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const sensei = @import("mirai").sensei;
@@ -21,8 +22,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     if (current.Mode != .Persona or !current.Managed or current.Status != .Running or
         (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
     if (frame.CS != (@as(u64, selectors.USER_CODE_SELECTOR) | selectors.RING_3) or
-        frame.SS != (@as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3) or
-        !thread.user.validReturn(current, frame.RIP, frame.RSP))
+        frame.SS != (@as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3))
+        thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
+    lifecycle.dispatch(frame);
+    if (!thread.user.validReturn(current, frame.RIP, frame.RSP))
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
     frame.RFLAGS = (frame.RFLAGS & constants.USER_FLAGS_MASK) | constants.USER_FLAGS_REQUIRED;
     const service = frame.RAX;

@@ -15,5 +15,7 @@ pub fn execute() void {
     guest.completion.run() catch |failure| verify.failure(failure);
     serial.printf(labels.GROUP_PERSONA, .{});
     guest.persona.run() catch |failure| verify.failure(failure);
+    serial.printf(labels.GROUP_TERMINATION, .{});
+    guest.termination.run() catch |failure| verify.failure(failure);
     serial.printf(labels.COMPLETE, .{verify.count()});
 }

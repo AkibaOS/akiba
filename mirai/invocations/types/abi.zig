@@ -9,6 +9,8 @@ pub const Service = enum(u64) {
     Reply = 5,
     CollectReply = 6,
     Close = 7,
+    FinishThread = 8,
+    Exit = 9,
 };
 
 pub const Query = enum(u64) {
