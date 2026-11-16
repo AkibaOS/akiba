@@ -79,6 +79,7 @@ pub fn execute() void {
     check(guest.mirai.thread.persona.run);
     serial.printf(invocationlabels.GROUP, .{});
     check(guest.mirai.invocations.query.run);
+    check(guest.mirai.invocations.state.run);
     serial.printf(labels.GROUP_TERMINATION, .{});
     check(guest.mirai.invocations.termination.run);
     serial.printf(postmanlabels.GROUP, .{});
