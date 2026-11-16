@@ -10,7 +10,9 @@ const Scenario = @import("tests").types.scenario.Scenario;
 pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null) return error.GuestCheckFailed;
     if (scenario == .PulseDeath) return expectedFatal(bytes);
-    if (std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null) return error.GuestCheckFailed;
+    if (scenario == .Collapse) return expectedCollapse(bytes);
+    if (std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null or
+        std.mem.indexOf(u8, bytes, labels.COLLAPSE_BANNER) != null) return error.GuestCheckFailed;
     if (scenario == .Firmware) return firmwareResult(bytes);
     if (std.mem.indexOf(u8, bytes, strings.READY) == null) return null;
     if (std.mem.indexOf(u8, bytes, strings.CHECK_BEGIN) == null) return error.MissingGuestChecks;
@@ -35,7 +37,22 @@ fn firmwareResult(bytes: []const u8) !?usize {
     return passed;
 }
 
+fn expectedCollapse(bytes: []const u8) !?usize {
+    if (std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null or
+        std.mem.indexOf(u8, bytes, strings.READY) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null) return error.UnexpectedFatalOutcome;
+    const halted = try uniqueLine(bytes, labels.COLLAPSE_HALT) orelse return null;
+    const begin = try uniqueLine(bytes, strings.CHECK_BEGIN) orelse return error.UnexpectedFatalOutcome;
+    const checkpoint = try uniqueLine(bytes, labels.COLLAPSE_CHECKPOINT) orelse return error.UnexpectedFatalOutcome;
+    const banner = std.mem.indexOf(u8, bytes, labels.COLLAPSE_BANNER) orelse return error.UnexpectedFatalOutcome;
+    const reason = try uniqueLine(bytes, labels.COLLAPSE_REASON) orelse return error.UnexpectedFatalOutcome;
+    if (begin >= checkpoint or checkpoint >= banner or banner >= reason or reason >= halted or
+        std.mem.count(u8, bytes, labels.COLLAPSE_BANNER) != 1) return error.UnexpectedFatalOutcome;
+    return 1;
+}
+
 fn expectedFatal(bytes: []const u8) !?usize {
+    if (std.mem.indexOf(u8, bytes, labels.COLLAPSE_BANNER) != null) return error.UnexpectedFatalOutcome;
     if (std.mem.indexOf(u8, bytes, strings.READY) != null or
         std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null) return error.UnexpectedFatalOutcome;
     const panic = std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) orelse return null;

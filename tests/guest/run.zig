@@ -22,6 +22,7 @@ pub fn execute() void {
     serial.printf(labels.BEGIN, .{});
     switch (guest.support.selector.selected()) {
         .Standard => {},
+        .Collapse => @call(.never_inline, guest.mirai.crimson.fatal.run, .{}),
         .Firmware => @panic(scenariolabels.INVALID),
         .Devices => {
             serial.printf(driverlabels.GROUP, .{});

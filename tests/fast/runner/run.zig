@@ -31,6 +31,20 @@ test "QMP slow-byte peer cannot renew the overall operation deadline" {
     try peer.deadline();
 }
 
+test "Crimson collapse oracle requires its selected checkpoint exact reason and halt" {
+    try std.testing.expectEqual(@as(?usize, 1), try result.evaluate(fixtures.COLLAPSE_VALID, .Collapse));
+}
+
+test "Crimson collapse oracle rejects an unarmed or differently caused collapse" {
+    try std.testing.expectError(error.UnexpectedFatalOutcome, result.evaluate(fixtures.COLLAPSE_UNARMED, .Collapse));
+    try std.testing.expectError(error.UnexpectedFatalOutcome, result.evaluate(fixtures.COLLAPSE_WRONG, .Collapse));
+}
+
+test "unexpected Crimson collapse fails normal and other fatal scenarios" {
+    try std.testing.expectError(error.GuestCheckFailed, result.evaluate(fixtures.COLLAPSE_VALID, .Standard));
+    try std.testing.expectError(error.UnexpectedFatalOutcome, result.evaluate(fixtures.COLLAPSE_VALID, .PulseDeath));
+}
+
 test "firmware oracle accepts its own nonempty completion without kernel ready" {
     try std.testing.expectEqual(@as(?usize, 8), try result.evaluate(fixtures.FIRMWARE_VALID, .Firmware));
 }

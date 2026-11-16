@@ -34,8 +34,9 @@ pub fn finish(report: *const Report, bytes: ?[]const u8) void {
                 while (tail.next()) |line| std.debug.print(strings.FAILURE_DETAIL, .{line});
             }
         }
-    } else if (report.Scenario == .PulseDeath) {
-        std.debug.print(strings.GROUP_RESULT, .{ labels.GROUP, report.Passed });
+    } else if (report.Scenario == .PulseDeath or report.Scenario == .Collapse) {
+        const name = if (report.Scenario == .PulseDeath) labels.GROUP else labels.COLLAPSE_GROUP;
+        std.debug.print(strings.GROUP_RESULT, .{ name, report.Passed });
     } else if (bytes) |data| {
         var group: ?[]const u8 = null;
         var passed: usize = 0;

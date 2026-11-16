@@ -5,4 +5,5 @@ pub const Scenario = enum {
     PulseDeath,
     Firmware,
     Devices,
+    Collapse,
 };

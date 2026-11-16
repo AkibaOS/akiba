@@ -2,4 +2,5 @@
 
 pub const codec = @import("codec.zig");
 pub const corpse = @import("corpse.zig");
+pub const fatal = @import("fatal.zig");
 pub const ports = @import("ports.zig");
