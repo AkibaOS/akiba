@@ -32,14 +32,14 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
     options.addOption(bool, names.OPTION_GUEST_CHECKS, guest_checks);
     module.addOptions(names.MODULE_OPTIONS, options);
     if (guest_checks) {
-        const checks = builder.createModule(.{ .root_source_file = builder.path(paths.CHECKS_ROOT) });
-        checks.addImport(names.MODULE_CHECKS, checks);
+        const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
+        checks.addImport(names.MODULE_TESTS, checks);
         checks.addImport(names.MODULE_COMMON, modules.Common);
         checks.addImport(names.MODULE_SHARED, modules.Shared);
         checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
         checks.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
-        module.addImport(names.MODULE_CHECKS, checks);
+        module.addImport(names.MODULE_TESTS, checks);
     }
     const executable = builder.addExecutable(.{
         .name = if (guest_checks) names.EXECUTABLE_GUEST else names.EXECUTABLE_MIRAI,

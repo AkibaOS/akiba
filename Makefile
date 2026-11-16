@@ -122,7 +122,7 @@ test-fast:
 
 test-guest:
 	@"$(ZIG)" build hikari mkafsdisk test-guest-kernel test-guest-runner
-	@"zig-out/bin/checks-runner$(EXE_EXT)"
+	@"zig-out/bin/tests-runner$(EXE_EXT)"
 
 info:
 	@echo "AkibaOS Build System"

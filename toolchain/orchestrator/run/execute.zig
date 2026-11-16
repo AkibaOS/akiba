@@ -3,12 +3,12 @@
 const std = @import("std");
 
 const bootloader = @import("../bootloader/bootloader.zig");
-const checks = @import("../checks/checks.zig");
 const disk = @import("../disk/disk.zig");
 const kernel = @import("../kernel/kernel.zig");
 const modules = @import("../modules/modules.zig");
 const preview = @import("../preview/preview.zig");
 const steps = @import("../steps/steps.zig");
+const tests = @import("../tests/tests.zig");
 
 pub fn build(builder: *std.Build) void {
     const module_set = modules.create.create(builder);
@@ -19,5 +19,5 @@ pub fn build(builder: *std.Build) void {
     const disk_step = disk.compile.install(builder, disk_artifact);
     _ = preview.compile.add(builder, module_set);
     steps.aggregate.add(builder, bootloader_step, kernel_step, disk_step);
-    checks.compile.add(builder, module_set, bootloader_artifact, disk_artifact);
+    tests.compile.add(builder, module_set, bootloader_artifact, disk_artifact);
 }

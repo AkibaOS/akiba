@@ -1,7 +1,7 @@
 //! Boot Sequence Runner
 
 const bootstrap = @import("mirai").kagami.bootstrap;
-const checks = if (options.GUEST_CHECKS) @import("checks").guest.run else null;
+const checks = if (options.GUEST_CHECKS) @import("tests").guest.run else null;
 const control = @import("asm").cpu.control;
 const cpu = @import("mirai").boot.sequence.cpu;
 const halt = @import("asm").cpu.halt;
