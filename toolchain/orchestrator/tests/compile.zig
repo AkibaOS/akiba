@@ -15,6 +15,11 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
     checks.addImport(names.MODULE_UTILS, modules.Utils);
+    const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });
+    tool.addImport(names.EXECUTABLE_MKAFSDISK, tool);
+    tool.addImport(names.MODULE_SHARED, modules.Shared);
+    tool.addImport(names.MODULE_UTILS, modules.Utils);
+    checks.addImport(names.EXECUTABLE_MKAFSDISK, tool);
     const step = builder.step(names.STEP_FAST_CHECKS, steps.FAST_CHECKS_DESCRIPTION);
     for (suites.FAST) |suite| {
         const root = builder.createModule(.{
