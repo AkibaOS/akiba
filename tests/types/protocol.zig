@@ -8,6 +8,7 @@ pub const Scenario = enum {
     Events,
     SlowGreeting,
     Disconnect,
+    WrongName,
 };
 
 pub const Peer = struct {

@@ -3,6 +3,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const host = @import("tests").types.host;
 const inputs = @import("tests").constants.protocol;
 const protocol = @import("tests").runner.protocol;
 const socket = @import("tests").runner.socket;
@@ -31,9 +32,25 @@ fn exercise(scenario: types.Scenario, expected: ?anyerror) !void {
     var state: types.Peer = .{ .Server = &server, .Scenario = scenario };
     const worker = try std.Thread.spawn(.{}, peer, .{&state});
     var actual: ?anyerror = null;
-    if (protocol.open(std.testing.allocator, server.listen_address.getPort())) |connection| {
-        connection.Stream.close();
+    if (protocol.open(std.testing.allocator, server.listen_address.getPort())) |opened| {
+        var connection = opened;
+        defer connection.Stream.close();
         if (connection.Sequence != 1) actual = error.UnexpectedSequence;
+        if (scenario == .WrongName) {
+            const paths: host.Paths = .{
+                .Repo = strings.EMPTY,
+                .Run = strings.EMPTY,
+                .Image = strings.EMPTY,
+                .Serial = strings.EMPTY,
+                .Variables = strings.EMPTY,
+                .FirmwareCode = strings.EMPTY,
+                .FirmwareTemplate = strings.EMPTY,
+                .Qemu = strings.EMPTY,
+            };
+            protocol.verify(std.testing.allocator, &connection, &paths, strings.EXPECTED_NAME) catch |failure| {
+                actual = failure;
+            };
+        }
     } else |failure| actual = failure;
     worker.join();
     if (state.Failure) |failure| return failure;
@@ -70,13 +87,19 @@ fn serve(state: *types.Peer) !void {
             }
             return;
         },
-        .ErrorReply, .Events => {},
+        .ErrorReply, .Events, .WrongName => {},
     }
     try send(handle, strings.GREETING);
     var request: [inputs.REQUEST_BYTES]u8 = undefined;
     const length = try line(handle, &request);
     try std.testing.expect(std.mem.indexOf(u8, request[0..length], strings.CAPABILITIES) != null);
     if (state.Scenario == .ErrorReply) return send(handle, strings.ERROR);
+    if (state.Scenario == .WrongName) {
+        try send(handle, strings.REPLY);
+        const query_length = try line(handle, &request);
+        try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_NAME) != null);
+        return send(handle, strings.WRONG_NAME);
+    }
     try send(handle, strings.EVENT ++ strings.WRONG_ID ++ strings.REPLY);
 }
 

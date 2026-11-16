@@ -19,6 +19,10 @@ test "QMP loopback ignores events and unrelated sequence IDs" {
     try peer.events();
 }
 
+test "QMP ownership verification rejects a differently named guest" {
+    try peer.rejects(.WrongName, error.WrongGuest);
+}
+
 test "QMP loopback reports an orderly disconnected peer" {
     try peer.rejects(.Disconnect, error.QmpDisconnected);
 }
