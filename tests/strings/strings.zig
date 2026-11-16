@@ -1,5 +1,6 @@
 //! Regression Check Strings
 
+pub const access = @import("access.zig");
 pub const boot = @import("boot.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
@@ -7,6 +8,7 @@ pub const firmware = @import("firmware.zig");
 pub const guest = @import("guest.zig");
 pub const hikari = @import("hikari.zig");
 pub const image = @import("image.zig");
+pub const invocations = @import("invocations.zig");
 pub const memory = @import("memory.zig");
 pub const oracle = @import("oracle.zig");
 pub const paths = @import("paths.zig");

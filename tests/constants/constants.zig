@@ -1,5 +1,6 @@
 //! Regression Check Constants
 
+pub const access = @import("access.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
 pub const firmware = @import("firmware.zig");

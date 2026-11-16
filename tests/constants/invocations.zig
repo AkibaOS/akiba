@@ -1,5 +1,11 @@
 //! Persona Completion Invocation Fixtures
 
+pub const QUERY_ABI_SELECTOR: u64 = 0;
+pub const QUERY_KATA_SELECTOR: u64 = 1;
+pub const QUERY_INVALID_SELECTOR: u64 = 2;
+pub const ABI_VERSION: u64 = 1;
+pub const SERVICE_OPERAND_OFFSET: usize = 2;
+pub const UNKNOWN_SERVICE: u64 = 0xffffffffffffffff;
 pub const FINISH_THREAD_SERVICE: u8 = 8;
 pub const EXIT_SERVICE: u8 = 9;
 pub const EXIT_RESULT: u64 = 0x123456789abcdef0;

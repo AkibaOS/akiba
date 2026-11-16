@@ -1,10 +1,12 @@
 //! Explicit Guest Regression Execution
 
+const accesslabels = @import("tests").strings.access;
 const bootlabels = @import("tests").strings.boot;
 const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
 const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
+const invocationlabels = @import("tests").strings.invocations;
 const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
 const postmanlabels = @import("tests").strings.postman;
@@ -56,8 +58,12 @@ pub fn execute() void {
     check(guest.mirai.kata.lifecycle.run);
     serial.printf(labels.GROUP_COMPLETION, .{});
     check(guest.mirai.kata.completion.run);
+    serial.printf(accesslabels.GROUP, .{});
+    check(guest.mirai.user.access.run);
     serial.printf(labels.GROUP_PERSONA, .{});
     check(guest.mirai.thread.persona.run);
+    serial.printf(invocationlabels.GROUP, .{});
+    check(guest.mirai.invocations.query.run);
     serial.printf(labels.GROUP_TERMINATION, .{});
     check(guest.mirai.invocations.termination.run);
     serial.printf(postmanlabels.GROUP, .{});
