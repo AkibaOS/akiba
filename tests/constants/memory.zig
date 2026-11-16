@@ -13,6 +13,7 @@ pub const ALIGNMENT_PAGES: u64 = 3;
 pub const DIRTY_BYTE: u8 = 0xa7;
 pub const UNCHANGED_BYTE: u8 = 0x5c;
 pub const SINGLE_BYTE: usize = 1;
+pub const HUGE_LOOKUP_OFFSET: u64 = 0x1234;
 pub const ZONE_REQUEST: usize = 1001;
 pub const ZONE_CAPACITY: usize = 1008;
 pub const ZONE_ELEMENTS: usize = sizes.PAGE_SIZE / ZONE_CAPACITY;

@@ -1,10 +1,12 @@
 //! Open Completion Waiting And Registration Cleanup
 
+const checks = if (options.GUEST_CHECKS) @import("tests").guest.mirai.kata.race else null;
 const completion = @import("mirai").kata.completion;
 const errors = @import("mirai").kata.errors.completion;
 const guard = @import("asm").interrupts.guard;
 const limits = @import("mirai").thread.constants.pool;
 const messages = @import("mirai").kata.strings.messages;
+const options = @import("options");
 const scheduling = @import("mirai").sensei.errors.scheduling;
 const sensei = @import("mirai").sensei;
 const state = @import("mirai").kata.state;
@@ -88,6 +90,7 @@ pub fn waitFor(id: u64) (CompletionError || SchedulingError)!Outcome {
     };
     observer.* = .{ .Thread = current, .OwnerID = current.Owner.ID, .TargetID = id };
     guard.release(previous_flags);
+    if (options.GUEST_CHECKS) checks.registered(id);
     sensei.wait.blockUntil(&record.Waiters, ready, @ptrCast(observer)) catch |failure| {
         const flags = guard.acquire();
         defer guard.release(flags);

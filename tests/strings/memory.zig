@@ -3,6 +3,11 @@
 pub const GROUP_PMM = "CHECK GROUP Physical memory\n";
 pub const GROUP_KERNEL = "CHECK GROUP Kernel allocation\n";
 pub const GROUP_KAGAMI = "CHECK GROUP Kagami mappings\n";
+pub const PARENT_FIXTURE = "inactive root has a permissive leaf beneath independently controlled parents";
+pub const PARENT_WRITE = "a read-only parent restricts a writable leaf at every table level";
+pub const PARENT_USER = "a supervisor parent restricts a Persona-accessible leaf at every table level";
+pub const PARENT_EXECUTE = "an NX parent restricts an executable leaf at every table level";
+pub const HUGE_OFFSET = "huge-leaf lookup adds an independent nonzero offset to its physical base";
 pub const GROUP_OWNED = "CHECK GROUP Owned copies\n";
 pub const USER_CROSS_OVERLAP = "cross-page aliased copies snapshot before either segment changes";
 

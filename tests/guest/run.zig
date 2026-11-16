@@ -37,6 +37,7 @@ pub fn execute() void {
     }
     serial.printf(acquisitionlabels.GROUP, .{});
     check(guest.hikari.disk.gpt.run);
+    @call(.never_inline, guest.hikari.disk.reader.run, .{});
     check(guest.hikari.disk.unit.run);
     serial.printf(hikarilabels.GROUP_ELF, .{});
     check(guest.hikari.loader.validation.run);
@@ -56,6 +57,7 @@ pub fn execute() void {
     check(guest.mirai.kagami.mapping.run);
     check(guest.mirai.kagami.ownership.run);
     check(guest.mirai.kagami.rejection.run);
+    check(guest.mirai.kagami.effective.run);
     serial.printf(memorylabels.GROUP_OWNED, .{});
     check(guest.mirai.user.regressions.run);
     serial.printf(labels.GROUP_MEMORY, .{});
@@ -66,6 +68,7 @@ pub fn execute() void {
     check(guest.mirai.sensei.deferral.run);
     serial.printf(retentionlabels.GROUP, .{});
     check(guest.mirai.kata.retention.run);
+    check(guest.mirai.kata.race.run);
     serial.printf(labels.GROUP_LIFECYCLE, .{});
     check(guest.mirai.kata.lifecycle.run);
     serial.printf(labels.GROUP_COMPLETION, .{});
@@ -81,6 +84,7 @@ pub fn execute() void {
     serial.printf(postmanlabels.GROUP, .{});
     check(guest.mirai.postman.scenarios.run);
     serial.printf(contextlabels.GROUP, .{});
+    check(guest.mirai.thread.construction.run);
     check(guest.mirai.thread.context.run);
     serial.printf(crimsonlabels.GROUP, .{});
     @call(.never_inline, guest.mirai.crimson.codec.run, .{});

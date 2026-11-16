@@ -1,6 +1,11 @@
 //! Native Thread Context Check Strings
 
 pub const GROUP = "CHECK GROUP Native Thread context\n";
+pub const CONSTRUCTION_VALID = "Persona construction creates one unpublished Thread with validated entry stack and argument";
+pub const CONSTRUCTION_ENTRY = "Persona invalid missing and non-executable entries reject after temporary Thread construction";
+pub const CONSTRUCTION_STACK = "Persona malformed stack geometry rejects before publication";
+pub const CONSTRUCTION_ROLLBACK = "failed Persona construction restores descriptor owner pin cache and warmed PMM ownership";
+pub const DESTRUCTION_IN_USE = "managed Thread destruction returns InUse without withdrawing live resources";
 pub const INVALID_STATE = "Invalid native Thread context check state";
 pub const ARGUMENT_TRANSFER = "fresh Thread receives its exact argument once";
 pub const CALLEE_REGISTERS = "callee GPR patterns survive real yields and timer preemption";

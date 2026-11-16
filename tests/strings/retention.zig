@@ -2,6 +2,10 @@
 
 pub const GROUP = "CHECK GROUP Outcome retention\n";
 
+pub const RACE_WINDOW = "completion interposition runs after observer registration and before any wait queue insertion";
+pub const RACE_COLLECT = "target completion and owner collection retain the registered not-yet-queued observer";
+pub const RACE_RETURN = "registered observer progresses immediately after completion before blocking";
+pub const RACE_RELEASE = "registration-before-block completion releases target and observer ownership completely";
 pub const CALLER = "Kata retention fixtures run from the live kernel owner";
 pub const WAIT_INVALID = "completion wait rejects an unknown Kata ID";
 pub const WAIT_BORN = "completion wait rejects an unpublished Born Kata";
