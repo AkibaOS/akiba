@@ -9,3 +9,6 @@ pub const CLEAN = "clean";
 pub const CLEAN_DESCRIPTION = "Remove build artifacts";
 
 pub const FONTPREVIEW_DESCRIPTION = "Build the host font preview tool";
+pub const FAST_CHECKS_DESCRIPTION = "Run fast host checks";
+pub const GUEST_CHECKS_DESCRIPTION = "Build the separate guest check kernel";
+pub const GUEST_RUNNER_DESCRIPTION = "Build the portable manual guest runner";

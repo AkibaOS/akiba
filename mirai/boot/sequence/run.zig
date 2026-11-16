@@ -1,6 +1,7 @@
 //! Boot Sequence Runner
 
 const bootstrap = @import("mirai").kagami.bootstrap;
+const checks = if (options.GUEST_CHECKS) @import("checks").guest.run else null;
 const control = @import("asm").cpu.control;
 const cpu = @import("mirai").boot.sequence.cpu;
 const halt = @import("asm").cpu.halt;
@@ -8,6 +9,7 @@ const interrupts = @import("mirai").boot.sequence.interrupts;
 const invocations = @import("mirai").invocations;
 const kagami = @import("mirai").kagami;
 const memory = @import("mirai").boot.sequence.memory;
+const options = @import("options");
 const postman = @import("mirai").postman;
 const print = @import("mirai").boot.sequence.print;
 const registers = @import("asm").cpu.state;
@@ -82,6 +84,7 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }
+    if (options.GUEST_CHECKS) checks.execute();
     state.advancePhase();
     print.phase(status.READY);
     state.setCurrentPhase(Phase.Complete);

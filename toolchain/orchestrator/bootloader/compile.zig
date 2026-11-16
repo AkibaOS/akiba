@@ -7,7 +7,7 @@ const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const types = @import("../types/modules.zig");
 
-pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
+pub fn artifact(builder: *std.Build, modules: types.Modules) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .os_tag = .uefi,
@@ -28,6 +28,10 @@ pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
         .name = names.EXECUTABLE_HIKARI,
         .root_module = module,
     });
+    return executable;
+}
+
+pub fn install(builder: *std.Build, executable: *std.Build.Step.Compile) *std.Build.Step {
     const copy = builder.addInstallFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
     const step = builder.step(names.EXECUTABLE_HIKARI, steps.HIKARI_DESCRIPTION);
     step.dependOn(&copy.step);

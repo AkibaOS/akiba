@@ -1,0 +1,43 @@
+//! Terminal Guest Check Results
+
+const std = @import("std");
+
+const strings = @import("checks").strings.runner;
+const Report = @import("checks").types.host.Report;
+
+pub fn begin() void {
+    std.debug.print(strings.HEADER, .{});
+}
+
+pub fn finish(report: *const Report, bytes: ?[]const u8) void {
+    if (report.Error) |reason| {
+        std.debug.print(strings.FAILURE_RESULT, .{ @tagName(report.Stage), reason });
+        if (bytes) |data| {
+            var lines = std.mem.tokenizeAny(u8, data, strings.LINE_SEPARATORS);
+            while (lines.next()) |line| {
+                if (std.mem.startsWith(u8, line, strings.CHECK_FAIL) or std.mem.startsWith(u8, line, strings.KERNEL_PANIC))
+                    std.debug.print(strings.FAILURE_DETAIL, .{line});
+            }
+        }
+    } else if (bytes) |data| {
+        var group: ?[]const u8 = null;
+        var passed: usize = 0;
+        var lines = std.mem.tokenizeAny(u8, data, strings.LINE_SEPARATORS);
+        while (lines.next()) |line| {
+            if (std.mem.startsWith(u8, line, strings.GROUP_PREFIX)) {
+                if (group) |name| std.debug.print(strings.GROUP_RESULT, .{ name, passed });
+                group = line[strings.GROUP_PREFIX.len..];
+                passed = 0;
+            } else if (std.mem.startsWith(u8, line, strings.CHECK_PASS)) {
+                passed += 1;
+            }
+        }
+        if (group) |name| std.debug.print(strings.GROUP_RESULT, .{ name, passed });
+    }
+    if (report.CleanupVerified) {
+        std.debug.print(strings.CLEANUP_PASS, .{});
+    } else {
+        std.debug.print(strings.CLEANUP_FAIL, .{report.CleanupError orelse report.Error orelse strings.FAILED});
+    }
+    if (report.Error == null) std.debug.print(strings.TOTAL_RESULT, .{report.Passed});
+}

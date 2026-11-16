@@ -7,7 +7,7 @@ const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step {
+fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bool) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .cpu_model = .{ .explicit = &std.Target.x86.cpu.x86_64 },
@@ -28,9 +28,21 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step 
     module.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
     module.addImport(names.MODULE_UTILS, modules.Utils);
     module.addImport(names.EXECUTABLE_MIRAI, module);
-
+    const options = builder.addOptions();
+    options.addOption(bool, names.OPTION_GUEST_CHECKS, guest_checks);
+    module.addOptions(names.MODULE_OPTIONS, options);
+    if (guest_checks) {
+        const checks = builder.createModule(.{ .root_source_file = builder.path(paths.CHECKS_ROOT) });
+        checks.addImport(names.MODULE_CHECKS, checks);
+        checks.addImport(names.MODULE_COMMON, modules.Common);
+        checks.addImport(names.MODULE_SHARED, modules.Shared);
+        checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
+        checks.addImport(names.MODULE_UTILS, modules.Utils);
+        checks.addImport(names.EXECUTABLE_MIRAI, module);
+        module.addImport(names.MODULE_CHECKS, checks);
+    }
     const executable = builder.addExecutable(.{
-        .name = names.EXECUTABLE_MIRAI,
+        .name = if (guest_checks) names.EXECUTABLE_GUEST else names.EXECUTABLE_MIRAI,
         .root_module = module,
         .linkage = .static,
         .use_llvm = true,
@@ -40,9 +52,21 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step 
     executable.pie = false;
     executable.entry = .{ .symbol_name = names.ENTRY_MIRAI };
     executable.setLinkerScript(builder.path(paths.LINKER_SCRIPT));
+    return executable;
+}
 
+pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step {
+    const executable = compile(builder, modules, false);
     const copy = builder.addInstallFile(executable.getEmittedBin(), paths.MIRAI_OUTPUT);
     const step = builder.step(names.EXECUTABLE_MIRAI, steps.MIRAI_DESCRIPTION);
     step.dependOn(&copy.step);
     return &copy.step;
+}
+
+pub fn addGuest(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step.Compile {
+    const executable = compile(builder, modules, true);
+    const copy = builder.addInstallFile(executable.getEmittedBin(), paths.GUEST_OUTPUT);
+    const step = builder.step(names.STEP_GUEST_CHECKS, steps.GUEST_CHECKS_DESCRIPTION);
+    step.dependOn(&copy.step);
+    return executable;
 }

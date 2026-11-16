@@ -1,0 +1,33 @@
+//! Guest Regression Labels
+
+pub const BEGIN = "AKIBA_GUEST_CHECKS_BEGIN\n";
+pub const COMPLETE = "AKIBA_GUEST_CHECKS_COMPLETE %d\n";
+pub const PASS = "CHECK PASS %s\n";
+pub const GROUP_MEMORY = "CHECK GROUP Memory protections\n";
+pub const GROUP_LIFECYCLE = "CHECK GROUP Kata lifecycle\n";
+pub const GROUP_COMPLETION = "CHECK GROUP Completion ownership\n";
+pub const GROUP_PERSONA = "CHECK GROUP Persona Mode\n";
+pub const FAIL = "CHECK FAIL %s\n";
+pub const FAILURE = "Guest check failed";
+pub const OPERATION_FAILED = "CHECK FAIL %s\n";
+pub const INVALID_STATE = "Invalid guest check state";
+pub const MEMORY_PERMISSIONS = "owned read-only and executable permissions";
+pub const MEMORY_READ = "protected bytes remain readable";
+pub const MEMORY_REJECTION = "protected writes and refinalization rejected";
+pub const MEMORY_RELEASE = "protected pages released with writable NX aliases";
+pub const MEMORY_DEAD = "Dead owner cannot mutate existing pages";
+pub const KATA_BORN = "construction remains Born before admission";
+pub const KATA_ABORT = "Born abort has no completion result";
+pub const KATA_ALIVE = "first admission makes Kata Alive";
+pub const KATA_SLEEPING = "last runnable block makes Kata Sleeping";
+pub const KATA_WAKE = "wake makes Kata Alive before dispatch";
+pub const KATA_COMPLETE = "last normal Thread completes and releases Kata";
+pub const WAIT_BLOCKED = "unrelated observer sleeps waiting for completion";
+pub const WAIT_OWNER = "non-owner cannot collect completion";
+pub const WAIT_RETAINED = "owner collection preserves registered observer result";
+pub const WAIT_COPY = "observer receives copied outcome after collection";
+pub const WAIT_RELEASE = "observer release frees collected completion cell";
+pub const WAIT_CANCEL = "stopped waiter drops queue and registration";
+pub const PERSONA_MODE = "Thread enters Persona Mode";
+pub const PERSONA_FAULT = "Persona Mode fault outcome survives resource cleanup";
+pub const SCHEDULER_QUIET = "guest scheduling reaches quiescence";

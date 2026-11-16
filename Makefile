@@ -1,7 +1,7 @@
 # //! Native Build And Disk Orchestration
 
 .DEFAULT_GOAL := all
-.PHONY: all clean run docker-image docker-build native-build hikari mirai mkafsdisk prepare-filesystem disk info
+.PHONY: all clean run docker-image docker-build native-build hikari mirai mkafsdisk prepare-filesystem disk info test test-fast test-guest
 
 DOCKER_SOURCE = $(CURDIR)
 ifeq ($(OS),Windows_NT)
@@ -112,6 +112,17 @@ endif
 
 run: all
 	@$(RUN_SCRIPT)
+
+test:
+	@$(MAKE) test-fast
+	@$(MAKE) test-guest
+
+test-fast:
+	@"$(ZIG)" build test-fast --summary all
+
+test-guest:
+	@"$(ZIG)" build hikari mkafsdisk test-guest-kernel test-guest-runner
+	@"zig-out/bin/checks-runner$(EXE_EXT)"
 
 info:
 	@echo "AkibaOS Build System"

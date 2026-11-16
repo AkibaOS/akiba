@@ -7,7 +7,7 @@ const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const types = @import("../types/modules.zig");
 
-pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
+pub fn artifact(builder: *std.Build, modules: types.Modules) *std.Build.Step.Compile {
     const optimize = builder.standardOptimizeOption(.{});
     const module = builder.createModule(.{
         .root_source_file = builder.path(paths.MKAFSDISK_ROOT),
@@ -23,7 +23,11 @@ pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
         .name = names.EXECUTABLE_MKAFSDISK,
         .root_module = module,
     });
-    const install = builder.addInstallArtifact(executable, .{});
-    builder.step(names.EXECUTABLE_MKAFSDISK, steps.MKAFSDISK_DESCRIPTION).dependOn(&install.step);
-    return &install.step;
+    return executable;
+}
+
+pub fn install(builder: *std.Build, executable: *std.Build.Step.Compile) *std.Build.Step {
+    const copy = builder.addInstallArtifact(executable, .{});
+    builder.step(names.EXECUTABLE_MKAFSDISK, steps.MKAFSDISK_DESCRIPTION).dependOn(&copy.step);
+    return &copy.step;
 }
