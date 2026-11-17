@@ -36,4 +36,11 @@ pub const PortArray = struct {
     pub fn hasPort(self: *const PortArray, exception_type: ExceptionType) bool {
         return self.getConst(exception_type).isValid();
     }
+
+    pub fn isEmpty(self: *const PortArray) bool {
+        for (&self.Ports) |*port| {
+            if (port.Active) return false;
+        }
+        return true;
+    }
 };

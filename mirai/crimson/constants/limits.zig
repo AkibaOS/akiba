@@ -1,8 +1,6 @@
 //! Crimson Limits
 
 pub const EXCEPTION_TYPE_COUNT: usize = 10;
-pub const MAX_KATAS: usize = 256;
-pub const MAX_THREADS: usize = 1024;
 pub const MAX_CORPSES: usize = 16;
 pub const MAX_MODULES: usize = 32;
 

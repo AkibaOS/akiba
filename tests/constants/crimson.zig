@@ -1,6 +1,5 @@
 //! Crimson Regression Inputs
 
-const limits = @import("mirai").crimson.constants.limits;
 const types = @import("tests").types.crimson;
 
 pub const VECTORS = [_]types.VectorCase{
@@ -20,8 +19,19 @@ pub const ACTIONS = [_]types.ActionCase{
     .{ .Code = 5, .Action = .Debug, .Modify = false },
     .{ .Code = 0x100, .Action = .Resume, .Modify = true },
 };
-pub const THREAD_ID: u64 = limits.MAX_THREADS - 1;
-pub const KATA_ID: u64 = limits.MAX_KATAS - 1;
+pub const THREAD_ID: u64 = 1023;
+pub const KATA_ID: u64 = 255;
+pub const PORT_HIGH_IDS = [_]u64{ 256, 1024, 0x10000000000, 0xFFFFFFFFFFFFFFFF };
+pub const PORT_UNUSED_ID: u64 = 0xFFFFFFFFFFFFFFFE;
+pub const PORT_GROWTH_COUNT: usize = 1100;
+pub const PORT_GROWTH_BASE: u64 = 0x100000000000;
+pub const PORT_FAILURE_BASE: u64 = 0x200000000000;
+pub const PORT_OWNER_STRIDE: u64 = 4099;
+pub const PORT_FAILURE_LIMIT: usize = 1100;
+pub const PORT_GROWTH_KATA: u64 = 0x1000000;
+pub const PORT_GROWTH_THREAD: u64 = 0x2000000;
+pub const PORT_UPDATED_KATA: u64 = 0x404;
+pub const PORT_UPDATED_THREAD: u64 = 0x505;
 pub const HOST_PORT: u64 = 0x101;
 pub const KATA_PORT: u64 = 0x202;
 pub const THREAD_PORT: u64 = 0x303;

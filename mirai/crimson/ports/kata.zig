@@ -1,29 +1,21 @@
-//! Kata Exception Ports
+//! Sparse Kata Exception Ports
 
-const constants = @import("mirai").crimson.constants;
+const strings = @import("mirai").crimson.strings.ports;
 const types = @import("mirai").crimson.types;
-
-const limits = constants.limits;
 
 const Behavior = types.behavior.Behavior;
 const ExceptionType = types.kind.ExceptionType;
 const Flavor = types.flavor.Flavor;
 const Port = types.port.Port;
-const PortArray = types.ports.array.PortArray;
+const Registry = types.ports.registry.Registry;
 
-var kata_ports: [limits.MAX_KATAS]PortArray = [_]PortArray{PortArray.EMPTY} ** limits.MAX_KATAS;
+var registry: Registry = .{};
 
 pub fn getPort(kata_id: u64, exception_type: ExceptionType) *const Port {
-    if (kata_id >= limits.MAX_KATAS) {
-        return &empty_port;
-    }
-    return kata_ports[kata_id].getConst(exception_type);
+    return registry.getPort(kata_id, exception_type);
 }
 
 pub fn setPort(kata_id: u64, exception_type: ExceptionType, port_id: u64, behavior: Behavior, flavor: Flavor) bool {
-    if (kata_id >= limits.MAX_KATAS) {
-        return false;
-    }
     const port = Port{
         .PortId = port_id,
         .Behavior = behavior,
@@ -32,38 +24,17 @@ pub fn setPort(kata_id: u64, exception_type: ExceptionType, port_id: u64, behavi
         .OwnerId = kata_id,
         .Active = true,
     };
-    kata_ports[kata_id].set(exception_type, port);
-    return true;
+    return registry.setPort(kata_id, exception_type, port, strings.KATA_POOL);
 }
 
 pub fn clearPort(kata_id: u64, exception_type: ExceptionType) bool {
-    if (kata_id >= limits.MAX_KATAS) {
-        return false;
-    }
-    kata_ports[kata_id].get(exception_type).clear();
-    return true;
+    return registry.clearPort(kata_id, exception_type);
 }
 
 pub fn hasPort(kata_id: u64, exception_type: ExceptionType) bool {
-    if (kata_id >= limits.MAX_KATAS) {
-        return false;
-    }
-    return kata_ports[kata_id].hasPort(exception_type);
+    return registry.hasPort(kata_id, exception_type);
 }
 
 pub fn clearAllForKata(kata_id: u64) bool {
-    if (kata_id >= limits.MAX_KATAS) {
-        return false;
-    }
-    kata_ports[kata_id].clearAll();
-    return true;
+    return registry.clearAll(kata_id);
 }
-
-var empty_port: Port = Port{
-    .PortId = 0,
-    .Behavior = .Default,
-    .Flavor = .None,
-    .Owner = .None,
-    .OwnerId = 0,
-    .Active = false,
-};
