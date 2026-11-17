@@ -37,6 +37,7 @@ pub fn create(name: []const u8, element_size: usize) AllocationError!*Zone {
     zone.AllocationCount = 0;
     zone.FreeCount = 0;
     zone.PageCount = 0;
+    zone.PageIndex = .{};
 
     const copy_length = text.ascii.copyBounded(zone.Name[0 .. limits.NAME_CAPACITY - 1], name);
     zone.NameLength = @truncate(copy_length);

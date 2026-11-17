@@ -2,8 +2,10 @@
 
 const address = @import("utils").address;
 const bits = @import("utils").bits;
+const checks = if (options.GUEST_CHECKS) @import("tests").guest.support.allocation else null;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
+const options = @import("options");
 const state = @import("mirai").pmm.state;
 
 const sizes = common.constants.memory.sizes;
@@ -30,6 +32,7 @@ pub fn allocatePage() AllocationError!u64 {
         pmm_state.SearchStart,
     ) orelse return AllocationError.OutOfMemory;
 
+    if (options.GUEST_CHECKS) try checks.before();
     bits.operations.setBit(pmm_state.Bitmap, page_index);
     pmm_state.FreePages -= 1;
     pmm_state.UsedPages += 1;

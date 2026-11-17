@@ -1,9 +1,9 @@
 //! Bootstrap Zones
 
-const address = @import("utils").address;
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
 const math = @import("utils").math;
+const page = @import("mirai").memory.zone.page;
 const pmm = @import("mirai").pmm;
 const strings = @import("mirai").memory.strings;
 const text = @import("utils").text;
@@ -49,6 +49,7 @@ fn initZone(zone: *Zone, name: []const u8, element_size: usize) void {
     zone.AllocationCount = 0;
     zone.FreeCount = 0;
     zone.PageCount = 0;
+    zone.PageIndex = .{};
 
     const copy_length = text.ascii.copyBounded(zone.Name[0 .. limits.NAME_CAPACITY - 1], name);
     zone.NameLength = @truncate(copy_length);
@@ -58,32 +59,9 @@ fn expandZoneEarly(zone: *Zone) AllocationError!void {
     if (early_meta_used >= early_page_metas.len) return AllocationError.OutOfMemory;
 
     const physical = try pmm.allocate.single.allocatePage();
-    const virtual = address.translate.physToVirt(physical);
-
     const meta = &early_page_metas[early_meta_used];
     early_meta_used += 1;
-
-    meta.Zone = zone;
-    meta.PagePhysical = physical;
-    meta.PageVirtual = virtual;
-    meta.FreeList = null;
-    meta.InUse = 0;
-    meta.Next = zone.PartialPages;
-    zone.PartialPages = meta;
-    zone.PageCount += 1;
-
-    carvePage(zone, meta, virtual);
-}
-
-fn carvePage(zone: *Zone, meta: *ZonePageMeta, page_virtual: u64) void {
-    const base: [*]u8 = @ptrFromInt(page_virtual);
-    var offset: usize = 0;
-
-    while (offset + zone.ElementSize <= sizes.PAGE_SIZE) : (offset += zone.ElementSize) {
-        const element: *FreeElement = @ptrCast(@alignCast(base + offset));
-        element.Next = meta.FreeList;
-        meta.FreeList = element;
-    }
+    page.attach(zone, meta, physical, 0);
 }
 
 pub fn getZoneZone() *Zone {

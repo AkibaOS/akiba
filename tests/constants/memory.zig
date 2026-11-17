@@ -17,6 +17,11 @@ pub const HUGE_LOOKUP_OFFSET: u64 = 0x1234;
 pub const ZONE_REQUEST: usize = 1001;
 pub const ZONE_CAPACITY: usize = 1008;
 pub const ZONE_ELEMENTS: usize = sizes.PAGE_SIZE / ZONE_CAPACITY;
+pub const ZONE_GROWTH_PAGES: usize = 128;
+pub const ZONE_VALIDITY_SIZE: usize = 64;
+pub const ZONE_INTERIOR_OFFSET: usize = 8;
+pub const ZONE_METADATA_PRESSURE_SLOTS: usize = 512;
+pub const ZONE_PARTIAL_BUDGET: usize = 2;
 pub const ALLOCATION_CASES = [_]types.AllocationCase{
     .{ .Request = 1, .Capacity = 16 },
     .{ .Request = 16, .Capacity = 16 },
