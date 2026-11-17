@@ -20,7 +20,7 @@ pub fn releaseAll(owner: *Kata) UserError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
-    const root = owner.AddressSpace;
+    const root = owner.AddressSpace orelse return UserError.InvalidOwner;
     if (owner.ThreadCount != 0 or root.ReferenceCount != 1 or
         root == kagami.state.getCurrentKagami() or kagami.activate.isActive(root)) return UserError.OwnerInUse;
     var index: usize = 0;
@@ -41,7 +41,7 @@ fn validateRelease(record: *const Record) UserError!void {
 
 fn releaseRecord(record: *Record) UserError!void {
     const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
-    const removed = kagami.remove.removeOwned(record.Owner.AddressSpace, record.VA, record.PA) orelse return UserError.InvalidOwnedMapping;
+    const removed = kagami.remove.removeOwned(record.Owner.AddressSpace.?, record.VA, record.PA) orelse return UserError.InvalidOwnedMapping;
     if (removed != record.PA) return UserError.InvalidOwnedMapping;
     if (!alias.Writable) {
         const leaf: *kagami.types.entry.Entry = @constCast(alias.Entry);

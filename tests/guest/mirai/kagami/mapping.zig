@@ -25,7 +25,9 @@ pub fn run() !void {
     var owns_second = true;
     defer if (owns_second) pmm.free.single.freePage(second);
     const root = try kagami.create.create();
-    defer if (kagami.create.owns(root)) kagami.destroy.destroy(root);
+    defer if (kagami.create.owns(root)) {
+        _ = kagami.destroy.destroy(root);
+    };
     verify.require(root.Ownership == .User and root.SharesKernel and root.TablePages == 1 and
         root.ResidentPages == 0 and root.WiredPages == 0 and root.ReferenceCount == 1 and
         root.ExecutionOwners == 0 and kagami.activate.canActivate(root), labels.KAGAMI_CREATE);
@@ -82,8 +84,8 @@ pub fn run() !void {
         !kagami.extract.isUserAccessible(root, inputs.MAP_ADDRESS) and !kagami.extract.isExecutable(root, inputs.MAP_ADDRESS) and
         kagami.remove.remove(root, inputs.MAP_ADDRESS) == null and
         kagami.remove.removeRange(root, inputs.MAP_ADDRESS, inputs.MAP_RANGE_PAGES) == 0 and root.TablePages == 1, labels.KAGAMI_ABSENT);
-    kagami.destroy.destroy(root);
-    verify.require(!kagami.create.owns(root), labels.KAGAMI_FREE);
+    const destroyed = kagami.destroy.destroy(root);
+    verify.require(destroyed == .Destroyed and !kagami.create.owns(root), labels.KAGAMI_FREE);
     pmm.free.single.freePage(second);
     owns_second = false;
     pmm.free.single.freePage(first);

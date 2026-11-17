@@ -58,7 +58,7 @@ fn capture(previous_flags: u64) fixtures.Baseline {
         @panic(labels.INVALID_STATE);
     return .{
         .Current = current,
-        .AddressSpace = current.Owner.AddressSpace,
+        .AddressSpace = current.Owner.AddressSpace.?,
         .CR3 = cpu.control.readCR3(),
         .RSP0 = tss.state.getBootTSS().RSP0,
         .Flags = previous_flags,
@@ -76,7 +76,7 @@ fn prepare(workers: *[2]fixtures.Worker) !void {
     for (workers) |*worker| {
         const owner = try kata.create.create();
         worker.OwnerID = owner.ID;
-        worker.ExpectedCR3 = owner.AddressSpace.PML4Physical;
+        worker.ExpectedCR3 = owner.AddressSpace.?.PML4Physical;
         const target = try thread.create.create(owner, workerEntry, worker);
         worker.Target = target;
         worker.StackBase = target.Stack.Base;
@@ -139,7 +139,7 @@ fn observe(worker: *fixtures.Worker) void {
     worker.InterruptsValid = worker.InterruptsValid and validFlags(cpu.state.readFlags());
     worker.CR3Valid = worker.CR3Valid and current.Owner.ID == worker.OwnerID and
         kagami.state.getCurrentKagami() == current.Owner.AddressSpace and
-        current.Owner.AddressSpace.PML4Physical == worker.ExpectedCR3 and
+        current.Owner.AddressSpace.?.PML4Physical == worker.ExpectedCR3 and
         (cpu.control.readCR3() & inputs.PAGE_FRAME_MASK) == worker.ExpectedCR3;
     worker.TSSValid = worker.TSSValid and tss.state.getBootTSS().RSP0 == worker.StackTop;
 }

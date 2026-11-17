@@ -15,7 +15,7 @@ pub fn run() !void {
     const physical = try pmm.allocate.single.allocatePage();
     defer pmm.free.single.freePage(physical);
     const root = try kagami.create.create();
-    defer kagami.destroy.destroy(root);
+    defer _ = kagami.destroy.destroy(root);
     const before = pmm.state.getStatistics();
     for (inputs.MAP_REJECTIONS) |fixture| {
         var rejected = false;

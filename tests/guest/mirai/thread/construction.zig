@@ -37,7 +37,7 @@ pub fn run() !void {
     try thread.destroy.destroy(warmed);
     const before = pmm.state.getStatistics();
     const free_stacks = memory.stack.state.getState().FreeCount;
-    const references = owner.AddressSpace.ReferenceCount;
+    const references = owner.AddressSpace.?.ReferenceCount;
     const descriptors = occupied();
     verify.require(rejects(owner, 0, inputs.STACK_ADDRESS, PAGE_SIZE) and
         rejects(owner, inputs.STACK_ADDRESS, inputs.STACK_ADDRESS, PAGE_SIZE) and
@@ -46,7 +46,7 @@ pub fn run() !void {
         rejects(owner, inputs.CODE_ADDRESS, inputs.STACK_ADDRESS + 1, PAGE_SIZE) and
         rejects(owner, inputs.CODE_ADDRESS, inputs.STACK_ADDRESS, PAGE_SIZE + 1), labels.CONSTRUCTION_STACK);
     verify.require(owner.State == .Born and owner.ThreadCount == 0 and owner.LiveThreadCount == 0 and
-        owner.AddressSpace.ReferenceCount == references and occupied() == descriptors and !thread.state.owns(warmed) and
+        owner.AddressSpace.?.ReferenceCount == references and occupied() == descriptors and !thread.state.owns(warmed) and
         !memory.stack.state.isPinned(stack_base) and memory.stack.state.getState().FreeCount == free_stacks and
         std.meta.eql(before, pmm.state.getStatistics()), labels.CONSTRUCTION_ROLLBACK);
     const target = try thread.user.create(owner, inputs.CODE_ADDRESS, inputs.STACK_ADDRESS, PAGE_SIZE, inputs.ENTRY_ARGUMENT);

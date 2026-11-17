@@ -19,7 +19,7 @@ pub fn run() !void {
     const physical = try pmm.allocate.single.allocatePageZeroed();
     defer pmm.free.single.freePage(physical);
     const root = try kagami.create.create();
-    defer kagami.destroy.destroy(root);
+    defer _ = kagami.destroy.destroy(root);
     try kagami.enter.enter(root, inputs.MAP_ADDRESS, physical, kagami.constants.protection.USER_WRITE);
     const first = &walk.getPML4(root.PML4Physical).Entries[decompose.extractPML4Index(inputs.MAP_ADDRESS)];
     const second = &walk.getTableFromPhysical(first.getPhysicalAddress()).Entries[decompose.extractPDPTIndex(inputs.MAP_ADDRESS)];

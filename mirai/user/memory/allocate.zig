@@ -19,11 +19,12 @@ pub fn allocate(owner: *Kata, virtual_address: u64) UserError!void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
+    const root = owner.AddressSpace orelse return UserError.InvalidOwner;
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     if (!checks.isValidRange(virtual_address, sizes.PAGE_SIZE)) return UserError.InvalidUserRange;
     if (ledger.find(owner, virtual_address) != null) return UserError.AlreadyOwned;
     if (!ledger.hasCapacity()) return UserError.OwnershipCapacity;
-    if (kagami.tables.walk.lookup(owner.AddressSpace.PML4Physical, virtual_address) != null) return UserError.AlreadyMapped;
+    if (kagami.tables.walk.lookup(root.PML4Physical, virtual_address) != null) return UserError.AlreadyMapped;
     const previous_search = pmm.state.getState().SearchStart;
     errdefer pmm.state.getState().SearchStart = previous_search;
     const physical_address = try pmm.allocate.single.allocatePage();
@@ -35,5 +36,5 @@ pub fn allocate(owner: *Kata, virtual_address: u64) UserError!void {
     if (!alias.Writable or !alias.Entry.Writable) return UserError.InvalidPhysmap;
     const destination: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + physical_address);
     @memset(destination[0..sizes.PAGE_SIZE], 0);
-    try kagami.enter.enter(owner.AddressSpace, virtual_address, physical_address, protection.READ | protection.WRITE | protection.USER);
+    try kagami.enter.enter(root, virtual_address, physical_address, protection.READ | protection.WRITE | protection.USER);
 }

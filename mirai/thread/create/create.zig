@@ -25,8 +25,9 @@ pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationErro
     defer guard.release(previous_flags);
     if (state.getCurrent() == null) return OwnershipError.NotInitialized;
     if (!kata.state.owns(owner)) return OwnershipError.InvalidOwner;
-    if (owner.State == .Dead or owner.ThreadCount == std.math.maxInt(u64) or owner.AddressSpace.ExecutionOwners == 0 or
-        !kagami.activate.canActivate(owner.AddressSpace)) return OwnershipError.InvalidState;
+    const root = owner.AddressSpace orelse return OwnershipError.InvalidState;
+    if (owner.State == .Dead or owner.ThreadCount == std.math.maxInt(u64) or root.ExecutionOwners == 0 or
+        !kagami.activate.canActivate(root)) return OwnershipError.InvalidState;
     const thread = state.reserve(owner) orelse return AllocationError.OutOfMemory;
     errdefer _ = state.release(thread);
     const kernel_stack = try stack.allocate.allocate();
@@ -41,7 +42,7 @@ pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationErro
             .RDI = @intFromPtr(thread),
             .RSP = kernel_stack.Top - @sizeOf(u64),
             .RIP = @intFromPtr(&entry.start),
-            .CR3 = owner.AddressSpace.PML4Physical,
+            .CR3 = root.PML4Physical,
             .FPU = cpu.constants.fpu.INITIAL_STATE,
         },
         .EntryPoint = start,

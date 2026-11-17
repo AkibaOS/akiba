@@ -29,21 +29,23 @@ pub fn validReturn(thread: *const Thread, instruction: u64, stack_pointer: u64) 
     if (thread.Mode != .Persona or !kata.state.owns(thread.Owner) or thread.Owner.Permanent or thread.Owner.State == .Dead or
         instruction == 0 or instruction > layout.USER_SPACE_END or
         stack_pointer <= thread.User.StackBase or stack_pointer > thread.User.StackTop) return false;
-    const code = kagami.tables.walk.lookup(thread.Owner.AddressSpace.PML4Physical, instruction) orelse return false;
+    const root = thread.Owner.AddressSpace orelse return false;
+    const code = kagami.tables.walk.lookup(root.PML4Physical, instruction) orelse return false;
     return code.UserAccessible and code.Executable and !code.Writable and
         transfer.validate(thread.Owner, stack_pointer - 1, 1, true);
 }
 
 fn validStack(owner: *Kata, base: u64, size: u64) bool {
+    const root = owner.AddressSpace orelse return false;
     if (base < 2 * sizes.PAGE_SIZE or base % sizes.PAGE_SIZE != 0 or size == 0 or
         size % sizes.PAGE_SIZE != 0 or size / sizes.PAGE_SIZE > limits.MAX_STACK_PAGES or
         base > layout.USER_SPACE_END or size > layout.USER_SPACE_END - base) return false;
     const top = base + size;
-    if (kagami.tables.walk.lookup(owner.AddressSpace.PML4Physical, base - sizes.PAGE_SIZE) != null or
-        kagami.tables.walk.lookup(owner.AddressSpace.PML4Physical, top) != null) return false;
+    if (kagami.tables.walk.lookup(root.PML4Physical, base - sizes.PAGE_SIZE) != null or
+        kagami.tables.walk.lookup(root.PML4Physical, top) != null) return false;
     var address = base;
     while (address < top) : (address += sizes.PAGE_SIZE) {
-        const page = kagami.tables.walk.lookup(owner.AddressSpace.PML4Physical, address) orelse return false;
+        const page = kagami.tables.walk.lookup(root.PML4Physical, address) orelse return false;
         if (!page.UserAccessible or !page.Writable or page.Executable or
             !transfer.validate(owner, address, sizes.PAGE_SIZE, true)) return false;
     }

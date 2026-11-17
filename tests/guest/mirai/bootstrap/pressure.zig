@@ -39,7 +39,7 @@ pub fn run() !void {
     } else |failure| {
         rejected = failure == error.OwnershipCapacity;
     }
-    const rolled_back = rejected and count != 0 and owned() == held and scratch.AddressSpace.ResidentPages == count and
+    const rolled_back = rejected and count != 0 and owned() == held and scratch.AddressSpace.?.ResidentPages == count and
         std.meta.eql(full, pmm.state.getStatistics()) and kata.state.findByID(failed_id) == null and
         kata.completion.storage.ownerOf(failed_id) == null;
     const probe = try kata.create.create();

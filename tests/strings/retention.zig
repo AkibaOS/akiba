@@ -1,6 +1,10 @@
 //! Kata Retention Regression Labels
 
 pub const GROUP = "CHECK GROUP Outcome retention\n";
+pub const GROUP_POPULATION = "CHECK GROUP Execution populations\n";
+pub const POPULATION = "live Born Katas and isolated roots grow beyond former fixed descriptor populations";
+pub const POPULATION_RELEASE = "fragmented Kata destruction preserves other live descriptors and root ownership";
+pub const POPULATION_UNWIND = "all Kata descriptor and root backing returns after population cleanup";
 
 pub const RACE_WINDOW = "completion interposition runs after observer registration and before any wait queue insertion";
 pub const RACE_COLLECT = "target completion and owner collection retain the registered not-yet-queued observer";

@@ -28,7 +28,7 @@ pub fn createFor(launcher: *const Kata) (AllocationError || OwnershipError)!*Kat
     if (launcher.State != .Alive and launcher.State != .Sleeping) return OwnershipError.InvalidState;
     if (!state.canReserve()) return AllocationError.OutOfMemory;
     const root = try kagami.create.create();
-    errdefer kagami.destroy.destroy(root);
+    errdefer _ = kagami.destroy.destroy(root);
     if (!kagami.retain.acquire(root)) return OwnershipError.InvalidState;
     errdefer _ = kagami.retain.release(root);
     return state.reserve(root, launcher.ID) orelse AllocationError.OutOfMemory;

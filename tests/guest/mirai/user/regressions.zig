@@ -51,7 +51,7 @@ pub fn run() !void {
     ledgerProtection(owner, other);
     try invalidAlias(owner);
     referenceRestriction(owner);
-    verify.require(owner.AddressSpace.ReferenceCount == 1, labels.USER_IN_USE);
+    verify.require(owner.AddressSpace.?.ReferenceCount == 1, labels.USER_IN_USE);
     try sealedBoundary(owner);
     try release(owner);
 }
@@ -70,7 +70,7 @@ fn allocationRejections(owner: *Kata) void {
     user.memory.allocate.allocate(owner, 0) catch |failure| {
         invalid = failure == error.InvalidUserRange;
     };
-    verify.require(duplicate and unaligned and invalid and owner.AddressSpace.ResidentPages == 2 and
+    verify.require(duplicate and unaligned and invalid and owner.AddressSpace.?.ResidentPages == 2 and
         std.meta.eql(before, pmm.state.getStatistics()), labels.USER_DUPLICATE);
 }
 
@@ -150,7 +150,7 @@ fn crossPageOverlap(owner: *Kata) !void {
 fn ledgerProtection(owner: *Kata, other: *Kata) void {
     const first = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
     const second = user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?;
-    const root = owner.AddressSpace;
+    const root = owner.AddressSpace.?;
     const tables = root.TablePages;
     const before = pmm.state.getStatistics();
     verify.require(kagami.remove.remove(root, inputs.USER_ADDRESS) == null and
@@ -165,7 +165,7 @@ fn ledgerProtection(owner: *Kata, other: *Kata) void {
         rejected_alias = failure == error.PermissionDenied;
     };
     var rejected_owner = false;
-    kagami.enter.enter(other.AddressSpace, inputs.USER_ADDRESS, first.PA, protection.USER_WRITE) catch |failure| {
+    kagami.enter.enter(other.AddressSpace.?, inputs.USER_ADDRESS, first.PA, protection.USER_WRITE) catch |failure| {
         rejected_owner = failure == error.PermissionDenied;
     };
     var rejected_protection = false;
@@ -176,7 +176,7 @@ fn ledgerProtection(owner: *Kata, other: *Kata) void {
         user.state.ledger.find(owner, inputs.USER_ADDRESS) == first and user.state.ledger.find(owner, inputs.USER_NEIGHBOR) == second and
         kagami.extract.extract(root, inputs.USER_ADDRESS).? == first.PA and
         kagami.extract.extract(root, inputs.USER_NEIGHBOR).? == second.PA and
-        root.ResidentPages == 2 and root.TablePages == tables and other.AddressSpace.ResidentPages == 0 and
+        root.ResidentPages == 2 and root.TablePages == tables and other.AddressSpace.?.ResidentPages == 0 and
         std.meta.eql(before, pmm.state.getStatistics()), labels.USER_LEDGER);
 }
 
@@ -190,7 +190,7 @@ fn invalidAlias(owner: *Kata) !void {
         alias.* = original;
         cpu.control.invalidatePage(alias_address);
     }
-    const tables = owner.AddressSpace.TablePages;
+    const tables = owner.AddressSpace.?.TablePages;
     const before = pmm.state.getStatistics();
     var destination = [_]u8{inputs.UNCHANGED_BYTE} ** inputs.COPY_BYTES.len;
     alias.Present = false;
@@ -208,8 +208,8 @@ fn invalidAlias(owner: *Kata) !void {
         rejected_release = failure == error.InvalidPhysmap;
     };
     const preserved = user.state.ledger.find(owner, inputs.USER_ADDRESS) == first and
-        user.state.ledger.find(owner, inputs.USER_NEIGHBOR) == second and owner.AddressSpace.ResidentPages == 2 and
-        owner.AddressSpace.TablePages == tables and std.meta.eql(before, pmm.state.getStatistics());
+        user.state.ledger.find(owner, inputs.USER_NEIGHBOR) == second and owner.AddressSpace.?.ResidentPages == 2 and
+        owner.AddressSpace.?.TablePages == tables and std.meta.eql(before, pmm.state.getStatistics());
     alias.* = original;
     cpu.control.invalidatePage(alias_address);
     verify.require(rejected_read and rejected_write and std.mem.allEqual(u8, &destination, inputs.UNCHANGED_BYTE), labels.USER_ALIAS);
@@ -220,7 +220,7 @@ fn invalidAlias(owner: *Kata) !void {
 }
 
 fn referenceRestriction(owner: *Kata) void {
-    const root = owner.AddressSpace;
+    const root = owner.AddressSpace.?;
     kagami.destroy.reference(root);
     defer _ = root.decrementReference();
     const before = pmm.state.getStatistics();
@@ -260,7 +260,7 @@ fn release(owner: *Kata) !void {
         user.state.ledger.find(owner, inputs.USER_ADDRESS).?.PA,
         user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?.PA,
     };
-    const root = owner.AddressSpace;
+    const root = owner.AddressSpace.?;
     const tables = root.TablePages;
     const kernel_tables = kagami.state.getKernelKagami().TablePages;
     const before = pmm.state.getStatistics();

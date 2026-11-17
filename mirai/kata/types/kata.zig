@@ -5,7 +5,7 @@ const State = @import("mirai").kata.types.state.State;
 
 pub const Kata = struct {
     ID: u64,
-    AddressSpace: *Kagami,
+    AddressSpace: ?*Kagami,
     ThreadCount: u64 = 0,
     LiveThreadCount: u64 = 0,
     RunnableThreadCount: u64 = 0,

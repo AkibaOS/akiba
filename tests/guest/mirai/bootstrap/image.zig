@@ -29,15 +29,15 @@ pub fn run() !void {
     verify.require(image.Owner.State == .Born and image.Owner.ThreadCount == 1 and image.Owner.LiveThreadCount == 0 and
         image.Thread.Mode == .Persona and !image.Thread.Managed and !image.Thread.Admitted and
         image.Thread.User.RIP == inputs.CODE_ADDRESS + 1 and image.Thread.User.Argument == inputs.ARGUMENT and
-        image.Owner.AddressSpace.ResidentPages == 6 and kata.completion.lifetime.peek(image.ID) == null, labels.BORN);
+        image.Owner.AddressSpace.?.ResidentPages == 6 and kata.completion.lifetime.peek(image.ID) == null, labels.BORN);
     try contents(image.Owner);
     rights(image.Owner);
-    kagami.destroy.reference(image.Owner.AddressSpace);
+    kagami.destroy.reference(image.Owner.AddressSpace.?);
     var refused = false;
     bootstrap.image.abort.abort(image) catch |failure| {
         refused = failure == error.InUse;
     };
-    _ = image.Owner.AddressSpace.decrementReference();
+    _ = image.Owner.AddressSpace.?.decrementReference();
     verify.require(refused and thread.state.owns(image.Thread) and image.Owner.ThreadCount == 1 and
         image.Owner.State == .Born, labels.IN_USE);
     try bootstrap.image.abort.abort(image);
@@ -57,11 +57,11 @@ pub fn run() !void {
     verify.require(reused and kata.state.owns(shared.Owner) and shared.Owner.ThreadCount == 1, labels.ABORT);
     var code: [0x120]u8 = undefined;
     try user.copy.transfer.read(shared.Owner, &code, inputs.CODE_ADDRESS);
-    verify.require(shared.Owner.AddressSpace.ResidentPages == 5 and
+    verify.require(shared.Owner.AddressSpace.?.ResidentPages == 5 and
         std.mem.allEqual(u8, code[0..32], 0x90) and std.mem.allEqual(u8, code[0x100..], 0x5a) and
-        !kagami.extract.isMapped(shared.Owner.AddressSpace, inputs.CODE_ADDRESS + inputs.PAGE_BYTES) and
-        kagami.extract.isExecutable(shared.Owner.AddressSpace, inputs.CODE_ADDRESS) and
-        !kagami.extract.isWritable(shared.Owner.AddressSpace, inputs.CODE_ADDRESS), labels.RIGHTS);
+        !kagami.extract.isMapped(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS + inputs.PAGE_BYTES) and
+        kagami.extract.isExecutable(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS) and
+        !kagami.extract.isWritable(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS), labels.RIGHTS);
     try published();
     try recycled();
 }
@@ -121,15 +121,15 @@ fn rights(owner: *kata.types.kata.Kata) void {
     var correct = true;
     for (0..4) |index| {
         const address = inputs.CODE_ADDRESS + index * inputs.PAGE_BYTES;
-        const mapping = kagami.extract.lookup(owner.AddressSpace, address).?;
+        const mapping = kagami.extract.lookup(owner.AddressSpace.?, address).?;
         const record = user.state.ledger.find(owner, address).?;
         const alias = user.state.checks.lookupAlias(record).?;
         correct = correct and mapping.UserAccessible and mapping.Writable == (index >= 2) and
             mapping.Executable == (index == 0) and !alias.UserAccessible and !alias.Executable and alias.Writable == (index >= 2);
     }
     verify.require(correct, labels.RIGHTS);
-    verify.require(!kagami.extract.isMapped(owner.AddressSpace, inputs.STACK_ADDRESS - inputs.PAGE_BYTES) and
-        !kagami.extract.isMapped(owner.AddressSpace, inputs.STACK_ADDRESS + 2 * inputs.PAGE_BYTES) and
-        kagami.extract.isWritable(owner.AddressSpace, inputs.STACK_ADDRESS) and
-        !kagami.extract.isExecutable(owner.AddressSpace, inputs.STACK_ADDRESS), labels.STACK);
+    verify.require(!kagami.extract.isMapped(owner.AddressSpace.?, inputs.STACK_ADDRESS - inputs.PAGE_BYTES) and
+        !kagami.extract.isMapped(owner.AddressSpace.?, inputs.STACK_ADDRESS + 2 * inputs.PAGE_BYTES) and
+        kagami.extract.isWritable(owner.AddressSpace.?, inputs.STACK_ADDRESS) and
+        !kagami.extract.isExecutable(owner.AddressSpace.?, inputs.STACK_ADDRESS), labels.STACK);
 }

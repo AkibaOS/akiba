@@ -13,20 +13,21 @@ const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
 const sizes = common.constants.memory.sizes;
+const DestroyResult = types.destruction.DestroyResult;
 const Kagami = types.kagami.Kagami;
 
-pub fn destroy(kagami: *Kagami) void {
+pub fn destroy(kagami: *Kagami) DestroyResult {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (kagami.ExecutionOwners != 0) return;
-    if (!create.owns(kagami) or kagami.Ownership != .User or !kagami.SharesKernel or
+    if (!create.owns(kagami)) return .Refused;
+    if (kagami.ExecutionOwners != 0 or kagami.Ownership != .User or !kagami.SharesKernel or
         kagami == state.getCurrentKagami() or kagami == state.getKernelKagami() or
-        (cpu.control.readCR3() & indices.ADDRESS_MASK) == kagami.PML4Physical) return;
+        (cpu.control.readCR3() & indices.ADDRESS_MASK) == kagami.PML4Physical) return .Refused;
     if (kagami.ReferenceCount > 1) {
         kagami.ReferenceCount -= 1;
-        return;
+        return .Retained;
     }
-    if (kagami.TablePages == 0 or kagami.TablePages > constants.bootstrap.MAX_TABLE_FRAMES) return;
+    if (kagami.TablePages == 0 or kagami.TablePages > constants.bootstrap.MAX_TABLE_FRAMES) return .Refused;
     const root = tables.walk.getPML4(kagami.PML4Physical);
     const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
     var upper: usize = constants.tables.KERNEL_PML4_START;
@@ -34,12 +35,12 @@ pub fn destroy(kagami: *Kagami) void {
         const shared = root.Entries[upper];
         if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or
             (shared.AvailableLow & constants.ownership.SHARED_TABLE) == 0 or
-            shared.getPhysicalAddress() != kernel.Entries[upper].getPhysicalAddress()) return;
+            shared.getPhysicalAddress() != kernel.Entries[upper].getPhysicalAddress()) return .Refused;
     }
     var owned_frames: [constants.bootstrap.MAX_TABLE_FRAMES]u64 = undefined;
     var owned_count: usize = 0;
     if (!collectOwned(kagami.PML4Physical, sizes.PAGE_TABLE_LEVELS, &owned_frames, &owned_count) or
-        owned_count != kagami.TablePages) return;
+        owned_count != kagami.TablePages) return .Refused;
     root.clearAll();
     cpu.control.flushAllTLB();
     while (owned_count != 0) {
@@ -51,7 +52,8 @@ pub fn destroy(kagami: *Kagami) void {
     kagami.ResidentPages = 0;
     kagami.WiredPages = 0;
     kagami.TablePages = 0;
-    create.freeKagamiStruct(kagami);
+    if (!create.freeKagamiStruct(kagami)) unreachable;
+    return .Destroyed;
 }
 
 fn collectOwned(physical_address: u64, level: u8, owned_frames: *[constants.bootstrap.MAX_TABLE_FRAMES]u64, owned_count: *usize) bool {
@@ -82,5 +84,5 @@ pub fn reference(kagami: *Kagami) void {
 }
 
 pub fn release(kagami: *Kagami) void {
-    destroy(kagami);
+    _ = destroy(kagami);
 }

@@ -38,7 +38,7 @@ pub fn finalize(owner: *Kata, virtual_address: u64, protection: Protection) User
     alias.Writable = false;
     cpu.control.flushAllTLB();
     record.Stage = stage;
-    kagami.protect.protect(owner.AddressSpace, virtual_address, access.permissions(stage)) catch |failure| {
+    kagami.protect.protect(owner.AddressSpace.?, virtual_address, access.permissions(stage)) catch |failure| {
         record.Stage = .Loading;
         alias.Writable = true;
         cpu.control.flushAllTLB();

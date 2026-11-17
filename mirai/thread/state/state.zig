@@ -64,10 +64,11 @@ pub fn completeSwitch() void {
 pub fn initializeBoot(owner: *Kata, stack: KernelStack) bool {
     if (boot_initialized or current_thread != null or owner != kata.state.getKernel() or
         !owner.Permanent or owner.ThreadCount != 0) return false;
+    const root = owner.AddressSpace orelse return false;
     boot_thread = .{
         .Owner = owner,
         .Stack = stack,
-        .Context = .{ .CR3 = owner.AddressSpace.PML4Physical },
+        .Context = .{ .CR3 = root.PML4Physical },
         .Status = .Running,
         .Started = true,
         .Admitted = true,
@@ -113,7 +114,7 @@ pub fn generation(target: *const Thread) ?u64 {
 pub fn reserve(owner: *Kata) ?*Thread {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (!boot_initialized or !kata.state.owns(owner) or owner.State == .Dead) return null;
+    if (!boot_initialized or !kata.state.owns(owner) or owner.State == .Dead or owner.AddressSpace == null) return null;
     for (&occupied, 0..) |*used, index| {
         if (used.* or generations[index] == std.math.maxInt(u64)) continue;
         generations[index] += 1;

@@ -13,8 +13,9 @@ const types = @import("mirai").kata.types;
 const Kata = types.kata.Kata;
 
 fn quiescent(owner: *const Kata) bool {
+    const root = owner.AddressSpace orelse return false;
     if (owner.LiveThreadCount != 0 or owner.RunnableThreadCount != 0 or
-        owner.AddressSpace == kagami.state.getCurrentKagami() or kagami.activate.isActive(owner.AddressSpace)) return false;
+        root == kagami.state.getCurrentKagami() or kagami.activate.isActive(root)) return false;
     var slot: usize = 0;
     while (slot < pool.MAX_THREADS) : (slot += 1) {
         const target = thread.state.at(slot) orelse continue;

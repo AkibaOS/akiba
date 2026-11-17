@@ -80,6 +80,8 @@ pub fn execute() void {
     serial.printf(retentionlabels.GROUP, .{});
     check(guest.mirai.kata.retention.run);
     check(guest.mirai.kata.race.run);
+    serial.printf(retentionlabels.GROUP_POPULATION, .{});
+    check(guest.mirai.kata.population.run);
     serial.printf(labels.GROUP_LIFECYCLE, .{});
     check(guest.mirai.kata.lifecycle.run);
     serial.printf(labels.GROUP_COMPLETION, .{});

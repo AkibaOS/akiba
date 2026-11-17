@@ -16,8 +16,8 @@ const Record = types.record.Record;
 
 pub fn isValidOwner(owner: *const Kata) bool {
     if (!kata.state.owns(owner)) return false;
-    return !owner.Permanent and kagami.create.owns(owner.AddressSpace) and
-        owner.AddressSpace.SharesKernel and owner.AddressSpace.ExecutionOwners == 1;
+    const root = owner.AddressSpace orelse return false;
+    return !owner.Permanent and kagami.create.owns(root) and root.SharesKernel and root.ExecutionOwners == 1;
 }
 
 pub fn isValidRange(virtual_address: u64, length: usize) bool {
@@ -47,11 +47,11 @@ pub fn lookupOwned(record: *const Record) ?Lookup {
     if (!isValidOwner(record.Owner) or ledger.find(record.Owner, record.VA) != record or
         !isValidRange(record.VA, sizes.PAGE_SIZE) or (record.VA & sizes.PAGE_MASK) != 0 or
         !isPayloadPhysical(record.PA)) return null;
-    const resolved = kagami.tables.walk.lookup(record.Owner.AddressSpace.PML4Physical, record.VA) orelse return null;
+    const resolved = kagami.tables.walk.lookup(record.Owner.AddressSpace.?.PML4Physical, record.VA) orelse return null;
     if (resolved.PageSize != sizes.PAGE_SIZE or resolved.PhysicalAddress != record.PA or
         !resolved.UserAccessible or resolved.Entry.Global or resolved.Entry.CacheDisabled or resolved.Entry.WriteThrough or
         resolved.Entry.HugePage) return null;
-    const leaf = kagami.tables.walk.walkToOwnedEntry(record.Owner.AddressSpace.PML4Physical, record.VA) orelse return null;
+    const leaf = kagami.tables.walk.walkToOwnedEntry(record.Owner.AddressSpace.?.PML4Physical, record.VA) orelse return null;
     return if (leaf == resolved.Entry) resolved else null;
 }
 

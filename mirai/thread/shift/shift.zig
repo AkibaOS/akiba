@@ -19,8 +19,9 @@ const State = types.state.State;
 const Thread = types.thread.Thread;
 
 fn hasOwner(thread: *const Thread) bool {
-    return state.owns(thread) and kata.state.owns(thread.Owner) and thread.Owner.ThreadCount != 0 and
-        thread.Owner.AddressSpace.ExecutionOwners != 0 and stacks.state.isPinned(thread.Stack.Base);
+    if (!state.owns(thread) or !kata.state.owns(thread.Owner)) return false;
+    const root = thread.Owner.AddressSpace orelse return false;
+    return thread.Owner.ThreadCount != 0 and root.ExecutionOwners != 0 and stacks.state.isPinned(thread.Stack.Base);
 }
 
 fn isCurrentValid(thread: *const Thread) bool {
@@ -28,16 +29,16 @@ fn isCurrentValid(thread: *const Thread) bool {
     const pointer = cpu.state.readStackPointer();
     return pointer >= thread.Stack.Base and pointer < thread.Stack.Top and
         kagami.state.getCurrentKagami() == thread.Owner.AddressSpace and
-        (cpu.control.readCR3() & indices.ADDRESS_MASK) == thread.Owner.AddressSpace.PML4Physical and
+        (cpu.control.readCR3() & indices.ADDRESS_MASK) == thread.Owner.AddressSpace.?.PML4Physical and
         tss.state.getBootTSS().RSP0 == thread.Stack.Top;
 }
 
 fn canResume(thread: *const Thread) bool {
     if (!hasOwner(thread) or thread.Owner.State == .Dead or thread.Status != .Ready or
-        !kagami.activate.canActivate(thread.Owner.AddressSpace)) return false;
+        !kagami.activate.canActivate(thread.Owner.AddressSpace.?)) return false;
     const context = &thread.Context;
     const text = kagami.state.getPolicy().Image.Text;
-    return context.CR3 == thread.Owner.AddressSpace.PML4Physical and
+    return context.CR3 == thread.Owner.AddressSpace.?.PML4Physical and
         context.RSP >= thread.Stack.Base + 2 * @sizeOf(u64) and context.RSP <= thread.Stack.Top - @sizeOf(u64) and
         context.RIP >= text.VirtualStart and context.RIP < text.VirtualEnd and
         (context.RFLAGS & cpu.constants.control.RFLAGS_RESERVED) != 0 and
@@ -84,9 +85,9 @@ pub fn finish() bool {
         (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) return false;
     const pointer = cpu.state.readStackPointer();
     if (pointer < current.Stack.Base or pointer >= current.Stack.Top or
-        (cpu.control.readCR3() & indices.ADDRESS_MASK) != current.Owner.AddressSpace.PML4Physical or
+        (cpu.control.readCR3() & indices.ADDRESS_MASK) != current.Owner.AddressSpace.?.PML4Physical or
         tss.state.getBootTSS().RSP0 != current.Stack.Top) return false;
-    kagami.state.setCurrentKagami(current.Owner.AddressSpace);
+    kagami.state.setCurrentKagami(current.Owner.AddressSpace.?);
     if (kagami.state.getCurrentKagami() != current.Owner.AddressSpace) return false;
     state.completeSwitch();
     return true;

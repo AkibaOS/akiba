@@ -17,7 +17,7 @@ pub fn abort(image: Prepared) ImageError!void {
     const generation = thread.state.generation(image.Thread) orelse return ImageError.InvalidImage;
     if (generation != image.ThreadGeneration or image.Thread.Owner != owner) return ImageError.InvalidImage;
     const target = image.Thread;
-    const root = owner.AddressSpace;
+    const root = owner.AddressSpace orelse return ImageError.InvalidImage;
     if (owner.State != .Born or owner.ThreadCount != 1 or owner.LiveThreadCount != 0 or
         owner.RunnableThreadCount != 0 or target.Permanent or target.Managed or target.Admitted or
         target.Status != .Ready or target == thread.state.getCurrent() or root.ReferenceCount != 1 or
