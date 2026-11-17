@@ -26,6 +26,7 @@ pub const FOUND_PAGES = "  Found %d pages (%d MB total)\n";
 pub const AVAILABLE = "  Available: %d pages (%d MB)\n";
 pub const NO_ZONES = "  Zone allocator initialization failed\n";
 pub const NO_KALLOC = "  Kernel allocator initialization failed\n";
+pub const NO_HEAP = "  Kernel virtual heap initialization failed\n";
 pub const ALLOCATOR_READY = "  Kernel allocator ready with %d size classes\n";
 pub const PML4 = "  Using PML4 at physical address %x\n";
 pub const NO_STACK = "  Boot kernel stack allocation failed\n";

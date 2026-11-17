@@ -53,6 +53,10 @@ pub fn execute() void {
     check(guest.mirai.pmm.reservation.run);
     serial.printf(memorylabels.GROUP_KERNEL, .{});
     check(guest.mirai.memory.allocation.run);
+    check(guest.mirai.memory.range.run);
+    check(guest.mirai.memory.heap.run);
+    check(guest.mirai.memory.validation.run);
+    check(guest.mirai.memory.allocator.run);
     check(guest.mirai.memory.zone.run);
     check(guest.mirai.memory.growth.run);
     check(guest.mirai.memory.validity.run);

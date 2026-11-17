@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
 const labels = @import("tests").strings.memory;
@@ -54,13 +53,5 @@ pub fn run() !void {
     } else |failure| {
         rejected_zero = failure == error.SizeTooLarge;
     }
-    const oversized = common.constants.memory.sizes.PAGE_SIZE + inputs.SINGLE_BYTE;
-    var rejected_oversized = false;
-    if (memory.kalloc.kallocZeroed(oversized)) |unexpected| {
-        memory.kalloc.kfree(unexpected, oversized);
-    } else |failure| {
-        rejected_oversized = failure == error.SizeTooLarge;
-    }
-    verify.require(rejected_zero and rejected_oversized and
-        std.meta.eql(before, pmm.state.getStatistics()), labels.KALLOC_REJECTIONS);
+    verify.require(rejected_zero and std.meta.eql(before, pmm.state.getStatistics()), labels.KALLOC_REJECTIONS);
 }

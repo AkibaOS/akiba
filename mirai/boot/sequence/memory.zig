@@ -2,6 +2,7 @@
 
 const bits = @import("utils").bits;
 const common = @import("common");
+const heap = @import("mirai").memory.heap;
 const kalloc = @import("mirai").memory.kalloc;
 const math = @import("utils").math;
 const pmm = @import("mirai").pmm;
@@ -56,6 +57,10 @@ pub fn prepare(boot_info: *const BootInfo) bool {
 
 pub fn finish(boot_info: *const BootInfo) bool {
     print.phase(status.ALLOCATOR);
+    heap.state.initialize() catch {
+        print.log(messages.NO_HEAP, .{});
+        return false;
+    };
     kalloc.init() catch {
         print.log(messages.NO_KALLOC, .{});
         return false;

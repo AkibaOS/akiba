@@ -1,7 +1,11 @@
 //! Kernel Memory Management
 
+pub const allocator = @import("allocator/allocator.zig");
 pub const constants = @import("constants/constants.zig");
+pub const errors = @import("errors/errors.zig");
+pub const heap = @import("heap/heap.zig");
 pub const kalloc = @import("kalloc/kalloc.zig");
+pub const range = @import("range/range.zig");
 pub const stack = @import("stack/stack.zig");
 pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");
