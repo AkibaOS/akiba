@@ -6,6 +6,7 @@ pub const CONTENTS = "ELF image contains exact initialized bytes zero BSS and ze
 pub const RIGHTS = "ELF page unions finalize exact RO RW RX mappings and safe physical aliases";
 pub const STACK = "ELF Persona stack has writable NX body and unmapped guards";
 pub const ABORT = "unpublished ELF abort releases identity owned pages Threads and completion reservation";
+pub const RECYCLED_THREAD = "stale ELF Prepared cannot abort a replacement Thread recycled within the same Born Kata";
 pub const IN_USE = "ELF abort rejects published or referenced images without changing live resources";
 pub const REJECT = "invalid ELF and stack layout fail before Kata or owned page allocation";
 pub const ROLLBACK = "ELF construction failure after partial allocation restores bounded ledger and PMM ownership";

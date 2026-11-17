@@ -1,5 +1,7 @@
 //! Thread Descriptor And Active Execution State
 
+const std = @import("std");
+
 const constants = @import("mirai").thread.constants.pool;
 const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
@@ -15,6 +17,7 @@ var boot_thread: Thread = undefined;
 var boot_initialized: bool = false;
 var current_thread: ?*Thread = null;
 var descriptors: [constants.MAX_THREADS]Thread = undefined;
+var generations: [constants.MAX_THREADS]u64 = [_]u64{0} ** constants.MAX_THREADS;
 var inactive_observer: ?InactiveObserver = null;
 var occupied: [constants.MAX_THREADS]bool = [_]bool{false} ** constants.MAX_THREADS;
 var switch_handler: ?SwitchHandler = null;
@@ -102,12 +105,18 @@ pub fn at(index: usize) ?*Thread {
     return &descriptors[index];
 }
 
+pub fn generation(target: *const Thread) ?u64 {
+    const index = poolIndex(target) orelse return null;
+    return if (occupied[index]) generations[index] else null;
+}
+
 pub fn reserve(owner: *Kata) ?*Thread {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!boot_initialized or !kata.state.owns(owner) or owner.State == .Dead) return null;
     for (&occupied, 0..) |*used, index| {
-        if (used.*) continue;
+        if (used.* or generations[index] == std.math.maxInt(u64)) continue;
+        generations[index] += 1;
         descriptors[index] = .{ .Owner = owner, .Stack = .{ .Base = 0, .Top = 0 } };
         used.* = true;
         return &descriptors[index];

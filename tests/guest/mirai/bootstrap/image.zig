@@ -63,6 +63,23 @@ pub fn run() !void {
         kagami.extract.isExecutable(shared.Owner.AddressSpace, inputs.CODE_ADDRESS) and
         !kagami.extract.isWritable(shared.Owner.AddressSpace, inputs.CODE_ADDRESS), labels.RIGHTS);
     try published();
+    try recycled();
+}
+
+fn recycled() !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const image = try prepare(&IMAGE_BYTES);
+    defer support.dispose(image.ID) catch |failure| verify.failure(failure);
+    try thread.destroy.destroy(image.Thread);
+    const replacement = try thread.user.create(image.Owner, inputs.CODE_ADDRESS + 1, inputs.STACK_ADDRESS, 2 * inputs.PAGE_BYTES, inputs.ARGUMENT);
+    var refused = false;
+    bootstrap.image.abort.abort(image) catch |failure| {
+        refused = failure == error.InvalidImage;
+    };
+    verify.require(replacement == image.Thread and thread.state.generation(replacement).? > image.ThreadGeneration and
+        refused and thread.state.owns(replacement) and
+        kata.state.owns(image.Owner) and image.Owner.State == .Born and image.Owner.ThreadCount == 1, labels.RECYCLED_THREAD);
 }
 
 fn published() !void {

@@ -13,8 +13,9 @@ pub fn abort(image: Prepared) ImageError!void {
     const flags = guard.acquire();
     defer guard.release(flags);
     const owner = image.Owner;
-    if (!kata.state.owns(owner) or owner.ID != image.ID or owner.Permanent or
-        !thread.state.owns(image.Thread) or image.Thread.Owner != owner) return ImageError.InvalidImage;
+    if (!kata.state.owns(owner) or owner.ID != image.ID or owner.Permanent) return ImageError.InvalidImage;
+    const generation = thread.state.generation(image.Thread) orelse return ImageError.InvalidImage;
+    if (generation != image.ThreadGeneration or image.Thread.Owner != owner) return ImageError.InvalidImage;
     const target = image.Thread;
     const root = owner.AddressSpace;
     if (owner.State != .Born or owner.ThreadCount != 1 or owner.LiveThreadCount != 0 or

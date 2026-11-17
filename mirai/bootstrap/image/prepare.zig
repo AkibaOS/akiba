@@ -32,5 +32,5 @@ pub fn prepare(launcher: *const Kata, bytes: []const u8, options: types.Options)
     try memory.finalizeImage(owner, &plan);
     try memory.finalizeStack(owner, options);
     const target = try thread.user.create(owner, plan.Entry, options.StackBase, options.StackPages * common.constants.memory.sizes.PAGE_SIZE, options.Argument);
-    return .{ .ID = owner.ID, .Owner = owner, .Thread = target };
+    return .{ .ID = owner.ID, .Owner = owner, .Thread = target, .ThreadGeneration = thread.state.generation(target).? };
 }

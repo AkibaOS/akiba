@@ -13,4 +13,5 @@ pub const Prepared = struct {
     ID: u64,
     Owner: *Kata,
     Thread: *Thread,
+    ThreadGeneration: u64,
 };
