@@ -4,6 +4,7 @@ const std = @import("std");
 
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
+const storage = @import("storage.zig");
 const types = @import("../types/types.zig");
 
 pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.Build.Step.Compile) std.Build.LazyPath {
@@ -31,6 +32,7 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
     const stage = builder.addWriteFiles();
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
     _ = stage.addCopyFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
+    storage.add(builder, stage);
     const pack = builder.addRunArtifact(packer);
     pack.addDirectoryArg(stage.getDirectory());
     const result = pack.addOutputFileArg(paths.FIRMWARE_IMAGE_NAME);
