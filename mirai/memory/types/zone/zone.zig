@@ -39,6 +39,7 @@ pub const ZonePageMeta = struct {
     FreeList: ?*FreeElement,
     InUse: usize,
     Next: ?*ZonePageMeta,
+    Previous: ?*ZonePageMeta = null,
     ElementOffset: usize,
     Capacity: usize,
     Index: Node = .{},

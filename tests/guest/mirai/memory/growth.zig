@@ -51,14 +51,32 @@ pub fn run() !void {
     verify.require(metadata.PageCount > metadata_pages, labels.ZONE_METADATA_GROWTH);
     headers(metadata);
     const retired = allocations[0].?;
+    const before_targeted = pmm.state.getStatistics();
+    const grown_metadata = metadata.PageCount;
+    var targeted: usize = 0;
+    for (allocations[0..inputs.ZONE_TARGETED_PAGES], 0..) |allocation, index| {
+        const pointer = allocation.?;
+        memory.zone.alloc.zfree(fixture, pointer);
+        allocations[index] = null;
+        targeted += memory.zone.gc.collectPage(fixture, pointer);
+    }
+    for (allocations[inputs.ZONE_TARGETED_PAGES..], inputs.ZONE_TARGETED_PAGES..) |allocation, index| {
+        const bytes: [*]const u8 = @ptrCast(allocation.?);
+        retained = retained and memory.zone.alloc.owns(fixture, allocation.?) and
+            std.mem.allEqual(u8, bytes[0..sizes.PAGE_SIZE], @intCast(index + 1));
+    }
+    const after_targeted = pmm.state.getStatistics();
+    verify.require(retained and targeted > inputs.ZONE_TARGETED_PAGES and metadata.PageCount < grown_metadata and
+        fixture.PageCount == inputs.ZONE_GROWTH_PAGES - inputs.ZONE_TARGETED_PAGES and
+        after_targeted.FreePages == before_targeted.FreePages + targeted, labels.ZONE_TARGETED_RELEASE);
     for (&allocations) |*allocation| {
-        memory.zone.alloc.zfree(fixture, allocation.*.?);
+        if (allocation.*) |pointer| memory.zone.alloc.zfree(fixture, pointer);
         allocation.* = null;
     }
     const released = memory.zone.gc.collect(fixture);
     const released_metadata = memory.zone.gc.collect(metadata);
     const after = pmm.state.getStatistics();
-    verify.require(released == inputs.ZONE_GROWTH_PAGES and released_metadata != 0 and
+    verify.require(released == inputs.ZONE_GROWTH_PAGES - inputs.ZONE_TARGETED_PAGES and released_metadata != 0 and
         fixture.PageCount == 0 and fixture.inUse() == 0 and metadata.PageCount == metadata_pages and
         !memory.zone.alloc.owns(fixture, retired) and before.FreePages == after.FreePages and
         before.UsedPages == after.UsedPages, labels.ZONE_GROWTH_RELEASE);

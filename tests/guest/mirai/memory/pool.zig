@@ -129,13 +129,17 @@ fn lifetimes() !void {
     const reused_generation = pages.generation(reused).?;
     verify.require(released and reused == original and reused_generation > generation and matches(reused, 1), labels.LIFETIME);
     const released_again = pages.release(reused);
-    const collected = pages.collect();
+    const before_collection = pmm.state.getStatistics();
+    const collected = pages.collectAt(reused);
+    const after_collection = pmm.state.getStatistics();
+    const reclaimed = collected != 0 and after_collection.FreePages == before_collection.FreePages + collected and pages.collect() == 0;
+    verify.require(released_again and reclaimed, labels.TARGETED);
     _ = memory.zone.gc.collect(memory.zone.bootstrap.getPageMetaZone());
     pmm.state.getState().SearchStart = physical_page;
     const rebuilt = try pages.reserve();
     stamp(rebuilt, 2);
     const rebuilt_generation = pages.generation(rebuilt).?;
-    verify.require(released_again and collected != 0 and rebuilt == original and rebuilt_generation > reused_generation and
+    verify.require(rebuilt == original and rebuilt_generation > reused_generation and
         matches(rebuilt, 2), labels.LIFETIME);
     const released_rebuilt = pages.release(rebuilt);
     const deinitialized = pages.deinit();
@@ -169,11 +173,13 @@ fn failure() !void {
     stamp(recovered, 1);
     budget.arm(0);
     const released_original = pages.release(original);
+    const targeted = pages.collectAt(original);
+    const preserved = pages.owns(recovered) and matches(recovered, 1) and pages.collectAt(recovered) == 0;
     const released_recovered = pages.release(recovered);
     const collected = pages.collect();
     const deinitialized = pages.deinit();
     budget.clear();
-    verify.require(released_original and released_recovered and collected != 0 and deinitialized, labels.RECOVERY);
+    verify.require(released_original and targeted != 0 and preserved and released_recovered and collected != 0 and deinitialized, labels.RECOVERY);
 }
 
 fn exhausted() !void {

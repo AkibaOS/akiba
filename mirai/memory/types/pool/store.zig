@@ -114,6 +114,14 @@ pub fn create(comptime Value: type) type {
             return zone.gc.collect(self.Zone.?);
         }
 
+        pub fn collectAt(self: *Self, value: *const Value) usize {
+            const flags = guard.acquire();
+            defer guard.release(flags);
+            if (!self.valid()) return 0;
+            const address = recordAddress(value) orelse return 0;
+            return zone.gc.collectPage(self.Zone.?, @ptrFromInt(address));
+        }
+
         pub fn deinit(self: *Self) bool {
             const flags = guard.acquire();
             defer guard.release(flags);
@@ -128,16 +136,21 @@ pub fn create(comptime Value: type) type {
             return self.Zone != null and self.Location == @intFromPtr(self);
         }
 
-        fn findRecord(self: *const Self, value: *const Value) ?*Record {
-            if (!self.valid()) return null;
+        fn recordAddress(value: *const Value) ?usize {
             const address = @intFromPtr(value);
             const offset = @offsetOf(Record, fields.VALUE);
             if (address < offset) return null;
             const record_address = address - offset;
             if (record_address == 0 or record_address % @alignOf(Record) != 0) return null;
-            const pointer: *const anyopaque = @ptrFromInt(record_address);
+            return record_address;
+        }
+
+        fn findRecord(self: *const Self, value: *const Value) ?*Record {
+            if (!self.valid()) return null;
+            const address = recordAddress(value) orelse return null;
+            const pointer: *const anyopaque = @ptrFromInt(address);
             if (!zone.alloc.owns(self.Zone.?, pointer)) return null;
-            return @ptrFromInt(record_address);
+            return @ptrFromInt(address);
         }
     };
 }

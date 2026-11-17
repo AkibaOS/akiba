@@ -39,6 +39,7 @@ pub const ZONE_GROWTH = "zone metadata grows beyond former backing capacity with
 pub const ZONE_METADATA_GROWTH = "zone metadata backing expands with actual slab demand";
 pub const ZONE_METADATA_HEADER = "zone rejects self-hosted metadata headers as allocatable elements";
 pub const ZONE_GROWTH_REUSE = "collected zone backing can be safely allocated and zeroed again";
+pub const ZONE_TARGETED_RELEASE = "targeted slab collection reclaims empty metadata backing and preserves live neighbors";
 pub const ZONE_GROWTH_RELEASE = "zone collection returns grown payload and excess metadata backing";
 pub const ZONE_VALIDITY_NAME = "memory-validity";
 pub const ZONE_INTERIOR = "zone rejects an aligned interior free without altering live bytes or counts";

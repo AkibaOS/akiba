@@ -10,6 +10,7 @@ pub const MEMBERSHIP = "typed storage rejects interior foreign and freed values 
 pub const COPIED = "copied initialized storage cannot mutate another store's records";
 pub const LIVE_RELEASE = "typed storage refuses destruction while values remain live";
 pub const LIFETIME = "recycled value addresses expose a fresh nonwrapping lifetime witness";
+pub const TARGETED = "targeted storage collection returns the selected empty backing without a global scan";
 pub const REINITIALIZED = "typed storage retains identity history across backing and zone recreation";
 pub const FAILURE = "failed typed storage expansion preserves existing values and accounting";
 pub const RECOVERY = "typed storage recovers after failed expansion without allocating during release";

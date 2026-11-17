@@ -4,13 +4,11 @@ const address = @import("utils").address;
 const bits = @import("utils").bits;
 const bootstrap = @import("mirai").memory.zone.bootstrap;
 const common = @import("common");
-const fields = @import("mirai").memory.strings.zone.fields;
 const guard = @import("asm").interrupts.guard;
 const limits = @import("mirai").memory.constants.zone.limits;
 const math = @import("utils").math;
 const pages = @import("mirai").memory.zone.page;
 const pmm = @import("mirai").pmm;
-const tree = @import("common").datatypes.tree;
 const types = @import("mirai").memory.types;
 
 const sizes = common.constants.memory.sizes;
@@ -39,9 +37,8 @@ pub fn zalloc(zone: *Zone) AllocationError!*anyopaque {
     zone.AllocationCount += 1;
 
     if (page.FreeList == null) {
-        zone.PartialPages = page.Next;
-        page.Next = zone.FullPages;
-        zone.FullPages = page;
+        pages.unlink(&zone.PartialPages, page);
+        pages.prepend(&zone.FullPages, page);
     }
 
     return @ptrCast(element);
@@ -59,7 +56,7 @@ pub fn zfree(zone: *Zone, pointer: *anyopaque) void {
     defer guard.release(previous_flags);
 
     const page_virtual = math.integer.alignDown(@intFromPtr(pointer), @as(usize, sizes.PAGE_SIZE));
-    const page = findPage(zone, page_virtual) orelse return;
+    const page = pages.find(zone, page_virtual) orelse return;
     const index = elementIndex(zone, page, @intFromPtr(pointer)) orelse return;
     if (!bits.operations.testBit(&page.Allocated, index)) return;
     const was_full = (page.FreeList == null);
@@ -72,9 +69,8 @@ pub fn zfree(zone: *Zone, pointer: *anyopaque) void {
     zone.FreeCount += 1;
 
     if (was_full) {
-        removeFromFull(zone, page);
-        page.Next = zone.PartialPages;
-        zone.PartialPages = page;
+        pages.unlink(&zone.FullPages, page);
+        pages.prepend(&zone.PartialPages, page);
     }
 }
 
@@ -99,14 +95,9 @@ pub fn owns(zone: *const Zone, pointer: *const anyopaque) bool {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     const page_virtual = math.integer.alignDown(@intFromPtr(pointer), @as(usize, sizes.PAGE_SIZE));
-    const page = findPage(zone, page_virtual) orelse return false;
+    const page = pages.find(zone, page_virtual) orelse return false;
     const index = elementIndex(zone, page, @intFromPtr(pointer)) orelse return false;
     return bits.operations.testBit(&page.Allocated, index);
-}
-
-fn findPage(zone: *const Zone, page_virtual: usize) ?*ZonePageMeta {
-    const node = tree.lookup.find(&zone.PageIndex, page_virtual) orelse return null;
-    return @fieldParentPtr(fields.PAGE_INDEX, node);
 }
 
 fn elementIndex(zone: *const Zone, meta: *const ZonePageMeta, pointer: usize) ?usize {
@@ -117,19 +108,4 @@ fn elementIndex(zone: *const Zone, meta: *const ZonePageMeta, pointer: usize) ?u
     if (payload_offset % zone.ElementSize != 0) return null;
     const index = payload_offset / zone.ElementSize;
     return if (index < meta.Capacity) index else null;
-}
-
-fn removeFromFull(zone: *Zone, target: *ZonePageMeta) void {
-    if (zone.FullPages == target) {
-        zone.FullPages = target.Next;
-        return;
-    }
-    var current = zone.FullPages;
-    while (current) |page_meta| {
-        if (page_meta.Next == target) {
-            page_meta.Next = target.Next;
-            return;
-        }
-        current = page_meta.Next;
-    }
 }

@@ -1,7 +1,8 @@
-//! Zone Page Payload Construction
+//! Zone Page Payload And List Membership
 
 const address = @import("utils").address;
 const common = @import("common");
+const fields = @import("mirai").memory.strings.zone.fields;
 const tree = @import("common").datatypes.tree;
 const types = @import("mirai").memory.types;
 
@@ -18,7 +19,7 @@ pub fn attach(zone: *Zone, meta: *ZonePageMeta, physical: u64, offset: usize) vo
         .PagePhysical = physical,
         .FreeList = null,
         .InUse = 0,
-        .Next = zone.PartialPages,
+        .Next = null,
         .ElementOffset = offset,
         .Capacity = (sizes.PAGE_SIZE - offset) / zone.ElementSize,
     };
@@ -30,6 +31,34 @@ pub fn attach(zone: *Zone, meta: *ZonePageMeta, physical: u64, offset: usize) vo
         meta.FreeList = element;
     }
     if (!tree.insert.insert(&zone.PageIndex, &meta.Index, virtual)) unreachable;
-    zone.PartialPages = meta;
+    prepend(&zone.PartialPages, meta);
     zone.PageCount += 1;
+}
+
+pub fn find(zone: *const Zone, page_virtual: usize) ?*ZonePageMeta {
+    const node = tree.lookup.find(&zone.PageIndex, page_virtual) orelse return null;
+    return @fieldParentPtr(fields.PAGE_INDEX, node);
+}
+
+pub fn prepend(head: *?*ZonePageMeta, meta: *ZonePageMeta) void {
+    meta.Previous = null;
+    meta.Next = head.*;
+    if (head.*) |next| next.Previous = meta;
+    head.* = meta;
+}
+
+pub fn unlink(head: *?*ZonePageMeta, meta: *ZonePageMeta) void {
+    if (meta.Previous) |previous| {
+        if (previous.Next != meta) unreachable;
+        previous.Next = meta.Next;
+    } else {
+        if (head.* != meta) unreachable;
+        head.* = meta.Next;
+    }
+    if (meta.Next) |next| {
+        if (next.Previous != meta) unreachable;
+        next.Previous = meta.Previous;
+    }
+    meta.Previous = null;
+    meta.Next = null;
 }

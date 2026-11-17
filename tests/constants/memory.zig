@@ -18,6 +18,7 @@ pub const ZONE_REQUEST: usize = 1001;
 pub const ZONE_CAPACITY: usize = 1008;
 pub const ZONE_ELEMENTS: usize = sizes.PAGE_SIZE / ZONE_CAPACITY;
 pub const ZONE_GROWTH_PAGES: usize = 128;
+pub const ZONE_TARGETED_PAGES: usize = ZONE_GROWTH_PAGES / 2;
 pub const ZONE_VALIDITY_SIZE: usize = 64;
 pub const ZONE_INTERIOR_OFFSET: usize = 8;
 pub const ZONE_METADATA_PRESSURE_SLOTS: usize = 512;
