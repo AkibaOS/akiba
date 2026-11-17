@@ -120,17 +120,7 @@ pub fn createEsp(
     const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, names.STACK_EFI, names.STACK_BOOT, names.UNIT_BOOTLOADER });
     defer allocator.free(bootloader_location);
 
-    const bootloader_file = std.fs.cwd().openFile(bootloader_location, .{}) catch |err| {
-        std.debug.print(messages.BOOTLOADER_MISSING, .{err});
-        try file.seekTo(data_start + (boot_cluster - esp.FIRST_DATA_CLUSTER) * disk.SECTOR_SIZE);
-        try file.writeAll(&boot_stack);
-        fat32.write.boot.allocateCluster(fat_table, boot_cluster);
-        try file.seekTo(fat1_offset);
-        try file.writeAll(fat_table);
-        try file.seekTo(fat2_offset);
-        try file.writeAll(fat_table);
-        return;
-    };
+    const bootloader_file = try std.fs.cwd().openFile(bootloader_location, .{});
     defer bootloader_file.close();
 
     const bootloader_size = try bootloader_file.getEndPos();

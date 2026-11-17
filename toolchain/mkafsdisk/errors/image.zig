@@ -2,4 +2,5 @@
 
 pub const ImageError = error{
     EspTooSmall,
+    ImageSizeMismatch,
 };

@@ -129,3 +129,31 @@ test "AFS channel construction rejects impossible sizes and span overflow" {
 test "AFS checked constructors preserve representable endpoints and byte identities" {
     try image.checked.representableConstructorEndpointsRemainSupported();
 }
+
+test "AFS active writer emits multiple leaves consumed by production shared search" {
+    try image.emission.moderateCatalogIsReadThroughProductionSearch();
+}
+
+test "AFS active writer emits complete allocation coverage beyond the former bitmap threshold" {
+    try image.emission.emittedBitmapCoversCellsPastTheFormerThreshold();
+}
+
+test "AFS failed construction preserves the existing final image bytes" {
+    try image.publication.insufficientSpacePreservesExistingFinalBytes();
+}
+
+test "AFS failed construction never publishes a previously absent final image" {
+    try image.publication.insufficientSpaceDoesNotPublishAnAbsentFinal();
+}
+
+test "AFS missing source fails without replacing an existing final image" {
+    try image.publication.missingSourceIsFailureWithoutReplacingFinalBytes();
+}
+
+test "AFS missing bootloader fails without replacing an existing final image" {
+    try image.publication.missingBootloaderIsFailureWithoutReplacingFinalBytes();
+}
+
+test "AFS successful replacement supports native spaced and wide host paths" {
+    try image.emission.nativeSpacedAndWideHostPathsRemainSupported();
+}

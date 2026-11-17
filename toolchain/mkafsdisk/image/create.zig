@@ -2,17 +2,13 @@
 
 const std = @import("std");
 
-const constants = @import("mkafsdisk").constants;
-const esp = @import("mkafsdisk").image.esp;
-const gpt = @import("mkafsdisk").image.gpt;
-const mbr = @import("mkafsdisk").image.mbr;
-const strings = @import("mkafsdisk").strings;
-const types = @import("mkafsdisk").types;
+const tool = @import("mkafsdisk");
 
-const Writer = types.writer.Writer;
+const Writer = tool.types.writer.Writer;
 
-const disk = constants.disk;
-const messages = strings.messages;
+const disk = tool.constants.disk;
+const messages = tool.strings.messages;
+const names = tool.strings.names;
 
 pub fn createDiskImage(
     allocator: std.mem.Allocator,
@@ -20,35 +16,28 @@ pub fn createDiskImage(
     output_path: []const u8,
     size_megabytes: u32,
 ) !void {
-    const total_bytes: u64 = @as(u64, size_megabytes) * 1024 * 1024;
-    const total_sectors: u32 = @intCast(total_bytes / disk.SECTOR_SIZE);
+    const geometry = try tool.image.geometry.disk(size_megabytes);
+    var filesystem = try tool.catalog.prepare.prepare(allocator, source_location, geometry.PartitionSizeBytes);
+    defer filesystem.deinit();
+    const source = filesystem.Manifest.Entries[0].Path;
+    try requireBootloader(allocator, source);
+    const esp_start = std.math.cast(u32, geometry.EspStartLBA) orelse return tool.errors.planning.PlanningError.Overflow;
+    std.debug.print(messages.ESP_RANGE, .{ geometry.EspStartLBA, geometry.EspEndLBA });
+    std.debug.print(messages.AFS_RANGE, .{ geometry.AfsStartLBA, geometry.AfsEndLBA });
+    var output = try tool.image.output.create(output_path, geometry.TotalBytes);
+    defer output.deinit();
+    const file = output.file();
+    try tool.image.mbr.writeProtectiveMbr(file, geometry.TotalSectors);
+    try tool.image.gpt.writeGpt(file, geometry.EspStartLBA, geometry.EspEndLBA, geometry.AfsStartLBA, geometry.AfsEndLBA, geometry.TotalSectors);
+    try tool.image.esp.createEsp(allocator, file, source, esp_start, disk.ESP_SIZE_SECTORS);
+    var writer = Writer.initialize(file, geometry.PartitionStartByte, geometry.PartitionSizeBytes, allocator);
+    try writer.writeFilesystem(&filesystem);
+    try output.finish();
+}
 
-    const esp_start_sector: u32 = disk.ESP_START_SECTOR;
-    const esp_end_sector: u32 = esp_start_sector + disk.ESP_SIZE_SECTORS - 1;
-    const afs_start_sector: u32 = esp_end_sector + 1;
-    const afs_end_sector: u32 = total_sectors - disk.GPT_RESERVED_SECTORS;
-
-    std.debug.print(messages.ESP_RANGE, .{ esp_start_sector, esp_end_sector });
-    std.debug.print(messages.AFS_RANGE, .{ afs_start_sector, afs_end_sector });
-
-    const file = try std.fs.cwd().createFile(output_path, .{ .read = true });
+fn requireBootloader(allocator: std.mem.Allocator, source: []const u8) !void {
+    const path = try std.fs.path.join(allocator, &.{ source, names.STACK_EFI, names.STACK_BOOT, names.UNIT_BOOTLOADER });
+    defer allocator.free(path);
+    const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
-
-    try file.setEndPos(total_bytes);
-
-    try mbr.writeProtectiveMbr(file, total_sectors);
-    try gpt.writeGpt(file, esp_start_sector, esp_end_sector, afs_start_sector, afs_end_sector, total_sectors);
-    try esp.createEsp(allocator, file, source_location, esp_start_sector, disk.ESP_SIZE_SECTORS);
-
-    const partition_start_byte: u64 = @as(u64, afs_start_sector) * disk.SECTOR_SIZE;
-    const partition_size_bytes: u64 = @as(u64, afs_end_sector - afs_start_sector + 1) * disk.SECTOR_SIZE;
-
-    var writer = Writer.initialize(
-        file,
-        partition_start_byte,
-        partition_size_bytes,
-        allocator,
-    );
-
-    try writer.createFilesystem(source_location);
 }

@@ -33,12 +33,13 @@ pub fn metadataAndAllocation(file: std.fs.File) !AFSImage {
     try std.testing.expectEqual(@as(u32, 1), image.Header.WriteCount);
     try std.testing.expectEqual(constants.UNIT_COUNT + constants.STACK_COUNT, image.Header.IndexRecordCount);
     try std.testing.expectEqual(@as(u64, 2), image.Header.AllocationMapSpan.StartCell);
-    try std.testing.expectEqual(@as(u64, 4), image.Header.AllocationMapSpan.CellCount);
-    try std.testing.expectEqual(@as(u32, 4 * constants.CELL_BYTES), image.Header.AllocationMapSize);
-    try std.testing.expectEqual(@as(u64, 6), image.Header.IndexSpan.StartCell);
-    try std.testing.expectEqual(@as(u64, 16), image.Header.IndexSpan.CellCount);
+    try std.testing.expectEqual(@as(u64, 1), image.Header.AllocationMapSpan.CellCount);
+    try std.testing.expectEqual(constants.CELL_BYTES, image.Header.AllocationMapSize);
+    try std.testing.expectEqual(@as(u64, 3), image.Header.IndexSpan.StartCell);
+    try std.testing.expectEqual(@as(u64, 2), image.Header.IndexSpan.CellCount);
     try std.testing.expectEqual(constants.CELL_BYTES, image.Header.IndexNodeSize);
-    try std.testing.expectEqual(@as(u32, 16), image.Header.IndexTotalNodes);
+    try std.testing.expectEqual(@as(u32, 2), image.Header.IndexTotalNodes);
+    try std.testing.expectEqual(@as(u32, 0), image.Header.IndexFreeNodes);
     try std.testing.expectEqual(@as(u32, 1), image.Header.IndexRootNode);
     try std.testing.expectEqual(@as(u32, 1), image.Header.IndexFirstLeaf);
     try std.testing.expectEqual(@as(u32, 1), image.Header.IndexLastLeaf);

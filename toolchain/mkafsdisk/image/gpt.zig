@@ -34,11 +34,11 @@ fn writePartitionEntry(
 
 pub fn writeGpt(
     file: std.fs.File,
-    esp_start: u32,
-    esp_end: u32,
-    afs_start: u32,
-    afs_end: u32,
-    total_sectors: u32,
+    esp_start: u64,
+    esp_end: u64,
+    afs_start: u64,
+    afs_end: u64,
+    total_sectors: u64,
 ) !void {
     var partition_entries: [gpt.ENTRIES_BYTES]u8 = [_]u8{0} ** gpt.ENTRIES_BYTES;
 

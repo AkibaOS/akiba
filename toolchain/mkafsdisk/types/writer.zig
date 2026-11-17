@@ -1,43 +1,26 @@
-//! AFS Disk Writer
+//! Planned AFS Disk Emission
 
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const constants = @import("mkafsdisk").constants;
-const strings = @import("mkafsdisk").strings;
+const tool = @import("mkafsdisk");
 
-const layout = constants.afs;
-const messages = strings.messages;
-const names = strings.names;
-
-const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
-const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
-const IndexKey = afs.types.btree.IndexKey;
+const Entry = tool.types.catalog.Entry;
+const FilesystemPlan = tool.types.filesystem.FilesystemPlan;
+const PlanningError = tool.errors.planning.PlanningError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
-const StackRecord = afs.types.catalog.StackRecord;
-const UnitRecord = afs.types.catalog.UnitRecord;
 const VolumeHeader = afs.types.volume.VolumeHeader;
+
+const messages = tool.strings.messages;
 
 pub const Writer = struct {
     File: std.fs.File,
     PartitionStartByte: u64,
     PartitionSizeBytes: u64,
-    CellSize: u32,
-    TotalCells: u32,
     Allocator: std.mem.Allocator,
-
-    NextCell: u32,
-    NextNodeId: u32,
-    UnitCount: u32,
-    StackCount: u32,
-
-    AllocationMapStartCell: u32,
-    AllocationMapCells: u32,
-    IndexStartCell: u32,
-    IndexCells: u32,
-    DataStartCell: u32,
-
-    IndexRecordOffset: usize,
+    CellSize: u32 = afs.constants.sizes.DEFAULT_CELL_SIZE,
+    TotalCells: u32 = 0,
+    ImageSizeBytes: u64 = 0,
 
     const Self = @This();
 
@@ -47,346 +30,141 @@ pub const Writer = struct {
         partition_size_bytes: u64,
         allocator: std.mem.Allocator,
     ) Self {
-        const cell_size = afs.constants.sizes.DEFAULT_CELL_SIZE;
-        const total_cells: u32 = @intCast(partition_size_bytes / cell_size);
-
-        const index_start: u32 = layout.ALLOCATION_MAP_START_CELL + layout.ALLOCATION_MAP_CELLS;
-        const data_start: u32 = index_start + layout.INDEX_CELLS;
-
-        return Self{
+        return .{
             .File = file,
             .PartitionStartByte = partition_start_byte,
             .PartitionSizeBytes = partition_size_bytes,
-            .CellSize = cell_size,
-            .TotalCells = total_cells,
             .Allocator = allocator,
-            .NextCell = data_start,
-            .NextNodeId = afs.constants.nodes.FIRST_USER,
-            .UnitCount = 0,
-            .StackCount = 0,
-            .AllocationMapStartCell = layout.ALLOCATION_MAP_START_CELL,
-            .AllocationMapCells = layout.ALLOCATION_MAP_CELLS,
-            .IndexStartCell = index_start,
-            .IndexCells = layout.INDEX_CELLS,
-            .DataStartCell = data_start,
-            .IndexRecordOffset = @sizeOf(BTreeNodeDescriptor),
         };
     }
 
     pub fn createFilesystem(self: *Self, source_location: []const u8) !void {
+        var plan = try tool.catalog.prepare.prepare(self.Allocator, source_location, self.PartitionSizeBytes);
+        defer plan.deinit();
+        try self.writeFilesystem(&plan);
+    }
+
+    pub fn writeFilesystem(self: *Self, plan: *const FilesystemPlan) !void {
+        try self.validatePlan(plan);
         std.debug.print(messages.AFS_CREATING, .{});
         std.debug.print(messages.AFS_TOTAL_CELLS, .{self.TotalCells});
         std.debug.print(messages.AFS_CELL_SIZE, .{self.CellSize});
-
-        const index_buffer = try self.Allocator.alloc(u8, self.IndexCells * self.CellSize);
-        defer self.Allocator.free(index_buffer);
-        @memset(index_buffer, 0);
-
-        try self.writeIndexHeader(index_buffer);
-
-        const origin_node_id = afs.constants.nodes.ORIGIN_STACK;
-        try self.addStackToIndex(
-            index_buffer,
-            origin_node_id,
-            afs.constants.nodes.ORIGIN,
-            names.ORIGIN_IDENTITY,
-        );
-        self.StackCount += 1;
-
-        try self.copyStackRecursive(source_location, origin_node_id, index_buffer);
-
-        try self.writeIndex(index_buffer);
-        try self.writeAllocationMap();
-        try self.writeVolumeHeader();
-        try self.writeAlternateVolumeHeader();
-
-        std.debug.print(messages.AFS_COUNTS, .{ self.UnitCount, self.StackCount });
-        std.debug.print(messages.AFS_FREE_CELLS, .{self.TotalCells - self.NextCell});
+        for (plan.Manifest.Entries, plan.Spans) |entry, span| {
+            if (entry.Kind != .Unit) continue;
+            try self.copyUnit(entry, span);
+            std.debug.print(messages.AFS_ADDED_UNIT, .{entry.Identity});
+        }
+        try self.writeIndex(plan);
+        try self.writeAllocationMap(plan);
+        try self.writeVolumeHeaders(plan);
+        std.debug.print(messages.AFS_COUNTS, .{ plan.Manifest.UnitCount, plan.Manifest.StackCount });
+        std.debug.print(messages.AFS_FREE_CELLS, .{plan.Volume.FreeCells});
     }
 
-    fn copyStackRecursive(
-        self: *Self,
-        source_location: []const u8,
-        parent_node_id: u32,
-        index_buffer: []u8,
-    ) !void {
-        var host_stack = std.fs.cwd().openDir(source_location, .{ .iterate = true }) catch |err| {
-            std.debug.print(messages.AFS_OPEN_WARNING, .{ source_location, err });
-            return;
-        };
-        defer host_stack.close();
+    fn validatePlan(self: *Self, plan: *const FilesystemPlan) !void {
+        if (self.CellSize != afs.constants.sizes.DEFAULT_CELL_SIZE or plan.Manifest.Entries.len == 0) return PlanningError.InvalidGeometry;
+        const total_cells = self.PartitionSizeBytes / self.CellSize;
+        if (plan.Volume.UsedCells < plan.Volume.DataStartCell or plan.Volume.TotalCells != total_cells or
+            plan.Manifest.Entries.len != plan.Spans.len or plan.Tree.Nodes.len != plan.Tree.Header.TotalNodes or
+            plan.Tree.Header.LeafRecordCount != plan.Manifest.Entries.len)
+        {
+            return PlanningError.InvalidGeometry;
+        }
+        const checked = try tool.image.geometry.volume(total_cells, plan.Tree.Header.TotalNodes, plan.Volume.UsedCells - plan.Volume.DataStartCell);
+        if (!std.meta.eql(checked, plan.Volume)) return PlanningError.InvalidGeometry;
+        self.ImageSizeBytes = try self.File.getEndPos();
+        const partition_end = std.math.add(u64, self.PartitionStartByte, self.PartitionSizeBytes) catch return PlanningError.Overflow;
+        if (partition_end > self.ImageSizeBytes) return PlanningError.OutOfSpace;
+        self.TotalCells = plan.Volume.TotalCells;
+    }
 
-        var iterator = host_stack.iterate();
-        while (try iterator.next()) |entry| {
-            if (entry.name[0] == '.') continue;
-
-            const node_id = self.NextNodeId;
-            self.NextNodeId += 1;
-
-            if (entry.kind == .directory) {
-                try self.addStackToIndex(index_buffer, node_id, parent_node_id, entry.name);
-                self.StackCount += 1;
-
-                const sub_location = try std.fs.path.join(self.Allocator, &.{ source_location, entry.name });
-                defer self.Allocator.free(sub_location);
-
-                std.debug.print(messages.AFS_ADDED_STACK, .{entry.name});
-                try self.copyStackRecursive(sub_location, node_id, index_buffer);
-            } else {
-                const unit_location = try std.fs.path.join(self.Allocator, &.{ source_location, entry.name });
-                defer self.Allocator.free(unit_location);
-
-                try self.addUnitToIndex(index_buffer, node_id, parent_node_id, entry.name, unit_location);
-                self.UnitCount += 1;
-
-                std.debug.print(messages.AFS_ADDED_UNIT, .{entry.name});
-            }
+    fn copyUnit(self: *Self, entry: Entry, span: SpanDescriptor) !void {
+        const source = try std.fs.cwd().openFile(entry.Path, .{});
+        defer source.close();
+        var remaining = entry.LogicalSize;
+        var current_cell = span.StartCell;
+        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
+        while (remaining > 0) {
+            @memset(&buffer, 0);
+            const to_read: usize = @intCast(@min(remaining, self.CellSize));
+            const bytes_read = try source.read(buffer[0..to_read]);
+            if (bytes_read == 0) break;
+            try self.writeCell(current_cell, &buffer);
+            remaining -= bytes_read;
+            current_cell += 1;
         }
     }
 
-    fn addStackToIndex(
-        self: *Self,
-        index_buffer: []u8,
-        node_id: u32,
-        parent_node_id: u32,
-        identity: []const u8,
-    ) !void {
-        const timestamp = @as(u64, @intCast(std.time.timestamp()));
-
-        var record = afs.write.stack.createStackRecord(node_id, timestamp, 0o755);
-
-        try self.writeIndexRecord(index_buffer, parent_node_id, identity, std.mem.asBytes(&record));
-    }
-
-    fn addUnitToIndex(
-        self: *Self,
-        index_buffer: []u8,
-        node_id: u32,
-        parent_node_id: u32,
-        identity: []const u8,
-        unit_path: []const u8,
-    ) !void {
-        const source_file = try std.fs.cwd().openFile(unit_path, .{});
-        defer source_file.close();
-
-        const file_size = try source_file.getEndPos();
-        const cells_needed = try afs.write.unit.cellsNeeded(file_size, self.CellSize);
-
-        const start_cell = self.NextCell;
-        self.NextCell += cells_needed;
-
-        if (cells_needed > 0) {
-            var remaining = file_size;
-            var current_cell = start_cell;
-            const buffer = try self.Allocator.alloc(u8, self.CellSize);
-            defer self.Allocator.free(buffer);
-
-            while (remaining > 0) {
-                @memset(buffer, 0);
-                const to_read = @min(remaining, self.CellSize);
-                const bytes_read = try source_file.read(buffer[0..to_read]);
-                if (bytes_read == 0) break;
-
-                try self.writeCell(current_cell, buffer);
-                remaining -= bytes_read;
-                current_cell += 1;
-            }
+    fn writeIndex(self: *Self, plan: *const FilesystemPlan) !void {
+        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
+        for (plan.Tree.Nodes, 0..) |_, index| {
+            const node_number: u32 = @intCast(index);
+            try tool.catalog.encode.encode(&plan.Tree, node_number, plan.Manifest.Entries, plan.Spans, &buffer);
+            const cell = @as(u64, plan.Volume.IndexStartCell) + node_number;
+            try self.writeCell(cell, &buffer);
         }
-
-        const timestamp = @as(u64, @intCast(std.time.timestamp()));
-
-        const data_channel = try afs.write.unit.createChannelInfo(file_size, start_cell, cells_needed, self.CellSize);
-        var record = afs.write.stack.createUnitRecord(node_id, timestamp, 0o644, data_channel);
-
-        try self.writeIndexRecord(index_buffer, parent_node_id, identity, std.mem.asBytes(&record));
     }
 
-    fn writeIndexHeader(self: *Self, index_buffer: []u8) !void {
-        var node_descriptor = BTreeNodeDescriptor{
-            .ForwardLink = 0,
-            .BackwardLink = 0,
-            .NodeType = afs.constants.btree.NODE_TYPE_HEADER,
-            .Height = 0,
-            .RecordCount = layout.INDEX_HEADER_RECORD_COUNT,
-            .Reserved = 0,
-        };
-
-        const header_record = BTreeHeaderRecord{
-            .Depth = 1,
-            .RootNode = 1,
-            .LeafRecordCount = 0,
-            .FirstLeafNode = 1,
-            .LastLeafNode = 1,
-            .NodeSize = @intCast(self.CellSize),
-            .MaxKeyLength = layout.MAX_KEY_LENGTH,
-            .TotalNodes = self.IndexCells,
-            .FreeNodes = self.IndexCells - layout.INDEX_RESERVED_NODES,
-            .Reserved1 = 0,
-            .ClumpSize = self.CellSize,
-            .BTreeType = 0,
-            .KeyCompareType = layout.KEY_COMPARE_TYPE,
-            .Attributes = 0,
-            .Reserved2 = [_]u8{0} ** 64,
-        };
-
-        const descriptor_size = @sizeOf(BTreeNodeDescriptor);
-        @memcpy(index_buffer[0..descriptor_size], std.mem.asBytes(&node_descriptor));
-        @memcpy(index_buffer[descriptor_size .. descriptor_size + @sizeOf(BTreeHeaderRecord)], std.mem.asBytes(&header_record));
-
-        var leaf_node = BTreeNodeDescriptor{
-            .ForwardLink = 0,
-            .BackwardLink = 0,
-            .NodeType = afs.constants.btree.NODE_TYPE_LEAF,
-            .Height = 1,
-            .RecordCount = 0,
-            .Reserved = 0,
-        };
-
-        const leaf_offset = self.CellSize;
-        @memcpy(index_buffer[leaf_offset .. leaf_offset + @sizeOf(BTreeNodeDescriptor)], std.mem.asBytes(&leaf_node));
+    fn writeAllocationMap(self: *Self, plan: *const FilesystemPlan) !void {
+        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
+        var map_cell: u32 = 0;
+        while (map_cell < plan.Volume.BitmapCells) : (map_cell += 1) {
+            const byte_start = @as(u64, map_cell) * self.CellSize;
+            for (&buffer, 0..) |*byte, index| {
+                const first_cell = (byte_start + index) * @bitSizeOf(u8);
+                const allocated = if (first_cell < plan.Volume.UsedCells) @min(@bitSizeOf(u8), plan.Volume.UsedCells - first_cell) else 0;
+                const valid = if (first_cell < plan.Volume.TotalCells) @min(@bitSizeOf(u8), plan.Volume.TotalCells - first_cell) else 0;
+                byte.* = lowBits(@intCast(allocated)) | ~lowBits(@intCast(valid));
+            }
+            try self.writeCell(@as(u64, plan.Volume.AllocationMapStartCell) + map_cell, &buffer);
+        }
     }
 
-    fn writeIndexRecord(
-        self: *Self,
-        index_buffer: []u8,
-        parent_node_id: u32,
-        identity: []const u8,
-        record_data: []const u8,
-    ) !void {
-        const leaf_offset = afs.constants.sizes.DEFAULT_CELL_SIZE;
-        const node_size = afs.constants.sizes.DEFAULT_CELL_SIZE;
-        const record_offset_in_node = self.IndexRecordOffset;
-        const record_start = leaf_offset + record_offset_in_node;
-
-        var key = try afs.write.stack.createIndexKey(parent_node_id, identity);
-        _ = &key;
-
-        const key_size = try afs.write.stack.indexKeySize(identity.len);
-        @memcpy(index_buffer[record_start .. record_start + key_size], std.mem.asBytes(&key)[0..key_size]);
-        @memcpy(index_buffer[record_start + key_size .. record_start + key_size + record_data.len], record_data);
-
-        const node_descriptor: *BTreeNodeDescriptor = @ptrCast(@alignCast(&index_buffer[leaf_offset]));
-        const record_index = node_descriptor.RecordCount;
-
-        const offset_entry = leaf_offset + node_size - (@as(usize, record_index) + 1) * @sizeOf(u16);
-        std.mem.writeInt(u16, index_buffer[offset_entry..][0..@sizeOf(u16)], @intCast(record_offset_in_node), .little);
-
-        self.IndexRecordOffset += key_size + record_data.len;
-        node_descriptor.RecordCount += 1;
-    }
-
-    fn writeIndex(self: *Self, index_buffer: []u8) !void {
-        const byte_offset = self.PartitionStartByte + @as(u64, self.IndexStartCell) * self.CellSize;
-        try self.File.seekTo(byte_offset);
-        try self.File.writeAll(index_buffer);
-    }
-
-    fn writeCell(self: *Self, cell_number: u32, data: []const u8) !void {
-        const byte_offset = self.PartitionStartByte + @as(u64, cell_number) * self.CellSize;
-        try self.File.seekTo(byte_offset);
-        try self.File.writeAll(data[0..self.CellSize]);
-    }
-
-    fn writeAllocationMap(self: *Self) !void {
-        const bitmap_size = afs.write.allocate.bitmapSize(self.TotalCells);
-        const bitmap = try self.Allocator.alloc(u8, self.AllocationMapCells * self.CellSize);
-        defer self.Allocator.free(bitmap);
-
-        var map = try afs.types.allocation.AllocationMap.init(bitmap, self.TotalCells, 0);
-        @memset(bitmap, 0);
-        try map.reserveRange(0, self.NextCell);
-
-        const byte_offset = self.PartitionStartByte + @as(u64, self.AllocationMapStartCell) * self.CellSize;
-        try self.File.seekTo(byte_offset);
-        try self.File.writeAll(bitmap[0..@min(bitmap.len, bitmap_size)]);
-    }
-
-    fn writeVolumeHeader(self: *Self) !void {
-        const timestamp = @as(u64, @intCast(std.time.timestamp()));
-
-        var header = VolumeHeader{
-            .Signature = afs.constants.magic.SIGNATURE,
-            .Version = afs.constants.magic.VERSION,
-            .Attributes = 0,
+    fn writeVolumeHeaders(self: *Self, plan: *const FilesystemPlan) !void {
+        const timestamp = plan.Manifest.Entries[0].Timestamp;
+        const tree = plan.Tree.Header;
+        const header = VolumeHeader{
             .LastBindTimestamp = timestamp,
             .LastCheckTimestamp = timestamp,
             .CreationTimestamp = timestamp,
             .ModificationTimestamp = timestamp,
-            .BackupTimestamp = 0,
             .CheckedTimestamp = timestamp,
-            .UnitCount = self.UnitCount,
-            .StackCount = self.StackCount,
+            .UnitCount = plan.Manifest.UnitCount,
+            .StackCount = plan.Manifest.StackCount,
             .CellSize = self.CellSize,
-            .TotalCells = self.TotalCells,
-            .FreeCells = self.TotalCells - self.NextCell,
-            .NextNodeId = self.NextNodeId,
-            .WriteCount = 1,
-            .EncodingBitmap = 0,
-            .AllocationMapSize = self.AllocationMapCells * self.CellSize,
+            .TotalCells = plan.Volume.TotalCells,
+            .FreeCells = plan.Volume.FreeCells,
+            .NextNodeId = plan.Manifest.NextNodeId,
+            .AllocationMapSize = plan.Volume.AllocationMapSize,
             .AllocationMapClump = self.CellSize,
-            .IndexNodeSize = self.CellSize,
-            .IndexTotalNodes = self.IndexCells,
-            .IndexFreeNodes = self.IndexCells - layout.INDEX_RESERVED_NODES,
-            .IndexClumpSize = self.CellSize,
-            .IndexRootNode = 1,
-            .IndexFirstLeaf = 1,
-            .IndexLastLeaf = 1,
-            .IndexDepth = 1,
-            .IndexRecordCount = self.UnitCount + self.StackCount,
-            .SpanOverflowNodeSize = self.CellSize,
-            .SpanOverflowTotalNodes = 0,
-            .SpanOverflowFreeNodes = 0,
-            .SpanOverflowClumpSize = 0,
-            .SpanOverflowRootNode = 0,
-            .SpanOverflowFirstLeaf = 0,
-            .SpanOverflowLastLeaf = 0,
-            .SpanOverflowDepth = 0,
-            .SpanOverflowRecordCount = 0,
-            .AttributesNodeSize = self.CellSize,
-            .AttributesTotalNodes = 0,
-            .AttributesFreeNodes = 0,
-            .AttributesClumpSize = 0,
-            .AttributesRootNode = 0,
-            .AttributesFirstLeaf = 0,
-            .AttributesLastLeaf = 0,
-            .AttributesDepth = 0,
-            .AttributesRecordCount = 0,
-            .AllocationMapSpan = .{
-                .StartCell = self.AllocationMapStartCell,
-                .CellCount = self.AllocationMapCells,
-            },
-            .IndexSpan = .{
-                .StartCell = self.IndexStartCell,
-                .CellCount = self.IndexCells,
-            },
-            .SpanOverflowSpan = .{},
-            .AttributesSpan = .{},
-            .StartupSpan = .{},
-            .CompressionType = afs.constants.flags.COMPRESSION_NONE,
-            .EncryptionType = afs.constants.flags.ENCRYPTION_NONE,
-            .Reserved = [_]u8{0} ** 64,
+            .IndexNodeSize = tree.NodeSize,
+            .IndexTotalNodes = tree.TotalNodes,
+            .IndexFreeNodes = tree.FreeNodes,
+            .IndexClumpSize = tree.ClumpSize,
+            .IndexRootNode = tree.RootNode,
+            .IndexFirstLeaf = tree.FirstLeafNode,
+            .IndexLastLeaf = tree.LastLeafNode,
+            .IndexDepth = tree.Depth,
+            .IndexRecordCount = tree.LeafRecordCount,
+            .AllocationMapSpan = .{ .StartCell = plan.Volume.AllocationMapStartCell, .CellCount = plan.Volume.BitmapCells },
+            .IndexSpan = .{ .StartCell = plan.Volume.IndexStartCell, .CellCount = plan.Volume.IndexCells },
         };
-
-        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = [_]u8{0} ** afs.constants.sizes.DEFAULT_CELL_SIZE;
-        @memcpy(buffer[0..@sizeOf(VolumeHeader)], std.mem.asBytes(&header));
-        const fields = @typeInfo(VolumeHeader).@"struct".fields;
-        inline for (fields, 0..) |field, index| {
-            const padding_start = @offsetOf(VolumeHeader, field.name) + @sizeOf(field.type);
-            const padding_end = if (index + 1 < fields.len)
-                @offsetOf(VolumeHeader, fields[index + 1].name)
-            else
-                @sizeOf(VolumeHeader);
-            @memset(buffer[padding_start..padding_end], 0);
-        }
-
-        try self.writeCell(@intCast(afs.constants.sizes.VOLUME_HEADER_CELL), &buffer);
+        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = @splat(0);
+        tool.catalog.encode.encodeValue(VolumeHeader, header, buffer[0..@sizeOf(VolumeHeader)]);
+        try self.writeCell(afs.constants.sizes.VOLUME_HEADER_CELL, &buffer);
+        try self.writeCell(afs.constants.sizes.VOLUME_HEADER_CELL + 1, &buffer);
     }
 
-    fn writeAlternateVolumeHeader(self: *Self) !void {
-        var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
-        try self.File.seekTo(self.PartitionStartByte);
-        _ = try self.File.read(&buffer);
+    fn writeCell(self: *Self, cell_number: u64, data: []const u8) !void {
+        if (data.len != self.CellSize or cell_number >= self.TotalCells) return PlanningError.OutOfSpace;
+        const relative_offset = std.math.mul(u64, cell_number, self.CellSize) catch return PlanningError.Overflow;
+        if (relative_offset > self.PartitionSizeBytes or data.len > self.PartitionSizeBytes - relative_offset) return PlanningError.OutOfSpace;
+        const offset = std.math.add(u64, self.PartitionStartByte, relative_offset) catch return PlanningError.Overflow;
+        if (offset > self.ImageSizeBytes or data.len > self.ImageSizeBytes - offset) return PlanningError.OutOfSpace;
+        try self.File.pwriteAll(data, offset);
+    }
 
-        try self.writeCell(1, &buffer);
+    fn lowBits(count: u4) u8 {
+        return @intCast((@as(u16, 1) << count) - 1);
     }
 };

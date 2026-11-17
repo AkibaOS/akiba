@@ -116,7 +116,7 @@ fn encodeOffset(destination: []u8, record_index: usize, record_offset: usize) vo
     std.mem.writeInt(u16, destination[offset..][0..@sizeOf(u16)], @intCast(record_offset), .little);
 }
 
-fn encodeValue(comptime Value: type, value: Value, destination: []u8) void {
+pub fn encodeValue(comptime Value: type, value: Value, destination: []u8) void {
     switch (@typeInfo(Value)) {
         .int => std.mem.writeInt(Value, destination[0..@sizeOf(Value)], value, .little),
         .array => |array| for (value, 0..) |element, index| {
