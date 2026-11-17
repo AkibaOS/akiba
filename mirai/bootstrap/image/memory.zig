@@ -2,7 +2,6 @@
 
 const common = @import("common");
 const format = @import("shared").elf.constants.format;
-const pages = @import("shared").elf.validate.pages;
 const types = @import("mirai").bootstrap.types.image;
 const user = @import("mirai").user;
 
@@ -12,16 +11,14 @@ const Plan = @import("shared").elf.types.image.Plan;
 const sizes = common.constants.memory.sizes;
 
 pub fn allocateImage(owner: *Kata, plan: *const Plan) ImageError!void {
-    for (plan.Segments[0..plan.Count], 0..) |segment, index| {
-        var address = pages.start(segment);
-        while (address < pages.end(segment)) : (address += sizes.PAGE_SIZE) {
-            if (pages.isFirst(plan, index, address)) try user.memory.allocate.allocate(owner, address);
-        }
+    for (plan.Ranges) |range| {
+        var address = range.Start;
+        while (address < range.End) : (address += sizes.PAGE_SIZE) try user.memory.allocate.allocate(owner, address);
     }
 }
 
 pub fn copyImage(owner: *Kata, plan: *const Plan, bytes: []const u8) ImageError!void {
-    for (plan.Segments[0..plan.Count]) |segment| {
+    for (plan.Segments) |segment| {
         var offset: u64 = 0;
         while (offset < segment.UnitSize) {
             const length: usize = @intCast(@min(segment.UnitSize - offset, user.constants.limits.MAX_COPY_BYTES));
@@ -40,14 +37,10 @@ pub fn allocateStack(owner: *Kata, options: types.Options) ImageError!void {
 }
 
 pub fn finalizeImage(owner: *Kata, plan: *const Plan) ImageError!void {
-    for (plan.Segments[0..plan.Count], 0..) |segment, index| {
-        var address = pages.start(segment);
-        while (address < pages.end(segment)) : (address += sizes.PAGE_SIZE) {
-            if (!pages.isFirst(plan, index, address)) continue;
-            const flags = pages.flags(plan, address);
-            const protection: user.types.protection.Protection = if ((flags & format.SEGMENT_FLAG_EXECUTE) != 0) .ReadExecute else if ((flags & format.SEGMENT_FLAG_WRITE) != 0) .ReadWrite else .ReadOnly;
-            try user.memory.finalize.finalize(owner, address, protection);
-        }
+    for (plan.Ranges) |range| {
+        const protection: user.types.protection.Protection = if ((range.Flags & format.SEGMENT_FLAG_EXECUTE) != 0) .ReadExecute else if ((range.Flags & format.SEGMENT_FLAG_WRITE) != 0) .ReadWrite else .ReadOnly;
+        var address = range.Start;
+        while (address < range.End) : (address += sizes.PAGE_SIZE) try user.memory.finalize.finalize(owner, address, protection);
     }
 }
 

@@ -84,6 +84,9 @@ pub fn execute() void {
     check(guest.mirai.bootstrap.image.run);
     check(guest.mirai.bootstrap.rejection.run);
     check(guest.mirai.bootstrap.pressure.run);
+    check(guest.mirai.bootstrap.growth.run);
+    check(guest.mirai.bootstrap.finalization.run);
+    check(guest.mirai.bootstrap.order.run);
     check(guest.mirai.bootstrap.execution.run);
     serial.printf(senseilabels.GROUP, .{});
     check(guest.mirai.sensei.admission.run);

@@ -35,6 +35,13 @@ pub fn run() !void {
     bad.StackBase += 1;
     correct = rejects(&VALID, bad, error.InvalidStack) and correct;
     bad = options;
+    bad.StackPages = std.math.maxInt(u64);
+    correct = rejects(&VALID, bad, error.InvalidStack) and correct;
+    bad = options;
+    bad.StackBase = inputs.USER_END + 1 - inputs.PAGE_BYTES;
+    bad.StackPages = 1;
+    correct = rejects(&VALID, bad, error.InvalidStack) and correct;
+    bad = options;
     bad.StackBase = inputs.CODE_ADDRESS + inputs.PAGE_BYTES;
     correct = rejects(&VALID, bad, error.StackOverlap) and correct;
     bad.StackBase = inputs.CODE_ADDRESS + 4 * inputs.PAGE_BYTES;

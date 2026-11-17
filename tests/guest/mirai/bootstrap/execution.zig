@@ -10,6 +10,7 @@ const harness = @import("tests").guest.mirai.postman.harness;
 const inputs = @import("tests").constants.elf;
 const invocations = @import("tests").constants.completion;
 const kata = @import("mirai").kata;
+const kernel = @import("mirai").memory.allocator.native;
 const labels = @import("tests").strings.elf;
 const sensei = @import("mirai").sensei;
 const shared = @import("shared").elf;
@@ -54,11 +55,12 @@ fn execute(comptime failure: u64) !void {
     defer completion.dispose(image.ID);
     try inspect(image.Owner);
     if (failure == inputs.BAD_DATA_RESULT) {
-        const plan = try shared.validate.image.parse(IMAGE_BYTES, .{
+        var plan = try shared.validate.image.parse(kernel.get(), IMAGE_BYTES, .{
             .MinimumAddress = inputs.PAGE_BYTES,
             .MaximumAddress = inputs.USER_END,
             .MaximumPages = inputs.MAXIMUM_PAGES,
         });
+        defer plan.deinit();
         try user.copy.transfer.write(image.Owner, plan.Segments[2].VirtualAddress, &.{0});
     }
     const persona = image.Thread.Mode == .Persona and image.Owner.State == .Born and
@@ -85,14 +87,15 @@ fn execute(comptime failure: u64) !void {
 }
 
 fn inspect(owner: *kata.types.kata.Kata) !void {
-    const plan = try shared.validate.image.parse(IMAGE_BYTES, .{
+    var plan = try shared.validate.image.parse(kernel.get(), IMAGE_BYTES, .{
         .MinimumAddress = inputs.PAGE_BYTES,
         .MaximumAddress = inputs.USER_END,
         .MaximumPages = inputs.MAXIMUM_PAGES,
     });
+    defer plan.deinit();
     var actual: [inputs.PAGE_BYTES]u8 = undefined;
-    var correct = plan.Count == 3 and plan.Entry == inputs.COMPILER_ENTRY;
-    for (plan.Segments[0..plan.Count]) |segment| {
+    var correct = plan.Segments.len == 3 and plan.Entry == inputs.COMPILER_ENTRY;
+    for (plan.Segments) |segment| {
         var offset: u64 = 0;
         while (offset < segment.MemorySize) {
             const count: usize = @intCast(@min(inputs.PAGE_BYTES, segment.MemorySize - offset));

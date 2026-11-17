@@ -38,9 +38,9 @@ pub fn validReturn(thread: *const Thread, instruction: u64, stack_pointer: u64) 
 fn validStack(owner: *Kata, base: u64, size: u64) bool {
     const root = owner.AddressSpace orelse return false;
     if (base < 2 * sizes.PAGE_SIZE or base % sizes.PAGE_SIZE != 0 or size == 0 or
-        size % sizes.PAGE_SIZE != 0 or size / sizes.PAGE_SIZE > limits.MAX_STACK_PAGES or
-        base > layout.USER_SPACE_END or size > layout.USER_SPACE_END - base) return false;
+        size % sizes.PAGE_SIZE != 0 or base > layout.USER_SPACE_END or size > layout.USER_SPACE_END - base) return false;
     const top = base + size;
+    if (sizes.PAGE_SIZE > layout.USER_SPACE_END - top + 1) return false;
     if (kagami.tables.walk.lookup(root.PML4Physical, base - sizes.PAGE_SIZE) != null or
         kagami.tables.walk.lookup(root.PML4Physical, top) != null) return false;
     var address = base;

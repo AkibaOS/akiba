@@ -1,6 +1,7 @@
 //! ELF Reading And Image Plan Errors
 
 pub const ImageError = error{
+    OutOfMemory,
     InvalidHeader,
     InvalidProgramHeaders,
     NoLoadableSegments,

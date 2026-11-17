@@ -1,4 +1,4 @@
-//! Validated Segment Page Unions
+//! Validated Segment And Planned Page Range Queries
 
 const sizes = @import("common").constants.memory.sizes;
 const Plan = @import("shared").elf.types.image.Plan;
@@ -12,17 +12,13 @@ pub fn end(segment: Program) u64 {
     return (segment.VirtualAddress + segment.MemorySize + sizes.PAGE_MASK) & ~sizes.PAGE_MASK;
 }
 
-pub fn isFirst(plan: *const Plan, index: usize, address: u64) bool {
-    for (plan.Segments[0..index]) |previous| {
-        if (address >= start(previous) and address < end(previous)) return false;
-    }
-    return true;
-}
-
 pub fn flags(plan: *const Plan, address: u64) u32 {
-    var result: u32 = 0;
-    for (plan.Segments[0..plan.Count]) |segment| {
-        if (address >= start(segment) and address < end(segment)) result |= segment.Flags;
+    var lower: usize = 0;
+    var upper = plan.Ranges.len;
+    while (lower < upper) {
+        const middle = lower + (upper - lower) / 2;
+        const range = plan.Ranges[middle];
+        if (address < range.Start) upper = middle else if (address >= range.End) lower = middle + 1 else return range.Flags;
     }
-    return result;
+    return 0;
 }

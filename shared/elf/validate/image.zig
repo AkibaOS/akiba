@@ -1,10 +1,10 @@
-//! Bounded Executable Image Planning
+//! Allocator Owned Executable Image Planning
 
 const std = @import("std");
 
 const format = @import("shared").elf.constants.format;
-const limits = @import("shared").elf.constants.limits;
 const pages = @import("shared").elf.validate.pages;
+const ranges = @import("shared").elf.validate.ranges;
 const read = @import("shared").elf.read;
 const sizes = @import("common").constants.memory.sizes;
 const types = @import("shared").elf.types;
@@ -14,16 +14,15 @@ const Plan = types.image.Plan;
 const Policy = types.image.Policy;
 const Program = types.format.Elf64ProgramHeader;
 
-pub fn parse(data: []const u8, policy: Policy) ImageError!Plan {
+pub fn parse(allocator: std.mem.Allocator, data: []const u8, policy: Policy) ImageError!Plan {
     if (policy.MinimumAddress < sizes.PAGE_SIZE or (policy.MinimumAddress & sizes.PAGE_MASK) != 0 or
         policy.MaximumAddress < policy.MinimumAddress or policy.MaximumAddress > std.math.maxInt(u64) - sizes.PAGE_MASK or
         (policy.MaximumAddress & sizes.PAGE_MASK) != sizes.PAGE_MASK or policy.MaximumPages == 0) return ImageError.InvalidPolicy;
     const header = try read.header.read(data);
     if (!header.isX8664()) return ImageError.UnsupportedArchitecture;
     if (!header.isExecutable()) return ImageError.UnsupportedImage;
-    if (header.ProgramHeaderCount > limits.MAX_PROGRAMS) return ImageError.InvalidProgramHeaders;
     const programs = try read.programs.read(data, header);
-    var plan: Plan = .{ .Entry = header.Entry, .Segments = undefined, .Count = 0, .Pages = 0 };
+    var count: usize = 0;
     var entry_found = false;
     for (programs) |segment| {
         switch (segment.SegmentType) {
@@ -36,30 +35,32 @@ pub fn parse(data: []const u8, policy: Policy) ImageError!Plan {
             else => return ImageError.UnsupportedSegment,
         }
         try validateSegment(data.len, segment, policy);
-        if (plan.Count == limits.MAX_SEGMENTS) return ImageError.ImageTooLarge;
-        for (plan.Segments[0..plan.Count]) |previous| {
-            if (segment.VirtualAddress < previous.VirtualAddress + previous.MemorySize and
-                previous.VirtualAddress < segment.VirtualAddress + segment.MemorySize) return ImageError.SegmentOverlap;
-        }
-        plan.Segments[plan.Count] = segment;
-        plan.Count += 1;
+        count += 1;
         if (segment.isExecutable() and header.Entry >= segment.VirtualAddress and
             header.Entry - segment.VirtualAddress < segment.UnitSize) entry_found = true;
     }
-    if (plan.Count == 0) return ImageError.NoLoadableSegments;
+    if (count == 0) return ImageError.NoLoadableSegments;
     if (!entry_found) return ImageError.InvalidEntryPoint;
-    for (plan.Segments[0..plan.Count], 0..) |segment, index| {
-        var address = pages.start(segment);
-        while (address < pages.end(segment)) : (address += sizes.PAGE_SIZE) {
-            if (!pages.isFirst(&plan, index, address)) continue;
-            const permissions = pages.flags(&plan, address);
-            if ((permissions & format.SEGMENT_FLAG_WRITE) != 0 and
-                (permissions & format.SEGMENT_FLAG_EXECUTE) != 0) return ImageError.PermissionConflict;
-            if (plan.Pages == policy.MaximumPages) return ImageError.ImageTooLarge;
-            plan.Pages += 1;
-        }
+    const segments = try allocator.alloc(Program, count);
+    errdefer allocator.free(segments);
+    var index: usize = 0;
+    for (programs) |segment| {
+        if (segment.SegmentType != format.SEGMENT_LOAD) continue;
+        segments[index] = segment;
+        index += 1;
     }
-    return plan;
+    std.mem.sort(Program, segments, {}, earlier);
+    for (segments[1..], segments[0 .. segments.len - 1]) |segment, previous| {
+        if (segment.VirtualAddress < previous.VirtualAddress + previous.MemorySize) return ImageError.SegmentOverlap;
+    }
+    const planned = try ranges.prepare(allocator, segments, policy.MaximumPages);
+    var count_pages: u64 = 0;
+    for (planned) |range| count_pages += (range.End - range.Start) / sizes.PAGE_SIZE;
+    return .{ .Allocator = allocator, .Entry = header.Entry, .Segments = segments, .Ranges = planned, .Pages = count_pages };
+}
+
+fn earlier(_: void, left: Program, right: Program) bool {
+    return left.VirtualAddress < right.VirtualAddress;
 }
 
 fn validateSegment(data_size: usize, segment: Program, policy: Policy) ImageError!void {

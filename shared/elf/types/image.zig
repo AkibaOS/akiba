@@ -1,7 +1,9 @@
-//! Bounded ELF Image Plans
+//! Allocator Owned ELF Image Plans
 
-const limits = @import("shared").elf.constants.limits;
+const std = @import("std");
+
 const Program = @import("shared").elf.types.format.Elf64ProgramHeader;
+const Range = @import("shared").elf.types.range.Range;
 
 pub const Policy = struct {
     MinimumAddress: u64,
@@ -10,8 +12,17 @@ pub const Policy = struct {
 };
 
 pub const Plan = struct {
+    Allocator: std.mem.Allocator,
     Entry: u64,
-    Segments: [limits.MAX_SEGMENTS]Program,
-    Count: usize,
+    Segments: []Program,
+    Ranges: []Range,
     Pages: u64,
+
+    pub fn deinit(self: *Plan) void {
+        self.Allocator.free(self.Segments);
+        self.Allocator.free(self.Ranges);
+        self.Segments = &.{};
+        self.Ranges = &.{};
+        self.Pages = 0;
+    }
 };
