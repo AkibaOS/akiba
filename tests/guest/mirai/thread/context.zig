@@ -41,7 +41,7 @@ pub fn run() !void {
     defer guard.release(resumed_flags);
     var completed = true;
     for (&workers) |*worker| {
-        const outcome = kata.completion.peek(worker.OwnerID);
+        const outcome = kata.completion.lifetime.peek(worker.OwnerID);
         completed = completed and worker.Done and outcome != null and outcome.? == .Completed and
             kata.state.findByID(worker.OwnerID) == null;
     }
@@ -182,8 +182,8 @@ fn cleanup(workers: *[2]fixtures.Worker) void {
                 .Dead => kata.collect.collect(),
             }
         }
-        if (kata.completion.peek(worker.OwnerID) != null) {
-            _ = kata.completion.collect(worker.OwnerID) catch |failure| verify.failure(failure);
+        if (kata.completion.lifetime.peek(worker.OwnerID) != null) {
+            _ = kata.completion.lifetime.collect(worker.OwnerID) catch |failure| verify.failure(failure);
         }
     }
 }
@@ -218,7 +218,7 @@ fn verifyResults(workers: *const [2]fixtures.Worker, baseline: fixtures.Baseline
             actual.XMM15[0] == expected.XMM15[0] and actual.XMM15[1] == expected.XMM15[1];
         mxcsr = mxcsr and actual.MXCSR == expected.MXCSR;
         reclaimed = reclaimed and kata.state.findByID(worker.OwnerID) == null and
-            kata.completion.ownerOf(worker.OwnerID) == null and !thread.state.owns(worker.Target.?);
+            kata.completion.storage.ownerOf(worker.OwnerID) == null and !thread.state.owns(worker.Target.?);
     }
     const scheduler = sensei.state.getState();
     const pointer = cpu.state.readStackPointer();

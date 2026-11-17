@@ -29,7 +29,7 @@ pub fn run() !void {
     verify.require(image.Owner.State == .Born and image.Owner.ThreadCount == 1 and image.Owner.LiveThreadCount == 0 and
         image.Thread.Mode == .Persona and !image.Thread.Managed and !image.Thread.Admitted and
         image.Thread.User.RIP == inputs.CODE_ADDRESS + 1 and image.Thread.User.Argument == inputs.ARGUMENT and
-        image.Owner.AddressSpace.ResidentPages == 6 and kata.completion.peek(image.ID) == null, labels.BORN);
+        image.Owner.AddressSpace.ResidentPages == 6 and kata.completion.lifetime.peek(image.ID) == null, labels.BORN);
     try contents(image.Owner);
     rights(image.Owner);
     kagami.destroy.reference(image.Owner.AddressSpace);
@@ -46,7 +46,7 @@ pub fn run() !void {
     bootstrap.image.abort.abort(image) catch |failure| {
         stale = failure == error.InvalidImage;
     };
-    verify.require(stale and kata.state.findByID(image.ID) == null and kata.completion.ownerOf(image.ID) == null and
+    verify.require(stale and kata.state.findByID(image.ID) == null and kata.completion.storage.ownerOf(image.ID) == null and
         !thread.state.owns(image.Thread), labels.ABORT);
     const shared = try prepare(&SHARED_BYTES);
     defer bootstrap.image.abort.abort(shared) catch |failure| verify.failure(failure);
@@ -94,7 +94,7 @@ fn published() !void {
     };
     const intact = refused and image.Owner.State == .Alive and image.Thread.Managed and image.Thread.Admitted;
     try support.dispose(image.ID);
-    verify.require(intact and kata.state.findByID(image.ID) == null and kata.completion.ownerOf(image.ID) == null, labels.IN_USE);
+    verify.require(intact and kata.state.findByID(image.ID) == null and kata.completion.storage.ownerOf(image.ID) == null, labels.IN_USE);
 }
 
 fn prepare(bytes: []const u8) !bootstrap.types.image.Prepared {

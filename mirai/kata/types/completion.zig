@@ -1,5 +1,6 @@
 //! Independently Retained Kata Completion
 
+const Node = @import("common").datatypes.tree.types.node.Node;
 const Outcome = @import("mirai").kata.types.outcome.Outcome;
 const Queue = @import("mirai").sensei.types.queue.Queue;
 
@@ -12,4 +13,9 @@ pub const Completion = struct {
     Published: bool = false,
     Reclaimed: bool = false,
     Collected: bool = false,
+    Index: Node = .{},
+    OwnerIndex: Node = .{},
+    PendingPrevious: ?*Completion = null,
+    PendingNext: ?*Completion = null,
+    Pending: bool = false,
 };

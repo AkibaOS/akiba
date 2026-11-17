@@ -51,11 +51,11 @@ pub fn run() !void {
         const small = step == 2 or step == 5;
         const invalid_target = step >= 6 and step <= 8;
         const status = if (small) inputs.BUFFER_TOO_SMALL else if (invalid_target) inputs.INVALID_TARGET else inputs.INVALID_ADDRESS;
-        const record = try kata.completion.borrow(target.ID);
+        const record = try kata.completion.lifetime.borrow(target.ID);
         correct = correct and (try support.response(&actor, step, status, if (small) inputs.RECORD_BYTES else 0)) and
             (try harness.untouched(&actor)) and record.Reclaimed and !record.Collected and record.OwnerID == actor.ID and
             record.Observers == 1 and record.Waiters.Count == 0;
-        kata.completion.drop(target.ID);
+        kata.completion.lifetime.drop(target.ID);
     }
     verify.require(correct, labels.BOUNDS);
     verify.require(correct and born.State == .Born, labels.TARGETS);
@@ -64,5 +64,5 @@ pub fn run() !void {
     const expected: types.Record = .{ .Kind = inputs.EXITED, .Result = inputs.RESULT };
     verify.require((try support.response(&actor, 10, inputs.SUCCESS, inputs.RECORD_BYTES)) and
         std.meta.eql(expected, try support.record(&actor)) and (try support.guarded(&actor)) and
-        kata.completion.ownerOf(target.ID) == null, labels.EXITED);
+        kata.completion.storage.ownerOf(target.ID) == null, labels.EXITED);
 }

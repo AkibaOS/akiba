@@ -36,8 +36,8 @@ pub fn run() !void {
     try harness.advance(&other, 2);
     try harness.waitStep(&other, 3);
     verify.require(observed and (try support.response(&other, 3, inputs.NOT_OWNER, 0)) and
-        std.meta.eql(expected, try support.record(&other)) and kata.completion.ownerOf(target.ID) == owner.ID, labels.OWNER);
-    kata.completion.adopt(owner.ID, other.ID);
+        std.meta.eql(expected, try support.record(&other)) and kata.completion.storage.ownerOf(target.ID) == owner.ID, labels.OWNER);
+    kata.completion.storage.adopt(owner.ID, other.ID);
     try harness.advance(&owner, 1);
     try harness.waitStep(&owner, 2);
     const revoked = (try support.response(&owner, 2, inputs.NOT_OWNER, 0)) and (try harness.untouched(&owner));
@@ -45,5 +45,5 @@ pub fn run() !void {
     try harness.waitStep(&other, 4);
     verify.require(revoked and (try support.response(&other, 4, inputs.SUCCESS, inputs.RECORD_BYTES)) and
         std.meta.eql(expected, try support.record(&other)) and (try support.guarded(&other)) and
-        kata.completion.ownerOf(target.ID) == null, labels.ADOPTION);
+        kata.completion.storage.ownerOf(target.ID) == null, labels.ADOPTION);
 }

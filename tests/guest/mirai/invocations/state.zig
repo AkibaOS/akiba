@@ -36,7 +36,7 @@ pub fn run() !void {
     const controller = try thread.create.create(owner, entry, null);
     try sensei.control.start(controller);
     drive.run();
-    const outcome = try kata.completion.collect(identifier);
+    const outcome = try kata.completion.lifetime.collect(identifier);
     verify.require(captured.Query.Status == 0 and captured.Query.Value == 1 and
         captured.Yield.Status == 0 and captured.Yield.Value == 0, labels.STATUS);
     verify.require(std.meta.eql(captured.Query.Registers, inputs.SEEDS[0].Registers) and
@@ -51,7 +51,7 @@ pub fn run() !void {
     verify.require(captured.Query.Stack == user_stack and captured.Yield.Stack == user_stack, labels.STACK);
     verify.require(completed and switched and captured.Finished == 1 and outcome == .Completed and
         kata.state.findByID(identifier) == null and kata.state.findByID(user_id) == null and
-        kata.completion.ownerOf(identifier) == null and kata.completion.ownerOf(user_id) == null and
+        kata.completion.storage.ownerOf(identifier) == null and kata.completion.storage.ownerOf(user_id) == null and
         !thread.state.owns(controller) and !thread.state.owns(user_thread.?) and
         sensei.state.getState().RegisteredCount == registered, labels.CLEANUP);
 }

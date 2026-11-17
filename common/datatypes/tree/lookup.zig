@@ -20,6 +20,20 @@ pub fn first(index: *const Tree) ?*Node {
     return current;
 }
 
+pub fn lowerBound(index: *const Tree, key: u128) ?*Node {
+    var current = index.Root;
+    var candidate: ?*Node = null;
+    while (current) |node| {
+        if (key <= node.Key) {
+            candidate = node;
+            current = node.Left;
+        } else {
+            current = node.Right;
+        }
+    }
+    return candidate;
+}
+
 pub fn next(node: *const Node) ?*Node {
     if (node.Right) |right| {
         var current = right;

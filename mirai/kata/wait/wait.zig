@@ -39,11 +39,11 @@ fn available() ?*Observer {
 
 fn ready(context: ?*anyopaque) bool {
     const observer: *const Observer = @ptrCast(@alignCast(context orelse @panic(messages.INVALID_OBSERVER)));
-    return completion.observed(observer.TargetID) != null;
+    return completion.lifetime.observed(observer.TargetID) != null;
 }
 
 fn unregister(observer: *Observer) void {
-    completion.drop(observer.TargetID);
+    completion.lifetime.drop(observer.TargetID);
     observer.* = .{};
 }
 
@@ -63,7 +63,7 @@ fn register(current: *Thread, id: u64) CompletionError!Registration {
         !state.owns(current.Owner) or current.Owner.State != .Alive or find(current) != null) return CompletionError.InvalidCaller;
     if (id == current.Owner.ID) return CompletionError.InvalidTarget;
     const observer = available() orelse return CompletionError.ObserverCapacity;
-    const record = try completion.borrow(id);
+    const record = try completion.lifetime.borrow(id);
     observer.* = .{ .Thread = current, .OwnerID = current.Owner.ID, .TargetID = id };
     return .{ .Observer = observer, .Completion = record, .Thread = current };
 }
@@ -72,7 +72,7 @@ fn observed(registration: Registration) Outcome {
     const observer = registration.Observer;
     if (thread.state.getCurrent() != registration.Thread or observer.Thread != registration.Thread or
         observer.OwnerID != registration.Thread.Owner.ID) @panic(messages.INVALID_OBSERVER);
-    return completion.observed(observer.TargetID) orelse @panic(messages.INVALID_OBSERVER);
+    return completion.lifetime.observed(observer.TargetID) orelse @panic(messages.INVALID_OBSERVER);
 }
 
 pub fn waitFor(id: u64) (CompletionError || SchedulingError)!Outcome {

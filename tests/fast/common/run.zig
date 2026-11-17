@@ -79,6 +79,10 @@ test "ordered index sorts unsigned composite keys across machine words" {
     try tree.wide();
 }
 
+test "ordered index lower bound preserves exact keys and unsigned owner ranges" {
+    try tree.bounds();
+}
+
 test "ordered index grows removes and reuses thousands of stable nodes" {
     try tree.growth();
 }

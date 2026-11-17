@@ -57,7 +57,7 @@ fn lastThread() !void {
     const id = target.Owner.ID;
     try sensei.control.start(target);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(result == .Completed and kata.state.findByID(id) == null, labels.PERSONA_FINISH_LAST);
 }
 
@@ -72,7 +72,7 @@ fn nonlastThread() !void {
     try sensei.control.start(sibling);
     guard.release(flags);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(sibling_ran and result == .Completed and kata.state.findByID(id) == null, labels.PERSONA_FINISH_NONLAST);
 }
 
@@ -87,7 +87,7 @@ fn explicitExit() !void {
     if (!sibling_blocked or owner.State != .Sleeping) @panic(labels.INVALID_STATE);
     try sensei.control.start(target);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(result == .Exited and result.Exited == fixtures.EXIT_RESULT and kata.state.findByID(id) == null, labels.PERSONA_EXIT_SIBLING);
 }
 
@@ -96,7 +96,7 @@ fn boundaryFinish() !void {
     const id = target.Owner.ID;
     try sensei.control.start(target);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(result == .Completed and kata.state.findByID(id) == null, labels.PERSONA_FINISH_BOUNDARY);
 }
 
@@ -105,7 +105,7 @@ fn boundaryExit() !void {
     const id = target.Owner.ID;
     try sensei.control.start(target);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(result == .Exited and result.Exited == fixtures.EXIT_RESULT and kata.state.findByID(id) == null, labels.PERSONA_EXIT_BOUNDARY);
 }
 
@@ -114,7 +114,7 @@ fn returningValidation() !void {
     const id = target.Owner.ID;
     try sensei.control.start(target);
     drive.run();
-    const result = try kata.completion.collect(id);
+    const result = try kata.completion.lifetime.collect(id);
     verify.require(result == .Faulted and result.Faulted.Vector == fixtures.INVALID_RETURN_VECTOR, labels.PERSONA_RETURN_VALIDATION);
 }
 

@@ -90,6 +90,28 @@ pub fn wide() !void {
     try validate(&index);
 }
 
+pub fn bounds() !void {
+    var index: Tree = .{};
+    var nodes = [_]Node{.{}} ** inputs.BOUND_KEYS.len;
+    try std.testing.expect(tree.lookup.lowerBound(&index, 0) == null);
+    for (&nodes, inputs.BOUND_KEYS) |*node, key| try std.testing.expect(tree.insert.insert(&index, node, key));
+    for (inputs.BOUND_CASES) |fixture| {
+        const found = tree.lookup.lowerBound(&index, fixture.Key);
+        if (fixture.Expected) |key| {
+            try std.testing.expect(found != null);
+            try std.testing.expectEqual(key, found.?.Key);
+        } else {
+            try std.testing.expect(found == null);
+        }
+    }
+    try validate(&index);
+    var wide_index: Tree = .{};
+    var wide_nodes = [_]Node{.{}} ** inputs.WIDE_KEYS.len;
+    for (&wide_nodes, inputs.WIDE_KEYS) |*node, key| try std.testing.expect(tree.insert.insert(&wide_index, node, key));
+    try std.testing.expectEqual(inputs.WIDE_BOUND_RESULT, tree.lookup.lowerBound(&wide_index, inputs.WIDE_BOUND_QUERY).?.Key);
+    try validate(&wide_index);
+}
+
 pub fn growth() !void {
     const nodes = try std.testing.allocator.alloc(Node, inputs.LARGE_COUNT);
     defer std.testing.allocator.free(nodes);

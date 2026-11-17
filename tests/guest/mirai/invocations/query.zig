@@ -23,7 +23,7 @@ pub fn run() !void {
     defer harness.dispose(identifier);
     try sensei.control.start(try thread.create.create(owner, entry, null));
     drive.run();
-    const outcome = try kata.completion.collect(identifier);
+    const outcome = try kata.completion.lifetime.collect(identifier);
     verify.require(completed and outcome == .Completed and kata.state.findByID(identifier) == null, labels.CLEANUP);
 }
 

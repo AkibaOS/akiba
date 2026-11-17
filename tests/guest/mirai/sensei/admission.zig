@@ -60,10 +60,10 @@ pub fn run() !void {
     try support.drain(owner_id);
     const flags = guard.acquire();
     defer guard.release(flags);
-    const completed = if (kata.completion.peek(owner_id)) |outcome| outcome == .Completed else false;
+    const completed = if (kata.completion.lifetime.peek(owner_id)) |outcome| outcome == .Completed else false;
     try support.dispose(owner_id);
     verify.require(completed and !thread.state.owns(first) and !thread.state.owns(second) and
         sensei.registry.find(first) == null and sensei.registry.find(second) == null and
-        kata.state.findByID(owner_id) == null and kata.completion.ownerOf(owner_id) == null and
+        kata.state.findByID(owner_id) == null and kata.completion.storage.ownerOf(owner_id) == null and
         sensei.state.getState().RegisteredCount == registered, labels.RETIREMENT);
 }

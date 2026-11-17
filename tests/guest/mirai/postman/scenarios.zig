@@ -33,9 +33,9 @@ pub fn run() !void {
     defer harness.dispose(identifier);
     try sensei.control.start(try thread.create.create(owner, execute, null));
     try support.drain(identifier);
-    const outcome = kata.completion.peek(identifier) orelse return types.FixtureError.InvalidFixture;
+    const outcome = kata.completion.lifetime.peek(identifier) orelse return types.FixtureError.InvalidFixture;
     harness.dispose(identifier);
     const after = harness.resources();
     verify.require(finished and outcome == .Completed and std.meta.eql(before, after) and
-        kata.state.findByID(identifier) == null and kata.completion.ownerOf(identifier) == null, labels.CLEANUP);
+        kata.state.findByID(identifier) == null and kata.completion.storage.ownerOf(identifier) == null, labels.CLEANUP);
 }

@@ -63,5 +63,5 @@ pub fn run() !void {
         const alias = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, common.constants.memory.layout.PHYSMAP_BASE + address).?;
         verify.require(!user.state.ledger.ownsPhysical(address) and alias.Writable and !alias.Executable, labels.MEMORY_RELEASE);
     }
-    _ = try kata.completion.collect(id);
+    _ = try kata.completion.lifetime.collect(id);
 }

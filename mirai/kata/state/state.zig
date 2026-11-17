@@ -61,7 +61,7 @@ pub fn getKernel() ?*Kata {
 }
 
 pub fn canReserve() bool {
-    if (!initialized or next_id == std.math.maxInt(u64) or !completion.hasCapacity()) return false;
+    if (!initialized or next_id == std.math.maxInt(u64) or !completion.storage.hasCapacity()) return false;
     for (occupied) |used| {
         if (!used) return true;
     }
@@ -75,7 +75,7 @@ pub fn reserve(root: *Kagami, launcher_id: u64) ?*Kata {
         !kagami.create.owns(root) or root.ExecutionOwners != 1) return null;
     for (&occupied, 0..) |*used, index| {
         if (used.*) continue;
-        if (!completion.reserve(next_id, launcher_id)) return null;
+        if (!completion.storage.reserve(next_id, launcher_id)) return null;
         descriptors[index] = .{ .ID = next_id, .AddressSpace = root };
         next_id += 1;
         used.* = true;
@@ -105,7 +105,7 @@ pub fn release(owner: *Kata) bool {
     if (!occupied[index] or owner.Permanent or owner.ThreadCount != 0 or owner.LiveThreadCount != 0 or
         owner.RunnableThreadCount != 0 or (owner.State != .Born and owner.State != .Dead) or
         owner.AddressSpace.PML4Physical != 0) return false;
-    if (!completion.release(owner.ID)) return false;
+    if (!completion.lifetime.release(owner.ID)) return false;
     lifecycle.discard(owner);
     occupied[index] = false;
     return true;

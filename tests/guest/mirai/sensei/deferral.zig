@@ -63,5 +63,5 @@ pub fn run() !void {
     try support.dispose(owner_id);
     verify.require(completed and sensei.state.getState().PreemptionDepth == 0 and
         sensei.state.getState().RegisteredCount == registered and kata.state.findByID(owner_id) == null and
-        kata.completion.ownerOf(owner_id) == null, labels.DEFERRAL_RELEASE);
+        kata.completion.storage.ownerOf(owner_id) == null, labels.DEFERRAL_RELEASE);
 }

@@ -41,7 +41,7 @@ pub fn run() !void {
     }
     const rolled_back = rejected and count != 0 and owned() == held and scratch.AddressSpace.ResidentPages == count and
         std.meta.eql(full, pmm.state.getStatistics()) and kata.state.findByID(failed_id) == null and
-        kata.completion.ownerOf(failed_id) == null;
+        kata.completion.storage.ownerOf(failed_id) == null;
     const probe = try kata.create.create();
     const reserved_then_released = probe.ID == failed_id + 1;
     try kata.destroy.destroy(probe);

@@ -20,15 +20,15 @@ pub fn registered(identifier: u64) void {
     armed = false;
     const flags = guard.acquire();
     defer guard.release(flags);
-    const record = kata.completion.borrow(identifier) catch |failure| verify.failure(failure);
+    const record = kata.completion.lifetime.borrow(identifier) catch |failure| verify.failure(failure);
     const current = thread.state.getCurrent().?;
     const window = record.Observers == 2 and record.Waiters.Count == 0 and record.Outcome == null and
         record.OwnerID == current.Owner.ID and current.Status == .Running;
-    kata.completion.drop(identifier);
+    kata.completion.lifetime.drop(identifier);
     verify.require(window, labels.RACE_WINDOW);
     const target = kata.state.findByID(identifier).?;
     kata.finish.terminate(target, .{ .Exited = inputs.TARGET_RESULT }) catch |failure| verify.failure(failure);
-    const result = kata.completion.collect(identifier) catch |failure| verify.failure(failure);
+    const result = kata.completion.lifetime.collect(identifier) catch |failure| verify.failure(failure);
     verify.require(result == .Exited and result.Exited == inputs.TARGET_RESULT and record.Collected and record.Reclaimed and
         record.Observers == 1 and record.Waiters.Count == 0 and kata.state.findByID(identifier) == null, labels.RACE_COLLECT);
     intercepted = true;
@@ -64,10 +64,10 @@ pub fn run() !void {
         armed = true;
     }
     drive.run();
-    const result = try kata.completion.collect(watcher_id);
+    const result = try kata.completion.lifetime.collect(watcher_id);
     verify.require(intercepted and returned and !armed and result == .Completed and
         kata.state.findByID(target_id) == null and kata.state.findByID(watcher_id) == null and
-        kata.completion.ownerOf(target_id) == null and kata.completion.ownerOf(watcher_id) == null, labels.RACE_RELEASE);
+        kata.completion.storage.ownerOf(target_id) == null and kata.completion.storage.ownerOf(watcher_id) == null, labels.RACE_RELEASE);
 }
 
 fn cleanup(watcher_id: u64) void {

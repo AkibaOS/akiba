@@ -28,7 +28,7 @@ pub fn run() !void {
     defer harness.dispose(identifier);
     try sensei.control.start(try thread.create.create(owner, entry, null));
     try driver.drain(identifier);
-    const outcome = try kata.completion.collect(identifier);
+    const outcome = try kata.completion.lifetime.collect(identifier);
     verify.require(finished and outcome == .Completed and kata.state.findByID(identifier) == null, labels.OUTCOME);
 }
 
@@ -62,7 +62,7 @@ fn execute(comptime failure: u64) !void {
         try user.copy.transfer.write(image.Owner, plan.Segments[2].VirtualAddress, &.{0});
     }
     const persona = image.Thread.Mode == .Persona and image.Owner.State == .Born and
-        kata.completion.ownerOf(image.ID) == actor.ID;
+        kata.completion.storage.ownerOf(image.ID) == actor.ID;
     try completion.identify(&actor, image.ID);
     try harness.advance(&actor, 1);
     {
@@ -81,7 +81,7 @@ fn execute(comptime failure: u64) !void {
         verify.require((try completion.response(&actor, step, invocations.SUCCESS, invocations.RECORD_BYTES)) and
             std.meta.eql(expected, try completion.record(&actor)) and (try completion.guarded(&actor)), labels.OUTCOME);
     }
-    verify.require(kata.completion.ownerOf(image.ID) == null and !thread.state.owns(image.Thread), labels.ABORT);
+    verify.require(kata.completion.storage.ownerOf(image.ID) == null and !thread.state.owns(image.Thread), labels.ABORT);
 }
 
 fn inspect(owner: *kata.types.kata.Kata) !void {

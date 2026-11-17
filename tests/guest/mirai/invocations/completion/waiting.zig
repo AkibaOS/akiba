@@ -34,19 +34,19 @@ fn blocked() !void {
     try support.identify(&actor, target.ID);
     try harness.advance(&actor, 1);
     try harness.waitBlocked(&actor);
-    const record = try kata.completion.borrow(target.ID);
+    const record = try kata.completion.lifetime.borrow(target.ID);
     const registered = record.Observers == 2 and record.Waiters.Count == 1 and actor.Owner.State == .Sleeping;
-    kata.completion.drop(target.ID);
+    kata.completion.lifetime.drop(target.ID);
     try support.terminate(target.ID);
     try harness.waitStep(&actor, 2);
     const expected: types.Record = .{ .Kind = inputs.EXITED, .Result = inputs.RESULT };
     verify.require(registered and (try support.response(&actor, 2, inputs.SUCCESS, inputs.RECORD_BYTES)) and
         std.meta.eql(expected, try support.record(&actor)) and (try support.guarded(&actor)) and
-        kata.completion.peek(target.ID) != null and actor.Owner.State == .Alive, labels.WAITING);
+        kata.completion.lifetime.peek(target.ID) != null and actor.Owner.State == .Alive, labels.WAITING);
     try harness.advance(&actor, 2);
     try harness.waitStep(&actor, 3);
     verify.require((try support.response(&actor, 3, inputs.SUCCESS, inputs.RECORD_BYTES)) and
-        kata.completion.ownerOf(target.ID) == null, labels.EXITED);
+        kata.completion.storage.ownerOf(target.ID) == null, labels.EXITED);
 }
 
 fn collected() !void {
@@ -74,9 +74,9 @@ fn collected() !void {
     try harness.advance(&second, 1);
     try harness.waitBlocked(&first);
     try harness.waitBlocked(&second);
-    const record = try kata.completion.borrow(target.ID);
+    const record = try kata.completion.lifetime.borrow(target.ID);
     const registered = record.Observers == 3 and record.Waiters.Count == 2;
-    kata.completion.drop(target.ID);
+    kata.completion.lifetime.drop(target.ID);
     {
         const flags = guard.acquire();
         defer guard.release(flags);
@@ -92,7 +92,7 @@ fn collected() !void {
         (try support.response(&first, 2, inputs.SUCCESS, inputs.RECORD_BYTES)) and
         (try support.response(&second, 2, inputs.SUCCESS, inputs.RECORD_BYTES)) and
         std.meta.eql(expected, try support.record(&owner)) and std.meta.eql(expected, try support.record(&first)) and
-        std.meta.eql(expected, try support.record(&second)) and kata.completion.ownerOf(target.ID) == null and
+        std.meta.eql(expected, try support.record(&second)) and kata.completion.storage.ownerOf(target.ID) == null and
         kata.state.findByID(target.ID) == null, labels.COLLECTED);
 }
 
@@ -117,15 +117,15 @@ fn revoked() !void {
     try harness.waitStep(&actor, 2);
     var output: [locations.OUTPUT_BYTES]u8 = undefined;
     try copy.read(actor.Owner, &output, inputs.REVOKED_OUTPUT);
-    const record = try kata.completion.borrow(target.ID);
+    const record = try kata.completion.lifetime.borrow(target.ID);
     const released = record.Observers == 1 and record.Waiters.Count == 0 and record.Reclaimed and !record.Collected;
-    kata.completion.drop(target.ID);
+    kata.completion.lifetime.drop(target.ID);
     verify.require(released and (try support.response(&actor, 2, inputs.INVALID_ADDRESS, 0)) and
         std.mem.eql(u8, &untouched, &output), labels.REVOKED);
     try harness.advance(&actor, 2);
     try harness.waitStep(&actor, 3);
     verify.require((try support.response(&actor, 3, inputs.SUCCESS, inputs.RECORD_BYTES)) and
-        kata.completion.ownerOf(target.ID) == null, labels.EXITED);
+        kata.completion.storage.ownerOf(target.ID) == null, labels.EXITED);
 }
 
 fn cancelled() !void {
@@ -140,8 +140,8 @@ fn cancelled() !void {
     try harness.advance(&actor, 1);
     try harness.waitBlocked(&actor);
     harness.dispose(actor.ID);
-    const record = try kata.completion.borrow(target.ID);
+    const record = try kata.completion.lifetime.borrow(target.ID);
     const released = record.Observers == 1 and record.Waiters.Count == 0 and record.Outcome == null;
-    kata.completion.drop(target.ID);
-    verify.require(released and kata.state.findByID(actor.ID) == null and kata.completion.ownerOf(actor.ID) == null, labels.CANCELLED);
+    kata.completion.lifetime.drop(target.ID);
+    verify.require(released and kata.state.findByID(actor.ID) == null and kata.completion.storage.ownerOf(actor.ID) == null, labels.CANCELLED);
 }

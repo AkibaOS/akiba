@@ -41,5 +41,5 @@ pub fn dispose(owner_id: u64) !void {
         }
     }
     if (kata.state.findByID(owner_id) != null) @panic(labels.CLEANUP_FAILED);
-    if (kata.completion.ownerOf(owner_id) != null) _ = try kata.completion.collect(owner_id);
+    if (kata.completion.storage.ownerOf(owner_id) != null) _ = try kata.completion.lifetime.collect(owner_id);
 }

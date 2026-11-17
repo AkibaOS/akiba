@@ -18,7 +18,7 @@ pub fn designatePulse(owner: *Kata) bool {
     defer guard.release(previous_flags);
     if (!state.owns(owner) or owner.Permanent or owner.State != .Born or pulse_id != null) return false;
     pulse_id = owner.ID;
-    completion.adopt(constants.KERNEL_ID, owner.ID);
+    completion.storage.adopt(constants.KERNEL_ID, owner.ID);
     return true;
 }
 
@@ -26,7 +26,7 @@ pub fn discard(owner: *const Kata) void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (owner.State == .Born and pulse_id == owner.ID) {
-        completion.adopt(owner.ID, constants.KERNEL_ID);
+        completion.storage.adopt(owner.ID, constants.KERNEL_ID);
         pulse_id = null;
     }
 }
@@ -36,7 +36,7 @@ pub fn admit(owner: *Kata) bool {
     defer guard.release(previous_flags);
     if (!state.owns(owner) or owner.State == .Dead or owner.LiveThreadCount >= owner.ThreadCount or
         owner.RunnableThreadCount > owner.LiveThreadCount) return false;
-    if (!owner.Permanent and owner.State == .Born and !completion.publish(owner.ID)) return false;
+    if (!owner.Permanent and owner.State == .Born and !completion.lifetime.publish(owner.ID)) return false;
     owner.LiveThreadCount += 1;
     owner.RunnableThreadCount += 1;
     owner.State = .Alive;
@@ -74,8 +74,8 @@ pub fn die(owner: *Kata, outcome: Outcome) void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (!state.owns(owner) or owner.Permanent or owner.State == .Born or owner.State == .Dead or
-        !completion.commit(owner.ID, outcome)) @panic(messages.INVALID_COMPLETION);
+        !completion.lifetime.commit(owner.ID, outcome)) @panic(messages.INVALID_COMPLETION);
     owner.State = .Dead;
     if (pulse_id == owner.ID) @panic(messages.PULSE_EXIT);
-    completion.adopt(owner.ID, pulse_id orelse constants.KERNEL_ID);
+    completion.storage.adopt(owner.ID, pulse_id orelse constants.KERNEL_ID);
 }

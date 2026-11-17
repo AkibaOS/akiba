@@ -1,7 +1,6 @@
 //! Off CPU Dead Kata Resource Collection
 
 const completion = @import("mirai").kata.completion;
-const constants = @import("mirai").kata.constants.pool;
 const destroy = @import("mirai").kata.destroy;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
@@ -26,12 +25,12 @@ fn quiescent(owner: *const Kata) bool {
 }
 
 pub fn collect() void {
-    const previous_flags = guard.acquire();
-    defer guard.release(previous_flags);
-    var index: usize = 0;
-    while (index < constants.MAX_KATAS) : (index += 1) {
-        const id = completion.pending(index) orelse continue;
-        const owner = state.findByID(id) orelse @panic(messages.INVALID_CLEANUP);
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    var current = completion.pending.first();
+    while (current) |record| {
+        current = completion.pending.next(record);
+        const owner = state.findByID(record.ID) orelse @panic(messages.INVALID_CLEANUP);
         if (owner.State != .Dead or owner.Permanent) @panic(messages.INVALID_CLEANUP);
         if (!quiescent(owner)) continue;
         var slot: usize = 0;

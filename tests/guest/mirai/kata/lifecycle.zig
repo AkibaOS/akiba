@@ -30,7 +30,7 @@ pub fn run() !void {
         aborted.RunnableThreadCount == 0, labels.KATA_BORN);
     try thread.destroy.destroy(unstarted);
     try kata.destroy.destroy(aborted);
-    verify.require(kata.completion.peek(aborted_id) == null and kata.completion.ownerOf(aborted_id) == null, labels.KATA_ABORT);
+    verify.require(kata.completion.lifetime.peek(aborted_id) == null and kata.completion.storage.ownerOf(aborted_id) == null, labels.KATA_ABORT);
     const owner = try kata.create.create();
     const id = owner.ID;
     const target = try thread.create.create(owner, entry, null);
@@ -46,6 +46,6 @@ pub fn run() !void {
     verify.require(owner.State == .Alive and owner.RunnableThreadCount == 1, labels.KATA_WAKE);
     guard.release(wake_flags);
     drive.run();
-    verify.require(kata.state.findByID(id) == null and kata.completion.peek(id).? == .Completed, labels.KATA_COMPLETE);
-    _ = try kata.completion.collect(id);
+    verify.require(kata.state.findByID(id) == null and kata.completion.lifetime.peek(id).? == .Completed, labels.KATA_COMPLETE);
+    _ = try kata.completion.lifetime.collect(id);
 }

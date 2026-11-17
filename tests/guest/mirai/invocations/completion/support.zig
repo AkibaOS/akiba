@@ -78,7 +78,7 @@ pub fn faulted(launcher: *Kata) !types.Target {
 pub fn reclaimed(identifier: u64) !void {
     var attempts: usize = 0;
     while (attempts < limits.DRIVE_LIMIT) : (attempts += 1) {
-        if (kata.completion.peek(identifier) != null) return;
+        if (kata.completion.lifetime.peek(identifier) != null) return;
         try sensei.run.yield();
     }
     return error.DriveLimit;
@@ -123,8 +123,8 @@ pub fn dispose(identifier: u64) void {
     const flags = guard.acquire();
     defer guard.release(flags);
     const current = thread.state.getCurrent().?.Owner.ID;
-    if (kata.completion.ownerOf(identifier)) |owner| {
-        if (owner != current and owner != 0) kata.completion.adopt(owner, current);
+    if (kata.completion.storage.ownerOf(identifier)) |owner| {
+        if (owner != current and owner != 0) kata.completion.storage.adopt(owner, current);
     }
     scheduling.dispose(identifier) catch |failure| verify.failure(failure);
 }

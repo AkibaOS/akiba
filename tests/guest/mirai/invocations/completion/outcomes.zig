@@ -63,7 +63,7 @@ fn terminal(comptime kind: u64) !void {
     try harness.advance(&actor, 4);
     try harness.waitStep(&actor, 5);
     correct = correct and (try support.response(&actor, 5, inputs.INVALID_TARGET, 0)) and
-        std.meta.eql(expected, try support.record(&actor)) and kata.completion.ownerOf(target.ID) == null and
+        std.meta.eql(expected, try support.record(&actor)) and kata.completion.storage.ownerOf(target.ID) == null and
         kata.state.findByID(target.ID) == null;
     verify.require(correct, if (kind == inputs.COMPLETED) labels.COMPLETED else if (kind == inputs.EXITED) labels.EXITED else labels.FAULTED);
 }

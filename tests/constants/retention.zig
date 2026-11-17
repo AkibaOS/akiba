@@ -3,6 +3,7 @@
 const std = @import("std");
 
 pub const OBSERVER_COUNT: usize = 2;
+pub const RETAINED_COUNT: usize = 273;
 pub const FAMILY_COUNT: usize = 3;
 pub const INVALID_ID: u64 = std.math.maxInt(u64);
 pub const RECLAIMED_RESULT: u64 = 73;

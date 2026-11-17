@@ -39,13 +39,13 @@ fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !void {
     }
     if (service != @intFromEnum(abi.Service.ObserveCompletion) and
         service != @intFromEnum(abi.Service.CollectCompletion)) return error.Unsupported;
-    const record = try kata.completion.borrow(frame.RDI);
-    defer kata.completion.drop(frame.RDI);
+    const record = try kata.completion.lifetime.borrow(frame.RDI);
+    defer kata.completion.lifetime.drop(frame.RDI);
     const collect = service == @intFromEnum(abi.Service.CollectCompletion);
     if (collect and record.OwnerID != current.Owner.ID) return errors.CompletionError.NotOwner;
-    const outcome = kata.completion.observed(frame.RDI) orelse return errors.CompletionError.NotReady;
+    const outcome = kata.completion.lifetime.observed(frame.RDI) orelse return errors.CompletionError.NotReady;
     try deliver(current, frame.RSI, outcome);
-    if (collect) _ = try kata.completion.collect(frame.RDI);
+    if (collect) _ = try kata.completion.lifetime.collect(frame.RDI);
 }
 
 fn deliver(current: *Thread, address: u64, outcome: Outcome) !void {

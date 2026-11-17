@@ -118,6 +118,6 @@ pub fn run() !void {
         kata.state.findByID(owner_id) == null, labels.WAIT_COMPLETE);
     try support.dispose(owner_id);
     verify.require((try sensei.wait.wakeAll(&state.Waiters)) == 0 and !(try sensei.wait.wakeOne(&state.Waiters)) and
-        (try sensei.wait.wakeOldest(&state.Waiters)) == null and kata.completion.ownerOf(owner_id) == null and
+        (try sensei.wait.wakeOldest(&state.Waiters)) == null and kata.completion.storage.ownerOf(owner_id) == null and
         sensei.state.getState().RegisteredCount == registered, labels.WAIT_RELEASE);
 }

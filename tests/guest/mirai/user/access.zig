@@ -73,8 +73,8 @@ fn runFault(owner: *Kata, bytes: []const u8, address: u64, code: u64, instructio
     const target = try thread.user.create(owner, locations.CODE_ADDRESS, locations.STACK_ADDRESS, common.constants.memory.sizes.PAGE_SIZE, 0);
     try sensei.control.start(target);
     drive.run();
-    const outcome = try kata.completion.collect(identifier);
+    const outcome = try kata.completion.lifetime.collect(identifier);
     verify.require(outcome == .Faulted and outcome.Faulted.Vector == inputs.PAGE_FAULT_VECTOR and
         outcome.Faulted.Code == code and outcome.Faulted.Address == address and outcome.Faulted.Instruction == instruction and
-        kata.state.findByID(identifier) == null and kata.completion.ownerOf(identifier) == null, name);
+        kata.state.findByID(identifier) == null and kata.completion.storage.ownerOf(identifier) == null, name);
 }
