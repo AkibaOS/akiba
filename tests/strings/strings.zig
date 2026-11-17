@@ -7,6 +7,7 @@ pub const completion = @import("completion.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
 pub const drivers = @import("drivers.zig");
+pub const elf = @import("elf.zig");
 pub const firmware = @import("firmware.zig");
 pub const guest = @import("guest.zig");
 pub const hikari = @import("hikari.zig");

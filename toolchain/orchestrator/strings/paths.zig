@@ -24,3 +24,7 @@ pub const GUEST_IMAGE_NAME = "tests.img";
 pub const GUEST_IMAGE_MB = "64";
 pub const FIRMWARE_TEST_ROOT = "tests/firmware/entry.zig";
 pub const FIRMWARE_IMAGE_NAME = "firmware.img";
+pub const ELF_FIXTURE_ROOT = "tests/fixtures/elf/run.zig";
+pub const ELF_FIXTURE_OWNER = "tests/fixtures/elf/elf.zig";
+pub const ELF_FIXTURE_ASSEMBLY = "asm/fixtures/fixtures.zig";
+pub const ELF_FIXTURE_LINKER = "tests/fixtures/elf/layout.linker";

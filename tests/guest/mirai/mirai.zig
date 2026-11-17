@@ -1,6 +1,7 @@
 //! Mirai Regression Exports
 
 pub const boot = @import("boot/boot.zig");
+pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const crimson = @import("crimson/crimson.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const invocations = @import("invocations/invocations.zig");

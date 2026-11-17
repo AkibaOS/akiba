@@ -1,0 +1,44 @@
+/* Test Only Compiler Fixture Layout */
+OUTPUT_FORMAT(elf64-x86-64)
+OUTPUT_ARCH(i386:x86-64)
+ENTRY(akiba_fixture_start)
+FIXTURE_BASE = 0x400000;
+FIXTURE_PAGE_SIZE = 4096;
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    rodata PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+}
+SECTIONS
+{
+    .text FIXTURE_BASE :
+    {
+        akiba_fixture_text_start = .;
+        KEEP(*(.text.fixture.entry))
+        *(.text .text.*)
+        akiba_fixture_text_end = .;
+    } :text
+    .rodata ALIGN(FIXTURE_PAGE_SIZE) :
+    {
+        akiba_fixture_rodata_start = .;
+        KEEP(*(.rodata.fixture))
+        *(.rodata .rodata.* .srodata .srodata.*)
+        akiba_fixture_rodata_end = .;
+    } :rodata
+    .data ALIGN(FIXTURE_PAGE_SIZE) :
+    {
+        akiba_fixture_data_start = .;
+        KEEP(*(.data.fixture))
+        *(.data .data.* .sdata .sdata.* .got .got.*)
+        akiba_fixture_data_end = .;
+    } :data
+    .bss ALIGN(FIXTURE_PAGE_SIZE) (NOLOAD) :
+    {
+        akiba_fixture_bss_start = .;
+        KEEP(*(.bss.fixture))
+        *(.bss .bss.* .sbss .sbss.*) *(COMMON)
+        akiba_fixture_bss_end = .;
+    } :data
+    /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
+}

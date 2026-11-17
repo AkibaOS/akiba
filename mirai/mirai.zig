@@ -9,6 +9,7 @@ pub const shared = @import("shared");
 
 pub const assembly = @import("asm");
 pub const boot = @import("boot/boot.zig");
+pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const crimson = @import("crimson/crimson.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const interrupts = @import("interrupts/interrupts.zig");
@@ -25,6 +26,7 @@ pub const user = @import("user/user.zig");
 
 comptime {
     force.all(boot);
+    force.all(bootstrap);
     force.all(crimson);
     force.all(drivers);
     force.all(interrupts);

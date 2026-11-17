@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const fixture = @import("../tests/fixture.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
@@ -46,6 +47,7 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
         checks.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.EXECUTABLE_HIKARI, hikari);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
+        checks.addAnonymousImport(names.IMPORT_ELF_IMAGE, .{ .root_source_file = fixture.artifact(builder).getEmittedBin() });
         const probes = builder.createModule(.{
             .root_source_file = builder.path(paths.TEST_ASSEMBLY_ROOT),
             .target = target,
