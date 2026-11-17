@@ -3,6 +3,7 @@
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
 const errors = @import("mirai").kagami.errors.bootstrap;
+const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").kagami.types;
 
@@ -15,11 +16,10 @@ const Table = types.table.Table;
 
 pub fn allocateTable(prepared: *PreparedRoot) errors.BootError!u64 {
     if (prepared.Phase != .Preparing) return errors.BootError.BootstrapBusy;
-    if (prepared.TableCount == prepared.TableFrames.len) return errors.BootError.TableLedgerExhausted;
     const physical_address = try allocateFrame(prepared);
-    prepared.TableFrames[prepared.TableCount] = physical_address;
+    errdefer pmm.free.single.freePage(physical_address);
+    _ = try ownership.register(&prepared.Kagami, physical_address);
     prepared.TableCount += 1;
-    prepared.Kagami.TablePages += 1;
     return physical_address;
 }
 
@@ -63,10 +63,8 @@ fn child(prepared: *PreparedRoot, entry: *Entry) errors.BootError!*Table {
     if (entry.Present) {
         if (entry.HugePage or !entry.isOwnedTable()) return errors.BootError.HugeMappingConflict;
         const physical_address = entry.getPhysicalAddress();
-        for (prepared.TableFrames[0..prepared.TableCount]) |owned_frame| {
-            if (owned_frame == physical_address) return table(prepared, physical_address);
-        }
-        return errors.BootError.PermissionDenied;
+        if (!ownership.owns(&prepared.Kagami, physical_address)) return errors.BootError.PermissionDenied;
+        return table(prepared, physical_address);
     }
     const physical_address = try allocateTable(prepared);
     entry.* = .{ .Present = true, .Writable = true, .AvailableLow = constants.ownership.OWNED_TABLE };

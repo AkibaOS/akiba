@@ -12,6 +12,7 @@ const sequence = @import("mirai").boot.types.sequence.info;
 const stack = @import("mirai").memory.stack;
 const stacklimits = @import("mirai").memory.constants.stack.limits;
 const state = @import("mirai").kagami.state;
+const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
@@ -152,11 +153,8 @@ pub fn abort(prepared: *PreparedRoot) void {
         pmm.free.single.freePage(prepared.StackFrames[prepared.StackCount]);
         prepared.StackFrames[prepared.StackCount] = 0;
     }
-    while (prepared.TableCount != 0) {
-        prepared.TableCount -= 1;
-        pmm.free.single.freePage(prepared.TableFrames[prepared.TableCount]);
-        prepared.TableFrames[prepared.TableCount] = 0;
-    }
+    while (prepared.Kagami.Frames) |frame| tables.allocate.freeTable(&prepared.Kagami, frame.PA);
+    prepared.TableCount = 0;
     pmm.state.getState().SearchStart = prepared.PreviousSearchStart;
     prepared.Kagami = .{};
     prepared.Policy = .{};

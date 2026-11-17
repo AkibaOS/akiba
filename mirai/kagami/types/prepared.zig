@@ -15,7 +15,6 @@ pub const PreparedRoot = struct {
     Phase: Phase = .Empty,
     Kagami: kagami.Kagami = .{},
     Policy: policy.Policy = .{},
-    TableFrames: [constants.MAX_TABLE_FRAMES]u64 = [_]u64{0} ** constants.MAX_TABLE_FRAMES,
     StackFrames: [constants.MAX_STACK_FRAMES]u64 = [_]u64{0} ** constants.MAX_STACK_FRAMES,
     TableCount: usize = 0,
     StackCount: usize = 0,

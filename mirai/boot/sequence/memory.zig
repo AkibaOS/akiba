@@ -42,6 +42,10 @@ pub fn prepare(boot_info: *const BootInfo) bool {
     pmm.init.setup.reservePhysicalRange(framebuffer_start, framebuffer_end - framebuffer_start);
     pmm.init.setup.reservePhysicalRange(boot_info.KernelPhysicalBase, boot_info.KernelPhysicalEnd - boot_info.KernelPhysicalBase);
     pmm.init.setup.reservePhysicalRange(boot_info.BootStackTop - layout.PHYSMAP_BASE - boot_info.BootStackSize, boot_info.BootStackSize);
+    zone.bootstrap.init() catch {
+        print.log(messages.NO_ZONES, .{});
+        return false;
+    };
     const statistics = pmm.state.getStatistics();
     print.log(messages.PHYSMAP_COVERAGE, .{boot_info.PhysmapSize / sizes.MEGABYTE});
     print.log(messages.BITMAP_STORAGE, .{ pmm.state.getState().BitmapSize, bitmap_location });
@@ -52,10 +56,6 @@ pub fn prepare(boot_info: *const BootInfo) bool {
 
 pub fn finish(boot_info: *const BootInfo) bool {
     print.phase(status.ALLOCATOR);
-    zone.bootstrap.init() catch {
-        print.log(messages.NO_ZONES, .{});
-        return false;
-    };
     kalloc.init() catch {
         print.log(messages.NO_KALLOC, .{});
         return false;

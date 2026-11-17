@@ -1,5 +1,6 @@
 //! Transactional Owned User Physmap Splitting
 
+const allocate = @import("mirai").kagami.tables.allocate;
 const checks = @import("mirai").user.state.checks;
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
@@ -7,6 +8,7 @@ const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
 const ledger = @import("mirai").user.state.ledger;
+const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const state = @import("mirai").kagami.state;
 const types = @import("mirai").kagami.types;
@@ -41,7 +43,8 @@ fn validatePath(virtual_address: u64, leaf: *const Entry) UserError!void {
     var current_physical = state.getKernelKagami().PML4Physical;
     var visited: [limits.PARENT_SHIFTS.len]u64 = undefined;
     for (limits.PARENT_SHIFTS, 0..) |shift, level| {
-        if (!walk.isValidTable(current_physical) or containsTable(visited[0..level], current_physical)) return UserError.InvalidPhysmap;
+        if (!walk.isValidTable(current_physical) or !ownership.owns(state.getKernelKagami(), current_physical) or
+            containsTable(visited[0..level], current_physical)) return UserError.InvalidPhysmap;
         visited[level] = current_physical;
         const table = walk.getTableFromPhysical(current_physical);
         const entry = &table.Entries[@intCast((virtual_address >> shift) & indices.INDEX_MASK)];
@@ -50,7 +53,8 @@ fn validatePath(virtual_address: u64, leaf: *const Entry) UserError!void {
             !entry.Writable or entry.NoExecute or entry.WriteThrough or entry.CacheDisabled) return UserError.InvalidPhysmap;
         current_physical = entry.getPhysicalAddress();
     }
-    if (!walk.isValidTable(current_physical) or containsTable(&visited, current_physical)) return UserError.InvalidPhysmap;
+    if (!walk.isValidTable(current_physical) or !ownership.owns(state.getKernelKagami(), current_physical) or
+        containsTable(&visited, current_physical)) return UserError.InvalidPhysmap;
     const table = walk.getTableFromPhysical(current_physical);
     if (&table.Entries[@intCast((virtual_address >> indices.PT_SHIFT) & indices.INDEX_MASK)] != leaf) return UserError.InvalidPhysmap;
 }
@@ -65,13 +69,11 @@ fn containsTable(visited: []const u64, physical_address: u64) bool {
 fn split(physical_address: u64, resolved: Lookup) UserError!*Entry {
     const kernel = state.getKernelKagami();
     const required: usize = if (resolved.PageSize == sizes.HUGE_PAGE_SIZE) 2 else 1;
-    if (kernel.TablePages > constants.bootstrap.MAX_TABLE_FRAMES or
-        required > constants.bootstrap.MAX_TABLE_FRAMES - kernel.TablePages) return UserError.RegionExhausted;
     const previous_search = pmm.state.getState().SearchStart;
     var frames: [limits.MAX_SPLIT_TABLES]u64 = undefined;
     var count: usize = 0;
     errdefer {
-        for (frames[0..count]) |frame| pmm.free.single.freePage(frame);
+        for (frames[0..count]) |frame| allocate.freeTable(kernel, frame);
         pmm.state.getState().SearchStart = previous_search;
     }
     while (count < required) : (count += 1) frames[count] = try allocateTable();
@@ -85,7 +87,6 @@ fn split(physical_address: u64, resolved: Lookup) UserError!*Entry {
     }
     const parent: *Entry = @constCast(resolved.Entry);
     parent.* = tableEntry(frames[0]);
-    kernel.TablePages += required;
     cpu.control.flushAllTLB();
     return &pt.Entries[@intCast((physical_address >> indices.PT_SHIFT) & indices.INDEX_MASK)];
 }
@@ -100,6 +101,7 @@ fn allocateTable() UserError!u64 {
         resolved.Executable or !resolved.Entry.NoExecute or resolved.Entry.WriteThrough or resolved.Entry.CacheDisabled) return UserError.InvalidPhysmap;
     const pat = if (resolved.PageSize == sizes.PAGE_SIZE) resolved.Entry.HugePage else (resolved.Entry.getPhysicalAddress() & limits.BIG_PAT) != 0;
     if (pat) return UserError.InvalidPhysmap;
+    _ = try ownership.register(state.getKernelKagami(), physical_address);
     walk.getTableFromPhysical(physical_address).clearAll();
     return physical_address;
 }

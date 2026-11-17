@@ -5,6 +5,7 @@ const common = @import("common");
 const constants = @import("mirai").kagami.constants.bootstrap;
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
+const ownership = @import("mirai").kagami.tables.ownership;
 const policy = @import("mirai").kagami.policy;
 const types = @import("mirai").kagami.types;
 const walk = @import("mirai").kagami.tables.walk;
@@ -22,12 +23,12 @@ pub fn prune(kagami: *Kagami, virtual_address: u64) void {
     var physical_address = kagami.PML4Physical;
     const shifts = [_]u6{ indices.PML4_SHIFT, indices.PDPT_SHIFT, indices.PD_SHIFT };
     for (shifts, 0..) |shift, level| {
-        if (!walk.isValidTable(physical_address)) return;
+        if (!walk.isValidTable(physical_address) or !ownership.owns(kagami, physical_address)) return;
         const table = walk.getTableFromPhysical(physical_address);
         const parent = &table.Entries[@intCast((virtual_address >> shift) & indices.INDEX_MASK)];
         if (!parent.Present or parent.HugePage or !parent.isOwnedTable()) return;
         const child = parent.getPhysicalAddress();
-        if (!walk.isValidTable(child) or child == kagami.PML4Physical) return;
+        if (!walk.isValidTable(child) or !ownership.owns(kagami, child) or child == kagami.PML4Physical) return;
         for (children[0..level]) |ancestor| {
             if (child == ancestor) return;
         }
@@ -42,7 +43,6 @@ pub fn prune(kagami: *Kagami, virtual_address: u64) void {
         if (walk.getTableFromPhysical(children[depth]).countPresent() != 0) break;
         parents[depth].clear();
         cpu.control.flushAllTLB();
-        allocate.freeTable(children[depth]);
-        kagami.removeTable();
+        allocate.freeTable(kagami, children[depth]);
     }
 }

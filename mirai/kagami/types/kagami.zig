@@ -1,5 +1,6 @@
 //! Kagami Structure
 
+const frame = @import("mirai").kagami.types.frame;
 const ownership = @import("mirai").kagami.types.ownership;
 const state = @import("mirai").kagami.state;
 
@@ -10,6 +11,7 @@ pub const Kagami = struct {
     ResidentPages: u64 = 0,
     WiredPages: u64 = 0,
     TablePages: u64 = 0,
+    Frames: ?*frame.Frame = null,
     Lock: bool = false,
     Ownership: ownership.Ownership = .Borrowed,
     SharesKernel: bool = false,
@@ -46,16 +48,6 @@ pub const Kagami = struct {
     pub fn removeWired(self: *Kagami) void {
         if (self.WiredPages > 0) {
             self.WiredPages -= 1;
-        }
-    }
-
-    pub fn addTable(self: *Kagami) void {
-        self.TablePages += 1;
-    }
-
-    pub fn removeTable(self: *Kagami) void {
-        if (self.TablePages > 0) {
-            self.TablePages -= 1;
         }
     }
 };

@@ -1,31 +1,38 @@
-//! Transactional Owned Page Table Allocation
+//! Transactional Indexed Page Table Allocation
 
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
 const guard = @import("asm").interrupts.guard;
+const labels = @import("mirai").kagami.strings.frames;
+const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const policy = @import("mirai").kagami.policy;
 const types = @import("mirai").kagami.types;
 const walk = @import("mirai").kagami.tables.walk;
 
 const indices = common.constants.paging.indices;
-const sizes = common.constants.memory.sizes;
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const MappingError = common.errors.memory.mapping.MappingError;
 const Entry = types.entry.Entry;
 const Kagami = types.kagami.Kagami;
 
-pub fn allocateTable() AllocationError!u64 {
+pub fn allocateTable(owner: *Kagami) AllocationError!u64 {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const search = pmm.state.getState().SearchStart;
+    errdefer pmm.state.getState().SearchStart = search;
     const physical_address = try pmm.allocate.single.allocatePage();
-    if (!walk.isValidTable(physical_address)) {
-        pmm.free.single.freePage(physical_address);
-        return AllocationError.OutOfMemory;
-    }
+    errdefer pmm.free.single.freePage(physical_address);
+    if (!walk.isValidTable(physical_address)) return AllocationError.OutOfMemory;
+    _ = try ownership.register(owner, physical_address);
     walk.getTableFromPhysical(physical_address).clearAll();
     return physical_address;
 }
 
-pub fn freeTable(physical_address: u64) void {
+pub fn freeTable(owner: *Kagami, physical_address: u64) void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    if (!ownership.release(owner, physical_address)) @panic(labels.INVALID_STATE);
     pmm.free.single.freePage(physical_address);
 }
 
@@ -40,8 +47,10 @@ pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || M
     var first_parent: ?*Entry = null;
     var first_physical: u64 = 0;
     var visited: [constants.bootstrap.MAX_INTERMEDIATE_TABLES]u64 = undefined;
+    const search = pmm.state.getState().SearchStart;
     errdefer {
-        for (pending_frames[0..pending_count]) |physical_address| freeTable(physical_address);
+        for (pending_frames[0..pending_count]) |physical_address| freeTable(kagami, physical_address);
+        pmm.state.getState().SearchStart = search;
     }
     const shifts = [_]u6{ indices.PML4_SHIFT, indices.PDPT_SHIFT, indices.PD_SHIFT };
     for (shifts, 0..) |shift, level| {
@@ -49,7 +58,7 @@ pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || M
             if (current_physical == ancestor) return MappingError.InvalidAddress;
         }
         visited[level] = current_physical;
-        if (!walk.isValidTable(current_physical)) return MappingError.InvalidAddress;
+        if (!walk.isValidTable(current_physical) or !ownership.owns(kagami, current_physical)) return MappingError.InvalidAddress;
         const current = walk.getTableFromPhysical(current_physical);
         const entry = &current.Entries[@intCast((virtual_address >> shift) & indices.INDEX_MASK)];
         if (entry.Present) {
@@ -58,8 +67,7 @@ pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || M
             current_physical = entry.getPhysicalAddress();
             continue;
         }
-        if (kagami.TablePages + pending_count >= constants.bootstrap.MAX_TABLE_FRAMES) return AllocationError.RegionExhausted;
-        const new_physical = try allocateTable();
+        const new_physical = try allocateTable(kagami);
         pending_frames[pending_count] = new_physical;
         pending_count += 1;
         if (first_parent == null) {
@@ -73,12 +81,9 @@ pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || M
     for (visited) |ancestor| {
         if (current_physical == ancestor) return MappingError.InvalidAddress;
     }
-    if (!walk.isValidTable(current_physical)) return MappingError.InvalidAddress;
+    if (!walk.isValidTable(current_physical) or !ownership.owns(kagami, current_physical)) return MappingError.InvalidAddress;
     const leaf = walk.getTableFromPhysical(current_physical);
-    if (first_parent) |parent| {
-        parent.* = tableEntry(first_physical, user_half);
-        kagami.TablePages += pending_count;
-    }
+    if (first_parent) |parent| parent.* = tableEntry(first_physical, user_half);
     return &leaf.Entries[@intCast((virtual_address >> indices.PT_SHIFT) & indices.INDEX_MASK)];
 }
 

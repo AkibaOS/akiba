@@ -64,6 +64,10 @@ pub fn execute() void {
     check(guest.mirai.kagami.ownership.run);
     check(guest.mirai.kagami.rejection.run);
     check(guest.mirai.kagami.effective.run);
+    check(guest.mirai.kagami.failure.run);
+    check(guest.mirai.kagami.graph.run);
+    check(guest.mirai.kagami.population.run);
+    check(guest.mirai.kagami.alias.run);
     serial.printf(memorylabels.GROUP_OWNED, .{});
     check(guest.mirai.user.regressions.run);
     check(guest.mirai.user.population.run);

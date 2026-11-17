@@ -27,7 +27,7 @@ pub fn destroy(kagami: *Kagami) DestroyResult {
         kagami.ReferenceCount -= 1;
         return .Retained;
     }
-    if (kagami.TablePages == 0 or kagami.TablePages > constants.bootstrap.MAX_TABLE_FRAMES) return .Refused;
+    if (kagami.TablePages == 0 or !tables.ownership.reset(kagami)) return .Refused;
     const root = tables.walk.getPML4(kagami.PML4Physical);
     const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
     var upper: usize = constants.tables.KERNEL_PML4_START;
@@ -37,32 +37,28 @@ pub fn destroy(kagami: *Kagami) DestroyResult {
             (shared.AvailableLow & constants.ownership.SHARED_TABLE) == 0 or
             shared.getPhysicalAddress() != kernel.Entries[upper].getPhysicalAddress()) return .Refused;
     }
-    var owned_frames: [constants.bootstrap.MAX_TABLE_FRAMES]u64 = undefined;
-    var owned_count: usize = 0;
-    if (!collectOwned(kagami.PML4Physical, sizes.PAGE_TABLE_LEVELS, &owned_frames, &owned_count) or
-        owned_count != kagami.TablePages) return .Refused;
+    var owned_count: u64 = 0;
+    if (!validateOwned(kagami, kagami.PML4Physical, sizes.PAGE_TABLE_LEVELS, &owned_count) or
+        owned_count != kagami.TablePages)
+    {
+        _ = tables.ownership.reset(kagami);
+        return .Refused;
+    }
     root.clearAll();
     cpu.control.flushAllTLB();
-    while (owned_count != 0) {
-        owned_count -= 1;
-        tables.allocate.freeTable(owned_frames[owned_count]);
-    }
+    while (kagami.Frames) |frame| tables.allocate.freeTable(kagami, frame.PA);
     kagami.PML4Physical = 0;
     kagami.ReferenceCount = 0;
     kagami.ResidentPages = 0;
     kagami.WiredPages = 0;
-    kagami.TablePages = 0;
     if (!create.freeKagamiStruct(kagami)) unreachable;
     return .Destroyed;
 }
 
-fn collectOwned(physical_address: u64, level: u8, owned_frames: *[constants.bootstrap.MAX_TABLE_FRAMES]u64, owned_count: *usize) bool {
-    if (!tables.walk.isValidTable(physical_address) or owned_count.* == owned_frames.len) return false;
-    for (owned_frames[0..owned_count.*]) |existing| {
-        if (existing == physical_address) return false;
-    }
-    owned_frames[owned_count.*] = physical_address;
-    owned_count.* += 1;
+fn validateOwned(owner: *const Kagami, physical_address: u64, level: u8, count: *u64) bool {
+    if (!tables.walk.isValidTable(physical_address) or !tables.ownership.visit(owner, physical_address) or
+        count.* == owner.TablePages) return false;
+    count.* += 1;
     if (level == 1) return true;
     const table = tables.walk.getTableFromPhysical(physical_address);
     const entry_limit = if (level == sizes.PAGE_TABLE_LEVELS) constants.tables.USER_PML4_END else sizes.ENTRIES_PER_PAGE_TABLE;
@@ -72,7 +68,7 @@ fn collectOwned(physical_address: u64, level: u8, owned_frames: *[constants.boot
             if (level == sizes.PAGE_TABLE_LEVELS) return false;
             continue;
         }
-        if (!entry.isOwnedTable() or !collectOwned(entry.getPhysicalAddress(), level - 1, owned_frames, owned_count)) return false;
+        if (!entry.isOwnedTable() or !validateOwned(owner, entry.getPhysicalAddress(), level - 1, count)) return false;
     }
     return true;
 }

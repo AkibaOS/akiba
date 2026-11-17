@@ -1,11 +1,13 @@
 //! Active Boot And CPU Invariants
 
 const common = @import("common");
+const construction = @import("tests").guest.support.root;
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
 const interrupts = @import("mirai").interrupts;
 const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.boot;
+const ownership = @import("tests").strings.tables;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const thread = @import("mirai").thread;
 const tss = @import("mirai").boot.tss;
@@ -21,12 +23,15 @@ const TSS = types.tss.structure.TSS;
 
 pub fn run() void {
     const flags = guard.acquire();
+    verify.require(construction.passed(), ownership.EARLY_ROLLBACK);
     const current = thread.state.getCurrent().?;
     const root = kagami.state.getKernelKagami();
     const policy = kagami.state.getPolicy();
     const pointer = cpu.state.readStackPointer();
     verify.require(kagami.state.getCurrentKagami() == root and cpu.control.readCR3() == root.PML4Physical and
         pointer >= current.Stack.Base and pointer < current.Stack.Top and pointer >= layout.KERNEL_STACK_AREA_BASE, labels.ROOT);
+    verify.require(kagami.tables.ownership.reset(root) and kagami.tables.ownership.owns(root, root.PML4Physical) and
+        root.Frames != null, labels.FRAMES);
     verify.require(kagami.tables.walk.lookup(root.PML4Physical, layout.KERNEL_PHYSICAL_BASE) == null, labels.LOW);
     verify.require(cpu.control.readCR0() & control.CR0_WRITE_PROTECT != 0 and
         cpu.msr.read(msr.EFER) & msr.EFER_NO_EXECUTE_ENABLE != 0, labels.PROTECTION);

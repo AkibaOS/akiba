@@ -5,6 +5,7 @@ const constants = @import("mirai").kagami.constants;
 const guard = @import("asm").interrupts.guard;
 const labels = @import("mirai").kagami.strings.pool;
 const memory = @import("mirai").memory;
+const pmm = @import("mirai").pmm;
 const state = @import("mirai").kagami.state;
 const tables = @import("mirai").kagami.tables;
 const types = @import("mirai").kagami.types;
@@ -26,20 +27,17 @@ pub fn create() AllocationError!*Kagami {
         if (!entry.Present or entry.HugePage or !entry.isOwnedTable() or entry.UserAccessible or
             !tables.walk.isValidTable(entry.getPhysicalAddress())) return AllocationError.NotInitialized;
     }
+    const search = pmm.state.getState().SearchStart;
+    errdefer pmm.state.getState().SearchStart = search;
     if (records.Zone == null) try records.init(labels.DESCRIPTORS);
     const root = try records.reserve();
     errdefer {
         if (!records.release(root)) unreachable;
         _ = records.collectAt(root);
     }
-    const physical = try tables.allocate.allocateTable();
-    root.* = .{
-        .PML4Physical = physical,
-        .TablePages = 1,
-        .Ownership = .User,
-        .SharesKernel = true,
-    };
-    tables.walk.getPML4(physical).copyKernelEntries(kernel_pml4);
+    root.* = .{ .Ownership = .User, .SharesKernel = true };
+    root.PML4Physical = try tables.allocate.allocateTable(root);
+    tables.walk.getPML4(root.PML4Physical).copyKernelEntries(kernel_pml4);
     return root;
 }
 
@@ -47,14 +45,15 @@ pub fn owns(root: *const Kagami) bool {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (!records.owns(root)) return false;
-    return root.Ownership == .User and root.ReferenceCount != 0 and tables.walk.isValidTable(root.PML4Physical);
+    return root.Ownership == .User and root.ReferenceCount != 0 and tables.walk.isValidTable(root.PML4Physical) and
+        tables.ownership.owns(root, root.PML4Physical);
 }
 
 pub fn freeKagamiStruct(root: *Kagami) bool {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (!records.owns(root)) return false;
-    if (root.PML4Physical != 0 or root.ReferenceCount != 0 or root.ExecutionOwners != 0 or root.TablePages != 0) return false;
+    if (root.PML4Physical != 0 or root.ReferenceCount != 0 or root.ExecutionOwners != 0 or root.TablePages != 0 or root.Frames != null) return false;
     if (!records.release(root)) return false;
     _ = records.collectAt(root);
     return true;

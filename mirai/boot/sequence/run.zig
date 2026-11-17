@@ -13,6 +13,7 @@ const options = @import("options");
 const postman = @import("mirai").postman;
 const print = @import("mirai").boot.sequence.print;
 const registers = @import("asm").cpu.state;
+const rootchecks = if (options.GUEST_CHECKS) @import("tests").guest.support.root else null;
 const sensei = @import("mirai").sensei;
 const state = @import("mirai").boot.sequence.state;
 const strings = @import("mirai").boot.strings;
@@ -45,6 +46,7 @@ pub fn execute(boot_info: *const BootInfo) noreturn {
         print.fail(status.ERROR_MEMORY);
         haltOnFailure();
     }
+    if (options.GUEST_CHECKS) @call(.never_inline, rootchecks.run, .{boot_info});
     const prepared = bootstrap.prepare(boot_info) catch |failure| {
         print.log(messages.ROOT_PREPARE_FAILED, .{@errorName(failure)});
         haltOnFailure();

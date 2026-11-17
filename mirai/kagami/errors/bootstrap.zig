@@ -8,6 +8,5 @@ pub const BootError = common.errors.memory.allocation.AllocationError || common.
     InvalidCPUState,
     UnsupportedCPU,
     BootstrapBusy,
-    TableLedgerExhausted,
     StackLedgerExhausted,
 };

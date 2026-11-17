@@ -2,6 +2,7 @@
 
 pub const GROUP = "CHECK GROUP Boot and CPU\n";
 pub const ROOT = "owned kernel CR3 and high stack are active";
+pub const FRAMES = "all bootstrap table records belong to the permanent active kernel root after transfer";
 pub const LOW = "low identity mapping is absent after handoff";
 pub const PROTECTION = "CPU write protect and no-execute are enabled";
 pub const FPU = "CPU floating point mode matches context switching contract";

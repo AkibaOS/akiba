@@ -1,0 +1,19 @@
+//! Owned Table Graph Regression Labels
+
+pub const ALIAS_FIXTURE = "owned alias split fixture uses a real free physical page beneath a large physmap leaf";
+pub const ALIAS_FAILURE = "each physmap split allocation refusal preserves aliases page stage table ownership backing and search";
+pub const ALIAS_RECOVERY = "physmap splitting recovers with indexed permanent kernel table ownership";
+pub const ALIAS_RELEASE = "split owned alias restores writable NX permissions and releases payload without allocating";
+pub const METADATA_FAILURE = "failed table metadata reservation returns its unpublished frame without changing existing mappings counts or search";
+pub const TRANSFER = "table ownership transfer rejects a live destination moves exactly once and allocates nothing";
+pub const EARLY_ROLLBACK = "all bootstrap allocation refusal points and zero-budget abort restore frame ownership PMM and inherited CR3";
+pub const EARLY_FAILURE = "Invalid bootstrap allocation rollback check";
+pub const SPARSE = "sparse mappings grow beyond former owned table backing without moving existing mappings";
+pub const RELEASE = "large inactive table graph reclaims all owned tables without allocating or freeing payload";
+pub const RECOVERY = "table graph and metadata reclamation restore the warmed physical memory baseline";
+pub const GRAPH_FOREIGN = "inactive destruction rejects a child table owned by a different root before releasing any frame";
+pub const GRAPH_DUPLICATE = "inactive destruction rejects duplicate child tables without changing the graph";
+pub const GRAPH_CYCLE = "inactive destruction rejects a root cycle without changing the graph";
+pub const GRAPH_COUNT = "inactive destruction rejects owned table count mismatch without releasing any frame";
+pub const GRAPH_ORPHAN = "inactive destruction rejects an unreachable owned table without releasing any frame";
+pub const GRAPH_RECOVERY = "restored graphs remain usable and reclaim all ownership backing without allocating";

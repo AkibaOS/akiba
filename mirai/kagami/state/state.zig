@@ -3,6 +3,8 @@
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const create = @import("mirai").kagami.create;
+const guard = @import("asm").interrupts.guard;
+const ownership = @import("mirai").kagami.tables.ownership;
 const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
@@ -49,13 +51,19 @@ pub fn initialize(pml4_physical: u64) void {
     initialized = true;
 }
 
-pub fn publishOwned(kagami: *const Kagami, policy: *const Policy) bool {
+pub fn publishOwned(kagami: *Kagami, policy: *const Policy) bool {
+    const flags = guard.acquire();
+    defer guard.release(flags);
     if (hasOwnedKernel() or kagami.Ownership != .Kernel or
         (cpu.control.readCR3() & indices.ADDRESS_MASK) != kagami.PML4Physical)
     {
         return false;
     }
+    if (!ownership.reset(kagami)) return false;
     kernel_kagami = kagami.*;
+    kernel_kagami.Frames = null;
+    kernel_kagami.TablePages = 0;
+    if (!ownership.transfer(kagami, &kernel_kagami)) return false;
     kernel_policy = policy.*;
     current_kagami = &kernel_kagami;
     initialized = true;
