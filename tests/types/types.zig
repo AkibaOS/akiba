@@ -11,6 +11,7 @@ pub const image = @import("image.zig");
 pub const loading = @import("loading.zig");
 pub const memory = @import("memory.zig");
 pub const persona = @import("persona.zig");
+pub const pool = @import("pool.zig");
 pub const postman = @import("postman.zig");
 pub const protocol = @import("protocol.zig");
 pub const render = @import("render.zig");

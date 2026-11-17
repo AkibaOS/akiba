@@ -18,6 +18,7 @@ pub const memory = @import("memory.zig");
 pub const oracle = @import("oracle.zig");
 pub const paths = @import("paths.zig");
 pub const persona = @import("persona.zig");
+pub const pool = @import("pool.zig");
 pub const postman = @import("postman.zig");
 pub const protocol = @import("protocol.zig");
 pub const render = @import("render.zig");
