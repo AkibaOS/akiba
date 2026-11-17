@@ -1,5 +1,6 @@
 //! Disk Image Tool
 
+pub const catalog = @import("catalog/catalog.zig");
 pub const command = @import("command/command.zig");
 pub const constants = @import("constants/constants.zig");
 pub const errors = @import("errors/errors.zig");
