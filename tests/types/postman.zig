@@ -17,6 +17,7 @@ pub const Operand = union(enum) {
 
 pub const Operation = struct {
     Service: abi.Service,
+    ServiceValue: ?u64 = null,
     First: Operand = .{ .Immediate = 0 },
     Second: u64 = 0,
     Third: u64 = 0,

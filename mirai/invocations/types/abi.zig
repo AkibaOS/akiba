@@ -11,6 +11,9 @@ pub const Service = enum(u64) {
     Close = 7,
     FinishThread = 8,
     Exit = 9,
+    ObserveCompletion = 10,
+    WaitCompletion = 11,
+    CollectCompletion = 12,
 };
 
 pub const Query = enum(u64) {
@@ -36,4 +39,6 @@ pub const Status = enum(u64) {
     BufferTooSmall = 14,
     InvalidState = 15,
     NotInitialized = 16,
+    InvalidTarget = 17,
+    NotOwner = 18,
 };

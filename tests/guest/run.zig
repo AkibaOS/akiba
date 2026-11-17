@@ -3,6 +3,7 @@
 const accesslabels = @import("tests").strings.access;
 const acquisitionlabels = @import("tests").strings.acquisition;
 const bootlabels = @import("tests").strings.boot;
+const completionlabels = @import("tests").strings.completion;
 const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
 const driverlabels = @import("tests").strings.drivers;
@@ -80,6 +81,8 @@ pub fn execute() void {
     serial.printf(invocationlabels.GROUP, .{});
     check(guest.mirai.invocations.query.run);
     check(guest.mirai.invocations.state.run);
+    serial.printf(completionlabels.GROUP, .{});
+    check(guest.mirai.invocations.completion.run.run);
     serial.printf(labels.GROUP_TERMINATION, .{});
     check(guest.mirai.invocations.termination.run);
     serial.printf(postmanlabels.GROUP, .{});

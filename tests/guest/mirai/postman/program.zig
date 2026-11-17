@@ -16,7 +16,7 @@ pub fn encode(actor: *const Actor, operations: []const Operation) FixtureError!P
     if (operations.len == 0 or operations.len > constants.MAX_STEPS) return FixtureError.InvalidFixture;
     var program: Program = .{ .Bytes = @splat(0), .Length = 0 };
     for (operations, 0..) |operation, index| {
-        try immediate(&program, &constants.MOV_RAX, @intFromEnum(operation.Service));
+        try immediate(&program, &constants.MOV_RAX, operation.ServiceValue orelse @intFromEnum(operation.Service));
         switch (operation.First) {
             .Immediate => |value| try immediate(&program, &constants.MOV_RDI, value),
             .Indirect => |address| {
