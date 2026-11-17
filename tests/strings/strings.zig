@@ -28,5 +28,6 @@ pub const retention = @import("retention.zig");
 pub const runner = @import("runner.zig");
 pub const scenario = @import("scenario.zig");
 pub const sensei = @import("sensei.zig");
+pub const stack = @import("stack.zig");
 pub const tables = @import("tables.zig");
 pub const utils = @import("utils.zig");

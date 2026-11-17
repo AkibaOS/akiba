@@ -88,7 +88,7 @@ pub fn run() !void {
         }
     }
     const cached = state.FreeList.?;
-    const cached_base = @intFromPtr(cached);
+    const cached_base = cached.Stack.Base;
     verify.require(kagami.extract.isMapped(kernel, cached_base) and
         !memory.stack.state.isAllocatedBase(cached_base) and state.BootStackBase == boot_base and
         state.BootStackTop == boot_top and cached_base != boot_base, labels.STACK_RETAINED);

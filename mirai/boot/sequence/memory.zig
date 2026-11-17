@@ -7,6 +7,7 @@ const kalloc = @import("mirai").memory.kalloc;
 const math = @import("utils").math;
 const pmm = @import("mirai").pmm;
 const print = @import("mirai").boot.sequence.print;
+const stack = @import("mirai").memory.stack;
 const strings = @import("mirai").boot.strings;
 const types = @import("mirai").boot.types;
 const zone = @import("mirai").memory.zone;
@@ -59,6 +60,10 @@ pub fn finish(boot_info: *const BootInfo) bool {
     print.phase(status.ALLOCATOR);
     heap.state.initialize() catch {
         print.log(messages.NO_HEAP, .{});
+        return false;
+    };
+    stack.state.initialize() catch {
+        print.log(messages.NO_STACK_STORAGE, .{});
         return false;
     };
     kalloc.init() catch {

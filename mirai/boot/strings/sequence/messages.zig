@@ -30,6 +30,7 @@ pub const NO_HEAP = "  Kernel virtual heap initialization failed\n";
 pub const ALLOCATOR_READY = "  Kernel allocator ready with %d size classes\n";
 pub const PML4 = "  Using PML4 at physical address %x\n";
 pub const NO_STACK = "  Boot kernel stack allocation failed\n";
+pub const NO_STACK_STORAGE = "  Kernel stack storage initialization failed\n";
 pub const STACK_INFO = "  Stack base %x, top %x\n";
 
 pub const IDT_SETUP = "Installing hardware interrupt gates and remapping PIC\n";

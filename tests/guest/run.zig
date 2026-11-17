@@ -63,6 +63,8 @@ pub fn execute() void {
     check(guest.mirai.memory.failure.run);
     check(guest.mirai.memory.pool.run);
     check(guest.mirai.memory.stack.run);
+    check(guest.mirai.memory.reuse.run);
+    check(guest.mirai.memory.reservation.run);
     serial.printf(memorylabels.GROUP_KAGAMI, .{});
     check(guest.mirai.kagami.mapping.run);
     check(guest.mirai.kagami.ownership.run);
