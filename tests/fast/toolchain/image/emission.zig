@@ -50,6 +50,45 @@ pub fn moderateCatalogIsReadThroughProductionSearch() !void {
     try fixture.expectOwnedEntries(temporary.dir, true, true);
 }
 
+pub fn emittedDeepTreeUsesProductionSharedRouting() !void {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    var paths = try fixture.paths(std.testing.allocator, temporary.dir);
+    defer paths.deinit();
+    try fixture.createSource(temporary.dir, true);
+    try fixture.addDeepUnits(temporary.dir);
+    try tool.image.create.createDiskImage(std.testing.allocator, paths.Source, paths.Output, capacity.DEFAULT_MIB);
+    const file = try temporary.dir.openFile(names.IMAGE_NAME, .{});
+    defer file.close();
+    var image = try lookup.openImage(file);
+    try std.testing.expectEqual(constants.DEEP_DEPTH, image.Header.IndexDepth);
+    try std.testing.expectEqual(constants.DEEP_NODES, image.Header.IndexTotalNodes);
+    try std.testing.expect(image.Header.IndexTotalNodes > capacity.FORMER_INDEX_NODES);
+    try std.testing.expectEqual(constants.DEEP_TOTAL_UNITS, image.Header.UnitCount);
+    try std.testing.expectEqual(constants.MODERATE_STACKS, image.Header.StackCount);
+    try std.testing.expectEqual(constants.DEEP_RECORDS, image.Header.IndexRecordCount);
+    try expectSummary(&image);
+    try lookup.expectLeafChain(&image);
+    try expectAllocation(&image, 1, constants.DEEP_USED_CELLS);
+    var occupied: [constants.DEEP_USED_CELLS]bool = @splat(false);
+    const nested = (try lookup.findRecord(afs.types.catalog.StackRecord, &image, capacity.ORIGIN_ID, strings.NESTED_IDENTITY)) orelse return error.TestExpectedEqual;
+    for (0..constants.DEEP_UNITS) |index| {
+        var identity: [constants.DEEP_NAME_BYTES]u8 = undefined;
+        fixture.identity(index * constants.DEEP_STRIDE, &identity);
+        const unit = (try lookup.findRecord(afs.types.catalog.UnitRecord, &image, nested.NodeId, &identity)) orelse return error.TestExpectedEqual;
+        const expected = fixture.payload(index);
+        try expectUnit(&image, &unit, &expected, constants.DEEP_DATA_START, &occupied);
+        try std.testing.expect(try lookup.findRecord(afs.types.catalog.UnitRecord, &image, capacity.ORIGIN_ID, &identity) == null);
+        fixture.identity(index * constants.DEEP_STRIDE + 1, &identity);
+        try std.testing.expect(try lookup.findRecord(afs.types.catalog.UnitRecord, &image, nested.NodeId, &identity) == null);
+    }
+    try std.testing.expect(try lookup.findRecord(afs.types.catalog.UnitRecord, &image, nested.NodeId, names.EMPTY_CONTENT) == null);
+    const boot = try bootloader(&image);
+    try expectUnit(&image, &boot, &inputs.BOOTLOADER_BYTES, constants.DEEP_DATA_START, &occupied);
+    for (occupied[constants.DEEP_DATA_START..]) |allocated| try std.testing.expect(allocated);
+    try fixture.expectOwnedEntries(temporary.dir, true, true);
+}
+
 pub fn emittedBitmapCoversCellsPastTheFormerThreshold() !void {
     var temporary = std.testing.tmpDir(.{});
     defer temporary.cleanup();

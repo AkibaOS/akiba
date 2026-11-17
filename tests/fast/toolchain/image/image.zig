@@ -1,11 +1,13 @@
 //! Disk Image Integration Exports
 
 pub const afs = @import("afs.zig");
+pub const bounds = @import("bounds.zig");
 pub const catalog = @import("catalog.zig");
 pub const checked = @import("checked.zig");
 pub const constants = @import("constants/constants.zig");
 pub const emission = @import("emission.zig");
 pub const esp = @import("esp.zig");
+pub const failure = @import("failure.zig");
 pub const fixture = @import("fixture.zig");
 pub const gpt = @import("gpt.zig");
 pub const integration = @import("integration.zig");

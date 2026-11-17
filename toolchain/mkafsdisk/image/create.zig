@@ -16,7 +16,18 @@ pub fn createDiskImage(
     output_path: []const u8,
     size_megabytes: u32,
 ) !void {
+    return createDiskImageUsingIO(allocator, source_location, output_path, size_megabytes, tool.image.io.native());
+}
+
+pub fn createDiskImageUsingIO(
+    allocator: std.mem.Allocator,
+    source_location: []const u8,
+    output_path: []const u8,
+    size_megabytes: u32,
+    operations: tool.types.io.Operations,
+) !void {
     const geometry = try tool.image.geometry.disk(size_megabytes);
+    try tool.image.location.validateOutput(allocator, source_location, output_path);
     var filesystem = try tool.catalog.prepare.prepare(allocator, source_location, geometry.PartitionSizeBytes);
     defer filesystem.deinit();
     const source = filesystem.Manifest.Entries[0].Path;
@@ -26,11 +37,13 @@ pub fn createDiskImage(
     std.debug.print(messages.AFS_RANGE, .{ geometry.AfsStartLBA, geometry.AfsEndLBA });
     var output = try tool.image.output.create(output_path, geometry.TotalBytes);
     defer output.deinit();
+    output.IO = operations;
     const file = output.file();
     try tool.image.mbr.writeProtectiveMbr(file, geometry.TotalSectors);
     try tool.image.gpt.writeGpt(file, geometry.EspStartLBA, geometry.EspEndLBA, geometry.AfsStartLBA, geometry.AfsEndLBA, geometry.TotalSectors);
-    try tool.image.esp.createEsp(allocator, file, source, esp_start, disk.ESP_SIZE_SECTORS);
+    try tool.image.esp.createEspUsingIO(allocator, file, source, esp_start, disk.ESP_SIZE_SECTORS, operations);
     var writer = Writer.initialize(file, geometry.PartitionStartByte, geometry.PartitionSizeBytes, allocator);
+    writer.IO = operations;
     try writer.writeFilesystem(&filesystem);
     try output.finish();
 }

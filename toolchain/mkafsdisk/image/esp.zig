@@ -2,11 +2,13 @@
 
 const std = @import("std");
 
+const backend = @import("mkafsdisk").image.io;
 const constants = @import("mkafsdisk").constants;
 const errors = @import("mkafsdisk").errors;
 const fat32 = @import("shared").fat32;
 const math = @import("utils").math;
 const strings = @import("mkafsdisk").strings;
+const types = @import("mkafsdisk").types;
 
 const disk = constants.disk;
 const esp = constants.esp;
@@ -24,15 +26,48 @@ pub fn createEsp(
     esp_start_sector: u32,
     esp_sector_count: u32,
 ) !void {
+    return createEspUsingIO(allocator, file, source_location, esp_start_sector, esp_sector_count, backend.native());
+}
+
+pub fn createEspUsingIO(
+    allocator: std.mem.Allocator,
+    file: std.fs.File,
+    source_location: []const u8,
+    esp_start_sector: u32,
+    esp_sector_count: u32,
+    operations: types.io.Operations,
+) !void {
     std.debug.print(messages.ESP_CREATING, .{});
 
     const esp_start_byte: u64 = @as(u64, esp_start_sector) * disk.SECTOR_SIZE;
 
-    const available_sectors = esp_sector_count - esp.RESERVED_SECTORS;
-    const fat_size_sectors = (@sizeOf(u32) * available_sectors + disk.SECTOR_SIZE * esp.SECTORS_PER_CLUSTER - 1) /
+    if (esp_sector_count <= esp.RESERVED_SECTORS) return ImageError.EspTooSmall;
+    const available_sectors: u64 = esp_sector_count - esp.RESERVED_SECTORS;
+    const fat_size = (@sizeOf(u32) * available_sectors + disk.SECTOR_SIZE * esp.SECTORS_PER_CLUSTER - 1) /
         (disk.SECTOR_SIZE * esp.SECTORS_PER_CLUSTER + @sizeOf(u32) * esp.FAT_COUNT);
-    const data_sectors = available_sectors - (fat_size_sectors * esp.FAT_COUNT);
-    const total_clusters = data_sectors / esp.SECTORS_PER_CLUSTER;
+    const fat_size_sectors = std.math.cast(u32, fat_size) orelse return errors.planning.PlanningError.Overflow;
+    if (fat_size * esp.FAT_COUNT > available_sectors) return ImageError.EspTooSmall;
+    const data_sectors = available_sectors - fat_size * esp.FAT_COUNT;
+    const total_clusters = std.math.cast(u32, data_sectors / esp.SECTORS_PER_CLUSTER) orelse return errors.planning.PlanningError.Overflow;
+    if (total_clusters < disk.FAT32_MINIMUM_CLUSTERS or total_clusters < esp.DIRECTORY_CLUSTERS) return ImageError.EspTooSmall;
+    if (@as(u64, total_clusters) + esp.FIRST_DATA_CLUSTER - 1 > esp.MAXIMUM_DATA_CLUSTER) return errors.planning.PlanningError.Overflow;
+    const fat_bytes_wide = std.math.mul(u64, fat_size, disk.SECTOR_SIZE) catch return errors.planning.PlanningError.Overflow;
+    const fat_bytes = std.math.cast(usize, fat_bytes_wide) orelse return errors.planning.PlanningError.Overflow;
+    if (@as(u64, total_clusters) + esp.FIRST_DATA_CLUSTER > fat_bytes_wide / @sizeOf(u32)) return ImageError.EspTooSmall;
+    const esp_bytes = std.math.mul(u64, esp_sector_count, disk.SECTOR_SIZE) catch return errors.planning.PlanningError.Overflow;
+    const esp_end = std.math.add(u64, esp_start_byte, esp_bytes) catch return errors.planning.PlanningError.Overflow;
+    if (esp_end > try file.getEndPos()) return ImageError.EspTooSmall;
+    const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, names.STACK_EFI, names.STACK_BOOT, names.UNIT_BOOTLOADER });
+    defer allocator.free(bootloader_location);
+    const bootloader_file = try std.fs.cwd().openFile(bootloader_location, .{});
+    defer bootloader_file.close();
+    const initial = try bootloader_file.stat();
+    if (initial.kind != .file) return errors.planning.PlanningError.UnsupportedSource;
+    const bootloader_size = initial.size;
+    if (bootloader_size > std.math.maxInt(u32)) return errors.planning.PlanningError.Overflow;
+    const requested_clusters = math.integer.divideCeil(bootloader_size, disk.SECTOR_SIZE * esp.SECTORS_PER_CLUSTER);
+    if (requested_clusters > total_clusters - esp.DIRECTORY_CLUSTERS) return ImageError.EspTooSmall;
+    const bootloader_clusters: u32 = @intCast(requested_clusters);
 
     const boot_sector = BootSector{
         .JumpBoot = fat32.constants.defaults.DEFAULT_JUMP_BOOT,
@@ -82,7 +117,6 @@ pub fn createEsp(
     try file.seekTo(esp_start_byte + esp.BACKUP_BOOT_SECTOR * disk.SECTOR_SIZE);
     try file.writeAll(&boot_sector_bytes);
 
-    const fat_bytes = fat_size_sectors * disk.SECTOR_SIZE;
     const fat_table = try allocator.alloc(u8, fat_bytes);
     defer allocator.free(fat_table);
     fat32.write.boot.initFatTable(fat_table);
@@ -117,15 +151,6 @@ pub fn createEsp(
     writeEntry(&boot_stack, 0, fat32.write.entry.createDotEntry(boot_cluster));
     writeEntry(&boot_stack, 1, fat32.write.entry.createDotDotEntry(efi_cluster));
 
-    const bootloader_location = try std.fs.path.join(allocator, &.{ source_location, names.STACK_EFI, names.STACK_BOOT, names.UNIT_BOOTLOADER });
-    defer allocator.free(bootloader_location);
-
-    const bootloader_file = try std.fs.cwd().openFile(bootloader_location, .{});
-    defer bootloader_file.close();
-
-    const bootloader_size = try bootloader_file.getEndPos();
-    const bootloader_clusters = @as(u32, @intCast(math.integer.divideCeil(bootloader_size, disk.SECTOR_SIZE)));
-
     std.debug.print(messages.BOOTLOADER_ADDING, .{ bootloader_size, bootloader_clusters });
 
     const bootloader_start_cluster = current_cluster;
@@ -140,13 +165,16 @@ pub fn createEsp(
     try file.writeAll(&boot_stack);
     fat32.write.boot.allocateCluster(fat_table, boot_cluster);
 
+    var remaining = bootloader_size;
     var cluster_index: u32 = 0;
     while (cluster_index < bootloader_clusters) : (cluster_index += 1) {
         var buffer: [disk.SECTOR_SIZE]u8 = [_]u8{0} ** disk.SECTOR_SIZE;
-        _ = try bootloader_file.read(&buffer);
+        const to_read: usize = @intCast(@min(remaining, buffer.len));
+        try backend.readExact(operations, bootloader_file, buffer[0..to_read]);
+        remaining -= to_read;
 
         const cluster_number = bootloader_start_cluster + cluster_index;
-        const cluster_offset = data_start + (cluster_number - esp.FIRST_DATA_CLUSTER) * disk.SECTOR_SIZE;
+        const cluster_offset = data_start + @as(u64, cluster_number - esp.FIRST_DATA_CLUSTER) * disk.SECTOR_SIZE;
         try file.seekTo(cluster_offset);
         try file.writeAll(&buffer);
 
@@ -157,15 +185,12 @@ pub fn createEsp(
         }
     }
 
+    const final = try bootloader_file.stat();
+    if (remaining != 0 or final.kind != .file or final.size != bootloader_size or final.mtime != initial.mtime) return ImageError.SourceChanged;
     try file.seekTo(fat1_offset);
     try file.writeAll(fat_table);
     try file.seekTo(fat2_offset);
     try file.writeAll(fat_table);
-
-    if (total_clusters < disk.FAT32_MINIMUM_CLUSTERS) {
-        std.debug.print(messages.ESP_TOO_SMALL, .{ total_clusters, disk.FAT32_MINIMUM_CLUSTERS });
-        return ImageError.EspTooSmall;
-    }
 
     std.debug.print(messages.ESP_CREATED, .{total_clusters});
 }

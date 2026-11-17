@@ -26,15 +26,28 @@ pub fn createSource(directory: std.fs.Dir, with_bootloader: bool) !void {
 }
 
 pub fn addModerateUnits(directory: std.fs.Dir) !void {
+    try addUnits(constants.MODERATE_NAME_BYTES, directory, constants.MODERATE_UNITS, 1);
+}
+
+pub fn addDeepUnits(directory: std.fs.Dir) !void {
+    try addUnits(constants.DEEP_NAME_BYTES, directory, constants.DEEP_UNITS, constants.DEEP_STRIDE);
+}
+
+fn addUnits(comptime name_bytes: usize, directory: std.fs.Dir, count: usize, stride: usize) !void {
     var nested = try directory.openDir(strings.NESTED_DIRECTORY, .{});
     defer nested.close();
-    for (0..constants.MODERATE_UNITS) |offset| {
-        const index = constants.MODERATE_UNITS - offset - 1;
-        var name: [constants.MODERATE_NAME_BYTES]u8 = undefined;
-        identity(index, &name);
+    for (0..count) |offset| {
+        const index = count - offset - 1;
+        var name: [name_bytes]u8 = undefined;
+        identity(index * stride, &name);
         const bytes = payload(index);
         try nested.writeFile(.{ .sub_path = &name, .data = &bytes });
     }
+}
+
+pub fn addMutableUnit(directory: std.fs.Dir) !void {
+    const bytes = payload(constants.MODERATE_UNITS);
+    try directory.writeFile(.{ .sub_path = strings.MUTABLE_PATH, .data = &bytes });
 }
 
 pub fn identity(index: usize, destination: []u8) void {

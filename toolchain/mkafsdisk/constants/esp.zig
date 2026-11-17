@@ -8,5 +8,7 @@ pub const FSINFO_SECTOR: u32 = 1;
 pub const BACKUP_BOOT_SECTOR: u32 = 6;
 
 pub const DIRECTORY_ENTRY_SIZE: usize = 32;
+pub const DIRECTORY_CLUSTERS: u32 = 3;
+pub const MAXIMUM_DATA_CLUSTER: u32 = 0x0FFFFFEF;
 pub const FIRST_DATA_CLUSTER: u32 = 2;
 pub const FIRST_FREE_CLUSTER: u32 = 3;

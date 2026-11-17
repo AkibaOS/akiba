@@ -21,6 +21,7 @@ pub const Writer = struct {
     CellSize: u32 = afs.constants.sizes.DEFAULT_CELL_SIZE,
     TotalCells: u32 = 0,
     ImageSizeBytes: u64 = 0,
+    IO: ?tool.types.io.Operations = null,
 
     const Self = @This();
 
@@ -81,18 +82,22 @@ pub const Writer = struct {
     fn copyUnit(self: *Self, entry: Entry, span: SpanDescriptor) !void {
         const source = try std.fs.cwd().openFile(entry.Path, .{});
         defer source.close();
+        const initial = try source.stat();
+        if (initial.kind != .file or initial.size != entry.LogicalSize) return tool.errors.image.ImageError.SourceChanged;
         var remaining = entry.LogicalSize;
         var current_cell = span.StartCell;
         var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
+        const operations = self.IO orelse tool.image.io.native();
         while (remaining > 0) {
             @memset(&buffer, 0);
             const to_read: usize = @intCast(@min(remaining, self.CellSize));
-            const bytes_read = try source.read(buffer[0..to_read]);
-            if (bytes_read == 0) break;
+            try tool.image.io.readExact(operations, source, buffer[0..to_read]);
             try self.writeCell(current_cell, &buffer);
-            remaining -= bytes_read;
+            remaining -= to_read;
             current_cell += 1;
         }
+        const final = try source.stat();
+        if (final.kind != .file or final.size != entry.LogicalSize or final.mtime != initial.mtime) return tool.errors.image.ImageError.SourceChanged;
     }
 
     fn writeIndex(self: *Self, plan: *const FilesystemPlan) !void {
@@ -161,7 +166,8 @@ pub const Writer = struct {
         if (relative_offset > self.PartitionSizeBytes or data.len > self.PartitionSizeBytes - relative_offset) return PlanningError.OutOfSpace;
         const offset = std.math.add(u64, self.PartitionStartByte, relative_offset) catch return PlanningError.Overflow;
         if (offset > self.ImageSizeBytes or data.len > self.ImageSizeBytes - offset) return PlanningError.OutOfSpace;
-        try self.File.pwriteAll(data, offset);
+        const operations = self.IO orelse tool.image.io.native();
+        try operations.WriteFn(operations.Context, self.File, data, offset);
     }
 
     fn lowBits(count: u4) u8 {

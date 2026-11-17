@@ -157,3 +157,55 @@ test "AFS missing bootloader fails without replacing an existing final image" {
 test "AFS successful replacement supports native spaced and wide host paths" {
     try image.emission.nativeSpacedAndWideHostPathsRemainSupported();
 }
+
+test "AFS emitted long name catalog traverses three levels through production shared readers" {
+    try image.emission.emittedDeepTreeUsesProductionSharedRouting();
+}
+
+test "AFS output inside its source is refused without changing the source sentinel" {
+    try image.publication.outputInsideSourceIsRefused();
+}
+
+test "AFS output inside a canonical source alias is refused" {
+    try image.publication.outputWithinCanonicalSourceAliasIsRefused();
+}
+
+test "AFS source name prefix does not reject a distinct output sibling" {
+    try image.publication.sourcePrefixSiblingIsNotMistakenForOverlap();
+}
+
+test "AFS source size change after planning refuses final image publication" {
+    try image.failure.sourceChangeRefusesPublication();
+}
+
+test "AFS legitimate short reads preserve complete shared reader payload bytes" {
+    try image.failure.shortReadsPreserveAFSPayloadBytes();
+}
+
+test "ESP legitimate short reads preserve the complete bootloader chain" {
+    try image.failure.shortReadsPreserveESPPayloadBytes();
+}
+
+test "ESP bootloader capacity cannot consume the next partition sector" {
+    try image.bounds.bootloaderCannotConsumeTheNextPartitionSector();
+}
+
+test "AFS allocation failures release ownership and preserve absent and existing finals" {
+    try image.failure.allocationFailuresKeepFinalStateAndReleaseOwnership();
+}
+
+test "AFS actual source read failure preserves absent and existing final states" {
+    try image.failure.readFailureKeepsFinalState();
+}
+
+test "AFS actual output write failure preserves absent and existing final states" {
+    try image.failure.writeFailureKeepsFinalState();
+}
+
+test "AFS actual output sync failure preserves absent and existing final states" {
+    try image.failure.syncFailureKeepsFinalState();
+}
+
+test "AFS actual output rename failure preserves absent and existing final states" {
+    try image.failure.renameFailureKeepsFinalState();
+}
