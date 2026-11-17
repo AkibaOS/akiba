@@ -17,13 +17,13 @@ pub fn bitmapByteCounts() !void {
 
 pub fn boundedBitmapMutations() !void {
     var bitmap = [_]u8{ 0x01, 0x80, 0xf8 };
-    var map = allocation.AllocationMap.init(&bitmap, 19, 3);
+    var map = try allocation.AllocationMap.init(&bitmap, 19, 3);
     try std.testing.expectEqual(@as(u32, 17), map.freeCount());
     map.markAllocated(1);
     map.markAllocated(1);
     map.markFree(0);
     map.markFree(0);
-    map.reserveRange(14, 5);
+    try map.reserveRange(14, 5);
     try std.testing.expectEqualSlices(u8, &[_]u8{ 0x02, 0xc0, 0xff }, &bitmap);
     try std.testing.expectEqual(@as(u32, 13), map.freeCount());
     try std.testing.expect(!map.isAllocated(0));
@@ -40,7 +40,7 @@ pub fn boundedBitmapMutations() !void {
 
 pub fn bumpAllocatorAccounting() !void {
     var bitmap = [_]u8{ 0x07, 0x00, 0xf8 };
-    var map = allocation.AllocationMap.init(&bitmap, 19, 3);
+    var map = try allocation.AllocationMap.init(&bitmap, 19, 3);
     try std.testing.expectEqual(@as(u32, 16), map.freeCount());
     try std.testing.expectEqual(@as(u32, 3), try map.allocateCells(0));
     try std.testing.expectEqualSlices(u8, &[_]u8{ 0x07, 0x00, 0xf8 }, &bitmap);

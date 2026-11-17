@@ -48,7 +48,7 @@ pub fn metadataAndAllocation(file: std.fs.File) !AFSImage {
     const reader = io.reader(&image);
     var bitmap: [constants.CELL_BYTES]u8 = undefined;
     try reader.readCell(image.Header.AllocationMapSpan.StartCell, &bitmap);
-    const map = afs.types.allocation.AllocationMap.init(&bitmap, image.Header.TotalCells, constants.AFS_DATA_START);
+    const map = try afs.types.allocation.AllocationMap.init(&bitmap, image.Header.TotalCells, constants.AFS_DATA_START);
     for (0..constants.AFS_USED_CELLS) |cell| try std.testing.expect(map.isAllocated(@intCast(cell)));
     try std.testing.expect(!map.isAllocated(constants.AFS_USED_CELLS));
     try std.testing.expect(!map.isAllocated(image.Header.TotalCells - 1));

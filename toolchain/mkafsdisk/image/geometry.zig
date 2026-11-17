@@ -69,9 +69,8 @@ pub fn volume(total_cells: u64, tree_nodes: u64, payload_cells: u64) PlanningErr
 }
 
 pub fn payloadCells(logical_size: u64) PlanningError!u32 {
-    if (logical_size == 0) return 0;
-    const cells = (logical_size - 1) / afs.constants.sizes.DEFAULT_CELL_SIZE + 1;
-    return std.math.cast(u32, cells) orelse return PlanningError.Overflow;
+    return afs.write.unit.cellsNeeded(logical_size, afs.constants.sizes.DEFAULT_CELL_SIZE) catch |failure|
+        return if (failure == error.InvalidCell) PlanningError.InvalidGeometry else PlanningError.Overflow;
 }
 
 pub fn spans(

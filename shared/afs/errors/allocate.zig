@@ -1,6 +1,7 @@
 //! AFS Allocation Errors
 
 pub const AllocationError = error{
-    OutOfSpace,
+    InvalidBitmap,
     InvalidCell,
+    OutOfSpace,
 };

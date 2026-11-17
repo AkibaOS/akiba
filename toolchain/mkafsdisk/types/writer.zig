@@ -170,7 +170,7 @@ pub const Writer = struct {
         defer source_file.close();
 
         const file_size = try source_file.getEndPos();
-        const cells_needed = afs.write.unit.cellsNeeded(file_size, self.CellSize);
+        const cells_needed = try afs.write.unit.cellsNeeded(file_size, self.CellSize);
 
         const start_cell = self.NextCell;
         self.NextCell += cells_needed;
@@ -195,7 +195,7 @@ pub const Writer = struct {
 
         const timestamp = @as(u64, @intCast(std.time.timestamp()));
 
-        const data_channel = afs.write.unit.createChannelInfo(file_size, start_cell, cells_needed, self.CellSize);
+        const data_channel = try afs.write.unit.createChannelInfo(file_size, start_cell, cells_needed, self.CellSize);
         var record = afs.write.stack.createUnitRecord(node_id, timestamp, 0o644, data_channel);
 
         try self.writeIndexRecord(index_buffer, parent_node_id, identity, std.mem.asBytes(&record));
@@ -258,10 +258,10 @@ pub const Writer = struct {
         const record_offset_in_node = self.IndexRecordOffset;
         const record_start = leaf_offset + record_offset_in_node;
 
-        var key = afs.write.stack.createIndexKey(parent_node_id, identity);
+        var key = try afs.write.stack.createIndexKey(parent_node_id, identity);
         _ = &key;
 
-        const key_size = afs.write.stack.indexKeySize(identity.len);
+        const key_size = try afs.write.stack.indexKeySize(identity.len);
         @memcpy(index_buffer[record_start .. record_start + key_size], std.mem.asBytes(&key)[0..key_size]);
         @memcpy(index_buffer[record_start + key_size .. record_start + key_size + record_data.len], record_data);
 
@@ -292,9 +292,9 @@ pub const Writer = struct {
         const bitmap = try self.Allocator.alloc(u8, self.AllocationMapCells * self.CellSize);
         defer self.Allocator.free(bitmap);
 
-        var map = afs.types.allocation.AllocationMap.init(bitmap, self.TotalCells, 0);
+        var map = try afs.types.allocation.AllocationMap.init(bitmap, self.TotalCells, 0);
         @memset(bitmap, 0);
-        map.reserveRange(0, self.NextCell);
+        try map.reserveRange(0, self.NextCell);
 
         const byte_offset = self.PartitionStartByte + @as(u64, self.AllocationMapStartCell) * self.CellSize;
         try self.File.seekTo(byte_offset);

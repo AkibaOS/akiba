@@ -71,7 +71,8 @@ pub fn validateEntry(entry: Entry) PlanningError!void {
 
 pub fn keyLength(identity: []const u8) PlanningError!u16 {
     try validateIdentity(identity, true);
-    return @intCast(@as(usize, afs.constants.btree.INDEX_KEY_HEADER_SIZE) + identity.len * @sizeOf(u16));
+    const size = afs.write.stack.indexKeySize(identity.len) catch return PlanningError.InvalidIdentity;
+    return std.math.cast(u16, size) orelse return PlanningError.Overflow;
 }
 
 pub fn recordLength(entry: Entry, is_index: bool) PlanningError!usize {
@@ -101,7 +102,7 @@ fn lessEntry(entries: []const Entry, left: usize, right: usize) bool {
 }
 
 fn compareEntries(left: Entry, right: Entry) i32 {
-    const right_key = afs.write.stack.createIndexKey(right.ParentNodeId, right.Identity);
+    const right_key = afs.write.stack.createIndexKey(right.ParentNodeId, right.Identity) catch unreachable;
     var identity: [constants.MAXIMUM_IDENTITY_BYTES]u16 = undefined;
     for (left.Identity, 0..) |character, index| identity[index] = character;
     return afs.btree.search.compareKeys(left.ParentNodeId, identity[0..left.Identity.len], &right_key);

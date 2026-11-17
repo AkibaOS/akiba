@@ -81,3 +81,51 @@ test "AFS bulk catalog redistributes a final unary internal group" {
 test "AFS bulk catalog preserves byte widened rather than Unicode decoded identities" {
     try image.catalog.identityBytesAreWidenedWithoutUnicodeDecoding();
 }
+
+test "AFS allocation map rejects backing that cannot represent its volume" {
+    try image.checked.bitmapBackingMustCoverEveryCell();
+}
+
+test "AFS allocation map rejects invalid initial cursors without touching backing" {
+    try image.checked.invalidInitialCursorDoesNotTouchBacking();
+}
+
+test "AFS allocation reservation refuses whole invalid ranges before mutating bits" {
+    try image.checked.invalidReservationIsRejectedBeforeAnyBitChanges();
+}
+
+test "AFS allocation refuses corrupt cursors and wrapped demand without mutation" {
+    try image.checked.allocationRejectsCorruptCursorAndWrappedDemand();
+}
+
+test "AFS bump allocation refuses an occupied cursor without searching or changing ownership" {
+    try image.checked.occupiedBumpCursorDoesNotAliasAnAllocation();
+}
+
+test "AFS bump allocation refuses an occupied interior before claiming a free prefix" {
+    try image.checked.occupiedInteriorDoesNotPartiallyClaimAFreePrefix();
+}
+
+test "AFS allocation backing reaches the final cell beyond the old bitmap boundary" {
+    try image.checked.formerBitmapBoundarySupportsTheLastValidBit();
+}
+
+test "AFS key size construction rejects unrepresentable names before arithmetic" {
+    try image.checked.keySizeRejectsUnrepresentableNamesBeforeArithmetic();
+}
+
+test "AFS key construction rejects unaddressable and oversized identities" {
+    try image.checked.keyConstructorRejectsNamesInsteadOfTruncating();
+}
+
+test "AFS cell count construction rejects zero geometry and narrowing overflow" {
+    try image.checked.cellCountsRejectZeroGeometryAndNarrowingOverflow();
+}
+
+test "AFS channel construction rejects impossible sizes and span overflow" {
+    try image.checked.channelsRejectImpossibleSizesAndSpanOverflow();
+}
+
+test "AFS checked constructors preserve representable endpoints and byte identities" {
+    try image.checked.representableConstructorEndpointsRemainSupported();
+}

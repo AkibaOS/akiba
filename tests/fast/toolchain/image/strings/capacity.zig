@@ -9,6 +9,7 @@ pub const SECOND_IDENTITY = "B";
 pub const LOWER_IDENTITY = "a";
 pub const INVALID_SLASH = "bad/name";
 pub const INVALID_BACKSLASH = "bad\\name";
+pub const INVALID_NUL = "bad\x00name";
 pub const ALPHA_PATH = "Alpha";
 pub const BETA_PATH = "beta";
 pub const NESTED_PATH = "nested";

@@ -1,5 +1,7 @@
 //! AFS Unit Write Operations
 
+const std = @import("std");
+
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
 const math = @import("utils").math;
@@ -46,9 +48,11 @@ pub fn writeSpan(
     return bytes_written;
 }
 
-pub fn cellsNeeded(size: u64, cell_size: u32) u32 {
+pub fn cellsNeeded(size: u64, cell_size: u32) WriteError!u32 {
+    if (cell_size == 0) return WriteError.InvalidCell;
     if (size == 0) return 0;
-    return @intCast(math.integer.divideCeil(size, cell_size));
+    const cells = math.integer.divideCeil(size, cell_size);
+    return std.math.cast(u32, cells) orelse return WriteError.Overflow;
 }
 
 pub fn createChannelInfo(
@@ -56,12 +60,17 @@ pub fn createChannelInfo(
     start_cell: u64,
     cell_count: u64,
     cell_size: u32,
-) ChannelInfo {
+) WriteError!ChannelInfo {
+    if (cell_size == 0) return WriteError.InvalidCell;
+    const total_cells = std.math.cast(u32, cell_count) orelse return WriteError.Overflow;
+    const physical_size = std.math.mul(u64, cell_count, cell_size) catch return WriteError.Overflow;
+    if (logical_size > physical_size) return WriteError.InvalidSpan;
+    if (cell_count > 0) _ = std.math.add(u64, start_cell, cell_count) catch return WriteError.Overflow;
     var channel = ChannelInfo{
         .LogicalSize = logical_size,
-        .PhysicalSize = cell_count * cell_size,
+        .PhysicalSize = physical_size,
         .ClumpSize = cell_size,
-        .TotalCells = @intCast(cell_count),
+        .TotalCells = total_cells,
         .Spans = [_]SpanDescriptor{.{}} ** constants.sizes.SPAN_INLINE_COUNT,
     };
 

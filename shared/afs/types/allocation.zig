@@ -10,12 +10,14 @@ pub const AllocationMap = struct {
     TotalCells: u32,
     NextFree: u32,
 
-    pub fn init(bitmap: []u8, total_cells: u32, first_data_cell: u32) AllocationMap {
-        return AllocationMap{
+    pub fn init(bitmap: []u8, total_cells: u32, first_data_cell: u32) AllocationError!AllocationMap {
+        const map = AllocationMap{
             .Bitmap = bitmap,
             .TotalCells = total_cells,
             .NextFree = first_data_cell,
         };
+        try map.validateGeometry();
+        return map;
     }
 
     pub fn markAllocated(self: *AllocationMap, cell: u32) void {
@@ -34,24 +36,30 @@ pub const AllocationMap = struct {
     }
 
     pub fn allocateCells(self: *AllocationMap, count: u32) AllocationError!u32 {
-        if (count == 0) return self.NextFree;
-
+        try self.validateGeometry();
         const start = self.NextFree;
-        if (start + count > self.TotalCells) {
-            return AllocationError.OutOfSpace;
+        if (count > self.TotalCells - start) return AllocationError.OutOfSpace;
+        var index: u32 = 0;
+        while (index < count) : (index += 1) {
+            if (self.isAllocated(start + index)) return AllocationError.OutOfSpace;
         }
-
-        self.reserveRange(start, count);
-
+        try self.reserveRange(start, count);
         self.NextFree = start + count;
         return start;
     }
 
-    pub fn reserveRange(self: *AllocationMap, start: u32, count: u32) void {
+    pub fn reserveRange(self: *AllocationMap, start: u32, count: u32) AllocationError!void {
+        try self.validateGeometry();
+        if (start > self.TotalCells or count > self.TotalCells - start) return AllocationError.InvalidCell;
         var index: u32 = 0;
         while (index < count) : (index += 1) {
             self.markAllocated(start + index);
         }
+    }
+
+    fn validateGeometry(self: *const AllocationMap) AllocationError!void {
+        if (self.Bitmap.len < bits.operations.bitmapBytes(self.TotalCells)) return AllocationError.InvalidBitmap;
+        if (self.NextFree > self.TotalCells) return AllocationError.InvalidCell;
     }
 
     pub fn freeCount(self: *const AllocationMap) u32 {

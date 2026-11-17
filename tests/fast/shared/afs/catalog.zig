@@ -20,7 +20,7 @@ pub fn spanAndChannelConstruction() !void {
     try std.testing.expect(empty.isEmpty());
     try std.testing.expect(!empty.contains(3));
 
-    const channel = unit.createChannelInfo(constants.CELL_SIZE + constants.PARTIAL_BYTES, 3, 2, constants.CELL_SIZE);
+    const channel = try unit.createChannelInfo(constants.CELL_SIZE + constants.PARTIAL_BYTES, 3, 2, constants.CELL_SIZE);
     var expected = volume.ChannelInfo{
         .LogicalSize = constants.CELL_SIZE + constants.PARTIAL_BYTES,
         .PhysicalSize = 1024,
@@ -32,18 +32,18 @@ pub fn spanAndChannelConstruction() !void {
     try std.testing.expectEqualDeep(span, channel.getSpan(0).?.*);
     try std.testing.expect(channel.getSpan(1) == null);
     try std.testing.expect(channel.getSpan(channel.Spans.len) == null);
-    const empty_channel = unit.createChannelInfo(0, 7, 0, constants.CELL_SIZE);
+    const empty_channel = try unit.createChannelInfo(0, 7, 0, constants.CELL_SIZE);
     try std.testing.expectEqualDeep(volume.ChannelInfo{ .ClumpSize = constants.CELL_SIZE }, empty_channel);
 }
 
 pub fn roundedCellCounts() !void {
-    try std.testing.expectEqual(@as(u32, 0), unit.cellsNeeded(0, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 1), unit.cellsNeeded(1, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 1), unit.cellsNeeded(511, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 1), unit.cellsNeeded(512, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 2), unit.cellsNeeded(513, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 2), unit.cellsNeeded(1024, constants.CELL_SIZE));
-    try std.testing.expectEqual(@as(u32, 3), unit.cellsNeeded(1025, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 0), try unit.cellsNeeded(0, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 1), try unit.cellsNeeded(1, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 1), try unit.cellsNeeded(511, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 1), try unit.cellsNeeded(512, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 2), try unit.cellsNeeded(513, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 2), try unit.cellsNeeded(1024, constants.CELL_SIZE));
+    try std.testing.expectEqual(@as(u32, 3), try unit.cellsNeeded(1025, constants.CELL_SIZE));
 }
 
 pub fn stackConstruction() !void {
@@ -105,22 +105,22 @@ pub fn unitConstruction() !void {
 }
 
 pub fn indexKeyConstruction() !void {
-    const empty = records.createIndexKey(7, "");
+    const empty = try records.createIndexKey(7, "");
     try std.testing.expectEqual(@as(u16, 8), empty.KeyLength);
     try std.testing.expectEqual(@as(u32, 7), empty.ParentNodeId);
     try std.testing.expectEqual(@as(usize, 0), empty.getIdentityLength());
     try std.testing.expectEqualSlices(u16, &([_]u16{0} ** 256), &empty.Identity);
-    const key = records.createIndexKey(7, &.{ 'A', 0xe9 });
+    const key = try records.createIndexKey(7, &.{ 'A', 0xe9 });
     try std.testing.expectEqual(@as(u16, 12), key.KeyLength);
     try std.testing.expectEqual(@as(u32, 7), key.ParentNodeId);
     try std.testing.expectEqual(@as(usize, 2), key.getIdentityLength());
     try std.testing.expectEqualSlices(u16, &[_]u16{ 'A', 0xe9 }, key.Identity[0..2]);
     try std.testing.expectEqualSlices(u16, &([_]u16{0} ** 254), key.Identity[2..]);
-    const maximum = records.createIndexKey(9, &([_]u8{'x'} ** 256));
+    const maximum = try records.createIndexKey(9, &([_]u8{'x'} ** 256));
     try std.testing.expectEqual(@as(u16, 520), maximum.KeyLength);
     try std.testing.expectEqual(@as(usize, 256), maximum.getIdentityLength());
     try std.testing.expectEqualSlices(u16, &([_]u16{'x'} ** 256), &maximum.Identity);
-    try std.testing.expectEqual(@as(usize, 8), records.indexKeySize(0));
-    try std.testing.expectEqual(@as(usize, 12), records.indexKeySize(2));
-    try std.testing.expectEqual(@as(usize, 520), records.indexKeySize(256));
+    try std.testing.expectEqual(@as(usize, 8), try records.indexKeySize(0));
+    try std.testing.expectEqual(@as(usize, 12), try records.indexKeySize(2));
+    try std.testing.expectEqual(@as(usize, 520), try records.indexKeySize(256));
 }

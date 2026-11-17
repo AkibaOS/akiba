@@ -105,7 +105,8 @@ fn encodeCatalogRecord(entry: Entry, span: SpanDescriptor, destination: []u8) Pl
     const cells = try tool.image.geometry.payloadCells(entry.LogicalSize);
     if (span.CellCount != cells or (cells == 0 and span.StartCell != 0)) return PlanningError.InvalidSpan;
     _ = std.math.add(u64, span.StartCell, span.CellCount) catch return PlanningError.Overflow;
-    const channel = afs.write.unit.createChannelInfo(entry.LogicalSize, span.StartCell, span.CellCount, afs.constants.sizes.DEFAULT_CELL_SIZE);
+    const channel = afs.write.unit.createChannelInfo(entry.LogicalSize, span.StartCell, span.CellCount, afs.constants.sizes.DEFAULT_CELL_SIZE) catch |failure|
+        return if (failure == error.Overflow) PlanningError.Overflow else PlanningError.InvalidSpan;
     const record = afs.write.stack.createUnitRecord(entry.NodeId, entry.Timestamp, constants.UNIT_MODE, channel);
     encodeValue(afs.types.catalog.UnitRecord, record, destination);
 }

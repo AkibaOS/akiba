@@ -1,6 +1,8 @@
 //! AFS Stack Write Operations
 
 const constants = @import("shared").afs.constants;
+const errors = @import("shared").afs.errors;
+const separators = @import("utils").path.constants.separators;
 const types = @import("shared").afs.types;
 
 const ChannelInfo = types.volume.ChannelInfo;
@@ -8,6 +10,7 @@ const IndexKey = types.btree.IndexKey;
 const Permissions = types.catalog.Permissions;
 const StackRecord = types.catalog.StackRecord;
 const UnitRecord = types.catalog.UnitRecord;
+const WriteError = errors.write.WriteError;
 
 pub fn createStackRecord(
     node_id: u32,
@@ -73,20 +76,23 @@ pub fn createUnitRecord(
 pub fn createIndexKey(
     parent_node_id: u32,
     identity: []const u8,
-) IndexKey {
+) WriteError!IndexKey {
+    const key_size = try indexKeySize(identity.len);
     var key = IndexKey{
-        .KeyLength = @intCast(@as(usize, constants.btree.INDEX_KEY_HEADER_SIZE) + identity.len * @sizeOf(u16)),
+        .KeyLength = @intCast(key_size),
         .ParentNodeId = parent_node_id,
         .Identity = [_]u16{0} ** 256,
     };
 
-    for (identity, 0..) |char, index| {
-        key.Identity[index] = char;
+    for (identity, 0..) |character, index| {
+        if (character == 0 or character == separators.FORWARD_SLASH or character == separators.BACK_SLASH) return WriteError.InvalidIdentity;
+        key.Identity[index] = character;
     }
 
     return key;
 }
 
-pub fn indexKeySize(identity_length: usize) usize {
+pub fn indexKeySize(identity_length: usize) WriteError!usize {
+    if (identity_length > @as(IndexKey, undefined).Identity.len) return WriteError.InvalidIdentity;
     return @as(usize, constants.btree.INDEX_KEY_HEADER_SIZE) + identity_length * @sizeOf(u16);
 }

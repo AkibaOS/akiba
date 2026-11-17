@@ -1,7 +1,10 @@
 //! AFS Write Errors
 
 pub const WriteError = error{
-    WriteFailed,
-    OutOfSpace,
     InvalidCell,
+    InvalidIdentity,
+    InvalidSpan,
+    OutOfSpace,
+    Overflow,
+    WriteFailed,
 };
