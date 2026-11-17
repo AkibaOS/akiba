@@ -9,6 +9,7 @@ pub const CODE_ADDRESS: u64 = 0x200000;
 pub const COMPILER_ENTRY: u64 = 0x400000;
 pub const STACK_ADDRESS: u64 = 0x70000000;
 pub const PRESSURE_ADDRESS: u64 = 0x30000000;
+pub const PRESSURE_PAGES: usize = 2;
 pub const ARGUMENT: u64 = 0x13579bdf2468ace0;
 pub const EXIT_RESULT: u64 = 0x123456789abcdef0;
 pub const BAD_ARGUMENT_RESULT: u64 = 1;

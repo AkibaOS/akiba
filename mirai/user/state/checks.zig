@@ -44,7 +44,7 @@ pub fn isPayloadPhysical(physical_address: u64) bool {
 }
 
 pub fn lookupOwned(record: *const Record) ?Lookup {
-    if (!isValidOwner(record.Owner) or ledger.find(record.Owner, record.VA) != record or
+    if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record or
         !isValidRange(record.VA, sizes.PAGE_SIZE) or (record.VA & sizes.PAGE_MASK) != 0 or
         !isPayloadPhysical(record.PA)) return null;
     const resolved = kagami.tables.walk.lookup(record.Owner.AddressSpace.?.PML4Physical, record.VA) orelse return null;
@@ -56,7 +56,7 @@ pub fn lookupOwned(record: *const Record) ?Lookup {
 }
 
 pub fn lookupAlias(record: *const Record) ?Lookup {
-    if (!isValidOwner(record.Owner) or ledger.find(record.Owner, record.VA) != record or
+    if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record or
         !isPayloadPhysical(record.PA) or !kagami.state.hasOwnedKernel()) return null;
     const policy = kagami.state.getPolicy();
     if (policy.PhysmapBase != layout.PHYSMAP_BASE) return null;

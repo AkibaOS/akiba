@@ -27,6 +27,10 @@ pub fn run() !void {
     const other = try kata.create.create();
     defer kata.destroy.destroy(other) catch |failure| verify.failure(failure);
     try user.memory.allocate.allocate(owner, inputs.USER_ADDRESS);
+    try user.memory.release.releaseAll(owner);
+    const baseline = pmm.state.getStatistics();
+    const baseline_kernel_tables = kagami.state.getKernelKagami().TablePages;
+    try user.memory.allocate.allocate(owner, inputs.USER_ADDRESS);
     try user.memory.allocate.allocate(owner, inputs.USER_NEIGHBOR);
     var fresh: [sizes.PAGE_SIZE]u8 = undefined;
     try user.copy.transfer.read(owner, &fresh, inputs.USER_ADDRESS);
@@ -53,7 +57,7 @@ pub fn run() !void {
     referenceRestriction(owner);
     verify.require(owner.AddressSpace.?.ReferenceCount == 1, labels.USER_IN_USE);
     try sealedBoundary(owner);
-    try release(owner);
+    try release(owner, baseline, baseline_kernel_tables);
 }
 
 fn allocationRejections(owner: *Kata) void {
@@ -255,15 +259,14 @@ fn sealedBoundary(owner: *Kata) !void {
         !user.copy.transfer.validate(owner, inputs.CROSS_ADDRESS, copied.len, true), labels.USER_SEALED);
 }
 
-fn release(owner: *Kata) !void {
+fn release(owner: *Kata, baseline: pmm.types.statistics.Statistics, baseline_kernel_tables: u64) !void {
     const physical = [_]u64{
         user.state.ledger.find(owner, inputs.USER_ADDRESS).?.PA,
         user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?.PA,
     };
     const root = owner.AddressSpace.?;
-    const tables = root.TablePages;
     const kernel_tables = kagami.state.getKernelKagami().TablePages;
-    const before = pmm.state.getStatistics();
+    const retained_tables = kernel_tables - baseline_kernel_tables;
     try user.memory.release.releaseAll(owner);
     verify.require(root.ResidentPages == 0 and root.WiredPages == 0 and root.TablePages == 1 and
         user.state.ledger.find(owner, inputs.USER_ADDRESS) == null and user.state.ledger.find(owner, inputs.USER_NEIGHBOR) == null and
@@ -275,9 +278,9 @@ fn release(owner: *Kata) !void {
             alias.PhysicalAddress == frame and alias.Writable and !alias.Executable and !alias.UserAccessible, labels.USER_RELEASE);
     }
     const after = pmm.state.getStatistics();
-    verify.require(after.FreePages == before.FreePages + physical.len + tables - 1 and
-        after.UsedPages + physical.len + tables - 1 == before.UsedPages and
-        kagami.state.getKernelKagami().TablePages == kernel_tables, labels.USER_RELEASE_COUNTS);
+    verify.require(after.FreePages + retained_tables == baseline.FreePages and
+        after.UsedPages == baseline.UsedPages + retained_tables and after.ReservedPages == baseline.ReservedPages and
+        after.WiredPages == baseline.WiredPages and kagami.state.getKernelKagami().TablePages == kernel_tables, labels.USER_RELEASE_COUNTS);
     try user.memory.release.releaseAll(owner);
     verify.require(std.meta.eql(after, pmm.state.getStatistics()), labels.USER_RELEASE_COUNTS);
 }

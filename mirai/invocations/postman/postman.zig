@@ -125,7 +125,7 @@ fn status(failure: anyerror) abi.Status {
         error.InvalidThread, error.UnsafeContext => .InvalidCaller,
         error.CopyTooLarge, error.TooLarge => .TooLarge,
         error.Full => .Full,
-        error.NoResources, error.OutOfMemory, error.CapacityReached, error.OwnershipCapacity => .NoResources,
+        error.NoResources, error.OutOfMemory, error.CapacityReached => .NoResources,
         error.InvalidPeer => .InvalidPeer,
         error.Closed => .Closed,
         error.Busy, error.AlreadyManaged => .Busy,

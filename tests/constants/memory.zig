@@ -63,6 +63,7 @@ pub const BRANCH_TABLE_PAGES: u64 = 5;
 pub const DISTANT_TABLE_PAGES: u64 = 7;
 pub const USER_ADDRESS: u64 = 0x3000000;
 pub const USER_NEIGHBOR: u64 = USER_ADDRESS + sizes.PAGE_SIZE;
+pub const OWNED_POPULATION_PAGES: usize = 1033;
 pub const COPY_HALF: usize = 4;
 pub const CROSS_ADDRESS: u64 = USER_NEIGHBOR - COPY_HALF;
 pub const HOLE_ADDRESS: u64 = USER_NEIGHBOR + sizes.PAGE_SIZE - COPY_HALF;

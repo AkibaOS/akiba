@@ -66,6 +66,8 @@ pub fn execute() void {
     check(guest.mirai.kagami.effective.run);
     serial.printf(memorylabels.GROUP_OWNED, .{});
     check(guest.mirai.user.regressions.run);
+    check(guest.mirai.user.population.run);
+    check(guest.mirai.user.failure.run);
     serial.printf(labels.GROUP_MEMORY, .{});
     check(guest.mirai.user.memory.run);
     serial.printf(elflabels.GROUP, .{});

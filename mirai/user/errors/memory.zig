@@ -6,7 +6,6 @@ pub const UserError = error{
     InvalidOwner,
     InvalidUserRange,
     CopyTooLarge,
-    OwnershipCapacity,
     AlreadyOwned,
     NotOwned,
     InvalidOwnedMapping,

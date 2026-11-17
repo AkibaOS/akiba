@@ -23,7 +23,6 @@ pub fn allocate(owner: *Kata, virtual_address: u64) UserError!void {
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     if (!checks.isValidRange(virtual_address, sizes.PAGE_SIZE)) return UserError.InvalidUserRange;
     if (ledger.find(owner, virtual_address) != null) return UserError.AlreadyOwned;
-    if (!ledger.hasCapacity()) return UserError.OwnershipCapacity;
     if (kagami.tables.walk.lookup(root.PML4Physical, virtual_address) != null) return UserError.AlreadyMapped;
     const previous_search = pmm.state.getState().SearchStart;
     errdefer pmm.state.getState().SearchStart = previous_search;

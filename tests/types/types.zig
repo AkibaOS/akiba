@@ -1,6 +1,7 @@
 //! Regression Check Types
 
 pub const acquisition = @import("acquisition.zig");
+pub const allocation = @import("allocation.zig");
 pub const completion = @import("completion.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");

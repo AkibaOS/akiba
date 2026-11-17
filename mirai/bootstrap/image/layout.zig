@@ -2,9 +2,9 @@
 
 const common = @import("common");
 const pages = @import("shared").elf.validate.pages;
+const pmm = @import("mirai").pmm;
 const thread = @import("mirai").thread.constants.user;
 const types = @import("mirai").bootstrap.types.image;
-const user = @import("mirai").user.constants.limits;
 
 const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
 const Plan = @import("shared").elf.types.image.Plan;
@@ -14,7 +14,7 @@ const address = common.constants.memory.layout;
 pub fn stack(options: types.Options) ImageError!u64 {
     if (options.StackBase < 2 * sizes.PAGE_SIZE or (options.StackBase & sizes.PAGE_MASK) != 0 or
         options.StackPages == 0 or options.StackPages > thread.MAX_STACK_PAGES or
-        options.StackPages >= user.MAX_OWNED_PAGES or options.StackBase > address.USER_SPACE_END)
+        options.StackPages >= pmm.state.getState().TotalPages or options.StackBase > address.USER_SPACE_END)
         return ImageError.InvalidStack;
     const bytes = options.StackPages * sizes.PAGE_SIZE;
     if (bytes > address.USER_SPACE_END - options.StackBase) return ImageError.InvalidStack;

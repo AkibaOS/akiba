@@ -6,10 +6,10 @@ const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
 const layout = @import("mirai").bootstrap.image.layout;
 const memory = @import("mirai").bootstrap.image.memory;
+const pmm = @import("mirai").pmm;
 const strings = @import("mirai").bootstrap.strings.image;
 const thread = @import("mirai").thread;
 const types = @import("mirai").bootstrap.types.image;
-const user = @import("mirai").user.constants.limits;
 
 const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
 const Kata = kata.types.kata.Kata;
@@ -21,7 +21,7 @@ pub fn prepare(launcher: *const Kata, bytes: []const u8, options: types.Options)
     const plan = try elf.validate.image.parse(bytes, .{
         .MinimumAddress = common.constants.memory.sizes.PAGE_SIZE,
         .MaximumAddress = common.constants.memory.layout.USER_SPACE_END,
-        .MaximumPages = user.MAX_OWNED_PAGES - options.StackPages,
+        .MaximumPages = pmm.state.getState().TotalPages - options.StackPages,
     });
     try layout.separate(&plan, options, top);
     const owner = try kata.create.createFor(launcher);
