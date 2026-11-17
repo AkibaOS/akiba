@@ -18,7 +18,7 @@ pub fn run() !void {
     defer support.dispose(owner_id) catch |failure| verify.failure(failure);
     const first = try thread.create.create(owner, entry, null);
     const second = try thread.create.create(owner, entry, null);
-    var registered: u16 = 0;
+    var registered: usize = 0;
     {
         const flags = guard.acquire();
         defer guard.release(flags);

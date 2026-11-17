@@ -202,11 +202,15 @@ pub fn resources() Resources {
     for (&state.Envelopes) |*envelope| {
         if (envelope.Status != .Free) result.Envelopes += 1;
     }
-    for (&state.Mailboxes) |*entry| {
-        if (entry.Owner != null) result.Mailboxes += 1;
+    var owner = kata.state.first();
+    while (owner) |current| {
+        if (postman.inbox.find(current) != null) result.Mailboxes += 1;
+        owner = kata.state.next(current);
     }
-    for (&state.Records) |*entry| {
-        if (entry.Thread != null) result.Records += 1;
+    var target = thread.state.first();
+    while (target) |current| {
+        if (postman.record.find(current) != null) result.Records += 1;
+        target = thread.state.next(current);
     }
     return result;
 }

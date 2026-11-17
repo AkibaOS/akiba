@@ -22,7 +22,7 @@ pub fn run() !void {
     defer support.dispose(owner_id) catch |failure| verify.failure(failure);
     var completed = false;
     const target = try thread.create.create(owner, entry, &completed);
-    var registered: u16 = 0;
+    var registered: usize = 0;
     {
         const flags = guard.acquire();
         defer guard.release(flags);

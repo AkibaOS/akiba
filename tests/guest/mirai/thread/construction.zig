@@ -69,8 +69,10 @@ fn rejects(owner: *Kata, instruction: u64, base: u64, size: u64) bool {
 
 fn occupied() usize {
     var count: usize = 0;
-    for (0..thread.constants.pool.MAX_THREADS) |index| {
-        if (thread.state.at(index) != null) count += 1;
+    var current = thread.state.first();
+    while (current) |target| {
+        count += 1;
+        current = thread.state.next(target);
     }
     return count;
 }

@@ -1,28 +1,24 @@
-//! Lazy Kata Mailbox Records
+//! Owner Bound Kata Mailbox Records
 
 const kata = @import("mirai").kata;
-const state = @import("mirai").postman.state;
 
 const Kata = kata.types.kata.Kata;
 const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
 const PostError = @import("mirai").postman.errors.transport.PostError;
 
 pub fn find(owner: *const Kata) ?*Mailbox {
-    for (&state.getState().Mailboxes) |*mailbox| {
-        if (mailbox.Owner == owner and mailbox.ID == owner.ID) return mailbox;
-    }
-    return null;
+    const slot = kata.state.data(owner) orelse return null;
+    const mailbox = &slot.Mailbox;
+    return if (mailbox.Owner == owner and mailbox.ID == owner.ID) mailbox else null;
 }
 
 pub fn get(owner: *Kata) PostError!*Mailbox {
     if (!kata.state.owns(owner) or owner.Permanent or owner.State == .Born or owner.State == .Dead) return PostError.InvalidPeer;
     if (find(owner)) |mailbox| return mailbox;
-    for (&state.getState().Mailboxes) |*mailbox| {
-        if (mailbox.Owner != null) continue;
-        mailbox.* = .{ .Owner = owner, .ID = owner.ID };
-        return mailbox;
-    }
-    return PostError.NoResources;
+    const slot = kata.state.data(owner) orelse return PostError.InvalidPeer;
+    if (slot.Mailbox.Owner != null) return PostError.InvalidState;
+    slot.Mailbox = .{ .Owner = owner, .ID = owner.ID };
+    return &slot.Mailbox;
 }
 
 pub fn destination(identifier: u64) PostError!*Mailbox {

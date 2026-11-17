@@ -4,7 +4,6 @@ const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.sensei;
 const limits = @import("tests").constants.guest;
-const pool = @import("mirai").thread.constants.pool;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const verify = @import("tests").verify;
@@ -29,10 +28,10 @@ pub fn dispose(owner_id: u64) !void {
     if (kata.state.findByID(owner_id)) |owner| {
         switch (owner.State) {
             .Born => {
-                var index: usize = 0;
-                while (index < pool.MAX_THREADS) : (index += 1) {
-                    const target = thread.state.at(index) orelse continue;
-                    if (target.Owner == owner) try thread.destroy.destroy(target);
+                var current = thread.state.firstFor(owner);
+                while (current) |target| {
+                    current = thread.state.nextFor(target);
+                    try thread.destroy.destroy(target);
                 }
                 try kata.destroy.destroy(owner);
             },

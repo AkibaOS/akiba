@@ -5,11 +5,10 @@ const Queue = @import("mirai").sensei.types.queue.Queue;
 const Record = @import("mirai").sensei.types.record.Record;
 
 pub const State = struct {
-    Records: [policy.MAX_RECORDS]Record = [_]Record{.{}} ** policy.MAX_RECORDS,
     Ready: Queue = .{},
     Retired: Queue = .{},
     Idle: ?*Record = null,
-    RegisteredCount: u16 = 0,
+    RegisteredCount: usize = 0,
     IRQDepth: u32 = 0,
     PreemptionDepth: u32 = 0,
     RemainingTicks: u32 = policy.QUANTUM_TICKS,

@@ -1,6 +1,13 @@
 //! Scheduler Regression Labels
 
 pub const GROUP = "CHECK GROUP Sensei scheduling\n";
+pub const POPULATION_READY = "real Thread admission grows scheduler and owner-bound transport records beyond former populations";
+pub const POPULATION_WAIT = "real completion waiters retain stable registrations and copied outcomes beyond former Thread limits";
+pub const POPULATION_FINISH = "completion wake retirement and transport teardown allocate nothing after admission";
+pub const WIDTH_NAME = "scheduler-width";
+pub const WIDTH_GROWTH = "real intrusive queue records exceed sixteen-bit population counts";
+pub const WIDTH_REMOVE = "wide queue removal and overflow refusal preserve remaining membership";
+pub const WIDTH_RELEASE = "wide queue drains and returns all backing without allocating";
 
 pub const ADMISSION_FIFO = "Sensei appends newly admitted Threads in FIFO order";
 pub const ADMISSION_DUPLICATE = "Sensei duplicate admission preserves the ready queue";

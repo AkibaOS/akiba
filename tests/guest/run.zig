@@ -77,6 +77,8 @@ pub fn execute() void {
     check(guest.mirai.sensei.admission.run);
     check(guest.mirai.sensei.waiting.run);
     check(guest.mirai.sensei.deferral.run);
+    check(guest.mirai.sensei.population.run);
+    check(guest.mirai.sensei.width.run);
     serial.printf(retentionlabels.GROUP, .{});
     check(guest.mirai.kata.retention.run);
     check(guest.mirai.kata.race.run);

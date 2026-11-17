@@ -5,7 +5,6 @@ const completion = @import("mirai").kata.completion;
 const control = @import("asm").cpu.constants.control;
 const errors = @import("mirai").kata.errors.completion;
 const guard = @import("asm").interrupts.guard;
-const limits = @import("mirai").thread.constants.pool;
 const messages = @import("mirai").kata.strings.messages;
 const options = @import("options");
 const scheduling = @import("mirai").sensei.errors.scheduling;
@@ -21,20 +20,15 @@ const Registration = types.wait.Registration;
 const SchedulingError = scheduling.SchedulingError;
 const Thread = thread.types.thread.Thread;
 
-var observers: [limits.MAX_THREADS]Observer = [_]Observer{.{}} ** limits.MAX_THREADS;
-
 fn find(target: *const Thread) ?*Observer {
-    for (&observers) |*observer| {
-        if (observer.Thread == target and observer.OwnerID == target.Owner.ID) return observer;
-    }
-    return null;
+    const slot = thread.state.data(target) orelse return null;
+    const observer = &slot.Observer;
+    return if (observer.Thread == target and observer.OwnerID == target.Owner.ID) observer else null;
 }
 
-fn available() ?*Observer {
-    for (&observers) |*observer| {
-        if (observer.Thread == null) return observer;
-    }
-    return null;
+fn available(target: *const Thread) ?*Observer {
+    const slot = thread.state.data(target) orelse return null;
+    return if (slot.Observer.Thread == null) &slot.Observer else null;
 }
 
 fn ready(context: ?*anyopaque) bool {
@@ -62,7 +56,7 @@ fn register(current: *Thread, id: u64) CompletionError!Registration {
     if (!thread.state.owns(current) or current.Permanent or !current.Managed or current.Status != .Running or
         !state.owns(current.Owner) or current.Owner.State != .Alive or find(current) != null) return CompletionError.InvalidCaller;
     if (id == current.Owner.ID) return CompletionError.InvalidTarget;
-    const observer = available() orelse return CompletionError.ObserverCapacity;
+    const observer = available(current) orelse return CompletionError.ObserverCapacity;
     const record = try completion.lifetime.borrow(id);
     observer.* = .{ .Thread = current, .OwnerID = current.Owner.ID, .TargetID = id };
     return .{ .Observer = observer, .Completion = record, .Thread = current };

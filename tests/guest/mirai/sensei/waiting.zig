@@ -58,7 +58,7 @@ pub fn run() !void {
         argument.* = .{ .State = &state, .Index = index };
         target.* = try thread.create.create(owner, entry, argument);
     }
-    var registered: u16 = 0;
+    var registered: usize = 0;
     {
         const flags = guard.acquire();
         defer guard.release(flags);
@@ -100,7 +100,7 @@ pub fn run() !void {
             targets[0].Status == .Ready and targets[1].Status == .Ready, labels.WAIT_ALL);
     }
     try support.drain(owner_id);
-    var released: u16 = 0;
+    var released: usize = 0;
     {
         const flags = guard.acquire();
         defer guard.release(flags);

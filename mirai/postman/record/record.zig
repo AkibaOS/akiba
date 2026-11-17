@@ -1,27 +1,24 @@
-//! Postman Thread Record Allocation
+//! Owner Bound Thread Transport Records
 
 const messages = @import("mirai").postman.strings.invariants;
-const state = @import("mirai").postman.state;
+const thread = @import("mirai").thread;
 
 const PostError = @import("mirai").postman.errors.transport.PostError;
 const Record = @import("mirai").postman.types.record.Record;
-const Thread = @import("mirai").thread.types.thread.Thread;
+const Thread = thread.types.thread.Thread;
 
 pub fn find(target: *const Thread) ?*Record {
-    for (&state.getState().Records) |*entry| {
-        if (entry.Thread == target and entry.Owner == target.Owner and entry.ID == target.Owner.ID) return entry;
-    }
-    return null;
+    const slot = thread.state.data(target) orelse return null;
+    const entry = &slot.Postman;
+    return if (entry.Thread == target and entry.Owner == target.Owner and entry.ID == target.Owner.ID) entry else null;
 }
 
 pub fn get(target: *Thread) PostError!*Record {
     if (find(target)) |entry| return entry;
-    for (&state.getState().Records) |*entry| {
-        if (entry.Thread != null) continue;
-        entry.* = .{ .Thread = target, .Owner = target.Owner, .ID = target.Owner.ID };
-        return entry;
-    }
-    return PostError.NoResources;
+    const slot = thread.state.data(target) orelse return PostError.InvalidThread;
+    if (slot.Postman.Thread != null) return PostError.InvalidState;
+    slot.Postman = .{ .Thread = target, .Owner = target.Owner, .ID = target.Owner.ID };
+    return &slot.Postman;
 }
 
 pub fn release(entry: *Record) void {

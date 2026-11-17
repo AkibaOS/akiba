@@ -25,7 +25,7 @@ fn block(waiters: *Queue, predicate: Predicate, context: ?*anyopaque, current: *
         if (!queue.append(waiters, current)) @panic(messages.INVALID_QUEUE);
         run.rescheduleTo(true, handoff);
         if (registry.current() != current or thread.state.getCurrent() != target or
-            current.Thread != target or current.Queue != null or current.Next != null) @panic(messages.INVALID_STATE);
+            current.Thread != target or current.Queue != null or current.Next != null or current.Previous != null) @panic(messages.INVALID_STATE);
         handoff = null;
     }
 }
@@ -52,7 +52,7 @@ pub fn blockFromInvocation(waiters: *Queue, predicate: Predicate, context: ?*any
     if (current == scheduler.Idle) return SchedulingError.InUse;
     const target = current.Thread orelse return SchedulingError.InvalidState;
     if (!thread.state.owns(target) or !target.Managed or target.Status != .Running or target.Mode != .Persona or
-        current.Queue != null or current.Next != null) return SchedulingError.InvalidState;
+        current.Queue != null or current.Next != null or current.Previous != null) return SchedulingError.InvalidState;
     block(waiters, predicate, context, current, preferred);
 }
 
@@ -83,13 +83,13 @@ pub fn wakeOne(waiters: *Queue) SchedulingError!bool {
     return (try wakeOldest(waiters)) != null;
 }
 
-pub fn wakeAll(waiters: *Queue) SchedulingError!u16 {
+pub fn wakeAll(waiters: *Queue) SchedulingError!usize {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     const scheduler = state.getState();
     if (!scheduler.Initialized) return SchedulingError.NotInitialized;
     if (waiters == &scheduler.Ready) return SchedulingError.InvalidQueue;
-    var count: u16 = 0;
+    var count: usize = 0;
     while (queue.take(waiters)) |record| {
         if (makeReady(record)) count += 1;
     }

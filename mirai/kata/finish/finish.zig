@@ -5,7 +5,6 @@ const errors = @import("mirai").kata.errors.ownership;
 const guard = @import("asm").interrupts.guard;
 const lifecycle = @import("mirai").kata.lifecycle;
 const messages = @import("mirai").kata.strings.messages;
-const pool = @import("mirai").thread.constants.pool;
 const sensei = @import("mirai").sensei;
 const state = @import("mirai").kata.state;
 const thread = @import("mirai").thread;
@@ -35,10 +34,10 @@ fn safeContext() bool {
 }
 
 fn stopThreads(owner: *Kata, excluding: ?*Thread) void {
-    var index: usize = 0;
-    while (index < pool.MAX_THREADS) : (index += 1) {
-        const target = thread.state.at(index) orelse continue;
-        if (target == excluding or target.Owner != owner) continue;
+    var current = thread.state.firstFor(owner);
+    while (current) |target| {
+        current = thread.state.nextFor(target);
+        if (target == excluding) continue;
         if (target.Managed) {
             if (target.Status == .Stopped) continue;
             sensei.control.detach(target) catch @panic(messages.INVALID_COMPLETION);

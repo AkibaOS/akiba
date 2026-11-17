@@ -17,6 +17,16 @@ pub const WaitState = struct {
     ImmediateChecks: [inputs.WAITER_COUNT]usize = [_]usize{0} ** inputs.WAITER_COUNT,
 };
 
+pub const PopulationState = struct {
+    TargetID: u64 = 0,
+    TargetWaiters: Queue = .{},
+    Open: bool = false,
+    TargetParked: bool = false,
+    Entered: usize = 0,
+    Finished: usize = 0,
+    Received: bool = true,
+};
+
 pub const WaitArgument = struct {
     State: *WaitState,
     Index: usize,

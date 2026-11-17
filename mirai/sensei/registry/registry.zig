@@ -1,5 +1,7 @@
 //! Scheduler Thread Registration
 
+const std = @import("std");
+
 const state = @import("mirai").sensei.state;
 const thread = @import("mirai").thread;
 const types = @import("mirai").sensei.types;
@@ -8,10 +10,8 @@ const Record = types.record.Record;
 const Thread = thread.types.thread.Thread;
 
 pub fn find(target: *const Thread) ?*Record {
-    for (&state.getState().Records) |*record| {
-        if (record.Thread == target) return record;
-    }
-    return null;
+    const slot = thread.state.data(target) orelse return null;
+    return if (slot.Scheduler.Thread == target) &slot.Scheduler else null;
 }
 
 pub fn current() ?*Record {
@@ -20,20 +20,20 @@ pub fn current() ?*Record {
 
 pub fn reserve(target: *Thread) ?*Record {
     const scheduler = state.getState();
-    if (find(target) != null) return null;
-    for (&scheduler.Records) |*record| {
-        if (record.Thread != null) continue;
-        record.* = .{ .Thread = target };
-        scheduler.RegisteredCount += 1;
-        return record;
-    }
-    return null;
+    const slot = thread.state.data(target) orelse return null;
+    const record = &slot.Scheduler;
+    if (record.Thread != null or record.Queue != null or record.Next != null or record.Previous != null or
+        scheduler.RegisteredCount == std.math.maxInt(usize)) return null;
+    record.* = .{ .Thread = target };
+    scheduler.RegisteredCount += 1;
+    return record;
 }
 
 pub fn release(record: *Record) bool {
     const scheduler = state.getState();
-    if (record == scheduler.Idle or record.Thread == null or record.Queue != null or record.Next != null or
-        scheduler.RegisteredCount == 0) return false;
+    const target = thread.state.fromScheduler(record) orelse return false;
+    if (record == scheduler.Idle or record.Thread != target or record.Queue != null or record.Next != null or
+        record.Previous != null or scheduler.RegisteredCount == 0) return false;
     record.* = .{};
     scheduler.RegisteredCount -= 1;
     return true;

@@ -71,7 +71,7 @@ pub const Baseline = struct {
     CR3: u64,
     RSP0: u64,
     Flags: u64,
-    RegisteredCount: u16,
+    RegisteredCount: usize,
     OwnerThreadCount: u64,
     Requests: u64,
     Switches: u64,

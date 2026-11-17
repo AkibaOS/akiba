@@ -53,9 +53,6 @@ pub fn kataRelease(owner: *Kata) void {
         }
         lifetime.close(incoming);
     }
-    for (&state.getState().Records) |*entry| {
-        if (entry.Owner == owner and entry.ID == owner.ID) lifetime.clearRecord(entry);
-    }
     const incoming = mailbox orelse return;
     for (&state.getState().Envelopes) |*envelope| {
         if (envelope.Source != incoming) continue;
