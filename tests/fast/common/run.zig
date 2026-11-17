@@ -1,6 +1,7 @@
 //! Common Native Test Entry
 
 const fixed = @import("tests").fast.common.fixed;
+const tree = @import("tests").fast.common.tree;
 
 test "fixed 26.6 construction preserves raw values and integer limits" {
     try fixed.fixed26Construction();
@@ -52,4 +53,32 @@ test "fixed 16.16 multiplication preserves scale and signed quantization" {
 
 test "fixed 16.16 unit scaling rounds signed half units" {
     try fixed.fixed16UnitScaling();
+}
+
+test "ordered index starts empty and rejects absent removal" {
+    try tree.empty();
+}
+
+test "ordered index balances each insertion rotation without moving nodes" {
+    try tree.rotations();
+}
+
+test "ordered index rejects duplicate keys without replacing live nodes" {
+    try tree.duplicate();
+}
+
+test "ordered index removes every child shape while retaining other nodes" {
+    try tree.removal();
+}
+
+test "ordered index refuses a matching key owned by another index" {
+    try tree.foreign();
+}
+
+test "ordered index sorts unsigned composite keys across machine words" {
+    try tree.wide();
+}
+
+test "ordered index grows removes and reuses thousands of stable nodes" {
+    try tree.growth();
 }

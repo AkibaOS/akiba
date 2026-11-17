@@ -23,4 +23,5 @@ pub const runner = @import("runner.zig");
 pub const scenario = @import("scenario.zig");
 pub const sensei = @import("sensei.zig");
 pub const storage = @import("storage.zig");
+pub const tree = @import("tree.zig");
 pub const utils = @import("utils.zig");
