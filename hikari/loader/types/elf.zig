@@ -1,84 +1,7 @@
-//! Hikari ELF Types
+//! Hikari ELF Layout And Metadata Types
 
 const constants = @import("hikari").loader.constants;
-
-pub const Elf64Header = extern struct {
-    Magic: [4]u8,
-    Class: u8,
-    Data: u8,
-    Version: u8,
-    OSABI: u8,
-    ABIVersion: u8,
-    Padding: [7]u8,
-    ElfType: u16 align(1),
-    Machine: u16 align(1),
-    ElfVersion: u32 align(1),
-    Entry: u64 align(1),
-    ProgramHeaderOffset: u64 align(1),
-    SectionHeaderOffset: u64 align(1),
-    Flags: u32 align(1),
-    HeaderSize: u16 align(1),
-    ProgramHeaderEntrySize: u16 align(1),
-    ProgramHeaderCount: u16 align(1),
-    SectionHeaderEntrySize: u16 align(1),
-    SectionHeaderCount: u16 align(1),
-    SectionIdentityIndex: u16 align(1),
-
-    pub fn isValid(self: *const Elf64Header) bool {
-        if (self.Magic[0] != constants.elf.MAGIC[0] or
-            self.Magic[1] != constants.elf.MAGIC[1] or
-            self.Magic[2] != constants.elf.MAGIC[2] or
-            self.Magic[3] != constants.elf.MAGIC[3])
-        {
-            return false;
-        }
-        if (self.Class != constants.elf.CLASS_64) {
-            return false;
-        }
-        if (self.Data != constants.elf.DATA_LITTLE_ENDIAN) {
-            return false;
-        }
-        if (self.Version != constants.elf.VERSION_CURRENT) {
-            return false;
-        }
-        return true;
-    }
-
-    pub fn isExecutable(self: *const Elf64Header) bool {
-        return self.ElfType == constants.elf.TYPE_EXECUTABLE;
-    }
-
-    pub fn isX8664(self: *const Elf64Header) bool {
-        return self.Machine == constants.elf.MACHINE_X86_64;
-    }
-};
-
-pub const Elf64ProgramHeader = extern struct {
-    SegmentType: u32 align(1),
-    Flags: u32 align(1),
-    Offset: u64 align(1),
-    VirtualAddress: u64 align(1),
-    PhysicalAddress: u64 align(1),
-    UnitSize: u64 align(1),
-    MemorySize: u64 align(1),
-    Alignment: u64 align(1),
-
-    pub fn isLoadable(self: *const Elf64ProgramHeader) bool {
-        return self.SegmentType == constants.elf.SEGMENT_LOAD;
-    }
-
-    pub fn isExecutable(self: *const Elf64ProgramHeader) bool {
-        return (self.Flags & constants.elf.SEGMENT_FLAG_EXECUTE) != 0;
-    }
-
-    pub fn isWritable(self: *const Elf64ProgramHeader) bool {
-        return (self.Flags & constants.elf.SEGMENT_FLAG_WRITE) != 0;
-    }
-
-    pub fn isReadable(self: *const Elf64ProgramHeader) bool {
-        return (self.Flags & constants.elf.SEGMENT_FLAG_READ) != 0;
-    }
-};
+const Program = @import("shared").elf.types.format.Elf64ProgramHeader;
 
 pub const Elf64SectionHeader = extern struct {
     IdentityOffset: u32 align(1),
@@ -149,7 +72,7 @@ pub const ImageLayout = struct {
     VirtualBase: u64,
     PhysicalBase: u64,
     Size: u64,
-    Segments: [constants.elf.MAX_SEGMENTS]Elf64ProgramHeader,
+    Segments: [constants.elf.MAX_SEGMENTS]Program,
     SegmentCount: usize,
 };
 

@@ -1,6 +1,6 @@
 //! Hikari Guest Regression Fixtures
 
-const elf = @import("hikari").loader.types.elf;
+const elf = @import("shared").elf.types.format;
 
 pub const ELF_HEADER_BYTES: usize = 64;
 pub const ELF_PROGRAM_BYTES: usize = 56;

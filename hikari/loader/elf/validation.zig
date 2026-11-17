@@ -7,14 +7,16 @@ const constants = @import("hikari").loader.constants;
 const errors = @import("hikari").loader.errors;
 const kernel = @import("hikari").loader.elf.kernel;
 const math = @import("utils").math;
+const read = @import("shared").elf.read;
 const types = @import("hikari").loader.types;
+const wire = @import("shared").elf.types.format;
 
 const elf = constants.elf;
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
-const Elf64Header = types.elf.Elf64Header;
-const Elf64ProgramHeader = types.elf.Elf64ProgramHeader;
+const Elf64Header = wire.Elf64Header;
+const Elf64ProgramHeader = wire.Elf64ProgramHeader;
 const ImageLayout = types.elf.ImageLayout;
 const LoadError = errors.elf.LoadError;
 
@@ -102,32 +104,19 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
 }
 
 fn validateHeader(data: []const u8) LoadError!*const Elf64Header {
-    if (data.len < elf.ELF64_HEADER_SIZE) return LoadError.InvalidElfHeader;
-    const header: *const Elf64Header = @ptrCast(data.ptr);
-    if (!header.isValid() or header.ElfVersion != elf.VERSION_CURRENT or
-        header.HeaderSize != elf.ELF64_HEADER_SIZE)
-    {
-        return LoadError.InvalidElfHeader;
-    }
+    const header = read.header.read(data) catch return LoadError.InvalidElfHeader;
     if (!header.isX8664()) return LoadError.UnsupportedArchitecture;
     if (!header.isExecutable()) return LoadError.UnsupportedElfType;
     return header;
 }
 
 fn readProgramHeaders(data: []const u8, header: *const Elf64Header) LoadError![]const Elf64ProgramHeader {
-    if (header.ProgramHeaderCount == 0) return LoadError.NoLoadableSegments;
-    if (header.ProgramHeaderCount == elf.PROGRAM_HEADER_COUNT_EXTENDED or
-        header.ProgramHeaderEntrySize != elf.ELF64_PROGRAM_HEADER_SIZE or
-        header.ProgramHeaderOffset < header.HeaderSize or
-        header.ProgramHeaderOffset > data.len)
-    {
-        return LoadError.InvalidProgramHeaders;
-    }
-    const offset: usize = @intCast(header.ProgramHeaderOffset);
-    const table_size = @as(usize, header.ProgramHeaderCount) * elf.ELF64_PROGRAM_HEADER_SIZE;
-    if (table_size > data.len - offset) return LoadError.InvalidProgramHeaders;
-    const table: [*]const Elf64ProgramHeader = @ptrCast(data.ptr + offset);
-    return table[0..header.ProgramHeaderCount];
+    return read.programs.read(data, header) catch |failure| {
+        return switch (failure) {
+            error.NoLoadableSegments => LoadError.NoLoadableSegments,
+            else => LoadError.InvalidProgramHeaders,
+        };
+    };
 }
 
 fn validateSegment(data_size: usize, segment: *const Elf64ProgramHeader) LoadError!void {
