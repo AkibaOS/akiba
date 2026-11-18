@@ -23,13 +23,18 @@ pub fn run() void {
     }
     verify.require(ticks >= before and ticks - before >= inputs.REQUIRED_TICKS, labels.TIMER);
     drivers.serial.write.printf(labels.READY_LINE, .{});
-    var scancode: u8 = 0;
-    attempts = 0;
-    while (scancode != inputs.MAKE_CODE and scancode != inputs.BREAK_CODE and attempts < inputs.WAIT_LIMIT) : (attempts += 1) {
-        cpu.halt.pause();
+    const started = ticks;
+    while (true) {
         flags = guard.acquire();
-        scancode = drivers.keyboard.handler.getLastScancode();
+        const scancode = drivers.keyboard.handler.getLastScancode();
+        ticks = drivers.pit.handler.getTicks();
         guard.release(flags);
+        if (scancode == inputs.MAKE_CODE or scancode == inputs.BREAK_CODE) {
+            verify.require(true, labels.KEYBOARD);
+            return;
+        }
+        if (ticks -% started >= inputs.INPUT_WAIT_TICKS) break;
+        cpu.halt.waitForInterrupt();
     }
-    verify.require(scancode == inputs.MAKE_CODE or scancode == inputs.BREAK_CODE, labels.KEYBOARD);
+    verify.require(false, labels.KEYBOARD);
 }

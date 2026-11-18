@@ -98,14 +98,16 @@ fn runScenario(selected: Scenario) !void {
     var reservation = try address.listen(.{});
     const port = reservation.listen_address.getPort();
     reservation.deinit();
-    const arguments = [_][]const u8{
+    const standard_arguments = [_][]const u8{
         inputs.Qemu,                                                                  strings.MACHINE_FLAG, strings.MACHINE,                                                         strings.ACCEL_FLAG,                                                            strings.ACCEL,
         strings.MEMORY_FLAG,                                                          strings.MEMORY,       strings.DRIVE_FLAG,                                                      try std.fmt.allocPrint(allocator, strings.CODE_DRIVE, .{inputs.FirmwareCode}), strings.DRIVE_FLAG,
         try std.fmt.allocPrint(allocator, strings.VARS_DRIVE, .{inputs.Variables}),   strings.DRIVE_FLAG,   try std.fmt.allocPrint(allocator, strings.IMAGE_DRIVE, .{inputs.Image}), strings.SNAPSHOT_FLAG,                                                         strings.SERIAL_FLAG,
         try std.fmt.allocPrint(allocator, strings.SERIAL_ARGUMENT, .{inputs.Serial}), strings.REBOOT_FLAG,  strings.NAME_FLAG,                                                       name,                                                                          strings.QMP_FLAG,
         try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{port}),             strings.NETWORK_FLAG, strings.NETWORK_NONE,                                                    scenario.FLAG,                                                                 try std.fmt.allocPrint(allocator, scenario.ARGUMENT, .{@tagName(selected)}),
     };
-    var instance = process.init(allocator, &arguments);
+    const device_arguments = standard_arguments ++ [_][]const u8{ strings.DISPLAY_FLAG, strings.DISPLAY_NONE };
+    const arguments: []const []const u8 = if (selected == .Devices) &device_arguments else &standard_arguments;
+    var instance = process.init(allocator, arguments);
     var connection: ?Connection = null;
     var owned = false;
     work: {
