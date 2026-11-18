@@ -65,6 +65,19 @@ pub fn fixedChrome() !void {
         try std.testing.expectEqual(black, pixels[target.offset(bar.X + 15, bar_y)]);
         try std.testing.expectEqual(fill, pixels[target.offset(bar.X + 18, bar_y)]);
         try std.testing.expectEqual(black, pixels[target.offset(bar.X + bar.Width * 2 / 3, bar_y)]);
+        const right = bar.X + bar.Width;
+        const percent_cell: Rect = .{ .X = right - 8, .Y = bar.Y, .Width = 8, .Height = bar.Height };
+        try std.testing.expect(hasInk(&target, percent_cell));
+        const separator: Rect = .{ .X = right - 40, .Y = bar.Y, .Width = 8, .Height = bar.Height };
+        try std.testing.expect(!hasInk(&target, separator));
+        const boot_hint: Rect = .{ .X = controls.X, .Y = controls.Y, .Width = width / 4 - controls.X, .Height = controls.Height };
+        const shutdown_hint: Rect = .{ .X = width / 4, .Y = controls.Y, .Width = width / 8, .Height = controls.Height };
+        const cancel_hint: Rect = .{ .X = width / 2, .Y = controls.Y, .Width = controls.X + controls.Width - width / 2, .Height = controls.Height };
+        const boot_ink = peakInk(&target, boot_hint);
+        const shutdown_ink = peakInk(&target, shutdown_hint);
+        try std.testing.expect(boot_ink != 0 and boot_ink <= 128);
+        try std.testing.expect(shutdown_ink != 0 and shutdown_ink <= 128);
+        try std.testing.expect(peakInk(&target, cancel_hint) > 128);
         try expectPadding(&target);
 
         @memcpy(before, pixels);
@@ -72,6 +85,16 @@ pub fn fixedChrome() !void {
         try std.testing.expect(screen.model.complete(&progress));
         try std.testing.expect(screen.render.update(&target, geometry, scratch, text, &progress, 0));
         try expectStatusTag(&target, geometry.Log, 2, screen.constants.palette.FAILED);
+        for (percent_cell.Y..percent_cell.Y + percent_cell.Height) |row| {
+            const start = row * stride + percent_cell.X;
+            try std.testing.expectEqualSlices(u32, before[start..][0..percent_cell.Width], pixels[start..][0..percent_cell.Width]);
+        }
+        try std.testing.expectEqual(fill, pixels[target.offset(right - 52, bar_y)]);
+        try std.testing.expect(!hasInk(&target, separator));
+        try std.testing.expect(!hasInk(&target, cancel_hint));
+        try std.testing.expect(peakInk(&target, boot_hint) > 128);
+        try std.testing.expect(peakInk(&target, shutdown_hint) > 128);
+        try expectCompleteControls(&target, controls, scratch, text);
         const title_end = target.offset(0, header.Y + header.Height / 2);
         const header_end = target.offset(0, header.Y + header.Height);
         try std.testing.expectEqualSlices(u32, before[0..title_end], pixels[0..title_end]);
@@ -151,6 +174,45 @@ fn expectStatusTag(target: *const Surface, log: Rect, line: u32, tag: graphics.t
         }
     }
     try std.testing.expect(status_visible and label_visible);
+}
+
+fn expectCompleteControls(target: *const Surface, controls: Rect, scratch: []u32, text: screen.types.render.Text) !void {
+    const frame = screen.constants.frame;
+    const reference_width = controls.Width - 2 * frame.INSET;
+    var reference: Surface = .{ .Base = scratch.ptr, .Width = reference_width, .Height = 2 * controls.Height, .Stride = reference_width, .Format = target.Format };
+    graphics.draw.clear(&reference, screen.constants.palette.DESKTOP);
+    try graphics.text.drawString(text.Renderer, &reference, text.Face, .{ .PixelSize = frame.CAPTION_SIZE, .Tracking = 0 }, 0, @intCast(controls.Height), screen.strings.text.COMPLETED_LEGEND, screen.constants.palette.TITLE_TEXT, null);
+    const expected = inkCount(&reference, .{ .X = 0, .Y = 0, .Width = reference.Width, .Height = reference.Height });
+    try std.testing.expect(expected > 0);
+    try std.testing.expectEqual(expected, inkCount(target, controls));
+}
+
+fn inkCount(target: *const Surface, region: Rect) usize {
+    var count: usize = 0;
+    for (region.Y..region.Y + region.Height) |row| {
+        const start = target.offset(region.X, @intCast(row));
+        for (target.Base[start..][0..region.Width]) |pixel| count += @intFromBool(pixel != 0);
+    }
+    return count;
+}
+
+fn peakInk(target: *const Surface, region: Rect) u8 {
+    var peak: u8 = 0;
+    for (region.Y..region.Y + region.Height) |row| {
+        const start = target.offset(region.X, @intCast(row));
+        for (target.Base[start..][0..region.Width]) |pixel| {
+            peak = @max(peak, graphics.types.color.Color.fromPixel(pixel, target.Format).R);
+        }
+    }
+    return peak;
+}
+
+fn hasInk(target: *const Surface, region: Rect) bool {
+    for (region.Y..region.Y + region.Height) |row| {
+        const start = target.offset(region.X, @intCast(row));
+        if (!std.mem.allEqual(u32, target.Base[start..][0..region.Width], 0)) return true;
+    }
+    return false;
 }
 
 fn expectPadding(target: *const Surface) !void {

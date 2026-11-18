@@ -25,4 +25,5 @@ pub const CORPSE_REUSE = "Crimson corpse release invalidates and reuses the same
 pub const MODULE_NAME = "Crimson diagnostic module registration refuses oversized names without truncation or publication";
 pub const MODULE_BOUNDARY = "Crimson diagnostic module registration preserves full boundary-length names and half-open ranges";
 pub const MODULE_RANGE = "Crimson diagnostic module registration rejects overflowing address ranges";
+pub const MODULE_AVAILABLE = "Crimson diagnostic registry accepts an entry while space remains";
 pub const MODULE_CAPACITY = "Crimson diagnostic registry refuses full retention without overwriting existing records";

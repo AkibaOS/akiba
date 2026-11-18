@@ -1,5 +1,7 @@
 //! Diagnostic Check Progress And Scrolling Viewport
 
+const std = @import("std");
+
 const text = @import("tests").screen.strings.text;
 const types = @import("tests").screen.types.model;
 
@@ -12,6 +14,7 @@ pub fn initialize(rows: []types.Row, total: usize) types.Model {
 pub fn begin(state: *types.Model, name: []const u8) bool {
     if (state.Done or state.Active != null or state.Completed >= state.Total or name.len == 0) return false;
     state.Active = name;
+    state.TailIsPassEvidence = false;
     return true;
 }
 
@@ -35,7 +38,15 @@ fn closeActive(state: *types.Model, outcome: types.Outcome, name: []const u8) bo
 
 pub fn evidence(state: *types.Model, outcome: types.Outcome, name: []const u8) void {
     if (state.Active == null or name.len == 0) return;
+    if (outcome == .Pass and state.TailIsPassEvidence and state.Count != 0) {
+        const last = &state.Rows[wrap(state.Oldest, state.Count - 1, state.Rows.len)];
+        if (std.mem.eql(u8, last.Text, name)) {
+            last.Repeats +|= 1;
+            return;
+        }
+    }
     append(state, .{ .Kind = if (outcome == .Pass) .Pass else .Fail, .Text = name });
+    state.TailIsPassEvidence = outcome == .Pass;
 }
 
 pub fn complete(state: *types.Model) bool {
@@ -60,6 +71,7 @@ pub fn row(state: *const types.Model, index: usize) ?types.Row {
 }
 
 fn append(state: *types.Model, entry: types.Row) void {
+    state.TailIsPassEvidence = false;
     const capacity = state.Rows.len;
     if (capacity == 0) return;
     if (state.Count == capacity) {

@@ -24,7 +24,7 @@ pub fn run() void {
         modules.findModuleForAddress(inputs.MODULE_BASE + inputs.MODULE_SIZE) == null, labels.MODULE_BOUNDARY);
     verify.require(!modules.registerModule(name, std.math.maxInt(u64) - 1, inputs.MODULE_SIZE), labels.MODULE_RANGE);
     for (1..crimson.constants.limits.MAX_MODULES) |index| {
-        verify.require(modules.registerModule(name, inputs.MODULE_BASE + index * inputs.MODULE_SIZE, inputs.MODULE_SIZE), labels.MODULE_CAPACITY);
+        verify.require(modules.registerModule(name, inputs.MODULE_BASE + index * inputs.MODULE_SIZE, inputs.MODULE_SIZE), labels.MODULE_AVAILABLE);
     }
     verify.require(!modules.registerModule(name, inputs.MODULE_BASE + crimson.constants.limits.MAX_MODULES * inputs.MODULE_SIZE, inputs.MODULE_SIZE) and modules.findModuleForAddress(inputs.MODULE_BASE) == found, labels.MODULE_CAPACITY);
 }

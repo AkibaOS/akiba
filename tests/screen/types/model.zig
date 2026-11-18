@@ -6,6 +6,7 @@ pub const Outcome = enum { Pass, Fail };
 pub const Row = struct {
     Kind: Kind,
     Text: []const u8,
+    Repeats: usize = 1,
 };
 
 pub const Model = struct {
@@ -16,5 +17,6 @@ pub const Model = struct {
     Completed: usize = 0,
     Failed: usize = 0,
     Active: ?[]const u8 = null,
+    TailIsPassEvidence: bool = false,
     Done: bool = false,
 };
