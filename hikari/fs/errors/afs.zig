@@ -13,6 +13,7 @@ pub const ReadError = error{
     InvalidVolumeHeader,
     ReadFailed,
     AllocationFailed,
+    ReleaseFailed,
     NotFound,
     NotAStack,
     UnitTooLarge,

@@ -13,4 +13,5 @@ pub const State = struct {
     CaptureSource: bool = false,
     Source: ?[*]align(8) u8 = null,
     SourceFreeCalls: usize = 0,
+    RefuseSourceReleases: usize = 1,
 };

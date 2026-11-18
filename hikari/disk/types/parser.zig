@@ -13,15 +13,15 @@ const MediaSnapshot = types.media.MediaSnapshot;
 const ParseError = errors.gpt.ParseError;
 
 pub const Parser = struct {
-    Media: MediaSnapshot,
     BootServices: *efi.types.services.boot.BootServices,
-    Header: types.gpt.Header,
-    EntriesBuffer: [*]align(8) u8,
-    EntriesAllocation: efi.types.buffer.AlignedBuffer,
-    EntriesCount: u32,
-    EntrySize: u32,
+    Media: MediaSnapshot = undefined,
+    Header: types.gpt.Header = undefined,
+    Scratch: efi.types.buffer.AlignedBuffer = .{},
+    EntriesCount: u32 = 0,
+    EntrySize: u32 = 0,
 
-    pub fn initialize(block_io: *efi.types.protocols.block.BlockIoProtocol, boot_services: *efi.types.services.boot.BootServices) ParseError!Parser {
+    pub fn initialize(self: *Parser, block_io: *efi.types.protocols.block.BlockIoProtocol) ParseError!void {
+        if (!self.Scratch.Pool.isEmpty()) return ParseError.AllocationFailed;
         const media = MediaSnapshot.capture(block_io) orelse return ParseError.ReadFailed;
         const block_size = media.BlockSize;
         if (block_size < constants.gpt.HEADER_SIZE_MINIMUM or
@@ -30,11 +30,11 @@ pub const Parser = struct {
             return ParseError.InvalidLayout;
         }
 
-        var header_buffer = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ParseError.AllocationFailed;
-        defer efi.buffer.release(boot_services, &header_buffer);
-        if (!media.read(constants.gpt.HEADER_LBA, header_buffer.Data[0..header_buffer.Size])) return ParseError.ReadFailed;
+        if (!efi.buffer.allocate(self.BootServices, block_size, media.IOAlign, &self.Scratch)) return ParseError.AllocationFailed;
+        const header_bytes = self.Scratch.Data[0..self.Scratch.Size];
+        if (!media.read(constants.gpt.HEADER_LBA, header_bytes)) return ParseError.ReadFailed;
 
-        const header: *types.gpt.Header = @ptrCast(@alignCast(header_buffer.Data));
+        const header: *types.gpt.Header = @ptrCast(@alignCast(header_bytes.ptr));
 
         if (header.Signature != constants.gpt.SIGNATURE) {
             return ParseError.InvalidSignature;
@@ -50,7 +50,7 @@ pub const Parser = struct {
 
         const stored_header_crc = header.HeaderCRC32;
         header.HeaderCRC32 = 0;
-        const calculated_header_crc = crc.checksum.calculate(header_buffer.Data[0..header.HeaderSize]);
+        const calculated_header_crc = crc.checksum.calculate(header_bytes[0..header.HeaderSize]);
         header.HeaderCRC32 = stored_header_crc;
         if (calculated_header_crc != stored_header_crc) {
             return ParseError.InvalidHeaderCRC;
@@ -76,30 +76,25 @@ pub const Parser = struct {
         const rounded_size = std.math.mul(u64, entries_blocks, block_size) catch return ParseError.InvalidLayout;
         const entries_buffer_size = std.math.cast(usize, rounded_size) orelse return ParseError.InvalidLayout;
 
-        var entries_buffer = efi.buffer.allocate(boot_services, entries_buffer_size, media.IOAlign) orelse return ParseError.AllocationFailed;
-        errdefer efi.buffer.release(boot_services, &entries_buffer);
-        if (!media.read(header.PartitionEntriesLBA, entries_buffer.Data[0..entries_buffer.Size])) return ParseError.ReadFailed;
+        const checked_header = header.*;
+        if (!efi.buffer.release(self.BootServices, &self.Scratch)) return ParseError.ReleaseFailed;
+        if (!efi.buffer.allocate(self.BootServices, entries_buffer_size, media.IOAlign, &self.Scratch)) return ParseError.AllocationFailed;
+        const entries = self.Scratch.Data[0..self.Scratch.Size];
+        if (!media.read(checked_header.PartitionEntriesLBA, entries)) return ParseError.ReadFailed;
 
-        const calculated_entries_crc = crc.checksum.calculate(entries_buffer.Data[0..entries_total_size]);
-        if (calculated_entries_crc != header.PartitionEntriesCRC32) {
-            return ParseError.InvalidEntriesCRC;
-        }
+        const calculated_entries_crc = crc.checksum.calculate(entries[0..entries_total_size]);
+        if (calculated_entries_crc != checked_header.PartitionEntriesCRC32) return ParseError.InvalidEntriesCRC;
 
-        return Parser{
-            .Media = media,
-            .BootServices = boot_services,
-            .Header = header.*,
-            .EntriesBuffer = entries_buffer.Data,
-            .EntriesAllocation = entries_buffer,
-            .EntriesCount = header.PartitionEntriesCount,
-            .EntrySize = header.PartitionEntrySize,
-        };
+        self.Media = media;
+        self.Header = checked_header;
+        self.EntriesCount = checked_header.PartitionEntriesCount;
+        self.EntrySize = checked_header.PartitionEntrySize;
     }
 
-    pub fn deinitialize(self: *Parser) void {
-        if (self.EntriesCount == 0) return;
-        efi.buffer.release(self.BootServices, &self.EntriesAllocation);
+    pub fn deinitialize(self: *Parser) bool {
         self.EntriesCount = 0;
+        self.EntrySize = 0;
+        return efi.buffer.release(self.BootServices, &self.Scratch);
     }
 
     fn validPartition(self: *const Parser, entry: *const types.gpt.PartitionEntry) bool {
@@ -132,9 +127,9 @@ pub const Parser = struct {
         return entry;
     }
 
-    pub fn getPartitionEntry(self: *const Parser, index: u32) *const types.gpt.PartitionEntry {
+    fn getPartitionEntry(self: *const Parser, index: u32) *const types.gpt.PartitionEntry {
         const offset = @as(usize, index) * self.EntrySize;
-        return @ptrCast(@alignCast(self.EntriesBuffer + offset));
+        return @ptrCast(@alignCast(self.Scratch.Data + offset));
     }
 
     pub fn countValidPartitions(self: *const Parser) u32 {

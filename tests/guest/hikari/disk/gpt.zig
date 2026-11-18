@@ -25,8 +25,9 @@ pub fn run() !void {
 fn validTable() !void {
     fixture.reset();
     fixture.encodeGPT();
-    var parsed = try Parser.initialize(&fixture.protocol, &fixture.services);
-    defer parsed.deinitialize();
+    var parsed: Parser = .{ .BootServices = &fixture.services };
+    try parsed.initialize(&fixture.protocol);
+    defer if (!parsed.deinitialize()) verify.failure(error.ReleaseFailed);
     const first = parsed.findPartitionByType(constants.TYPE_A);
     const second = parsed.findPartitionByType(constants.TYPE_B);
     const valid = first != null and first.?.StartingLBA == 8 and first.?.EndingLBA == 15 and
@@ -37,25 +38,26 @@ fn validTable() !void {
         parsed.countValidPartitions() == 2 and parsed.EntriesCount == constants.ENTRY_COUNT and
         parsed.EntrySize == constants.ENTRY_BYTES and parsed.getDiskGUID().equals(constants.DISK_GUID) and
         parsed.getFirstUsableLBA() == constants.FIRST_USABLE_LBA and parsed.getLastUsableLBA() == constants.LAST_USABLE_LBA and
-        @intFromPtr(parsed.EntriesBuffer) % constants.IO_ALIGNMENT == 0 and
+        @intFromPtr(parsed.Scratch.Data) % constants.IO_ALIGNMENT == 0 and
         fixture.device.ReadCalls == 2 and fixture.device.Reads[0].LBA == constants.HEADER_LBA and
         fixture.device.Reads[1].LBA == constants.TABLE_LBA and fixture.device.Reads[1].Bytes == constants.TABLE_READ_BYTES and
         fixture.live() == 1;
-    parsed.deinitialize();
-    parsed.deinitialize();
+    if (!parsed.deinitialize()) verify.failure(error.ReleaseFailed);
+    if (!parsed.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(valid and fixture.device.AllocateCalls == 2 and fixture.device.FreeCalls == 2 and fixture.clean(), labels.GPT_VALID);
 }
 
 fn expandedTable(block_size: u32, count: u32, comptime label: []const u8) !void {
     fixture.reset();
     fixture.encodeExpandedGPT(block_size, count);
-    var parsed = try Parser.initialize(&fixture.protocol, &fixture.services);
+    var parsed: Parser = .{ .BootServices = &fixture.services };
+    try parsed.initialize(&fixture.protocol);
     const last = parsed.findPartitionByIndex(count - 1);
     const valid = parsed.EntriesCount == count and parsed.Media.BlockSize == block_size and
         last != null and last.?.isType(constants.TYPE_B) and
         parsed.findPartitionByType(constants.TYPE_B) == last and parsed.countValidPartitions() == 1 and
         parsed.findPartitionByIndex(count) == null and fixture.device.ReadCalls == 2 and fixture.live() == 1;
-    parsed.deinitialize();
+    if (!parsed.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(valid and fixture.clean(), label);
     fixture.reset();
     fixture.encodeExpandedGPT(block_size, count);
@@ -160,10 +162,8 @@ fn allocationFailures() void {
 }
 
 fn rejects(expected: ParseError, allocations: usize, frees: usize, reads: usize) bool {
-    var parsed = Parser.initialize(&fixture.protocol, &fixture.services) catch |failure| {
-        return failure == expected and fixture.device.AllocateCalls == allocations and fixture.device.FreeCalls == frees and
-            fixture.device.ReadCalls == reads and fixture.clean();
-    };
-    parsed.deinitialize();
-    return false;
+    var parsed: Parser = .{ .BootServices = &fixture.services };
+    const refused = if (parsed.initialize(&fixture.protocol)) |_| false else |failure| failure == expected;
+    return parsed.deinitialize() and refused and fixture.device.AllocateCalls == allocations and
+        fixture.device.FreeCalls == frees and fixture.device.ReadCalls == reads and fixture.clean();
 }

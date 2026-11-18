@@ -243,7 +243,7 @@ fn abortRetry(real: *services.boot.BootServices, image_handle: base.Handle, pers
     var source: [*]align(8) u8 = undefined;
     if (real.AllocatePool(.LoaderData, inputs.PAGE_BYTES, &source) != codes.SUCCESS) return error.AllocationFailed;
     fixture.Source = source;
-    claims.Source = source;
+    claims.Source.Allocation = source;
     if (persistent) {
         fixture.FailFreeCalls = &.{ 4, 5 };
     } else {
@@ -252,7 +252,7 @@ fn abortRetry(real: *services.boot.BootServices, image_handle: base.Handle, pers
     }
 
     const completed = abort.finish(&claims);
-    const other_claims_released = claims.Image.Backing == null and !claims.Image.Untrusted and claims.Source == null and fixture.Source == null and
+    const other_claims_released = claims.Image.Backing == null and !claims.Image.Untrusted and claims.Source.isEmpty() and fixture.Source == null and
         claims.Handoff.?.Stack == null and claims.Handoff.?.Parameters == null and fixture.AllocateCalls == 4;
     const root = fixture.Created[0].Address;
     const first_pass = fixture.Freed[0].Address == fixture.Created[2].Address and

@@ -82,16 +82,23 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
     _ = splash.initialize(framebuffer, console_output);
     splash.report(messages.INITIALIZING_DISPLAY);
     splash.report(messages.LOCATING_FILE_SYSTEM);
-    const afs_partition = partition.findAfsPartition(boot_services) orelse {
+    claims.Discovery = .{ .Parser = .{ .BootServices = boot_services } };
+    const located = partition.findAfsPartition(&claims.Discovery.?) catch {
+        splash.fail(messages.ERROR_CLEANUP);
+        return status.DEVICE_ERROR;
+    };
+    claims.Discovery = null;
+    const afs_partition = located orelse {
         splash.fail(messages.ERROR_FILE_SYSTEM_NOT_FOUND);
         return status.NOT_FOUND;
     };
     splash.report(messages.INITIALIZING_FILE_SYSTEM);
-    var afs_reader = fs.types.afs.reader.Reader.initialize(afs_partition.Media, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
-        splash.fail(messages.ERROR_FILE_SYSTEM);
+    claims.Reader = .{ .BootServices = boot_services };
+    const afs_reader = &claims.Reader.?;
+    afs_reader.initialize(afs_partition.Media, afs_partition.StartLBA, afs_partition.EndLBA) catch |failure| {
+        splash.fail(if (failure == error.ReleaseFailed) messages.ERROR_CLEANUP else messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
-    defer afs_reader.deinitialize();
     splash.report(messages.LOADING_KERNEL);
     const kernel_unit = afs_reader.openLocation(paths.KERNEL_LOCATION) catch {
         splash.fail(messages.ERROR_KERNEL_NOT_FOUND);
@@ -106,7 +113,10 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
         splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };
-    afs_reader.deinitialize();
+    if (!cleanup.releaseReader(claims)) {
+        splash.fail(messages.ERROR_CLEANUP);
+        return status.DEVICE_ERROR;
+    }
     splash.report(messages.VERIFYING_KERNEL);
     _ = loader.elf.validation.validateImage(kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);

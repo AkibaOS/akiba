@@ -19,29 +19,31 @@ const node = afs.btree.node;
 const search = afs.btree.search;
 
 pub const BTree = struct {
-    Media: MediaSnapshot,
-    BootServices: *efi.types.services.boot.BootServices,
-    PartitionStartLBA: u64,
-    PartitionEndLBA: u64,
-    CellSize: u32,
-    BaseSpan: SpanDescriptor,
-    NodeSize: u32,
-    RootNode: u32,
-    FirstLeaf: u32,
-    LastLeaf: u32,
-    Depth: u16,
-    TotalNodes: u32,
-    NodeBuffer: [*]align(8) u8,
+    Media: MediaSnapshot = undefined,
+    PartitionStartLBA: u64 = 0,
+    PartitionEndLBA: u64 = 0,
+    CellSize: u32 = 0,
+    BaseSpan: SpanDescriptor = .{},
+    NodeSize: u32 = 0,
+    RootNode: u32 = 0,
+    FirstLeaf: u32 = 0,
+    LastLeaf: u32 = 0,
+    Depth: u16 = 0,
+    TotalNodes: u32 = 0,
+    CellBuffer: []align(8) u8 = undefined,
+    NodeBuffer: [*]align(8) u8 = undefined,
 
     pub fn initialize(
         media: MediaSnapshot,
         boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
-        cell_size: u32,
+        cell_buffer: []align(8) u8,
         base_span: SpanDescriptor,
         header: *const BTreeHeaderRecord,
+        node_owner: *efi.types.buffer.PoolClaim,
     ) BTreeError!BTree {
+        const cell_size = std.math.cast(u32, cell_buffer.len) orelse return BTreeError.InvalidHeader;
         const block_size = media.BlockSize;
         if (afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, block_size, cell_size, base_span.StartCell, cell_size) == null or
             header.NodeSize < @sizeOf(BTreeNodeDescriptor) + @sizeOf(u16) or header.NodeSize > cell_size or
@@ -59,19 +61,10 @@ pub const BTree = struct {
         {
             return BTreeError.InvalidHeader;
         }
-        var node_buffer: [*]align(8) u8 = undefined;
-        const allocation_status = boot_services.AllocatePool(
-            .LoaderData,
-            header.NodeSize,
-            &node_buffer,
-        );
-        if (efi.status.isError(allocation_status)) {
-            return BTreeError.AllocationFailed;
-        }
+        if (!efi.buffer.allocatePool(boot_services, header.NodeSize, node_owner)) return BTreeError.AllocationFailed;
 
         return BTree{
             .Media = media,
-            .BootServices = boot_services,
             .PartitionStartLBA = partition_start_lba,
             .PartitionEndLBA = partition_end_lba,
             .CellSize = cell_size,
@@ -82,15 +75,13 @@ pub const BTree = struct {
             .LastLeaf = header.LastLeafNode,
             .Depth = header.Depth,
             .TotalNodes = header.TotalNodes,
-            .NodeBuffer = node_buffer,
+            .CellBuffer = cell_buffer,
+            .NodeBuffer = node_owner.Allocation.?,
         };
     }
 
-    pub fn deinitialize(self: *BTree) void {
-        if (self.TotalNodes == 0) return;
-        _ = self.BootServices.FreePool(self.NodeBuffer);
-        self.TotalNodes = 0;
-        self.Depth = 0;
+    pub fn close(self: *BTree) void {
+        self.* = .{};
     }
 
     pub fn readNode(self: *BTree, node_number: u32) BTreeError!*BTreeNodeDescriptor {
@@ -108,27 +99,11 @@ pub const BTree = struct {
             self.CellSize,
         ) orelse return BTreeError.InvalidNode;
 
-        if (!self.Media.isCurrent()) return BTreeError.ReadFailed;
-        var cell_buffer = efi.buffer.allocate(self.BootServices, self.CellSize, self.Media.IOAlign) orelse return BTreeError.AllocationFailed;
-        defer efi.buffer.release(self.BootServices, &cell_buffer);
-        if (!self.Media.read(cell_lba, cell_buffer.Data[0..cell_buffer.Size])) return BTreeError.ReadFailed;
-
-        const node_pointer = cell_buffer.Data + node_offset_in_cell;
-        var index: u32 = 0;
-        while (index < self.NodeSize) : (index += 1) {
-            self.NodeBuffer[index] = node_pointer[index];
-        }
+        if (!self.Media.read(cell_lba, self.CellBuffer)) return BTreeError.ReadFailed;
+        @memcpy(self.NodeBuffer[0..self.NodeSize], self.CellBuffer[node_offset_in_cell..][0..self.NodeSize]);
 
         if (!afs.btree.validate.catalogNode(self.NodeBuffer[0..self.NodeSize])) return BTreeError.InvalidNode;
         return @ptrCast(@alignCast(self.NodeBuffer));
-    }
-
-    pub fn getRecordOffset(self: *BTree, record_index: u16) u16 {
-        return node.getRecordOffset(self.NodeBuffer, self.NodeSize, record_index);
-    }
-
-    pub fn getRecordPointer(self: *BTree, record_index: u16) [*]u8 {
-        return node.getRecordPointer(self.NodeBuffer, self.NodeSize, record_index);
     }
 
     pub fn searchIndex(

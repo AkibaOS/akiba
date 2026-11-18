@@ -13,5 +13,7 @@ pub const PoolState = struct {
     PoolType: ?memory.MemoryType = null,
     FreedAddress: ?usize = null,
     FailAllocation: bool = false,
+    FailFree: bool = false,
+    OmitOutput: bool = false,
     OverrideAddress: ?usize = null,
 };

@@ -16,4 +16,7 @@ pub const FENCES = "storage routes exact maximum separators at both internal lev
 pub const LEAVES = "storage preserves real first and last leaf endpoints";
 pub const RELEASED = "storage releases every real EFI pool allocation on reader cleanup";
 pub const SOURCE_RELEASE = "failed Unit read retains its source pool until abort cleanup releases it";
+pub const DISCOVERY_RELEASE = "a refused handle-list release blocks discovery and is recovered on abort";
+pub const DISCOVERY_REFUSAL = "a persistent handle-list refusal survives bounded abort without another scan";
+pub const SCRATCH_RELEASE = "AFS cleanup preserves only the refused metadata pool and retries it exactly once";
 pub const CLEANUP_FAILED = "Firmware AFS pool cleanup failed";

@@ -1,6 +1,6 @@
 //! Firmware AFS Bulk Fixture Inputs
 
-pub const ASSERTION_COUNT: usize = 9;
+pub const ASSERTION_COUNT: usize = 12;
 pub const UNIT_COUNT: usize = 128;
 pub const IDENTITY_BYTES: usize = 180;
 pub const IDENTITY_STRIDE: usize = 2;

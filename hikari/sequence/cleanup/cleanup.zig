@@ -3,13 +3,28 @@
 const constants = @import("hikari").sequence.constants.memory;
 const efi = @import("hikari").efi;
 const handoff = @import("hikari").sequence.handoff;
+const partition = @import("hikari").sequence.partition;
 const types = @import("hikari").sequence.types.cleanup;
 
 pub fn releaseSource(claims: *types.Claims) bool {
     if (sealed(claims)) return false;
-    const source = claims.Source orelse return true;
-    if (claims.Paging.BootServices.FreePool(source) != efi.constants.status.SUCCESS) return false;
-    claims.Source = null;
+    return efi.buffer.releasePool(claims.Paging.BootServices, &claims.Source);
+}
+
+pub fn releaseReader(claims: *types.Claims) bool {
+    if (sealed(claims)) return false;
+    if (claims.Reader) |*reader| {
+        if (!reader.deinitialize()) return false;
+        claims.Reader = null;
+    }
+    return true;
+}
+
+fn releaseDiscovery(claims: *types.Claims) bool {
+    if (claims.Discovery) |*discovery| {
+        if (!partition.deinitialize(discovery)) return false;
+        claims.Discovery = null;
+    }
     return true;
 }
 
@@ -23,6 +38,8 @@ pub fn finish(claims: *types.Claims) bool {
         }
         if (!efi.pages.release(claims.Paging.BootServices, &claims.Image.Backing)) released = false;
         if (attempt == 0) paging_released = claims.Paging.deinitializeWithAttempts(constants.ABORT_CLEANUP_ATTEMPTS);
+        if (!releaseReader(claims)) released = false;
+        if (!releaseDiscovery(claims)) released = false;
         if (!releaseSource(claims)) released = false;
         if (released) return paging_released and !claims.Image.Untrusted;
     }

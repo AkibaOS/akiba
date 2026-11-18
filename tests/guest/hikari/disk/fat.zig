@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const constants = @import("tests").constants.acquisition;
+const efi = @import("hikari").efi;
 const fat = @import("hikari").fs.types.fat32.reader;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const format = @import("shared").fat32;
@@ -33,10 +34,10 @@ fn activeFatCopy() !void {
     boot.ExtFlags = format.constants.flags.MIRRORING_DISABLED | 1;
     const root_cluster = clusters.CLUSTER_DATA_START;
     fixture.writeU32(sector(2), root_cluster * @sizeOf(u32), clusters.CLUSTER_EOC);
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-    defer reader.deinitialize();
+    var reader = try mount(0, fixture.media.LastBlock);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require((try reader.getNextCluster(root_cluster)) == null and reader.FatStartLBA == 2 and reader.DataStartLBA == 3, labels.FAT_ACTIVE_COPY);
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     boot.ExtFlags = format.constants.flags.MIRRORING_DISABLED | 2;
     verify.require(rejects(0, fixture.media.LastBlock, error.InvalidBootSector), labels.FAT_ACTIVE_COPY);
 }
@@ -53,14 +54,14 @@ fn lifecycle() !void {
     fixture.reset();
     _ = encode(0, constants.BLOCK_BYTES);
     link(0, clusters.CLUSTER_DATA_START, clusters.CLUSTER_EOC);
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-    defer reader.deinitialize();
+    var reader = try mount(0, fixture.media.LastBlock);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     const aligned = @intFromPtr(reader.ClusterAllocation.Data) % constants.IO_ALIGNMENT == 0 and
         @intFromPtr(reader.SectorAllocation.Data) % constants.IO_ALIGNMENT == 0 and fixture.live() == 2;
     const terminal = try reader.getNextCluster(clusters.CLUSTER_DATA_START);
     try reader.readCluster(clusters.CLUSTER_DATA_START);
-    reader.deinitialize();
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(aligned and terminal == null and fixture.device.FreeCalls == 2 and fixture.clean(), labels.FAT_LIFECYCLE);
 
     const entry: StackEntry = std.mem.zeroes(StackEntry);
@@ -81,8 +82,8 @@ fn mediaChanges() !void {
     for (0..5) |change| {
         fixture.reset();
         _ = encode(0, constants.BLOCK_BYTES);
-        var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-        defer reader.deinitialize();
+        var reader = try mount(0, fixture.media.LastBlock);
+        defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
         const original_media = fixture.media;
         switch (change) {
             0 => fixture.media.MediaId += 1,
@@ -95,7 +96,7 @@ fn mediaChanges() !void {
         const rejected = rejectsAllocated(&reader, &entry, constants.UNIT_PAYLOAD.len, error.MediaChanged);
         fixture.media = original_media;
         const stale = failedWith(reader.readCluster(clusters.CLUSTER_DATA_START), error.MediaChanged);
-        reader.deinitialize();
+        if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
         verify.require(rejected and stale and fixture.device.ReadCalls == 1 and fixture.device.AllocateCalls == 2 and fixture.clean(), labels.FAT_MEDIA);
     }
 }
@@ -103,15 +104,20 @@ fn mediaChanges() !void {
 fn unitFailure() !void {
     fixture.reset();
     _ = encode(0, constants.BLOCK_BYTES);
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-    defer reader.deinitialize();
+    var reader = try mount(0, fixture.media.LastBlock);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     var entry: StackEntry = std.mem.zeroes(StackEntry);
     entry.setFirstCluster(clusters.CLUSTER_DATA_START);
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
     fixture.device.FailLBA = reader.DataStartLBA;
-    const failed = rejectsAllocated(&reader, &entry, constants.UNIT_PAYLOAD.len, error.ReadFailed);
-    verify.require(failed and fixture.live() == 2, labels.FAT_UNIT_RELEASE);
-    reader.deinitialize();
+    var backing: efi.types.buffer.PoolClaim = .{};
+    const failed = failedWith(reader.readUnitToAllocated(&entry, constants.UNIT_PAYLOAD.len, &backing), error.ReadFailed);
+    fixture.device.FailFree = fixture.device.FreeCalls + 1;
+    const refused = !efi.buffer.releasePool(&fixture.services, &backing);
+    const retained = backing.Allocation != null and fixture.live() == 3;
+    const released = efi.buffer.releasePool(&fixture.services, &backing);
+    verify.require(failed and refused and retained and released and backing.isEmpty() and fixture.live() == 2, labels.FAT_UNIT_RELEASE);
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(fixture.clean(), labels.FAT_INITIALIZATION_RELEASE);
 }
 
@@ -122,8 +128,8 @@ fn exactUnit() !void {
     link(0, first_cluster, clusters.CLUSTER_EOC);
     @memcpy(sector(2)[0..constants.UNIT_PAYLOAD.len], &constants.UNIT_PAYLOAD);
 
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-    defer reader.deinitialize();
+    var reader = try mount(0, fixture.media.LastBlock);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     var entry: StackEntry = std.mem.zeroes(StackEntry);
     entry.setFirstCluster(first_cluster);
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
@@ -134,9 +140,11 @@ fn exactUnit() !void {
     const volume_bound = fixture.device.AllocateCalls == 2 and fixture.device.ReadCalls == 1;
 
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
-    const result = try reader.readUnitToAllocated(&entry, entry.UnitSize);
+    var backing: efi.types.buffer.PoolClaim = .{};
+    defer if (!efi.buffer.releasePool(&fixture.services, &backing)) verify.failure(error.ReleaseFailed);
+    const result = try reader.readUnitToAllocated(&entry, entry.UnitSize, &backing);
     const exact = result.Size == constants.UNIT_PAYLOAD.len and std.mem.eql(u8, result.Buffer[0..result.Size], &constants.UNIT_PAYLOAD);
-    _ = fixture.services.FreePool(@alignCast(result.Buffer));
+    if (!efi.buffer.releasePool(&fixture.services, &backing)) verify.failure(error.ReleaseFailed);
 
     entry.UnitSize = constants.BLOCK_BYTES + 1;
     const truncated = rejectsAllocated(&reader, &entry, entry.UnitSize, error.InvalidChain) and fixture.live() == 2;
@@ -145,11 +153,11 @@ fn exactUnit() !void {
     const overlong = rejectsAllocated(&reader, &entry, entry.UnitSize, error.InvalidChain) and fixture.live() == 2;
     const read_calls = fixture.device.ReadCalls;
     entry = std.mem.zeroes(StackEntry);
-    const empty = try reader.readUnitToAllocated(&entry, 0);
+    const empty = try reader.readUnitToAllocated(&entry, 0, &backing);
     const empty_valid = empty.Size == 0 and fixture.device.ReadCalls == read_calls;
-    _ = fixture.services.FreePool(@alignCast(empty.Buffer));
+    if (!efi.buffer.releasePool(&fixture.services, &backing)) verify.failure(error.ReleaseFailed);
 
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(size_rejected and caller_bound and volume_rejected and volume_bound and exact and truncated and overlong and empty_valid and
         fixture.clean(), labels.FAT_UNIT_EXACT);
 }
@@ -207,8 +215,8 @@ fn extents() !void {
 
     const last_cluster = clusters.CLUSTER_DATA_START + 1;
     link(start, clusters.CLUSTER_DATA_START, last_cluster + 1);
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, start, constants.PARTITION_LAST_LBA);
-    defer reader.deinitialize();
+    var reader = try mount(start, constants.PARTITION_LAST_LBA);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     try reader.readCluster(last_cluster);
     const off_volume_data = failedWith(reader.readCluster(last_cluster + 1), error.InvalidCluster);
     const off_volume_fat = failedWith(reader.getNextCluster(last_cluster + 1), error.InvalidCluster);
@@ -216,7 +224,7 @@ fn extents() !void {
     const bounded_reads = fixture.device.ReadCalls == 4 and fixture.device.Reads[2].LBA == start + 4 and
         fixture.device.Reads[2].Bytes == 2 * constants.BLOCK_BYTES and fixture.device.Reads[3].LBA == start + 1 and
         fixture.device.Reads[3].Bytes == constants.BLOCK_BYTES;
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(off_volume_data and off_volume_fat and successor and bounded_reads and fixture.clean(), labels.FAT_EXTENT);
 }
 
@@ -230,11 +238,11 @@ fn directoryChains() !void {
         @memset(sector(3), format.constants.entries.ENTRY_FREE);
         link(0, first_cluster, first_link);
         link(0, second_cluster, first_cluster);
-        var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-        defer reader.deinitialize();
+        var reader = try mount(0, fixture.media.LastBlock);
+        defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
         const cycle = failedWith(reader.findInStack(first_cluster, labels.FAT_MISSING_IDENTITY), error.InvalidChain);
         const maximum_reads: usize = if (first_link == first_cluster) 3 else 7;
-        reader.deinitialize();
+        if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
         verify.require(cycle and fixture.device.ReadCalls <= maximum_reads and fixture.clean(), labels.FAT_DIRECTORY);
     }
 
@@ -248,15 +256,15 @@ fn directoryChains() !void {
     entry.Extension = .{ 'B', 'I', 'N' };
     entry.setFirstCluster(second_cluster + 1);
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
-    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
-    defer reader.deinitialize();
+    var reader = try mount(0, fixture.media.LastBlock);
+    defer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     const found = try reader.openLocation(labels.FAT_UNIT_IDENTITY);
     const marker = try reader.findInStack(first_cluster, labels.FAT_MISSING_IDENTITY);
     const marker_without_fat = fixture.device.ReadCalls == 7;
     @memset(sector(3), format.constants.entries.ENTRY_FREE);
     link(0, second_cluster, clusters.CLUSTER_EOC);
     const end = try reader.findInStack(first_cluster, labels.FAT_MISSING_IDENTITY);
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     verify.require(found.UnitSize == constants.UNIT_PAYLOAD.len and found.getFirstCluster() == second_cluster + 1 and marker == null and
         marker_without_fat and end == null and fixture.device.ReadCalls == 11 and fixture.clean(), labels.FAT_DIRECTORY);
 }
@@ -266,15 +274,22 @@ fn failedWith(result: anytype, expected: anyerror) bool {
 }
 
 fn rejectsAllocated(reader: *fat.Reader, entry: *const StackEntry, maximum: u32, expected: anyerror) bool {
-    const result = reader.readUnitToAllocated(entry, maximum) catch |failure| return failure == expected;
-    _ = fixture.services.FreePool(@alignCast(result.Buffer));
-    return false;
+    var backing: efi.types.buffer.PoolClaim = .{};
+    const refused = if (reader.readUnitToAllocated(entry, maximum, &backing)) |_| false else |failure| failure == expected;
+    return efi.buffer.releasePool(&fixture.services, &backing) and refused;
+}
+
+fn mount(start_lba: u64, end_lba: u64) !fat.Reader {
+    var reader: fat.Reader = .{ .BootServices = &fixture.services };
+    errdefer if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
+    try reader.initialize(&fixture.protocol, start_lba, end_lba);
+    return reader;
 }
 
 fn rejects(start_lba: u64, end_lba: u64, expected: anyerror) bool {
-    var reader = fat.Reader.initialize(&fixture.protocol, &fixture.services, start_lba, end_lba) catch |failure|
+    var reader = mount(start_lba, end_lba) catch |failure|
         return failure == expected and fixture.clean();
-    reader.deinitialize();
+    if (!reader.deinitialize()) verify.failure(error.ReleaseFailed);
     return false;
 }
 

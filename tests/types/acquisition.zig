@@ -23,6 +23,8 @@ pub const Device = struct {
     FreeCalls: usize = 0,
     ReadCalls: usize = 0,
     FailAllocation: ?usize = null,
+    FailFree: ?usize = null,
+    DiscoveryHandles: usize = 1,
     FailLBA: ?u64 = null,
     Broken: bool = false,
 };

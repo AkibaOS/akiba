@@ -20,23 +20,24 @@ const VolumeHeader = afs.types.volume.VolumeHeader;
 const constants = afs.constants;
 
 pub const Reader = struct {
-    Media: MediaSnapshot,
     BootServices: *efi.types.services.boot.BootServices,
-    PartitionStartLBA: u64,
-    PartitionEndLBA: u64,
-    VolumeHeader: VolumeHeader,
-    CellSize: u32,
-    Index: BTree,
-    HasSpanOverflow: bool,
-    CellBuffer: [*]align(8) u8,
-    CellAllocation: efi.types.buffer.AlignedBuffer,
+    Media: MediaSnapshot = undefined,
+    PartitionStartLBA: u64 = 0,
+    PartitionEndLBA: u64 = 0,
+    VolumeHeader: VolumeHeader = undefined,
+    CellSize: u32 = 0,
+    Index: BTree = .{},
+    HasSpanOverflow: bool = false,
+    CellAllocation: efi.types.buffer.AlignedBuffer = .{},
+    NodeAllocation: efi.types.buffer.PoolClaim = .{},
 
     pub fn initialize(
+        self: *Reader,
         media: MediaSnapshot,
-        boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
-    ) ReadError!Reader {
+    ) ReadError!void {
+        if (!self.CellAllocation.Pool.isEmpty() or !self.NodeAllocation.isEmpty()) return ReadError.AllocationFailed;
         if (!media.isCurrent()) return ReadError.ReadFailed;
         const block_size = media.BlockSize;
         if (block_size < @sizeOf(VolumeHeader) or block_size > constants.sizes.MAXIMUM_CELL_SIZE or
@@ -45,11 +46,10 @@ pub const Reader = struct {
         {
             return ReadError.InvalidVolumeHeader;
         }
-        var sector_buffer = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ReadError.AllocationFailed;
-        defer efi.buffer.release(boot_services, &sector_buffer);
-        if (!media.read(partition_start_lba, sector_buffer.Data[0..sector_buffer.Size])) return ReadError.ReadFailed;
+        if (!efi.buffer.allocate(self.BootServices, block_size, media.IOAlign, &self.CellAllocation)) return ReadError.AllocationFailed;
+        if (!media.read(partition_start_lba, self.CellAllocation.Data[0..block_size])) return ReadError.ReadFailed;
 
-        const header = @as(*const VolumeHeader, @ptrCast(@alignCast(sector_buffer.Data))).*;
+        const header = @as(*const VolumeHeader, @ptrCast(@alignCast(self.CellAllocation.Data))).*;
         if (!header.isValid() or header.CellSize < block_size or (header.CellSize & (header.CellSize - 1)) != 0 or
             header.CellSize % block_size != 0 or header.TotalCells == 0 or header.FreeCells > header.TotalCells or
             header.CompressionType != constants.flags.COMPRESSION_NONE or header.EncryptionType != constants.flags.ENCRYPTION_NONE)
@@ -60,43 +60,43 @@ pub const Reader = struct {
         if (header.TotalCells > partition_cells or !afs.read.bounds.spanFits(header.IndexSpan, header.TotalCells)) {
             return ReadError.InvalidVolumeHeader;
         }
-        var cell_buffer = efi.buffer.allocate(boot_services, header.CellSize, media.IOAlign) orelse return ReadError.AllocationFailed;
-        errdefer efi.buffer.release(boot_services, &cell_buffer);
-        const index_header = try readBtreeHeader(media, boot_services, partition_start_lba, partition_end_lba, header.CellSize, header.IndexSpan);
-        var index = BTree.initialize(
+        if (header.CellSize != block_size) {
+            if (!efi.buffer.release(self.BootServices, &self.CellAllocation)) return ReadError.ReleaseFailed;
+            if (!efi.buffer.allocate(self.BootServices, header.CellSize, media.IOAlign, &self.CellAllocation)) return ReadError.AllocationFailed;
+        }
+        const cell_buffer = self.CellAllocation.Data[0..self.CellAllocation.Size];
+        const index_header = try readBtreeHeader(media, partition_start_lba, partition_end_lba, cell_buffer, header.IndexSpan);
+        const index = BTree.initialize(
             media,
-            boot_services,
+            self.BootServices,
             partition_start_lba,
             partition_end_lba,
-            header.CellSize,
+            cell_buffer,
             header.IndexSpan,
             &index_header,
+            &self.NodeAllocation,
         ) catch return ReadError.BTreeError;
-        errdefer index.deinitialize();
         if (!media.isCurrent()) return ReadError.ReadFailed;
 
-        return Reader{
-            .Media = media,
-            .BootServices = boot_services,
-            .PartitionStartLBA = partition_start_lba,
-            .PartitionEndLBA = partition_end_lba,
-            .VolumeHeader = header,
-            .CellSize = header.CellSize,
-            .Index = index,
-            .HasSpanOverflow = !header.SpanOverflowSpan.isEmpty(),
-            .CellBuffer = cell_buffer.Data,
-            .CellAllocation = cell_buffer,
-        };
+        self.Media = media;
+        self.PartitionStartLBA = partition_start_lba;
+        self.PartitionEndLBA = partition_end_lba;
+        self.VolumeHeader = header;
+        self.Index = index;
+        self.HasSpanOverflow = !header.SpanOverflowSpan.isEmpty();
+        self.CellSize = header.CellSize;
     }
 
-    pub fn deinitialize(self: *Reader) void {
-        if (self.CellSize == 0) return;
-        self.Index.deinitialize();
-        efi.buffer.release(self.BootServices, &self.CellAllocation);
+    pub fn deinitialize(self: *Reader) bool {
+        self.Index.close();
         self.CellSize = 0;
+        const nodes_released = efi.buffer.releasePool(self.BootServices, &self.NodeAllocation);
+        const cell_released = efi.buffer.release(self.BootServices, &self.CellAllocation);
+        return nodes_released and cell_released;
     }
 
     pub fn openLocation(self: *Reader, path: []const u8) ReadError!UnitRecord {
+        if (self.CellSize == 0) return ReadError.ReadFailed;
         var current_node_id: u32 = constants.nodes.ORIGIN_STACK;
         var iterator = utils.path.types.iterator.LocationIterator.init(path);
         while (iterator.next()) |component| {
@@ -120,6 +120,7 @@ pub const Reader = struct {
     }
 
     pub fn readCell(self: *Reader, cell_number: u64) ReadError!void {
+        if (self.CellSize == 0) return ReadError.ReadFailed;
         if (cell_number >= self.VolumeHeader.TotalCells) return ReadError.InvalidSpan;
         const cell_lba = afs.read.bounds.cellLBA(
             self.PartitionStartLBA,
@@ -129,10 +130,11 @@ pub const Reader = struct {
             cell_number,
             self.CellSize,
         ) orelse return ReadError.InvalidSpan;
-        if (!self.Media.read(cell_lba, self.CellBuffer[0..self.CellSize])) return ReadError.ReadFailed;
+        if (!self.Media.read(cell_lba, self.CellAllocation.Data[0..self.CellSize])) return ReadError.ReadFailed;
     }
 
     pub fn readUnit(self: *Reader, unit: *const UnitRecord, buffer: [*]u8, max_size: u64) ReadError!u64 {
+        if (self.CellSize == 0) return ReadError.ReadFailed;
         const channel = &unit.DataChannel;
         const unit_size = channel.LogicalSize;
         if (unit_size > max_size) return ReadError.UnitTooLarge;
@@ -168,40 +170,36 @@ pub const Reader = struct {
         while (bytes_read < size) : (current_cell += 1) {
             try self.readCell(current_cell);
             const bytes_to_copy = @min(size - bytes_read, self.CellSize);
-            @memcpy(buffer[bytes_read..][0..bytes_to_copy], self.CellBuffer[0..bytes_to_copy]);
+            @memcpy(buffer[bytes_read..][0..bytes_to_copy], self.CellAllocation.Data[0..bytes_to_copy]);
             bytes_read += bytes_to_copy;
         }
     }
 
-    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64, owner: *?[*]align(8) u8) ReadError![]u8 {
-        if (owner.* != null) return ReadError.AllocationFailed;
+    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64, owner: *efi.types.buffer.PoolClaim) ReadError![]u8 {
+        if (self.CellSize == 0) return ReadError.ReadFailed;
         const unit_size = unit.DataChannel.LogicalSize;
         if (unit_size == 0 or unit_size > max_size) return ReadError.UnitTooLarge;
         const volume_size = @mulWithOverflow(@as(u64, self.VolumeHeader.TotalCells), @as(u64, self.CellSize));
         if (volume_size[1] != 0 or unit_size > volume_size[0]) return ReadError.UnitTooLarge;
-        var buffer: [*]align(8) u8 = undefined;
-        if (self.BootServices.AllocatePool(.LoaderData, @intCast(unit_size), &buffer) != efi.constants.status.SUCCESS)
-            return ReadError.AllocationFailed;
-        owner.* = buffer;
+        if (!efi.buffer.allocatePool(self.BootServices, @intCast(unit_size), owner)) return ReadError.AllocationFailed;
+        const buffer = owner.Allocation.?;
         const bytes_read = try self.readUnit(unit, buffer, max_size);
         return buffer[0..@intCast(bytes_read)];
     }
 
     fn readBtreeHeader(
         media: MediaSnapshot,
-        boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
-        cell_size: u32,
+        cell_buffer: []align(8) u8,
         span: SpanDescriptor,
     ) ReadError!BTreeHeaderRecord {
+        const cell_size: u32 = @intCast(cell_buffer.len);
         if (cell_size < @sizeOf(BTreeNodeDescriptor) + @sizeOf(BTreeHeaderRecord)) return ReadError.InvalidVolumeHeader;
         const cell_lba = afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, media.BlockSize, cell_size, span.StartCell, cell_size) orelse return ReadError.InvalidSpan;
-        var cell_buffer = efi.buffer.allocate(boot_services, cell_size, media.IOAlign) orelse return ReadError.AllocationFailed;
-        defer efi.buffer.release(boot_services, &cell_buffer);
-        if (!media.read(cell_lba, cell_buffer.Data[0..cell_buffer.Size])) return ReadError.ReadFailed;
-        const descriptor: *const BTreeNodeDescriptor = @ptrCast(@alignCast(cell_buffer.Data));
+        if (!media.read(cell_lba, cell_buffer)) return ReadError.ReadFailed;
+        const descriptor: *const BTreeNodeDescriptor = @ptrCast(cell_buffer.ptr);
         if (!descriptor.isHeader() or descriptor.RecordCount == 0) return ReadError.InvalidVolumeHeader;
-        return @as(*const BTreeHeaderRecord, @ptrCast(@alignCast(cell_buffer.Data + @sizeOf(BTreeNodeDescriptor)))).*;
+        return @as(*const BTreeHeaderRecord, @ptrCast(@alignCast(cell_buffer.ptr + @sizeOf(BTreeNodeDescriptor)))).*;
     }
 };

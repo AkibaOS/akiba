@@ -1,63 +1,62 @@
 //! Hikari AFS Partition Locator
 
-const disk = @import("hikari").disk;
+const std = @import("std");
+
 const efi = @import("hikari").efi;
-const types = @import("hikari").sequence.types;
+const errors = @import("hikari").sequence.errors.partition;
+const parser = @import("hikari").disk.types.parser;
+const types = @import("hikari").sequence.types.partition;
 
-const PartitionInfo = types.partition.PartitionInfo;
+const Discovery = types.Discovery;
+const DiscoveryError = errors.DiscoveryError;
+const PartitionInfo = types.PartitionInfo;
+const status = efi.constants.status;
 
-pub fn findAfsPartition(boot_services: *efi.types.services.boot.BootServices) ?PartitionInfo {
+pub fn findAfsPartition(state: *Discovery) DiscoveryError!?PartitionInfo {
+    if (!state.Handles.isEmpty() or !state.Parser.Scratch.Pool.isEmpty()) return DiscoveryError.ReleaseFailed;
+    const services = state.Parser.BootServices;
     var handle_count: usize = 0;
-    var handles: [*]efi.types.base.Handle = undefined;
+    var handles: ?[*]efi.types.base.Handle = null;
+    if (services.LocateHandleBuffer(.ByProtocol, &efi.constants.guids.BLOCK_IO_PROTOCOL, null, &handle_count, @ptrCast(&handles)) != status.SUCCESS) return null;
+    const bytes = std.math.mul(usize, handle_count, @sizeOf(efi.types.base.Handle)) catch {
+        state.Handles.Untrusted = true;
+        return DiscoveryError.InvalidFirmwareReply;
+    };
+    const raw: ?[*]align(8) u8 = if (handles) |list| @ptrCast(list) else null;
+    if (!efi.buffer.recordPool(&state.Handles, raw, bytes)) return DiscoveryError.InvalidFirmwareReply;
 
-    const status = boot_services.LocateHandleBuffer(
-        .ByProtocol,
-        &efi.constants.guids.BLOCK_IO_PROTOCOL,
-        null,
-        &handle_count,
-        &handles,
-    );
+    const found = try scan(state, handles.?[0..handle_count]);
+    if (!efi.buffer.releasePool(services, &state.Handles)) return DiscoveryError.ReleaseFailed;
+    return found;
+}
 
-    if (efi.status.isError(status)) {
-        return null;
-    }
+pub fn deinitialize(state: *Discovery) bool {
+    const parser_released = state.Parser.deinitialize();
+    const handles_released = efi.buffer.releasePool(state.Parser.BootServices, &state.Handles);
+    return parser_released and handles_released;
+}
 
-    defer _ = boot_services.FreePool(@ptrCast(handles));
+fn scan(state: *Discovery, handles: []const efi.types.base.Handle) DiscoveryError!?PartitionInfo {
+    const services = state.Parser.BootServices;
+    for (handles) |handle| {
+        var interface: ?*anyopaque = null;
+        if (efi.status.isError(services.HandleProtocol(handle, &efi.constants.guids.BLOCK_IO_PROTOCOL, &interface))) continue;
+        const protocol: *efi.types.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(interface orelse continue));
+        if (protocol.Media.LogicalPartition) continue;
 
-    var index: usize = 0;
-    while (index < handle_count) : (index += 1) {
-        var block_io: ?*anyopaque = null;
-        const block_io_status = boot_services.HandleProtocol(
-            handles[index],
-            &efi.constants.guids.BLOCK_IO_PROTOCOL,
-            &block_io,
-        );
-
-        if (efi.status.isError(block_io_status)) {
-            continue;
-        }
-
-        const block_io_protocol: *efi.types.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(block_io orelse continue));
-
-        if (block_io_protocol.Media.LogicalPartition) {
-            continue;
-        }
-
-        var gpt_parser = disk.types.parser.Parser.initialize(block_io_protocol, boot_services) catch {
-            continue;
+        const parsed = if (state.Parser.initialize(protocol)) |_| true else |failure| rejected: {
+            if (failure == error.ReleaseFailed) return DiscoveryError.ReleaseFailed;
+            break :rejected false;
         };
-
-        defer gpt_parser.deinitialize();
-        if (gpt_parser.Media.LogicalPartition or !gpt_parser.Media.isCurrent()) continue;
-        const afs_partition = gpt_parser.findPartitionByType(efi.constants.guids.GPT_PARTITION_TYPE_AKIBA_AFS);
-        if (afs_partition) |partition| {
-            return PartitionInfo{
-                .Media = gpt_parser.Media,
-                .StartLBA = partition.StartingLBA,
-                .EndLBA = partition.EndingLBA,
-            };
-        }
+        const found = if (parsed) match(&state.Parser) else null;
+        if (!state.Parser.deinitialize()) return DiscoveryError.ReleaseFailed;
+        if (found) |info| return info;
     }
-
     return null;
+}
+
+fn match(table: *const parser.Parser) ?PartitionInfo {
+    if (table.Media.LogicalPartition or !table.Media.isCurrent()) return null;
+    const partition = table.findPartitionByType(efi.constants.guids.GPT_PARTITION_TYPE_AKIBA_AFS) orelse return null;
+    return .{ .Media = table.Media, .StartLBA = partition.StartingLBA, .EndLBA = partition.EndingLBA };
 }

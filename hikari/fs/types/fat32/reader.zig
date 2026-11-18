@@ -69,29 +69,30 @@ const Chain = struct {
 };
 
 pub const Reader = struct {
-    BlockIO: *efi.types.protocols.block.BlockIoProtocol,
     BootServices: *efi.types.services.boot.BootServices,
-    Media: MediaBinding,
+    BlockIO: *efi.types.protocols.block.BlockIoProtocol = undefined,
+    Media: MediaBinding = undefined,
     MediaInvalidated: bool = false,
-    PartitionStartLBA: u64,
-    PartitionEndLBA: u64,
-    VolumeEndLBA: u64,
-    FatStartLBA: u64,
-    FatEndLBA: u64,
-    DataStartLBA: u64,
-    SectorsPerCluster: u32,
-    BytesPerCluster: u32,
-    ClusterCount: u32,
-    OriginCluster: u32,
-    ClusterAllocation: efi.types.buffer.AlignedBuffer,
-    SectorAllocation: efi.types.buffer.AlignedBuffer,
+    PartitionStartLBA: u64 = 0,
+    PartitionEndLBA: u64 = 0,
+    VolumeEndLBA: u64 = 0,
+    FatStartLBA: u64 = 0,
+    FatEndLBA: u64 = 0,
+    DataStartLBA: u64 = 0,
+    SectorsPerCluster: u32 = 0,
+    BytesPerCluster: u32 = 0,
+    ClusterCount: u32 = 0,
+    OriginCluster: u32 = 0,
+    ClusterAllocation: efi.types.buffer.AlignedBuffer = .{},
+    SectorAllocation: efi.types.buffer.AlignedBuffer = .{},
 
     pub fn initialize(
+        self: *Reader,
         block_io: *efi.types.protocols.block.BlockIoProtocol,
-        boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
-    ) ReadError!Reader {
+    ) ReadError!void {
+        if (!self.ClusterAllocation.Pool.isEmpty() or !self.SectorAllocation.Pool.isEmpty()) return ReadError.AllocationFailed;
         const media = MediaBinding.capture(block_io.Media);
         if (!media.Source.MediaPresent) return ReadError.ReadFailed;
         if (partition_start_lba > partition_end_lba or partition_end_lba > media.LastBlock) return ReadError.InvalidPartition;
@@ -102,8 +103,8 @@ pub const Reader = struct {
             return ReadError.InvalidBootSector;
         }
 
-        var sector_allocation = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ReadError.AllocationFailed;
-        errdefer efi.buffer.release(boot_services, &sector_allocation);
+        const sector_allocation = &self.SectorAllocation;
+        if (!efi.buffer.allocate(self.BootServices, block_size, media.IOAlign, sector_allocation)) return ReadError.AllocationFailed;
         if (!media.matches(block_io.Media)) return ReadError.MediaChanged;
         const read_status = block_io.ReadBlocks(block_io, media.MediaId, partition_start_lba, block_size, sector_allocation.Data);
         if (mediaLost(read_status) or !media.matches(block_io.Media)) return ReadError.MediaChanged;
@@ -136,32 +137,29 @@ pub const Reader = struct {
         }
 
         const bytes_per_cluster = block_size * sectors_per_cluster;
-        var cluster_allocation = efi.buffer.allocate(boot_services, bytes_per_cluster, media.IOAlign) orelse return ReadError.AllocationFailed;
-        errdefer efi.buffer.release(boot_services, &cluster_allocation);
+        if (!efi.buffer.allocate(self.BootServices, bytes_per_cluster, media.IOAlign, &self.ClusterAllocation)) return ReadError.AllocationFailed;
         if (!media.matches(block_io.Media)) return ReadError.MediaChanged;
 
-        return .{
-            .BlockIO = block_io,
-            .BootServices = boot_services,
-            .Media = media,
-            .PartitionStartLBA = partition_start_lba,
-            .PartitionEndLBA = partition_end_lba,
-            .VolumeEndLBA = partition_start_lba + (total_sectors - 1),
-            .FatStartLBA = partition_start_lba + active_offset,
-            .FatEndLBA = partition_start_lba + (active_offset + fat_sectors - 1),
-            .DataStartLBA = partition_start_lba + data_offset,
-            .SectorsPerCluster = sectors_per_cluster,
-            .BytesPerCluster = bytes_per_cluster,
-            .ClusterCount = @intCast(cluster_count),
-            .OriginCluster = boot_sector.RootCluster,
-            .ClusterAllocation = cluster_allocation,
-            .SectorAllocation = sector_allocation,
-        };
+        self.BlockIO = block_io;
+        self.Media = media;
+        self.MediaInvalidated = false;
+        self.PartitionStartLBA = partition_start_lba;
+        self.PartitionEndLBA = partition_end_lba;
+        self.VolumeEndLBA = partition_start_lba + (total_sectors - 1);
+        self.FatStartLBA = partition_start_lba + active_offset;
+        self.FatEndLBA = partition_start_lba + (active_offset + fat_sectors - 1);
+        self.DataStartLBA = partition_start_lba + data_offset;
+        self.SectorsPerCluster = sectors_per_cluster;
+        self.ClusterCount = @intCast(cluster_count);
+        self.OriginCluster = boot_sector.RootCluster;
+        self.BytesPerCluster = bytes_per_cluster;
     }
 
-    pub fn deinitialize(self: *Reader) void {
-        efi.buffer.release(self.BootServices, &self.ClusterAllocation);
-        efi.buffer.release(self.BootServices, &self.SectorAllocation);
+    pub fn deinitialize(self: *Reader) bool {
+        self.BytesPerCluster = 0;
+        const cluster_released = efi.buffer.release(self.BootServices, &self.ClusterAllocation);
+        const sector_released = efi.buffer.release(self.BootServices, &self.SectorAllocation);
+        return cluster_released and sector_released;
     }
 
     pub fn readCluster(self: *Reader, cluster_number: u32) ReadError!void {
@@ -237,19 +235,17 @@ pub const Reader = struct {
         return bytes_read;
     }
 
-    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry, max_size: u32) ReadError!AllocatedBuffer {
+    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry, max_size: u32, owner: *efi.types.buffer.PoolClaim) ReadError!AllocatedBuffer {
         const unit = entry.*;
         try self.checkUnit(&unit, max_size);
-        var buffer: [*]align(8) u8 = undefined;
-        const allocation_status = self.BootServices.AllocatePool(.LoaderData, @max(unit.UnitSize, 1), &buffer);
-        if (efi.status.isError(allocation_status)) return ReadError.AllocationFailed;
-        errdefer _ = self.BootServices.FreePool(buffer);
+        if (!efi.buffer.allocatePool(self.BootServices, @max(unit.UnitSize, 1), owner)) return ReadError.AllocationFailed;
+        const buffer = owner.Allocation.?;
         const bytes_read = try self.readUnit(&unit, buffer, unit.UnitSize);
         return .{ .Buffer = buffer, .Size = bytes_read };
     }
 
     fn ensureReady(self: *Reader) ReadError!void {
-        if (self.ClusterAllocation.Size == 0 or self.SectorAllocation.Size == 0) return ReadError.ReaderClosed;
+        if (self.BytesPerCluster == 0) return ReadError.ReaderClosed;
         if (self.MediaInvalidated or !self.Media.matches(self.BlockIO.Media)) {
             self.MediaInvalidated = true;
             return ReadError.MediaChanged;

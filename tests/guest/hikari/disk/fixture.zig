@@ -37,6 +37,8 @@ pub fn reset() void {
     device.FreeCalls = 0;
     device.ReadCalls = 0;
     device.FailAllocation = null;
+    device.FailFree = null;
+    device.DiscoveryHandles = 1;
     device.FailLBA = null;
     device.Broken = false;
     replacement_lba = null;
@@ -173,11 +175,16 @@ fn partition(table: []u8, index: usize, type_guid: base.GUID, first: u64, last: 
 }
 
 pub fn encodeAFS() void {
+    encodeAfsGeometry(constants.BLOCK_BYTES);
+}
+
+pub fn encodeAfsGeometry(cell_size: u32) void {
     const start = constants.PARTITION_FIRST_LBA * constants.BLOCK_BYTES;
+    const cells: u32 = @intCast(constants.VOLUME_CELLS / (cell_size / constants.BLOCK_BYTES));
     const volume: afs.types.volume.VolumeHeader = .{
-        .CellSize = constants.BLOCK_BYTES,
-        .TotalCells = constants.VOLUME_CELLS,
-        .FreeCells = constants.VOLUME_CELLS - 4,
+        .CellSize = cell_size,
+        .TotalCells = cells,
+        .FreeCells = cells - 4,
         .IndexNodeSize = constants.BLOCK_BYTES,
         .IndexTotalNodes = 2,
         .IndexFreeNodes = 1,
@@ -201,12 +208,12 @@ pub fn encodeAFS() void {
         .TotalNodes = 2,
         .FreeNodes = 1,
     };
-    const node = start + constants.BLOCK_BYTES;
+    const node = start + cell_size;
     @memcpy(device.Disk[node..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&descriptor));
     @memcpy(device.Disk[node + @sizeOf(afs.types.btree.NodeDescriptor) ..][0..@sizeOf(afs.types.btree.HeaderRecord)], std.mem.asBytes(&header));
     const leaf: afs.types.btree.NodeDescriptor = .{ .NodeType = afs.constants.btree.NODE_TYPE_LEAF, .Height = 1 };
     @memcpy(device.Disk[node + constants.BLOCK_BYTES ..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&leaf));
-    const payload = start + constants.PAYLOAD_CELL * constants.BLOCK_BYTES;
+    const payload = start + constants.PAYLOAD_CELL * cell_size;
     @memcpy(device.Disk[payload..][0..constants.UNIT_PAYLOAD.len], &constants.UNIT_PAYLOAD);
 }
 
@@ -251,6 +258,7 @@ fn freePool(allocation: [*]align(8) u8) callconv(convention.CALLING_CONVENTION) 
             device.Broken = true;
             return status.INVALID_PARAMETER;
         }
+        if (device.FailFree == device.FreeCalls) return status.DEVICE_ERROR;
         slot.InUse = false;
         return status.SUCCESS;
     }
@@ -261,12 +269,13 @@ fn freePool(allocation: [*]align(8) u8) callconv(convention.CALLING_CONVENTION) 
 fn locateHandleBuffer(search_type: memory.LocateSearchType, protocol_guid: ?*align(8) const base.GUID, search_key: ?*anyopaque, handle_count: *usize, handles: *[*]base.Handle) callconv(convention.CALLING_CONVENTION) base.Status {
     const requested = protocol_guid orelse return status.INVALID_PARAMETER;
     if (search_type != .ByProtocol or !requested.equals(guids.BLOCK_IO_PROTOCOL) or search_key != null) return status.INVALID_PARAMETER;
+    if (device.DiscoveryHandles == 0) return status.SUCCESS;
     var buffer: [*]align(8) u8 = undefined;
-    const allocation = allocatePool(.LoaderData, @sizeOf(base.Handle), &buffer);
+    const allocation = allocatePool(.LoaderData, device.DiscoveryHandles * @sizeOf(base.Handle), &buffer);
     if (allocation != status.SUCCESS) return allocation;
     handles.* = @ptrCast(buffer);
-    handles.*[0] = @ptrCast(&protocol);
-    handle_count.* = 1;
+    @memset(handles.*[0..device.DiscoveryHandles], @as(base.Handle, @ptrCast(&protocol)));
+    handle_count.* = device.DiscoveryHandles;
     return status.SUCCESS;
 }
 

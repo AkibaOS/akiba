@@ -10,6 +10,7 @@ pub const ParseError = error{
     InvalidEntriesCRC,
     InvalidLayout,
     AllocationFailed,
+    ReleaseFailed,
     NoPartitions,
     PartitionNotFound,
 };
