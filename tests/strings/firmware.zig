@@ -7,6 +7,7 @@ pub const PASS = "CHECK PASS ";
 pub const FAIL = "CHECK FAIL ";
 pub const NEWLINE = "\n";
 pub const COUNT = "{d}";
+pub const BOOT_FAILURE_STATUS = "loader returns unsupported to firmware if graphics output is unavailable";
 pub const COUNT_MISMATCH = "Firmware assertion count mismatch";
 pub const FORMAT_FAILED = "Firmware count formatting failed";
 pub const CLEANUP_FAILED = "Firmware fixture page release failed";

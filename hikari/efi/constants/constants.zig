@@ -4,7 +4,6 @@ pub const boot = @import("boot.zig");
 pub const convention = @import("convention.zig");
 pub const graphics = @import("graphics.zig");
 pub const guids = @import("guids.zig");
-pub const keyboard = @import("keyboard.zig");
 pub const location = @import("location.zig");
 pub const memory = @import("memory.zig");
 pub const revisions = @import("revisions.zig");

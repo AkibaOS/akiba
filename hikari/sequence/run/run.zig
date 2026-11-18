@@ -11,10 +11,12 @@ const constants = @import("hikari").sequence.constants;
 const control = @import("asm").cpu.control;
 const cpuid = @import("asm").cpu.cpuid;
 const efi = @import("hikari").efi;
+const elf = @import("shared").elf.constants.format;
 const fpu = @import("asm").cpu.fpu;
 const fs = @import("hikari").fs;
 const graphics = @import("hikari").sequence.graphics;
 const handoff = @import("hikari").sequence.handoff;
+const interrupts = @import("asm").interrupts.flags;
 const loader = @import("hikari").loader;
 const math = @import("utils").math;
 const msr = @import("asm").cpu.msr;
@@ -82,7 +84,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         return status.NOT_FOUND;
     };
     const kernel_size = kernel_unit.DataChannel.LogicalSize;
-    if (kernel_size < loader.constants.elf.ELF64_HEADER_SIZE) {
+    if (kernel_size < elf.HEADER_BYTES) {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
@@ -108,8 +110,10 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     const firmware_efer = msr.read(processor.msr.EFER);
     const firmware_cr0 = control.readCR0();
     defer {
-        control.writeCR0(firmware_cr0);
-        msr.write(processor.msr.EFER, firmware_efer);
+        const write_protect = processor.control.CR0_WRITE_PROTECT;
+        const no_execute = processor.msr.EFER_NO_EXECUTE_ENABLE;
+        control.writeCR0((control.readCR0() & ~write_protect) | (firmware_cr0 & write_protect));
+        msr.write(processor.msr.EFER, (msr.read(processor.msr.EFER) & ~no_execute) | (firmware_efer & no_execute));
     }
     if (!msr.enableNoExecute() or !control.enableWriteProtect()) {
         splash.fail(messages.ERROR_MEMORY);
@@ -152,13 +156,13 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
             region.VirtualAddress,
             region.PhysicalAddress,
             region.MemorySize,
-            (region.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) != 0,
-            (region.Flags & loader.constants.elf.SEGMENT_FLAG_EXECUTE) != 0,
+            (region.Flags & elf.SEGMENT_FLAG_WRITE) != 0,
+            (region.Flags & elf.SEGMENT_FLAG_EXECUTE) != 0,
         ) catch return status.NO_MAPPING;
     }
     page_setup.protectKernelAliases(loaded_image.BaseAddress, loaded_image.totalSize(), true) catch return status.NO_MAPPING;
     for (loaded_image.Segments[0..loaded_image.SegmentCount]) |region| {
-        if ((region.Flags & loader.constants.elf.SEGMENT_FLAG_WRITE) == 0) {
+        if ((region.Flags & elf.SEGMENT_FLAG_WRITE) == 0) {
             page_setup.protectKernelAliases(region.PhysicalAddress, region.MemorySize, false) catch return status.NO_MAPPING;
         }
     }
@@ -189,6 +193,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     boot_params.Splash = splash.getState().*;
     handoff.exit(&startup, image_handle) catch {
         if (startup.ExitAttempted) {
+            interrupts.disableInterrupts();
             if (splash.isReady()) splash.fail(messages.ERROR_MEMORY_SURVEY);
             assembly.halt.haltLoop();
         }

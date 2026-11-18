@@ -11,7 +11,7 @@ const read = @import("shared").elf.read;
 const types = @import("hikari").loader.types;
 const wire = @import("shared").elf.types.format;
 
-const elf = constants.elf;
+const elf = @import("shared").elf.constants.format;
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
@@ -37,7 +37,7 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
 
     for (program_headers) |*program_header| {
         if (program_header.SegmentType == elf.SEGMENT_DYNAMIC or
-            program_header.SegmentType == elf.SEGMENT_INTERP)
+            program_header.SegmentType == elf.SEGMENT_INTERP or program_header.SegmentType == elf.SEGMENT_TLS)
         {
             return LoadError.UnsupportedElfType;
         }
@@ -45,7 +45,7 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
 
         try validateSegment(data.len, program_header);
         if (program_header.MemorySize == 0) return LoadError.InvalidSegment;
-        if (image.SegmentCount == elf.MAX_SEGMENTS) return LoadError.TooManySegments;
+        if (image.SegmentCount == constants.kernel.SEGMENT_COUNT) return LoadError.TooManySegments;
 
         const segment_end = program_header.PhysicalAddress + program_header.MemorySize;
         const physical_start = math.integer.alignDown(program_header.PhysicalAddress, sizes.PAGE_SIZE);

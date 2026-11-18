@@ -4,6 +4,7 @@ const std = @import("std");
 
 const elf = @import("shared").elf.types.format;
 const errors = @import("hikari").loader.errors.elf;
+const format = @import("shared").elf.constants.format;
 const inputs = @import("tests").constants.hikari;
 const labels = @import("tests").strings.hikari;
 const types = @import("tests").types.hikari;
@@ -39,6 +40,10 @@ pub fn run() !void {
     bytes = inputs.VALID_ELF;
     program(&bytes, 6).SegmentType = 3;
     verify.require(rejects(&bytes, errors.LoadError.UnsupportedElfType), labels.ELF_INTERPRETER);
+    bytes = inputs.VALID_ELF;
+    header(&bytes).ProgramHeaderCount += 1;
+    program(&bytes, inputs.ELF_PROGRAM_COUNT).SegmentType = format.SEGMENT_TLS;
+    verify.require(rejects(&bytes, errors.LoadError.UnsupportedElfType), labels.ELF_TLS);
     bytes = inputs.VALID_ELF;
     program(&bytes, 0).Flags = 7;
     verify.require(rejects(&bytes, errors.LoadError.InvalidSegment), labels.ELF_WRITE_EXECUTE);

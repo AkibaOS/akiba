@@ -11,6 +11,7 @@ pub const ELF_TABLE_TRUNCATED = "Hikari rejects a truncated ELF program table";
 pub const ELF_TABLE_MALFORMED = "Hikari rejects malformed ELF program table geometry";
 pub const ELF_DYNAMIC = "Hikari rejects dynamic kernel segments";
 pub const ELF_INTERPRETER = "Hikari rejects interpreter kernel segments";
+pub const ELF_TLS = "Hikari rejects thread-local storage even when the seven kernel load regions are intact";
 pub const ELF_WRITE_EXECUTE = "Hikari rejects writable executable kernel segments";
 pub const ELF_OVERLAP = "Hikari rejects overlapping kernel pages";
 pub const ELF_ENTRY = "Hikari rejects an entry outside file-backed executable bytes";

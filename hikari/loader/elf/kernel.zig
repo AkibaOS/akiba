@@ -1,6 +1,6 @@
 //! Hikari Kernel ELF Layout Validation
 
-const elf = @import("hikari").loader.constants.elf;
+const elf = @import("shared").elf.constants.format;
 const errors = @import("hikari").loader.errors.elf;
 const kernel = @import("hikari").loader.constants.kernel;
 const layout = @import("common").constants.memory.layout;

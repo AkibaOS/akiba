@@ -14,6 +14,7 @@ const loadinglabels = @import("tests").strings.loading;
 const paging = @import("tests").firmware.paging;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
+const status = @import("tests").firmware.status;
 const storage = @import("tests").firmware.storage;
 const storagelabels = @import("tests").firmware.strings.storage;
 const suite = @import("tests").firmware.handoff;
@@ -26,6 +27,7 @@ pub fn main() void {
     writeText(labels.GROUP);
     const system_table: *efi.types.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
+    status.run(system_table);
     suite.run(system_table.BootServices, image_handle) catch |failure| fail(@errorName(failure));
     writeText(loadinglabels.GROUP);
     loader.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
