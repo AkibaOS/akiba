@@ -4,8 +4,25 @@ const std = @import("std");
 
 const fixtures = @import("tests").strings.oracle;
 const labels = @import("tests").strings.scenario;
+const phase = @import("tests").fast.runner.phase;
 const peer = @import("tests").fast.runner.protocol;
 const result = @import("tests").runner.result;
+
+test "phase frames encode four Mirai choices with an explicit nonzero epoch" {
+    try phase.frames();
+}
+
+test "phase acknowledgements reject wrong roles epochs and phase choices" {
+    try phase.acknowledgements();
+}
+
+test "phase greeting recognizes the binary marker after firmware console bytes" {
+    try phase.greeting();
+}
+
+test "pre-ticket evidence detects failures without accepting a guest outcome" {
+    try phase.earlyFailures();
+}
 
 test "QMP loopback rejects invalid greetings" {
     try peer.rejects(.InvalidGreeting, error.QmpInvalidGreeting);

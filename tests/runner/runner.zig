@@ -3,6 +3,7 @@
 pub const execute = @import("execute.zig");
 pub const image = @import("image.zig");
 pub const paths = @import("paths.zig");
+pub const phase = @import("phase.zig");
 pub const posix = @import("posix.zig");
 pub const process = @import("process.zig");
 pub const protocol = @import("protocol.zig");

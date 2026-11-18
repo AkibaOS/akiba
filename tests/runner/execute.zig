@@ -7,6 +7,7 @@ const driverlabels = @import("tests").strings.drivers;
 const image = @import("tests").runner.image;
 const limits = @import("tests").constants.runner;
 const paths = @import("tests").runner.paths;
+const phase = @import("tests").runner.phase;
 const process = @import("tests").runner.process;
 const protocol = @import("tests").runner.protocol;
 const result = @import("tests").runner.result;
@@ -50,8 +51,7 @@ fn connect(allocator: std.mem.Allocator, instance: *Process, port: u16) !Connect
     return error.GuestStartTimeout;
 }
 
-fn completed(instance: *Process, inputs: *const Paths, connection: *Connection, selected: Scenario) !usize {
-    var timer = try std.time.Timer.start();
+fn completed(instance: *Process, inputs: *const Paths, connection: *Connection, selected: Scenario, timer: *std.time.Timer) !usize {
     var input_sent = false;
     while (timer.read() < limits.CHECK_NS) {
         if (process.cancelled()) return error.Cancelled;
@@ -88,6 +88,15 @@ fn buildDateArgument(allocator: std.mem.Allocator, path: []const u8) ?[]const u8
     return std.fmt.allocPrint(allocator, scenario.BUILD_DATE_ARGUMENT, .{date}) catch null;
 }
 
+fn startPhase(allocator: std.mem.Allocator, instance: *Process, connection: *Connection, timer: *std.time.Timer, port: u16, serial: []const u8, selected: Scenario) !void {
+    try protocol.verifyPhasePort(allocator, connection, port);
+    const stream = try phase.open(port, instance, timer);
+    defer stream.close();
+    const running = try protocol.command(allocator, connection, strings.CONTINUE);
+    running.deinit();
+    try phase.select(stream, instance, timer, serial, .{ .Epoch = @max(1, std.crypto.random.int(u64)), .Scenario = selected });
+}
+
 fn runScenario(selected: Scenario) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -102,22 +111,42 @@ fn runScenario(selected: Scenario) !void {
     var hash: [64]u8 = undefined;
     var hashed = false;
     const name = try std.fmt.allocPrint(allocator, strings.NAME_FORMAT, .{std.fs.path.basename(inputs.Run)});
-    const address = try std.net.Address.parseIp4(strings.ADDRESS, 0);
-    var reservation = try address.listen(.{});
-    const port = reservation.listen_address.getPort();
-    reservation.deinit();
+    const endpoints = reserve: {
+        const address = try std.net.Address.parseIp4(strings.ADDRESS, 0);
+        var monitor_reservation = try address.listen(.{});
+        defer monitor_reservation.deinit();
+        var phase_reservation = if (selected != .Firmware) try address.listen(.{}) else null;
+        defer if (phase_reservation) |*server| server.deinit();
+        break :reserve .{
+            .Qmp = monitor_reservation.listen_address.getPort(),
+            .Phase = if (phase_reservation) |server| @as(?u16, server.listen_address.getPort()) else null,
+        };
+    };
     const standard_arguments = [_][]const u8{
         inputs.Qemu,                                                                  strings.MACHINE_FLAG, strings.MACHINE,                                                         strings.ACCEL_FLAG,                                                            strings.ACCEL,
         strings.MEMORY_FLAG,                                                          strings.MEMORY,       strings.DRIVE_FLAG,                                                      try std.fmt.allocPrint(allocator, strings.CODE_DRIVE, .{inputs.FirmwareCode}), strings.DRIVE_FLAG,
         try std.fmt.allocPrint(allocator, strings.VARS_DRIVE, .{inputs.Variables}),   strings.DRIVE_FLAG,   try std.fmt.allocPrint(allocator, strings.IMAGE_DRIVE, .{inputs.Image}), strings.SNAPSHOT_FLAG,                                                         strings.SERIAL_FLAG,
         try std.fmt.allocPrint(allocator, strings.SERIAL_ARGUMENT, .{inputs.Serial}), strings.REBOOT_FLAG,  strings.NAME_FLAG,                                                       name,                                                                          strings.QMP_FLAG,
-        try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{port}),             strings.NETWORK_FLAG, strings.NETWORK_NONE,                                                    scenario.FLAG,                                                                 try std.fmt.allocPrint(allocator, scenario.ARGUMENT, .{@tagName(selected)}),
+        try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{endpoints.Qmp}),    strings.NETWORK_FLAG, strings.NETWORK_NONE,
     };
-    const device_arguments = standard_arguments ++ [_][]const u8{ strings.DISPLAY_FLAG, strings.DISPLAY_NONE };
-    const date_argument = if (selected == .Standard) buildDateArgument(allocator, inputs.Image) else null;
-    const screen_arguments = standard_arguments ++ [_][]const u8{ scenario.FLAG, date_argument orelse scenario.ARGUMENT };
-    const arguments: []const []const u8 = if (selected == .Devices) &device_arguments else if (date_argument != null) &screen_arguments else &standard_arguments;
-    var instance = process.init(allocator, arguments);
+    var arguments: std.ArrayList([]const u8) = .empty;
+    try arguments.appendSlice(allocator, &standard_arguments);
+    if (endpoints.Phase) |port| {
+        const endpoint = try std.fmt.allocPrint(allocator, strings.PHASE_SOCKET, .{port});
+        try arguments.appendSlice(allocator, &.{
+            strings.PAUSE_AT_START_FLAG, strings.CHARDEV_FLAG, endpoint,
+            strings.SERIAL_FLAG,         strings.PHASE_SERIAL, scenario.FLAG,
+            scenario.PHASE_ARGUMENT,
+        });
+    } else {
+        const firmware = try std.fmt.allocPrint(allocator, scenario.ARGUMENT, .{@tagName(selected)});
+        try arguments.appendSlice(allocator, &.{ scenario.FLAG, firmware });
+    }
+    if (selected == .Standard) {
+        if (buildDateArgument(allocator, inputs.Image)) |date| try arguments.appendSlice(allocator, &.{ scenario.FLAG, date });
+    }
+    if (selected == .Devices) try arguments.appendSlice(allocator, &.{ strings.DISPLAY_FLAG, strings.DISPLAY_NONE });
+    var instance = process.init(allocator, arguments.items);
     var connection: ?Connection = null;
     var owned = false;
     work: {
@@ -136,18 +165,33 @@ fn runScenario(selected: Scenario) !void {
             break :work;
         };
         stage = .Connect;
-        connection = connect(std.heap.page_allocator, &instance, port) catch |reason| {
+        connection = connect(std.heap.page_allocator, &instance, endpoints.Qmp) catch |reason| {
             failure = reason;
             break :work;
         };
         stage = .Verify;
-        protocol.verify(std.heap.page_allocator, &connection.?, &inputs, name) catch |reason| {
+        const verified = if (endpoints.Phase != null)
+            protocol.verifyPaused(allocator, &connection.?, &inputs, name)
+        else
+            protocol.verify(allocator, &connection.?, &inputs, name);
+        verified catch |reason| {
             failure = reason;
             break :work;
         };
         owned = true;
+        var timer = std.time.Timer.start() catch |reason| {
+            failure = reason;
+            break :work;
+        };
+        if (endpoints.Phase) |port| {
+            stage = .Select;
+            startPhase(allocator, &instance, &connection.?, &timer, port, inputs.Serial, selected) catch |reason| {
+                failure = reason;
+                break :work;
+            };
+        }
         stage = .Checks;
-        passed = completed(&instance, &inputs, &connection.?, selected) catch |reason| {
+        passed = completed(&instance, &inputs, &connection.?, selected, &timer) catch |reason| {
             failure = reason;
             break :work;
         };
@@ -165,7 +209,7 @@ fn runScenario(selected: Scenario) !void {
         };
         if (!cleanup_verified or failure == null) failure = reason;
     };
-    if (connection) |socket| socket.Stream.close();
+    if (connection) |control| control.Stream.close();
     if (cleanup_verified) {
         std.fs.cwd().deleteFile(inputs.Variables) catch |reason| switch (reason) {
             error.FileNotFound => {},

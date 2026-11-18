@@ -9,3 +9,7 @@ pub const NAME_OFFSET: usize = 8;
 pub const MAX_FILES: u32 = 256;
 pub const MAX_VALUE_BYTES: usize = 32;
 pub const SIGNATURE = [_]u8{ 'Q', 'E', 'M', 'U' };
+pub const PHASE_PORT: u16 = 0x2f8;
+pub const PHASE_RECEIVE_ERRORS: u8 = 0x1e;
+pub const PHASE_WAIT_SECONDS: u64 = 10;
+pub const PHASE_POLL_LIMIT: usize = 10_000_000;

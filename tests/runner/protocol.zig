@@ -1,6 +1,5 @@
 //! Bounded Owned Guest QMP Protocol
 
-const builtin = @import("builtin");
 const std = @import("std");
 
 const limits = @import("tests").constants.runner;
@@ -33,18 +32,8 @@ fn readLine(allocator: std.mem.Allocator, connection: *Connection, timer: *std.t
 }
 
 pub fn open(allocator: std.mem.Allocator, port: u16) !Connection {
-    const address = try std.net.Address.parseIp4(strings.ADDRESS, port);
-    const stream = try std.net.tcpConnectToAddress(address);
+    const stream = try socket.open(port);
     errdefer stream.close();
-    if (builtin.os.tag == .windows) {
-        const timeout = limits.RECEIVE_MS;
-        try std.posix.setsockopt(stream.handle, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, std.mem.asBytes(&timeout));
-        try std.posix.setsockopt(stream.handle, std.posix.SOL.SOCKET, std.posix.SO.SNDTIMEO, std.mem.asBytes(&timeout));
-    } else {
-        const timeout: std.posix.timeval = .{ .sec = limits.RECEIVE_SECONDS, .usec = 0 };
-        try std.posix.setsockopt(stream.handle, std.posix.SOL.SOCKET, std.posix.SO.RCVTIMEO, std.mem.asBytes(&timeout));
-        try std.posix.setsockopt(stream.handle, std.posix.SOL.SOCKET, std.posix.SO.SNDTIMEO, std.mem.asBytes(&timeout));
-    }
     var connection: Connection = .{ .Stream = stream };
     var timer = try std.time.Timer.start();
     const greeting = try readLine(allocator, &connection, &timer, false);
@@ -129,12 +118,20 @@ fn imageMatches(allocator: std.mem.Allocator, value: Value, expected: []const u8
 }
 
 pub fn verify(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8) !void {
+    return verifyState(allocator, connection, inputs, name, strings.RUNNING, error.GuestNotRunning);
+}
+
+pub fn verifyPaused(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8) !void {
+    return verifyState(allocator, connection, inputs, name, strings.PRELAUNCH, error.GuestNotPaused);
+}
+
+fn verifyState(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8, expected: []const u8, state_error: anyerror) !void {
     const named = try command(allocator, connection, strings.QUERY_NAME);
     defer named.deinit();
     if (!equal(field(named.value, strings.QMP_RETURN).?, strings.NAME, name)) return error.WrongGuest;
     const status = try command(allocator, connection, strings.QUERY_STATUS);
     defer status.deinit();
-    if (!equal(field(status.value, strings.QMP_RETURN).?, strings.STATUS, strings.RUNNING)) return error.GuestNotRunning;
+    if (!equal(field(status.value, strings.QMP_RETURN).?, strings.STATUS, expected)) return state_error;
     const blocks = try command(allocator, connection, strings.QUERY_BLOCK);
     defer blocks.deinit();
     const devices = field(blocks.value, strings.QMP_RETURN).?;
@@ -164,4 +161,21 @@ pub fn verify(allocator: std.mem.Allocator, connection: *Connection, inputs: *co
         serial_matched += 1;
     }
     if (serial_matched != 1) return error.WrongGuest;
+}
+
+pub fn verifyPhasePort(allocator: std.mem.Allocator, connection: *Connection, port: u16) !void {
+    var buffer: [strings.PHASE_FILENAME.len + 5]u8 = undefined;
+    const expected = try std.fmt.bufPrint(&buffer, strings.PHASE_FILENAME, .{port});
+    const channels = try command(allocator, connection, strings.QUERY_CHARDEV);
+    defer channels.deinit();
+    const result = field(channels.value, strings.QMP_RETURN).?;
+    if (result != .array) return error.WrongGuest;
+    var matches: usize = 0;
+    for (result.array.items) |channel| {
+        if (!equal(channel, strings.LABEL, strings.PHASE_LABEL)) continue;
+        const opened = field(channel, strings.FRONTEND_OPEN) orelse return error.WrongGuest;
+        if (opened != .bool or !opened.bool or !equal(channel, strings.FILENAME, expected)) return error.WrongGuest;
+        matches += 1;
+    }
+    if (matches != 1) return error.WrongGuest;
 }

@@ -7,6 +7,12 @@ const labels = @import("tests").strings.scenario;
 const strings = @import("tests").strings.runner;
 const Scenario = @import("tests").types.scenario.Scenario;
 
+pub fn failedBeforeSelection(bytes: []const u8) bool {
+    return std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null or
+        std.mem.indexOf(u8, bytes, strings.KERNEL_PANIC) != null or
+        std.mem.indexOf(u8, bytes, labels.COLLAPSE_BANNER) != null;
+}
+
 pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null) return error.GuestCheckFailed;
     if (scenario == .PulseDeath) return expectedFatal(bytes);

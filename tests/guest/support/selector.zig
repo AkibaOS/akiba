@@ -6,11 +6,16 @@ const date = @import("tests").screen.date;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.scenario;
 const labels = @import("tests").strings.scenario;
+const phase = @import("tests").guest.support.phase;
 const port = @import("asm").io.port;
 const Scenario = @import("tests").types.scenario.Scenario;
 
 pub fn selected() Scenario {
     var value: [inputs.MAX_VALUE_BYTES]u8 = undefined;
+    if (readValue(labels.PHASE_FILE, &value, true)) |flag| {
+        if (!std.mem.eql(u8, flag, labels.PHASE_VALUE)) @panic(labels.INVALID_PHASE);
+        return phase.select() orelse @panic(labels.INVALID_PHASE);
+    }
     const text = readValue(labels.FILE, &value, true) orelse return .Standard;
     return std.meta.stringToEnum(Scenario, text) orelse @panic(labels.INVALID);
 }

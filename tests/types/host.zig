@@ -26,6 +26,7 @@ pub const Stage = enum {
     Spawn,
     Connect,
     Verify,
+    Select,
     Checks,
     Cleanup,
     Complete,
