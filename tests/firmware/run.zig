@@ -10,6 +10,7 @@ const io = @import("asm").io;
 const labels = @import("tests").strings.firmware;
 const loader = @import("tests").firmware.loader;
 const loadinglabels = @import("tests").strings.loading;
+const paging = @import("tests").firmware.paging;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
 const storage = @import("tests").firmware.storage;
@@ -29,6 +30,8 @@ pub fn main() void {
     loader.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
     writeText(storagelabels.GROUP);
     storage.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
+    writeText(labels.PAGING_GROUP);
+    paging.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
     if (passed != inputs.ASSERTION_COUNT) fail(labels.COUNT_MISMATCH);
     writeText(labels.COMPLETE);
     var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;

@@ -23,8 +23,9 @@ const SetupError = errors.setup.SetupError;
 pub const PageTableSetup = struct {
     BootServices: *efi.types.services.boot.BootServices,
     L4: *types.table.TableL4,
-    AllocatedTables: [constants.limits.MAX_ALLOCATED_TABLES]*types.table.PageTable,
+    Ledger: ?*types.ledger.Ledger,
     AllocatedCount: usize,
+    Closing: bool,
     PhysmapL3: ?*types.table.TableL3,
     PhysmapLimit: u64,
     PhysmapSize: u64,
@@ -54,8 +55,9 @@ pub const PageTableSetup = struct {
         return .{
             .BootServices = boot_services,
             .L4 = l4,
-            .AllocatedTables = undefined,
+            .Ledger = null,
             .AllocatedCount = 0,
+            .Closing = false,
             .PhysmapL3 = null,
             .PhysmapLimit = physmap_limit,
             .PhysmapSize = 0,
@@ -65,34 +67,60 @@ pub const PageTableSetup = struct {
         };
     }
 
-    pub fn deinitialize(self: *PageTableSetup) void {
-        if (!self.RootOwned) return;
-        self.RootOwned = false;
-        while (self.AllocatedCount != 0) {
-            self.AllocatedCount -= 1;
-            _ = self.BootServices.FreePages(@intFromPtr(self.AllocatedTables[self.AllocatedCount]), 1);
+    pub fn deinitialize(self: *PageTableSetup) bool {
+        if (!self.RootOwned) return true;
+        if ((control.readCR3() & indices.ADDRESS_MASK) == @intFromPtr(self.L4)) return false;
+        self.Closing = true;
+        while (self.Ledger) |page| {
+            while (page.Count != 0) {
+                const physical = page.Frames[page.Count - 1];
+                if (efi.status.isError(self.BootServices.FreePages(physical, 1))) return false;
+                page.Count -= 1;
+                self.AllocatedCount -= 1;
+            }
+            const next = page.Next;
+            if (efi.status.isError(self.BootServices.FreePages(@intFromPtr(page), 1))) return false;
+            self.Ledger = next;
         }
-        _ = self.BootServices.FreePages(@intFromPtr(self.L4), 1);
+        if (efi.status.isError(self.BootServices.FreePages(@intFromPtr(self.L4), 1))) return false;
+        self.RootOwned = false;
         self.PhysmapL3 = null;
         self.PhysmapSize = 0;
+        return true;
     }
 
     pub fn allocateTable(self: *PageTableSetup) SetupError!*types.table.PageTable {
-        if (!self.RootOwned or self.AllocatedCount == constants.limits.MAX_ALLOCATED_TABLES) {
-            return SetupError.AllocationFailed;
+        if (!self.RootOwned or self.Closing or self.AllocatedCount == std.math.maxInt(usize)) return SetupError.AllocationFailed;
+        var pending: ?*types.ledger.Ledger = null;
+        if (self.Ledger == null or self.Ledger.?.Count == constants.ledger.CAPACITY) {
+            const physical = try self.allocatePage();
+            const page: *types.ledger.Ledger = @ptrFromInt(physical);
+            page.* = .{ .Next = self.Ledger };
+            pending = page;
         }
-        var table_address: efi.types.base.PhysicalAddress = self.PhysmapLimit - 1;
-        const status = self.BootServices.AllocatePages(.MaxAddress, .LoaderData, 1, &table_address);
-        if (efi.status.isError(status)) return SetupError.AllocationFailed;
-        if (table_address == 0 or (table_address & sizes.PAGE_MASK) != 0 or table_address > self.PhysmapLimit - sizes.PAGE_SIZE) {
-            _ = self.BootServices.FreePages(table_address, 1);
-            return SetupError.AllocationFailed;
-        }
-        const table: *types.table.PageTable = @ptrFromInt(table_address);
+        errdefer if (pending) |page| {
+            if (efi.status.isError(self.BootServices.FreePages(@intFromPtr(page), 1))) self.Ledger = page;
+        };
+        const physical = try self.allocatePage();
+        const table: *types.table.PageTable = @ptrFromInt(physical);
         table.clear();
-        self.AllocatedTables[self.AllocatedCount] = table;
+        if (pending) |page| self.Ledger = page;
+        const page = self.Ledger.?;
+        page.Frames[page.Count] = physical;
+        page.Count += 1;
         self.AllocatedCount += 1;
         return table;
+    }
+
+    fn allocatePage(self: *const PageTableSetup) SetupError!u64 {
+        var physical: efi.types.base.PhysicalAddress = self.PhysmapLimit - 1;
+        const status = self.BootServices.AllocatePages(.MaxAddress, .LoaderData, 1, &physical);
+        if (efi.status.isError(status)) return SetupError.AllocationFailed;
+        if (physical == 0 or (physical & sizes.PAGE_MASK) != 0 or physical > self.PhysmapLimit - sizes.PAGE_SIZE) {
+            _ = self.BootServices.FreePages(physical, 1);
+            return SetupError.AllocationFailed;
+        }
+        return physical;
     }
 
     pub fn mapIdentity(self: *PageTableSetup, start: u64, size: u64) SetupError!void {
@@ -159,11 +187,11 @@ pub const PageTableSetup = struct {
     }
 
     pub fn getL4Address(self: *PageTableSetup) u64 {
-        return if (self.RootOwned) @intFromPtr(self.L4) else 0;
+        return if (self.RootOwned and !self.Closing) @intFromPtr(self.L4) else 0;
     }
 
     fn validateRange(self: *PageTableSetup, virtual: u64, physical: u64, size: u64) SetupError!u64 {
-        if (!self.RootOwned or (virtual & sizes.PAGE_MASK) != (physical & sizes.PAGE_MASK)) {
+        if (!self.RootOwned or self.Closing or (virtual & sizes.PAGE_MASK) != (physical & sizes.PAGE_MASK)) {
             return SetupError.InvalidMapping;
         }
         if (size == 0) return 0;

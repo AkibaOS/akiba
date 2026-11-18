@@ -95,7 +95,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
-    defer page_setup.deinitialize();
+    defer _ = page_setup.deinitialize();
     splash.report(messages.PREPARING_KERNEL);
     const loaded_image = loader.elf.loader.load(boot_services, page_setup.PhysmapLimit, kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_LOAD);
