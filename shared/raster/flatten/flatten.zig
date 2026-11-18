@@ -56,8 +56,8 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
         start_y = placement.deviceY(last.Y);
         index = 0;
     } else {
-        start_x = placement.deviceX(@divTrunc(first.X + last.X, 2));
-        start_y = placement.deviceY(@divTrunc(first.Y + last.Y, 2));
+        start_x = placement.deviceX(@intCast(@divTrunc(@as(i64, first.X) + last.X, 2)));
+        start_y = placement.deviceY(@intCast(@divTrunc(@as(i64, first.Y) + last.Y, 2)));
         index = 0;
     }
 
@@ -85,8 +85,8 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
         }
 
         if (has_control) {
-            const implied_x = @divTrunc(control_x + px, 2);
-            const implied_y = @divTrunc(control_y + py, 2);
+            const implied_x: i32 = @intCast(@divTrunc(@as(i64, control_x) + px, 2));
+            const implied_y: i32 = @intCast(@divTrunc(@as(i64, control_y) + py, 2));
             try emitQuadratic(shape, current_x, current_y, control_x, control_y, implied_x, implied_y, 0);
             current_x = implied_x;
             current_y = implied_y;
@@ -115,8 +115,8 @@ fn emitQuadratic(
     y1: i32,
     depth: u8,
 ) RasterError!void {
-    const deviation_x = x0 - 2 * control_x + x1;
-    const deviation_y = y0 - 2 * control_y + y1;
+    const deviation_x = @as(i64, x0) - 2 * @as(i64, control_x) + x1;
+    const deviation_y = @as(i64, y0) - 2 * @as(i64, control_y) + y1;
     const deviation = magnitude(deviation_x) + magnitude(deviation_y);
 
     if (depth >= limits.MAX_SUBDIVISION_DEPTH or deviation <= limits.FLATNESS_TOLERANCE) {
@@ -124,17 +124,17 @@ fn emitQuadratic(
         return;
     }
 
-    const left_x = (x0 + control_x) >> 1;
-    const left_y = (y0 + control_y) >> 1;
-    const right_x = (control_x + x1) >> 1;
-    const right_y = (control_y + y1) >> 1;
-    const middle_x = (left_x + right_x) >> 1;
-    const middle_y = (left_y + right_y) >> 1;
+    const left_x: i32 = @intCast((@as(i64, x0) + control_x) >> 1);
+    const left_y: i32 = @intCast((@as(i64, y0) + control_y) >> 1);
+    const right_x: i32 = @intCast((@as(i64, control_x) + x1) >> 1);
+    const right_y: i32 = @intCast((@as(i64, control_y) + y1) >> 1);
+    const middle_x: i32 = @intCast((@as(i64, left_x) + right_x) >> 1);
+    const middle_y: i32 = @intCast((@as(i64, left_y) + right_y) >> 1);
 
     try emitQuadratic(shape, x0, y0, left_x, left_y, middle_x, middle_y, depth + 1);
     try emitQuadratic(shape, middle_x, middle_y, right_x, right_y, x1, y1, depth + 1);
 }
 
-fn magnitude(value: i32) i32 {
+fn magnitude(value: i64) i64 {
     return if (value < 0) -value else value;
 }

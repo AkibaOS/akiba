@@ -66,6 +66,22 @@ pub fn impliedPointsAndClosure() !void {
     }
 }
 
+pub fn translatedCurves() !void {
+    const outline = fixture.outline(&constants.IMPLIED_POINTS);
+    const scale = Fixed16Dot16.fromRatio(1, 1);
+    var reference: Shape = undefined;
+    var translated: Shape = undefined;
+    try raster.flatten.flatten(&outline, scale, 0, 256, &reference);
+    try raster.flatten.flatten(&outline, scale, constants.RASTER_HIGH_ORIGIN, 256, &translated);
+    try std.testing.expectEqual(reference.EdgeCount, translated.EdgeCount);
+    for (reference.Edges[0..reference.EdgeCount], translated.Edges[0..translated.EdgeCount]) |first, second| {
+        try std.testing.expectEqual(first.X0 + constants.RASTER_HIGH_ORIGIN, second.X0);
+        try std.testing.expectEqual(first.X1 + constants.RASTER_HIGH_ORIGIN, second.X1);
+        try std.testing.expectEqual(first.Y0, second.Y0);
+        try std.testing.expectEqual(first.Y1, second.Y1);
+    }
+}
+
 pub fn edgeCapacity() !void {
     var shape: Shape = undefined;
     shape.reset();

@@ -15,15 +15,15 @@ pub fn fill(shape: *const Shape, workspace: *Workspace, sink: RowSink) RasterErr
     }
 
     const left = shape.MinX >> limits.PIXEL_BITS;
-    const right = (shape.MaxX + limits.PIXEL_MASK) >> limits.PIXEL_BITS;
+    const right = (@as(i64, shape.MaxX) + limits.PIXEL_MASK) >> limits.PIXEL_BITS;
     const width: usize = @intCast(right - left + 1);
 
     if (width > limits.MAX_ROW_WIDTH) {
         return RasterError.ShapeTooWide;
     }
 
-    const top = shape.MinY >> limits.PIXEL_BITS;
-    const bottom = (shape.MaxY + limits.PIXEL_MASK) >> limits.PIXEL_BITS;
+    const top = @as(i64, shape.MinY) >> limits.PIXEL_BITS;
+    const bottom = (@as(i64, shape.MaxY) + limits.PIXEL_MASK) >> limits.PIXEL_BITS;
 
     var row = top;
     while (row <= bottom) : (row += 1) {
@@ -41,24 +41,24 @@ pub fn fill(shape: *const Shape, workspace: *Workspace, sink: RowSink) RasterErr
                 continue;
             }
 
-            const span = edge.Y1 - edge.Y0;
+            const span = @as(i64, edge.Y1) - edge.Y0;
             const enter_y = if (edge.Y0 > row_top) edge.Y0 else row_top;
             const leave_y = if (edge.Y1 < row_bottom) edge.Y1 else row_bottom;
             if (enter_y >= leave_y) {
                 continue;
             }
 
-            const run = @as(i64, edge.X1 - edge.X0);
-            const enter_x: i32 = edge.X0 + @as(i32, @intCast(@divTrunc(run * (enter_y - edge.Y0), span)));
-            const leave_x: i32 = edge.X0 + @as(i32, @intCast(@divTrunc(run * (leave_y - edge.Y0), span)));
+            const run = @as(i64, edge.X1) - edge.X0;
+            const enter_x: i32 = @intCast(@as(i64, edge.X0) + @divTrunc(run * (enter_y - edge.Y0), span));
+            const leave_x: i32 = @intCast(@as(i64, edge.X0) + @divTrunc(run * (leave_y - edge.Y0), span));
 
             renderSegment(
                 workspace,
                 left,
                 enter_x,
-                enter_y - row_top,
+                @intCast(enter_y - row_top),
                 leave_x,
-                leave_y - row_top,
+                @intCast(leave_y - row_top),
                 edge.Direction,
             );
             touched = true;
@@ -76,7 +76,7 @@ pub fn fill(shape: *const Shape, workspace: *Workspace, sink: RowSink) RasterErr
             workspace.Coverage[column] = toCoverage(value);
         }
 
-        sink.WriteRow(sink.Context, row, left, workspace.Coverage[0..width]);
+        sink.WriteRow(sink.Context, @intCast(row), left, workspace.Coverage[0..width]);
     }
 }
 

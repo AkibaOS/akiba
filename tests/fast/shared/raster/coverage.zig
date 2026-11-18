@@ -127,4 +127,16 @@ pub fn rowWidthBoundary() !void {
     capture = fixture.initializeCapture();
     try std.testing.expectError(error.ShapeTooWide, raster.fill.fill(&shape, &workspace, fixture.sink(&capture)));
     try std.testing.expectEqual(@as(usize, 0), capture.Count);
+    shape.reset();
+    try fixture.rectangle(&shape, std.math.minInt(i32), 0, std.math.maxInt(i32), limits.ONE_PIXEL, false);
+    try std.testing.expectError(error.ShapeTooWide, raster.fill.fill(&shape, &workspace, fixture.sink(&capture)));
+    try std.testing.expectEqual(@as(usize, 0), capture.Count);
+    shape.reset();
+    try fixture.rectangle(&shape, std.math.maxInt(i32) - 127, std.math.maxInt(i32) - 127, std.math.maxInt(i32), std.math.maxInt(i32), false);
+    try raster.fill.fill(&shape, &workspace, fixture.sink(&capture));
+    try std.testing.expect(!capture.Overflow);
+    try std.testing.expectEqual(@as(usize, 2), capture.Count);
+    try std.testing.expectEqual(@as(i32, 33554430), capture.Rows[0].X);
+    try std.testing.expectEqual(@as(i32, 33554430), capture.Rows[0].Y);
+    try std.testing.expectEqual(@as(usize, 3), capture.Rows[0].Length);
 }

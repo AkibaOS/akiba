@@ -27,6 +27,7 @@ pub const TRAIL_BASELINE: i32 = 24;
 
 pub const SFNT_VERSION: u32 = 0x00010000;
 pub const SFNT_GROWTH_TABLES: u16 = 65;
+pub const RASTER_HIGH_ORIGIN: i32 = 0x40000000;
 pub const HEAD_TAG: u32 = 0x68656164;
 pub const MAXP_TAG: u32 = 0x6D617870;
 pub const HHEA_TAG: u32 = 0x68686561;

@@ -122,6 +122,10 @@ test "flattening implied points and off curve closure match explicit geometry" {
     try checks.raster.flatten.impliedPointsAndClosure();
 }
 
+test "quadratic flattening preserves representable geometry after large translation" {
+    try checks.raster.flatten.translatedCurves();
+}
+
 test "flattened shape edge storage rejects capacity overflow" {
     try checks.raster.flatten.edgeCapacity();
 }
