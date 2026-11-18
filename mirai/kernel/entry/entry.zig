@@ -70,7 +70,7 @@ fn snapshot(params: *const BootParams) ?BootInfo {
     {
         return null;
     }
-    const memory_regions = regions.convert.convert(params.MemoryMap, coverage) orelse return null;
+    const memory_regions = regions.convert.consume(params.MemoryMap, coverage) orelse return null;
     const rsdp = params.ACPI.RSDPAddress;
     if (rsdp >= coverage) return null;
     return .{

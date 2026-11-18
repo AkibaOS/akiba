@@ -27,6 +27,9 @@ pub fn run(real: *services.boot.BootServices, image_handle: base.Handle) !void {
     try staleRetry(real, image_handle);
     try retryBound(real, image_handle);
     try growthRollback(real, image_handle);
+    try mapCapacity(real, image_handle, inputs.MANY_MAP_ENTRIES, inputs.DESCRIPTOR_BYTES, labels.MAP_COUNT);
+    try mapCapacity(real, image_handle, inputs.MAP_ENTRIES, inputs.EXTENDED_DESCRIPTOR_BYTES, labels.MAP_STRIDE);
+    try mapCapacity(real, image_handle, inputs.LARGE_MAP_ENTRIES, inputs.DESCRIPTOR_BYTES, labels.MAP_BYTES);
 }
 
 pub fn cleanup() bool {
@@ -99,6 +102,21 @@ fn mapGrowth(real: *services.boot.BootServices, image_handle: base.Handle) !void
     const released = cleanup();
     output.require(grown and matched and released, labels.MAP_GROWTH);
     output.require(frozen and matched and released, labels.EXITED_RELEASE);
+}
+
+fn mapCapacity(real: *services.boot.BootServices, image_handle: base.Handle, count: usize, stride: usize, comptime label: []const u8) !void {
+    const size = count * stride;
+    const script = [_]types.MapReply{
+        .{ .Status = codes.BUFFER_TOO_SMALL, .Size = size, .DescriptorSize = stride },
+        .{ .Status = codes.SUCCESS, .Size = size, .DescriptorSize = stride },
+    };
+    var wrapped = try begin(real, image_handle, &script, &inputs.SUCCESS_EXIT);
+    var state = try handoff.initialize(&wrapped, inputs.PHYSICAL_LIMIT);
+    try handoff.exit(&state, image_handle);
+    const published = handoff.parameters(&state).MemoryMap;
+    finish(state.Exited and fixture.MapCalls == 2 and fixture.ExitCalls == 1 and published.Entries == state.MapPhysical and
+        published.EntryCount == count and published.EntrySize == stride and state.MapPages * inputs.PAGE_BYTES >= size and
+        !fixture.ScriptMismatch, label);
 }
 
 fn metadataRejected(real: *services.boot.BootServices, image_handle: base.Handle, script: []const types.MapReply) !bool {

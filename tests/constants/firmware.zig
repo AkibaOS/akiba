@@ -4,7 +4,7 @@ const status = @import("hikari").efi.constants.status;
 const storage = @import("tests").firmware.constants.storage;
 const types = @import("tests").types.firmware;
 
-pub const ASSERTION_COUNT: usize = 15 + storage.ASSERTION_COUNT;
+pub const ASSERTION_COUNT: usize = 18 + storage.ASSERTION_COUNT;
 pub const SERIAL_POLL_LIMIT: usize = 1000000;
 pub const NEWLINE_BYTE: u8 = 10;
 pub const CARRIAGE_RETURN_BYTE: u8 = 13;
@@ -25,6 +25,9 @@ pub const SECOND_KEY: usize = 42;
 pub const LAST_KEY: usize = 47;
 pub const RETRY_MAP_CALLS: usize = 8;
 pub const RETRY_EXIT_CALLS: usize = 7;
+pub const MANY_MAP_ENTRIES: usize = 513;
+pub const LARGE_MAP_ENTRIES: usize = 44000;
+pub const EXTENDED_DESCRIPTOR_BYTES: usize = 4104;
 
 pub const GROWTH_MAPS = [_]types.MapReply{
     .{ .Status = status.BUFFER_TOO_SMALL },

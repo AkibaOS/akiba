@@ -1,5 +1,7 @@
 //! Hikari Handoff Transaction
 
+const std = @import("std");
+
 const boot = @import("shared").boot;
 const common = @import("common");
 const constants = @import("hikari").sequence.constants.memory;
@@ -65,10 +67,11 @@ fn allocatePages(state: *const Handoff, pages: usize) HandoffError!u64 {
 
 fn growMap(state: *Handoff, required: usize, descriptor_size: usize) HandoffError!void {
     const stride = @max(descriptor_size, @sizeOf(efi.types.memory.MemoryDescriptor));
-    if (stride > memory.MAX_DESCRIPTOR_SIZE or required == 0) return HandoffError.InvalidMemoryMap;
+    if (stride > std.math.maxInt(u32) or required == 0) return HandoffError.InvalidMemoryMap;
     const extra = constants.MEMORY_MAP_EXTRA_DESCRIPTORS * stride;
-    if (required > memory.MAX_MAP_BYTES - extra) return HandoffError.InvalidMemoryMap;
-    const pages: usize = math.integer.divideCeil(required + extra, sizes.PAGE_SIZE);
+    if (extra > state.PhysicalLimit or required > state.PhysicalLimit - extra) return HandoffError.InvalidMemoryMap;
+    const bytes = required + extra;
+    const pages = bytes / sizes.PAGE_SIZE + @intFromBool(bytes % sizes.PAGE_SIZE != 0);
     const address = try allocatePages(state, pages);
     if (state.MapPhysical != 0) {
         const release = state.BootServices.FreePages(state.MapPhysical, state.MapPages);
@@ -100,8 +103,8 @@ pub fn exit(state: *Handoff, image_handle: efi.types.base.Handle) HandoffError!v
         }
         if (efi.status.isError(result) or state.MapPhysical == 0 or size == 0 or
             size > state.MapPages * sizes.PAGE_SIZE or descriptor_size < @sizeOf(efi.types.memory.MemoryDescriptor) or
-            descriptor_size > memory.MAX_DESCRIPTOR_SIZE or descriptor_size % @alignOf(efi.types.memory.MemoryDescriptor) != 0 or
-            size % descriptor_size != 0 or descriptor_version != memory.DESCRIPTOR_VERSION or size / descriptor_size > memory.MAX_REGIONS)
+            descriptor_size > std.math.maxInt(u32) or descriptor_size % @alignOf(efi.types.memory.MemoryDescriptor) != 0 or
+            size % descriptor_size != 0 or descriptor_version != memory.DESCRIPTOR_VERSION or size / descriptor_size > std.math.maxInt(u32))
         {
             return HandoffError.InvalidMemoryMap;
         }

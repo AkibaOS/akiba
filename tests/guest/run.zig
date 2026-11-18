@@ -47,6 +47,7 @@ pub fn execute() void {
     @call(.never_inline, guest.hikari.efi.buffer.run, .{});
     serial.printf(bootlabels.GROUP, .{});
     @call(.never_inline, guest.mirai.boot.invariants.run, .{});
+    check(guest.mirai.boot.regions.run);
     serial.printf(memorylabels.GROUP_PMM, .{});
     check(guest.mirai.pmm.frames.run);
     check(guest.mirai.pmm.ranges.run);

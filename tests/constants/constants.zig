@@ -20,6 +20,7 @@ pub const pool = @import("pool.zig");
 pub const postman = @import("postman.zig");
 pub const protocol = @import("protocol.zig");
 pub const range = @import("range.zig");
+pub const regions = @import("regions.zig");
 pub const render = @import("render.zig");
 pub const retention = @import("retention.zig");
 pub const runner = @import("runner.zig");
