@@ -18,6 +18,7 @@ pub fn run() !void {
     defer guard.release(flags);
     const before = pmm.state.getStatistics();
     rejectEmpty();
+    rejectImpossibleAlignment();
     const contiguous = try pmm.allocate.contiguous.allocateContiguousZeroed(inputs.RANGE_PAGES);
     var owns_contiguous = true;
     defer if (owns_contiguous) pmm.free.range.freeRange(contiguous, inputs.RANGE_PAGES);
@@ -51,6 +52,19 @@ pub fn run() !void {
     pmm.free.range.freeRange(reused, inputs.RANGE_PAGES);
     owns_reused = false;
     verify.require(std.meta.eql(before, pmm.state.getStatistics()), labels.PMM_FREE);
+}
+
+fn rejectImpossibleAlignment() void {
+    const before = pmm.state.getStatistics();
+    const search = pmm.state.getState().SearchStart;
+    const allocated = pmm.allocate.contiguous.allocateAligned(1, std.math.maxInt(u64));
+    if (allocated) |unexpected| {
+        pmm.free.single.freePage(unexpected);
+        verify.require(false, labels.PMM_REJECTIONS);
+    } else |failure| {
+        verify.require(failure == error.OutOfMemory and std.meta.eql(before, pmm.state.getStatistics()) and
+            search == pmm.state.getState().SearchStart, labels.PMM_REJECTIONS);
+    }
 }
 
 fn rejectEmpty() void {

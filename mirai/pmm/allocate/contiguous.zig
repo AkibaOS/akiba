@@ -56,17 +56,17 @@ pub fn allocateAligned(page_count: u64, alignment_pages: u64) AllocationError!u6
 
     const pmm_state = state.getState();
 
-    if (pmm_state.FreePages < page_count) {
+    if (pmm_state.FreePages < page_count or pmm_state.TotalPages < page_count) {
         return AllocationError.OutOfMemory;
     }
 
+    const last_start = pmm_state.TotalPages - page_count;
     var search_start: u64 = 0;
-    while (search_start + page_count <= pmm_state.TotalPages) {
-        const aligned_start = (search_start + alignment_pages - 1) / alignment_pages * alignment_pages;
-
-        if (aligned_start + page_count > pmm_state.TotalPages) {
-            break;
-        }
+    while (search_start <= last_start) {
+        const remainder = search_start % alignment_pages;
+        const padding = if (remainder == 0) 0 else alignment_pages - remainder;
+        if (padding > last_start - search_start) break;
+        const aligned_start = search_start + padding;
 
         var found = true;
         var check_index: u64 = 0;
