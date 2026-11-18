@@ -1,5 +1,7 @@
 //! Hikari GPT Parser
 
+const std = @import("std");
+
 const constants = @import("hikari").disk.constants;
 const crc = @import("utils").crc;
 const efi = @import("hikari").efi;
@@ -21,7 +23,7 @@ pub const Parser = struct {
 
     pub fn initialize(block_io: *efi.types.protocols.block.BlockIoProtocol, boot_services: *efi.types.services.boot.BootServices) ParseError!Parser {
         const block_size = block_io.Media.BlockSize;
-        if (block_size < constants.gpt.HEADER_SIZE_MINIMUM or block_size > constants.gpt.HEADER_BUFFER_SIZE or
+        if (block_size < constants.gpt.HEADER_SIZE_MINIMUM or
             (block_size & (block_size - 1)) != 0 or block_io.Media.LastBlock <= constants.gpt.HEADER_LBA)
         {
             return ParseError.InvalidLayout;
@@ -70,7 +72,6 @@ pub const Parser = struct {
         if (header.CurrentLBA != constants.gpt.HEADER_LBA or header.BackupLBA > block_io.Media.LastBlock or
             header.BackupLBA == header.CurrentLBA or header.FirstUsableLBA > header.LastUsableLBA or
             header.LastUsableLBA >= block_io.Media.LastBlock or
-            header.PartitionEntriesCount > constants.gpt.PARTITION_ENTRIES_COUNT_MAXIMUM or
             header.PartitionEntrySize < @sizeOf(types.gpt.PartitionEntry) or
             (header.PartitionEntrySize % @alignOf(types.gpt.PartitionEntry)) != 0 or
             header.PartitionEntriesLBA < constants.gpt.PARTITION_ENTRIES_START_LBA or
@@ -81,7 +82,8 @@ pub const Parser = struct {
         const entries_total_size = @as(u64, header.PartitionEntriesCount) * header.PartitionEntrySize;
         const entries_blocks = math.integer.divideCeil(entries_total_size, block_size);
         if (entries_blocks > header.FirstUsableLBA - header.PartitionEntriesLBA) return ParseError.InvalidLayout;
-        const entries_buffer_size = entries_blocks * block_size;
+        const rounded_size = std.math.mul(u64, entries_blocks, block_size) catch return ParseError.InvalidLayout;
+        const entries_buffer_size = std.math.cast(usize, rounded_size) orelse return ParseError.InvalidLayout;
 
         var entries_buffer = efi.buffer.allocate(boot_services, entries_buffer_size, block_io.Media.IOAlign) orelse return ParseError.AllocationFailed;
         errdefer efi.buffer.release(boot_services, &entries_buffer);

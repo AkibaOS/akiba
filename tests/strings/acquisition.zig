@@ -3,9 +3,13 @@
 pub const GROUP = "CHECK GROUP Hikari disk acquisition\n";
 pub const GPT_SIGNATURE = "EFI PART";
 pub const GPT_VALID = "Hikari GPT honors entry stride CRC length alignment and bounded partition lookup";
+pub const GPT_COUNT = "Hikari GPT reads and finds the final partition beyond the retired entry count ceiling";
+pub const GPT_BLOCK = "Hikari GPT reads dynamically backed headers and tables on larger media blocks";
+pub const GPT_EXPANDED_PRESSURE = "Hikari expanded GPT table allocation refusal releases its header without reading table bytes";
+pub const GPT_EXPANDED_READ = "Hikari expanded GPT table read failure releases both aligned buffers";
 pub const GPT_CRC = "Hikari GPT rejects independently corrupted header and entry bytes and releases buffers";
 pub const GPT_HEADER = "Hikari GPT rejects invalid signatures revisions and header sizes";
-pub const GPT_LAYOUT = "Hikari GPT rejects empty excessive undersized and overlapping entry tables before reading them";
+pub const GPT_LAYOUT = "Hikari GPT rejects empty undersized and out-of-domain entry tables before reading them";
 pub const GPT_READ_FAILURE = "Hikari GPT reports header and entry read failures without retained allocations";
 pub const GPT_POOL_FAILURE = "Hikari GPT reports header and entry allocation failures and releases earlier ownership";
 pub const UNIT_VALID = "Hikari AFS acquires real Unit bytes and releases successful buffer and reader ownership";

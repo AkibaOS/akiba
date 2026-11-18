@@ -71,7 +71,7 @@ pub fn clean() bool {
 }
 
 pub fn headerBytes() []u8 {
-    return device.Disk[constants.BLOCK_BYTES..][0..constants.BLOCK_BYTES];
+    return device.Disk[media.BlockSize..][0..media.BlockSize];
 }
 
 pub fn tableBytes() []u8 {
@@ -114,6 +114,32 @@ pub fn encodeGPT() void {
     writeU32(header, 80, constants.ENTRY_COUNT);
     writeU32(header, 84, constants.ENTRY_BYTES);
     writeU32(header, 88, crc.calculate(table[0..constants.TABLE_BYTES]));
+    sealHeader();
+}
+
+pub fn encodeExpandedGPT(block_size: u32, count: u32) void {
+    media.BlockSize = block_size;
+    media.LastBlock = constants.DISK_BYTES / block_size - 1;
+    const table_size = @as(usize, count) * constants.ENTRY_BYTES;
+    const table_blocks = (table_size - 1) / block_size + 1;
+    const table = device.Disk[constants.TABLE_LBA * block_size ..][0 .. table_blocks * block_size];
+    @memset(table, 0);
+    const first = constants.TABLE_LBA + table_blocks;
+    partition(table, count - 1, constants.TYPE_B, first, media.LastBlock - 1);
+    const header = headerBytes();
+    @memset(header, 0);
+    @memcpy(header[0..8], labels.GPT_SIGNATURE);
+    writeU32(header, 8, 0x00010000);
+    writeU32(header, 12, constants.HEADER_BYTES);
+    writeU64(header, 24, constants.HEADER_LBA);
+    writeU64(header, 32, media.LastBlock);
+    writeU64(header, 40, first);
+    writeU64(header, 48, media.LastBlock - 1);
+    guid(header[56..72], constants.DISK_GUID);
+    writeU64(header, 72, constants.TABLE_LBA);
+    writeU32(header, 80, count);
+    writeU32(header, 84, constants.ENTRY_BYTES);
+    writeU32(header, 88, crc.calculate(table[0..table_size]));
     sealHeader();
 }
 
@@ -225,13 +251,13 @@ fn readBlocks(self: *protocols.BlockIoProtocol, media_id: u32, lba: base.LBA, bu
     }
     device.Reads[device.ReadCalls] = .{ .LBA = lba, .Bytes = buffer_size, .Address = @intFromPtr(buffer) };
     device.ReadCalls += 1;
-    if (self != &protocol or media_id != constants.MEDIA_ID or lba >= constants.DISK_BLOCKS or
-        buffer_size == 0 or buffer_size % constants.BLOCK_BYTES != 0 or @intFromPtr(buffer) % constants.IO_ALIGNMENT != 0)
+    if (self != &protocol or media_id != constants.MEDIA_ID or lba > media.LastBlock or
+        buffer_size == 0 or buffer_size % media.BlockSize != 0 or @intFromPtr(buffer) % constants.IO_ALIGNMENT != 0)
     {
         device.Broken = true;
         return status.INVALID_PARAMETER;
     }
-    const offset = @as(usize, @intCast(lba)) * constants.BLOCK_BYTES;
+    const offset = @as(usize, @intCast(lba)) * media.BlockSize;
     if (buffer_size > device.Disk.len - offset) {
         device.Broken = true;
         return status.INVALID_PARAMETER;

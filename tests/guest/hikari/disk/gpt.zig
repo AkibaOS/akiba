@@ -12,6 +12,8 @@ const Parser = parser.Parser;
 
 pub fn run() !void {
     try validTable();
+    try expandedTable(constants.BLOCK_BYTES, constants.LARGE_ENTRY_COUNT, labels.GPT_COUNT);
+    try expandedTable(constants.LARGE_BLOCK_BYTES, constants.ENTRY_COUNT, labels.GPT_BLOCK);
     checksums();
     headerBounds();
     entryBounds();
@@ -41,6 +43,27 @@ fn validTable() !void {
     parsed.deinitialize();
     parsed.deinitialize();
     verify.require(valid and fixture.device.AllocateCalls == 2 and fixture.device.FreeCalls == 2 and fixture.clean(), labels.GPT_VALID);
+}
+
+fn expandedTable(block_size: u32, count: u32, comptime label: []const u8) !void {
+    fixture.reset();
+    fixture.encodeExpandedGPT(block_size, count);
+    var parsed = try Parser.initialize(&fixture.protocol, &fixture.services);
+    const last = parsed.findPartitionByIndex(count - 1);
+    const valid = parsed.EntriesCount == count and parsed.BlockSize == block_size and
+        last != null and last.?.isType(constants.TYPE_B) and
+        parsed.findPartitionByType(constants.TYPE_B) == last and parsed.countValidPartitions() == 1 and
+        parsed.findPartitionByIndex(count) == null and fixture.device.ReadCalls == 2 and fixture.live() == 1;
+    parsed.deinitialize();
+    verify.require(valid and fixture.clean(), label);
+    fixture.reset();
+    fixture.encodeExpandedGPT(block_size, count);
+    fixture.device.FailAllocation = 2;
+    verify.require(rejects(ParseError.AllocationFailed, 2, 1, 1), labels.GPT_EXPANDED_PRESSURE);
+    fixture.reset();
+    fixture.encodeExpandedGPT(block_size, count);
+    fixture.device.FailLBA = constants.TABLE_LBA;
+    verify.require(rejects(ParseError.ReadFailed, 2, 2, 2), labels.GPT_EXPANDED_READ);
 }
 
 fn checksums() void {
@@ -82,7 +105,7 @@ fn entryBounds() void {
     const empty = rejects(ParseError.NoPartitions, 1, 1, 1);
     fixture.reset();
     fixture.encodeGPT();
-    fixture.writeU32(fixture.headerBytes(), 80, 129);
+    fixture.writeU32(fixture.headerBytes(), 80, constants.LARGE_ENTRY_COUNT);
     fixture.sealHeader();
     const excessive = rejects(ParseError.InvalidLayout, 1, 1, 1);
     fixture.reset();

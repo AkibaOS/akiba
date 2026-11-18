@@ -3,12 +3,14 @@
 const base = @import("hikari").efi.types.base;
 
 pub const BLOCK_BYTES: usize = 512;
-pub const DISK_BLOCKS: usize = 64;
+pub const DISK_BLOCKS: usize = 128;
 pub const DISK_BYTES: usize = BLOCK_BYTES * DISK_BLOCKS;
 pub const IO_ALIGNMENT: u32 = 64;
 pub const MEDIA_ID: u32 = 7;
 pub const POOL_SLOTS: usize = 4;
-pub const POOL_BYTES: usize = 2048;
+pub const POOL_BYTES: usize = 32768;
+pub const LARGE_ENTRY_COUNT: u32 = 129;
+pub const LARGE_BLOCK_BYTES: u32 = 8192;
 pub const POOL_OFFSET: usize = 8;
 pub const POOL_GUARD: u8 = 0xD7;
 pub const MAX_CALLS: usize = 16;
