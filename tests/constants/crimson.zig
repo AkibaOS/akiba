@@ -39,3 +39,6 @@ pub const EXCEPTION_CODE: u64 = 0x8877665544332211;
 pub const FAULT_ADDRESS: u64 = 0x3000000;
 pub const CONTEXT_RAX: u64 = 0x123456789abcdef0;
 pub const INVALID_ACTION: u64 = 0xff;
+pub const MODULE_LONG_NAME = [_]u8{0x78} ** 64;
+pub const MODULE_BASE: u64 = 0xABC000;
+pub const MODULE_SIZE: u64 = 4096;

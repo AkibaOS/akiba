@@ -22,3 +22,7 @@ pub const CORPSE_COPY = "Crimson corpse retains exception metadata and copied CP
 pub const CORPSE_BOUNDS = "Crimson corpse omits unbounded stack and memory snapshots";
 pub const CORPSE_POOL = "Crimson corpse pool tracks capacity and owned release";
 pub const CORPSE_REUSE = "Crimson corpse release invalidates and reuses the same slot";
+pub const MODULE_NAME = "Crimson diagnostic module registration refuses oversized names without truncation or publication";
+pub const MODULE_BOUNDARY = "Crimson diagnostic module registration preserves full boundary-length names and half-open ranges";
+pub const MODULE_RANGE = "Crimson diagnostic module registration rejects overflowing address ranges";
+pub const MODULE_CAPACITY = "Crimson diagnostic registry refuses full retention without overwriting existing records";

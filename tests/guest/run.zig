@@ -125,6 +125,7 @@ pub fn execute() void {
     @call(.never_inline, guest.mirai.crimson.codec.run, .{});
     @call(.never_inline, guest.mirai.crimson.ports.run, .{});
     @call(.never_inline, guest.mirai.crimson.corpse.run, .{});
+    @call(.never_inline, guest.mirai.crimson.modules.run, .{});
     serial.printf(labels.COMPLETE, .{verify.count()});
 }
 

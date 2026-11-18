@@ -1,5 +1,7 @@
 //! Render Loaded Modules
 
+const std = @import("std");
+
 const constants = @import("mirai").crimson.constants;
 const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").crimson.strings;
@@ -15,7 +17,9 @@ var loaded_modules: [limits.MAX_MODULES]ModuleInfo = undefined;
 var module_count: usize = 0;
 
 pub fn registerModule(name: []const u8, base_address: u64, size: u64) bool {
-    if (module_count >= limits.MAX_MODULES) {
+    if (name.len >= limits.MODULE_NAME_CAPACITY or module_count >= limits.MAX_MODULES or
+        size > std.math.maxInt(u64) - base_address)
+    {
         return false;
     }
 
