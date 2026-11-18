@@ -48,6 +48,8 @@ pub fn fixedChrome() !void {
         try std.testing.expect(screen.model.finish(&progress, .Pass));
         try std.testing.expect(screen.model.begin(&progress, labels.NEXT_CASE));
         try std.testing.expect(screen.render.update(&target, geometry, scratch, text, &progress, 3));
+        try expectStatusTag(&target, geometry.Log, 1, screen.constants.palette.PASSED);
+        try expectStatusTag(&target, geometry.Log, 2, screen.constants.palette.RUNNING);
         try std.testing.expect(!std.mem.eql(u32, pixels, before));
         for (0..height) |row_index| {
             for (0..stride) |column| {
@@ -66,9 +68,10 @@ pub fn fixedChrome() !void {
         try expectPadding(&target);
 
         @memcpy(before, pixels);
-        try std.testing.expect(screen.model.finish(&progress, .Pass));
+        try std.testing.expect(screen.model.finish(&progress, .Fail));
         try std.testing.expect(screen.model.complete(&progress));
         try std.testing.expect(screen.render.update(&target, geometry, scratch, text, &progress, 0));
+        try expectStatusTag(&target, geometry.Log, 2, screen.constants.palette.FAILED);
         const title_end = target.offset(0, header.Y + header.Height / 2);
         const header_end = target.offset(0, header.Y + header.Height);
         try std.testing.expectEqualSlices(u32, before[0..title_end], pixels[0..title_end]);
@@ -127,6 +130,27 @@ pub fn fallbackTitle() !void {
     try std.testing.expect(!std.mem.eql(u32, expected, pixels));
     try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &state, null));
     try std.testing.expectEqualSlices(u32, expected, pixels);
+}
+
+fn expectStatusTag(target: *const Surface, log: Rect, line: u32, tag: graphics.types.color.Color) !void {
+    const frame = screen.constants.frame;
+    const left = log.X + frame.INSET;
+    const label_start = left + 52;
+    const top = log.Y + frame.INSET + line * frame.ROW_HEIGHT;
+    var status_visible = false;
+    var label_visible = false;
+    for (top..top + frame.ROW_HEIGHT) |y| {
+        for (left..log.X + log.Width - frame.INSET) |x| {
+            const color = graphics.types.color.Color.fromPixel(target.Base[target.offset(@intCast(x), @intCast(y))], target.Format);
+            if (x < label_start) {
+                status_visible = status_visible or std.meta.eql(color, tag);
+            } else {
+                try std.testing.expect(color.R == color.G and color.G == color.B);
+                label_visible = label_visible or color.R != 0;
+            }
+        }
+    }
+    try std.testing.expect(status_visible and label_visible);
 }
 
 fn expectPadding(target: *const Surface) !void {

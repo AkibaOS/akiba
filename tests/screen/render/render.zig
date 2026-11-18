@@ -88,7 +88,7 @@ fn viewport(staging: *Surface, layout: Layout, text: Text, state: *const types.m
 }
 
 fn renderRow(line: *Surface, text: Text, entry: types.model.Row, animation_frame: usize) !void {
-    const color = switch (entry.Kind) {
+    const status_color = switch (entry.Kind) {
         .Info => palette.INFORMATION,
         .Pass => palette.PASSED,
         .Fail => palette.FAILED,
@@ -100,9 +100,9 @@ fn renderRow(line: *Surface, text: Text, entry: types.model.Row, animation_frame
         .Fail => strings.FAIL_PREFIX,
         .Running => strings.SPINNER[animation_frame % strings.SPINNER.len],
     };
-    var pen = try drawFitted(line, text, frame.BODY_SIZE, 0, frame.ROW_BASELINE, prefix, color);
-    if (entry.Kind == .Running) pen = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, strings.ACTIVE_PREFIX, color);
-    _ = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, entry.Text, color);
+    var pen = try drawFitted(line, text, frame.BODY_SIZE, 0, frame.ROW_BASELINE, prefix, status_color);
+    if (entry.Kind != .Info) pen = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, strings.TEST_PREFIX, palette.INFORMATION);
+    _ = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, entry.Text, palette.INFORMATION);
 }
 
 fn progress(staging: *Surface, rectangle: Rect, text: Text, percentage: usize) !void {
