@@ -9,6 +9,7 @@ pub const firmware = @import("firmware.zig");
 pub const hikari = @import("hikari.zig");
 pub const host = @import("host.zig");
 pub const image = @import("image.zig");
+pub const input = @import("input.zig");
 pub const loading = @import("loading.zig");
 pub const memory = @import("memory.zig");
 pub const persona = @import("persona.zig");

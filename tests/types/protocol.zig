@@ -6,9 +6,14 @@ pub const Scenario = enum {
     InvalidGreeting,
     ErrorReply,
     Events,
+    Reset,
     SlowGreeting,
     Disconnect,
     WrongName,
+    QuitClosed,
+    QuitRefused,
+    LateReply,
+    Headless,
 };
 
 pub const Peer = struct {

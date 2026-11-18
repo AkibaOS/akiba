@@ -22,14 +22,19 @@ pub fn run() void {
         guard.release(flags);
     }
     verify.require(ticks >= before and ticks - before >= inputs.REQUIRED_TICKS, labels.TIMER);
+    flags = guard.acquire();
+    const initial = drivers.keyboard.handler.getLastScancode();
     drivers.serial.write.printf(labels.READY_LINE, .{});
-    const started = ticks;
+    const started = drivers.pit.handler.getTicks();
+    guard.release(flags);
+    var armed = initial != inputs.BREAK_CODE;
     while (true) {
         flags = guard.acquire();
         const scancode = drivers.keyboard.handler.getLastScancode();
         ticks = drivers.pit.handler.getTicks();
         guard.release(flags);
-        if (scancode == inputs.MAKE_CODE or scancode == inputs.BREAK_CODE) {
+        if (scancode != inputs.BREAK_CODE) armed = true;
+        if (armed and scancode == inputs.BREAK_CODE) {
             verify.require(true, labels.KEYBOARD);
             return;
         }

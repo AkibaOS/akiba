@@ -7,3 +7,4 @@ pub const SLOW_BYTES: usize = 80;
 pub const BYTE_INTERVAL_NS: u64 = 100000000;
 pub const MIN_DEADLINE_NS: u64 = 5000000000;
 pub const MAX_DEADLINE_NS: u64 = 8000000000;
+pub const LATE_REPLY_NS: u64 = 2_500_000_000;

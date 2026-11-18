@@ -3,10 +3,82 @@
 const std = @import("std");
 
 const fixtures = @import("tests").strings.oracle;
+const input = @import("tests").types.input;
 const labels = @import("tests").strings.scenario;
 const phase = @import("tests").fast.runner.phase;
 const peer = @import("tests").fast.runner.protocol;
 const result = @import("tests").runner.result;
+const runner = @import("tests").runner;
+const Epoch = @import("tests").types.host.Epoch;
+
+test "serial evidence starts at the new boot boundary and rejects truncation" {
+    var directory = std.testing.tmpDir(.{});
+    defer directory.cleanup();
+    var file = try directory.dir.createFile(fixtures.SERIAL_FILE, .{ .read = true });
+    defer file.close();
+    try file.writeAll(fixtures.VALID);
+    const start = try file.getEndPos();
+    try file.writeAll(fixtures.PENDING);
+    const epoch: Epoch = .{ .File = &file, .Start = start };
+    const evidence = try runner.serial.read(std.testing.allocator, epoch);
+    defer std.testing.allocator.free(evidence);
+    try std.testing.expectEqualStrings(fixtures.PENDING, evidence);
+    try std.testing.expectEqual(@as(?usize, null), try result.evaluate(evidence, .Standard));
+    try file.setEndPos(0);
+    try std.testing.expectError(error.SerialHistoryLost, runner.serial.read(std.testing.allocator, epoch));
+}
+
+test "input challenge rejects prior and unsolicited IRQ evidence" {
+    const ready = fixtures.INPUT_READY;
+    const make = fixtures.INPUT_MAKE;
+    const release = fixtures.INPUT_BREAK;
+    var challenge: input.Challenge = .{ .Keys = &.{.{ .Name = fixtures.KEY, .Make = 0x30 }} };
+    try std.testing.expectError(error.MissingInjectedInput, runner.input.observe(&challenge, ready ++ fixtures.VALID));
+    challenge = .{ .Keys = challenge.Keys };
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, ready ++ make ++ release));
+    challenge = .{ .Keys = challenge.Keys };
+    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, make ++ fixtures.INPUT_READY_PARTIAL));
+    try std.testing.expectEqual(.Inject, try runner.input.observe(&challenge, make ++ ready));
+    runner.input.sent(&challenge);
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, make ++ ready ++ release));
+    challenge = .{ .Keys = challenge.Keys };
+    try std.testing.expectEqual(.Inject, try runner.input.observe(&challenge, ready));
+    runner.input.sent(&challenge);
+    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, ready ++ make));
+    try std.testing.expectEqual(.Complete, try runner.input.observe(&challenge, ready ++ make ++ release));
+    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, ready ++ make ++ release ++ fixtures.INPUT_PARTIAL_IRQ));
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, ready ++ make ++ release ++ make));
+}
+
+test "snapshot job must conclude successfully and belong to this session" {
+    const pending = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixtures.SNAPSHOT_PENDING, .{});
+    defer pending.deinit();
+    const complete = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixtures.SNAPSHOT_COMPLETE, .{});
+    defer complete.deinit();
+    const failed = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixtures.SNAPSHOT_FAILED, .{});
+    defer failed.deinit();
+    try std.testing.expect(!try runner.checkpoint.concluded(pending.value, fixtures.SNAPSHOT_ID));
+    try std.testing.expect(try runner.checkpoint.concluded(complete.value, fixtures.SNAPSHOT_ID));
+    try std.testing.expectError(error.SnapshotJobLost, runner.checkpoint.concluded(complete.value, fixtures.OTHER_JOB));
+    try std.testing.expectError(error.SnapshotJobFailed, runner.checkpoint.concluded(failed.value, fixtures.SNAPSHOT_ID));
+}
+
+test "QMP loopback refuses a guest reset before accepting a command reply" {
+    try peer.rejects(.Reset, error.UnexpectedGuestEvent);
+}
+
+test "QMP quit accepts peer closure after request but refuses explicit errors" {
+    try peer.accepts(.QuitClosed);
+    try peer.rejects(.QuitRefused, error.QmpCommandFailed);
+}
+
+test "QMP keeps the outstanding reply across a short socket timeout" {
+    try peer.accepts(.LateReply);
+}
+
+test "QMP verification refuses an explicitly headless display" {
+    try peer.rejects(.Headless, error.MissingQemuWindow);
+}
 
 test "phase frames encode four Mirai choices with an explicit nonzero epoch" {
     try phase.frames();

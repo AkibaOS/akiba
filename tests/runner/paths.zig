@@ -8,37 +8,47 @@ const limits = @import("tests").constants.runner;
 const options = @import("runneroptions");
 const strings = @import("tests").strings.paths;
 
-const Scenario = @import("tests").types.scenario.Scenario;
-
-pub fn prepare(allocator: std.mem.Allocator, selected: Scenario) !host.Paths {
+pub fn prepare(allocator: std.mem.Allocator) !host.Paths {
     const repo = try std.fs.cwd().realpathAlloc(allocator, strings.CURRENT_DIRECTORY);
-    errdefer allocator.free(repo);
+    defer allocator.free(repo);
     try safePath(repo);
     const qemu = try findQemu(allocator);
     errdefer allocator.free(qemu);
-    const image_path = if (selected == .Firmware) options.FIRMWARE_IMAGE else options.GUEST_IMAGE;
-    const image = (try canonicalFile(allocator, image_path)) orelse {
-        std.log.err(strings.MISSING_IMAGE, .{});
-        return error.MissingCheckImage;
-    };
+    const qemu_image = try findQemuImage(allocator, qemu);
+    errdefer allocator.free(qemu_image);
+    const image = try checkImage(allocator, options.GUEST_IMAGE);
     errdefer allocator.free(image);
+    const firmware_image = try checkImage(allocator, options.FIRMWARE_IMAGE);
+    errdefer allocator.free(firmware_image);
     const firmware = try findFirmware(allocator, qemu);
     errdefer for (firmware) |path| allocator.free(path);
     const run = try createRun(allocator, repo);
-    errdefer allocator.free(run);
+    errdefer {
+        std.fs.deleteDirAbsolute(run) catch |failure| std.log.err(strings.RUN_CLEANUP, .{@errorName(failure)});
+        allocator.free(run);
+    }
     const serial = try std.fs.path.join(allocator, &.{ run, strings.SERIAL_FILE });
     errdefer allocator.free(serial);
     const variables = try std.fs.path.join(allocator, &.{ run, strings.VARIABLES_FILE });
     errdefer allocator.free(variables);
     return .{
-        .Repo = repo,
         .Run = run,
         .Image = image,
+        .FirmwareImage = firmware_image,
         .Serial = serial,
         .Variables = variables,
+        .State = try std.fs.path.join(allocator, &.{ run, strings.STATE_FILE }),
         .FirmwareCode = firmware[0],
         .FirmwareTemplate = firmware[1],
         .Qemu = qemu,
+        .QemuImage = qemu_image,
+    };
+}
+
+fn checkImage(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
+    return (try canonicalFile(allocator, path)) orelse {
+        std.log.err(strings.MISSING_IMAGE, .{});
+        return error.MissingCheckImage;
     };
 }
 
@@ -105,6 +115,7 @@ fn createRun(allocator: std.mem.Allocator, repo: []const u8) ![]const u8 {
             error.PathAlreadyExists => continue,
             else => return err,
         };
+        errdefer std.fs.deleteDirAbsolute(path) catch |failure| std.log.err(strings.RUN_CLEANUP, .{@errorName(failure)});
         const canonical = try std.fs.cwd().realpathAlloc(allocator, path);
         errdefer allocator.free(canonical);
         try safePath(canonical);
@@ -120,19 +131,33 @@ fn findQemu(allocator: std.mem.Allocator) ![]const u8 {
         const markers = if (builtin.os.tag == .windows) strings.PATH_MARKERS_WINDOWS else strings.PATH_MARKERS;
         if (std.mem.indexOfAny(u8, name, markers) != null) {
             if (try executableCandidate(allocator, name)) |path| return path;
-        } else if (try environment(allocator, strings.PATH_ENV)) |search| {
-            defer allocator.free(search);
-            var directories = std.mem.splitScalar(u8, search, if (builtin.os.tag == .windows) ';' else ':');
-            while (directories.next()) |entry| {
-                const directory = if (builtin.os.tag == .windows) unquote(entry) else entry;
-                const candidate = try std.fs.path.join(allocator, &.{ directory, name });
-                defer allocator.free(candidate);
-                if (try executableCandidate(allocator, candidate)) |path| return path;
-            }
-        }
+        } else if (try findOnPath(allocator, name)) |path| return path;
     }
     std.log.err(strings.MISSING_QEMU, .{});
     return error.MissingQemuExecutable;
+}
+
+fn findQemuImage(allocator: std.mem.Allocator, qemu: []const u8) ![]const u8 {
+    const directory = std.fs.path.dirname(qemu) orelse return error.MissingQemuDirectory;
+    const sibling = try std.fs.path.join(allocator, &.{ directory, strings.QEMU_IMAGE_NAME });
+    defer allocator.free(sibling);
+    if (try executableCandidate(allocator, sibling)) |path| return path;
+    if (try findOnPath(allocator, strings.QEMU_IMAGE_NAME)) |path| return path;
+    std.log.err(strings.MISSING_QEMU_IMAGE, .{});
+    return error.MissingQemuImageTool;
+}
+
+fn findOnPath(allocator: std.mem.Allocator, name: []const u8) !?[]const u8 {
+    const search = (try environment(allocator, strings.PATH_ENV)) orelse return null;
+    defer allocator.free(search);
+    var directories = std.mem.splitScalar(u8, search, if (builtin.os.tag == .windows) ';' else ':');
+    while (directories.next()) |entry| {
+        const directory = if (builtin.os.tag == .windows) unquote(entry) else entry;
+        const candidate = try std.fs.path.join(allocator, &.{ directory, name });
+        defer allocator.free(candidate);
+        if (try executableCandidate(allocator, candidate)) |path| return path;
+    }
+    return null;
 }
 
 fn executableCandidate(allocator: std.mem.Allocator, candidate: []const u8) !?[]const u8 {

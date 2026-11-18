@@ -6,7 +6,9 @@ const limits = @import("tests").constants.runner;
 const phase = @import("tests").phase;
 const process = @import("tests").runner.process;
 const result = @import("tests").runner.result;
+const serial = @import("tests").runner.serial;
 const socket = @import("tests").runner.socket;
+const Epoch = @import("tests").types.host.Epoch;
 const Process = @import("tests").types.host.Process;
 
 pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stream {
@@ -18,13 +20,13 @@ pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stre
     return stream;
 }
 
-pub fn select(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, serial: []const u8, ticket: phase.types.ticket.Ticket) !void {
+pub fn select(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, ticket: phase.types.ticket.Ticket) !void {
     const offer = phase.wire.encode(ticket, .Offer) orelse return error.InvalidPhaseOffer;
-    try checkSerial(serial);
+    try checkSerial(evidence);
     var matched: usize = 0;
     while (matched < phase.constants.wire.READY.len) {
         var next: [1]u8 = undefined;
-        try receive(stream, instance, timer, &next, serial);
+        try receive(stream, instance, timer, &next, evidence);
         matched = phase.wire.advanceGreeting(matched, next[0]);
     }
     try send(stream, instance, timer, &offer);
@@ -34,13 +36,13 @@ pub fn select(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer
     if (!phase.wire.acknowledges(ticket, &acknowledgement)) return error.InvalidPhaseAcknowledgement;
 }
 
-fn receive(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, bytes: []u8, serial: ?[]const u8) !void {
+fn receive(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, bytes: []u8, evidence: ?Epoch) !void {
     var received: usize = 0;
     while (received < bytes.len) {
         _ = try remaining(instance, timer);
         const count = socket.receive(stream.handle, bytes[received..]) catch |failure| switch (@as(anyerror, failure)) {
             error.WouldBlock, error.ConnectionTimedOut => {
-                try wait(stream, instance, timer, std.posix.POLL.IN, serial);
+                try wait(stream, instance, timer, std.posix.POLL.IN, evidence);
                 continue;
             },
             else => return failure,
@@ -66,7 +68,7 @@ fn send(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, byte
     }
 }
 
-fn wait(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, events: i16, serial: ?[]const u8) !void {
+fn wait(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, events: i16, evidence: ?Epoch) !void {
     var descriptors = [_]std.posix.pollfd{.{ .fd = stream.handle, .events = events, .revents = 0 }};
     while (true) {
         const nanoseconds = @min(try remaining(instance, timer), limits.POLL_NS);
@@ -77,15 +79,12 @@ fn wait(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, even
             if ((observed & (std.posix.POLL.ERR | std.posix.POLL.NVAL | std.posix.POLL.HUP)) != 0) return error.PhaseChannelDisconnected;
             if ((observed & events) != 0) return;
         }
-        if (serial) |path| try checkSerial(path);
+        if (evidence) |epoch| try checkSerial(epoch);
     }
 }
 
-fn checkSerial(path: []const u8) !void {
-    const bytes = std.fs.cwd().readFileAlloc(std.heap.page_allocator, path, limits.MAX_SERIAL_BYTES) catch |failure| switch (@as(anyerror, failure)) {
-        error.FileNotFound => return,
-        else => return failure,
-    };
+fn checkSerial(evidence: Epoch) !void {
+    const bytes = try serial.read(std.heap.page_allocator, evidence);
     defer std.heap.page_allocator.free(bytes);
     if (result.failedBeforeSelection(bytes)) return error.GuestCheckFailed;
 }

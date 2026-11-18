@@ -10,19 +10,24 @@ const strings = @import("tests").strings.runner;
 const types = @import("tests").types.host;
 
 const Connection = types.Connection;
-const Paths = types.Paths;
+const Deadline = types.Deadline;
 const Value = std.json.Value;
 
-fn checkDeadline(timer: *std.time.Timer, ignore_cancel: bool) !void {
+fn remaining(deadline: Deadline, ignore_cancel: bool) !u64 {
     if (!ignore_cancel and process.cancelled()) return error.Cancelled;
-    if (timer.read() >= limits.PROTOCOL_NS) return error.QmpOperationTimeout;
+    const elapsed = deadline.Timer.read();
+    if (elapsed >= deadline.Limit) return error.QmpOperationTimeout;
+    return deadline.Limit - elapsed;
 }
 
-fn readLine(allocator: std.mem.Allocator, connection: *Connection, timer: *std.time.Timer, ignore_cancel: bool) ![]u8 {
+fn readLine(allocator: std.mem.Allocator, connection: *Connection, deadline: Deadline, ignore_cancel: bool) ![]u8 {
     var bytes: std.ArrayList(u8) = .empty;
     errdefer bytes.deinit(allocator);
+    var ready = [_]std.posix.pollfd{.{ .fd = connection.Stream.handle, .events = std.posix.POLL.IN, .revents = 0 }};
     while (bytes.items.len < limits.MAX_PACKET_BYTES) {
-        try checkDeadline(timer, ignore_cancel);
+        const interval = @min(try remaining(deadline, ignore_cancel), limits.POLL_NS);
+        if (try std.posix.poll(&ready, @intCast(interval / std.time.ns_per_ms)) == 0) continue;
+        _ = try remaining(deadline, ignore_cancel);
         var next: [1]u8 = undefined;
         if (try socket.receive(connection.Stream.handle, &next) == 0) return error.QmpDisconnected;
         if (next[0] == '\n') return bytes.toOwnedSlice(allocator);
@@ -36,32 +41,57 @@ pub fn open(allocator: std.mem.Allocator, port: u16) !Connection {
     errdefer stream.close();
     var connection: Connection = .{ .Stream = stream };
     var timer = try std.time.Timer.start();
-    const greeting = try readLine(allocator, &connection, &timer, false);
+    const greeting = try readLine(allocator, &connection, .{ .Timer = &timer, .Limit = limits.PROTOCOL_NS }, false);
     defer allocator.free(greeting);
     const parsed = try std.json.parseFromSlice(Value, allocator, greeting, .{});
     defer parsed.deinit();
     if (field(parsed.value, strings.QMP_MEMBER) == null) return error.QmpInvalidGreeting;
-    const capabilities = try command(allocator, &connection, strings.CAPABILITIES);
-    capabilities.deinit();
+    try action(allocator, &connection, strings.CAPABILITIES, null);
     return connection;
 }
 
-pub fn command(allocator: std.mem.Allocator, connection: *Connection, name: []const u8) !std.json.Parsed(Value) {
-    return sendRequest(allocator, connection, name, null, false);
+pub fn command(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8) !std.json.Parsed(Value) {
+    var timer = try std.time.Timer.start();
+    return commandWithin(allocator, connection, name, arguments, .{ .Timer = &timer, .Limit = limits.PROTOCOL_NS });
+}
+
+pub fn commandWithin(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8, deadline: Deadline) !std.json.Parsed(Value) {
+    return sendRequest(allocator, connection, name, arguments, deadline, false);
+}
+
+pub fn action(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8) !void {
+    const response = try command(allocator, connection, name, arguments);
+    response.deinit();
 }
 
 pub fn quit(allocator: std.mem.Allocator, connection: *Connection) !void {
-    const response = try sendRequest(allocator, connection, strings.QUIT, null, true);
-    response.deinit();
-}
-
-pub fn pressKey(allocator: std.mem.Allocator, connection: *Connection) !void {
-    const response = try sendRequest(allocator, connection, strings.SEND_KEY, strings.KEY_ARGUMENTS, false);
-    response.deinit();
-}
-
-fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8, ignore_cancel: bool) !std.json.Parsed(Value) {
     var timer = try std.time.Timer.start();
+    const response = sendRequest(allocator, connection, strings.QUIT, null, .{ .Timer = &timer, .Limit = limits.PROTOCOL_NS }, true) catch |failure| switch (failure) {
+        error.QmpQuitReplyOmitted => return,
+        else => return failure,
+    };
+    response.deinit();
+}
+
+pub fn pressKey(allocator: std.mem.Allocator, connection: *Connection, key: []const u8) !void {
+    const arguments = try std.fmt.allocPrint(allocator, strings.KEY_ARGUMENTS, .{key});
+    defer allocator.free(arguments);
+    try action(allocator, connection, strings.SEND_KEY, arguments);
+}
+
+fn terminalEvent(message: Value, closing: bool) bool {
+    const event = text(message, strings.EVENT) orelse return false;
+    if (std.mem.eql(u8, event, strings.SHUTDOWN)) {
+        const data = field(message, strings.EVENT_DATA) orelse return true;
+        return !closing or !equal(data, strings.REASON, strings.HOST_QUIT);
+    }
+    return std.mem.eql(u8, event, strings.RESET) or
+        std.mem.eql(u8, event, strings.POWERDOWN) or
+        std.mem.eql(u8, event, strings.GUEST_PANICKED) or
+        std.mem.eql(u8, event, strings.GUEST_CRASHLOADED);
+}
+
+fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []const u8, arguments: ?[]const u8, deadline: Deadline, closing: bool) !std.json.Parsed(Value) {
     connection.Sequence += 1;
     const request = if (arguments) |values|
         try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT_REQUEST, .{ name, values, connection.Sequence })
@@ -70,16 +100,22 @@ fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []co
     defer allocator.free(request);
     var sent: usize = 0;
     while (sent < request.len) {
-        try checkDeadline(&timer, ignore_cancel);
+        _ = try remaining(deadline, closing);
         const count = try socket.send(connection.Stream.handle, request[sent..]);
         if (count == 0) return error.QmpDisconnected;
         sent += count;
     }
-    var count: usize = 0;
-    while (count < limits.MAX_PACKETS) : (count += 1) {
-        const line = try readLine(allocator, connection, &timer, ignore_cancel);
+    for (0..limits.MAX_PACKETS) |_| {
+        const line = readLine(allocator, connection, deadline, closing) catch |failure| switch (failure) {
+            error.QmpDisconnected, error.ConnectionResetByPeer => if (closing) return error.QmpQuitReplyOmitted else return failure,
+            else => return failure,
+        };
         defer allocator.free(line);
         const parsed = try std.json.parseFromSlice(Value, allocator, line, .{ .allocate = .alloc_always });
+        if (terminalEvent(parsed.value, closing)) {
+            parsed.deinit();
+            return error.UnexpectedGuestEvent;
+        }
         const id = field(parsed.value, strings.QMP_ID);
         if (id == null or id.? != .integer or id.?.integer < 0 or @as(u64, @intCast(id.?.integer)) != connection.Sequence) {
             parsed.deinit();
@@ -94,88 +130,86 @@ fn sendRequest(allocator: std.mem.Allocator, connection: *Connection, name: []co
     return error.QmpEventLimit;
 }
 
-fn field(value: Value, name: []const u8) ?Value {
+pub fn field(value: Value, name: []const u8) ?Value {
     return if (value == .object) value.object.get(name) else null;
 }
 
-fn text(value: Value, name: []const u8) ?[]const u8 {
+pub fn text(value: Value, name: []const u8) ?[]const u8 {
     const member = field(value, name) orelse return null;
     return if (member == .string) member.string else null;
 }
 
-fn equal(value: Value, name: []const u8, expected: []const u8) bool {
+pub fn equal(value: Value, name: []const u8, expected: []const u8) bool {
     return std.mem.eql(u8, text(value, name) orelse return false, expected);
 }
 
-fn imageMatches(allocator: std.mem.Allocator, value: Value, expected: []const u8, readonly: bool) !bool {
-    const ro = field(value, strings.READONLY) orelse return false;
-    const active = field(value, strings.ACTIVE) orelse return false;
-    const image = field(value, strings.IMAGE) orelse return false;
-    const backing = field(image, strings.BACKING_IMAGE) orelse return false;
-    if (ro != .bool or ro.bool != readonly or active != .bool or !active.bool or !equal(backing, strings.FORMAT, strings.RAW)) return false;
-    return try paths.same(allocator, expected, text(backing, strings.FILENAME) orelse return false) and
-        try paths.same(allocator, expected, text(value, strings.BACKING_FILE) orelse return false);
+pub fn boolean(value: Value, name: []const u8, expected: bool) bool {
+    const member = field(value, name) orelse return false;
+    return member == .bool and member.bool == expected;
 }
 
-pub fn verify(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8) !void {
-    return verifyState(allocator, connection, inputs, name, strings.RUNNING, error.GuestNotRunning);
+pub fn returned(response: std.json.Parsed(Value)) Value {
+    return field(response.value, strings.QMP_RETURN).?;
 }
 
-pub fn verifyPaused(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8) !void {
-    return verifyState(allocator, connection, inputs, name, strings.PRELAUNCH, error.GuestNotPaused);
-}
-
-fn verifyState(allocator: std.mem.Allocator, connection: *Connection, inputs: *const Paths, name: []const u8, expected: []const u8, state_error: anyerror) !void {
-    const named = try command(allocator, connection, strings.QUERY_NAME);
+pub fn verifyName(allocator: std.mem.Allocator, connection: *Connection, name: []const u8) !void {
+    const named = try command(allocator, connection, strings.QUERY_NAME, null);
     defer named.deinit();
-    if (!equal(field(named.value, strings.QMP_RETURN).?, strings.NAME, name)) return error.WrongGuest;
-    const status = try command(allocator, connection, strings.QUERY_STATUS);
+    if (!equal(returned(named), strings.NAME, name)) return error.WrongGuest;
+}
+
+pub fn verifyWindow(allocator: std.mem.Allocator, connection: *Connection) !void {
+    const response = try command(allocator, connection, strings.QUERY_DISPLAY, null);
+    defer response.deinit();
+    const backend = text(returned(response), strings.DISPLAY_TYPE) orelse return error.MissingQemuWindow;
+    for (strings.WINDOW_BACKENDS) |name| if (std.mem.eql(u8, backend, name)) return;
+    std.debug.print(strings.WINDOW_REQUIRED, .{backend});
+    return error.MissingQemuWindow;
+}
+
+pub fn verifyStatus(allocator: std.mem.Allocator, connection: *Connection, expected: []const u8) !void {
+    const status = try command(allocator, connection, strings.QUERY_STATUS, null);
     defer status.deinit();
-    if (!equal(field(status.value, strings.QMP_RETURN).?, strings.STATUS, expected)) return state_error;
-    const blocks = try command(allocator, connection, strings.QUERY_BLOCK);
-    defer blocks.deinit();
-    const devices = field(blocks.value, strings.QMP_RETURN).?;
-    if (devices != .array) return error.WrongGuest;
-    var matched: usize = 0;
-    var inserted: usize = 0;
-    for (devices.array.items) |device| {
-        const image = field(device, strings.INSERTED) orelse continue;
-        inserted += 1;
-        if (equal(device, strings.DEVICE, strings.FLASH_CODE) and try imageMatches(allocator, image, inputs.FirmwareCode, true)) matched += 1;
-        if (equal(device, strings.DEVICE, strings.FLASH_VARS) and try imageMatches(allocator, image, inputs.Variables, false)) matched += 1;
-        if (equal(device, strings.DEVICE, strings.DISK) and try imageMatches(allocator, image, inputs.Image, false)) matched += 1;
-    }
-    if (matched != 3 or inserted != 3) return error.WrongGuest;
-    const characters = try command(allocator, connection, strings.QUERY_CHARDEV);
-    defer characters.deinit();
-    const devices_serial = field(characters.value, strings.QMP_RETURN).?;
-    if (devices_serial != .array) return error.WrongGuest;
-    var serial_matched: usize = 0;
-    for (devices_serial.array.items) |device| {
-        if (!equal(device, strings.LABEL, strings.SERIAL_LABEL)) continue;
-        const filename = text(device, strings.FILENAME) orelse return error.WrongGuest;
-        if (!std.mem.eql(u8, filename, strings.SERIAL_FILE)) {
-            if (!std.mem.startsWith(u8, filename, strings.SERIAL_PREFIX) or
-                !try paths.same(allocator, inputs.Serial, filename[strings.SERIAL_PREFIX.len..])) return error.WrongGuest;
-        }
-        serial_matched += 1;
-    }
-    if (serial_matched != 1) return error.WrongGuest;
+    if (!equal(returned(status), strings.STATUS, expected) or
+        !boolean(returned(status), strings.RUNNING, std.mem.eql(u8, expected, strings.RUNNING))) return error.UnexpectedGuestState;
+}
+
+pub fn halted(allocator: std.mem.Allocator, connection: *Connection) !bool {
+    const registers = try command(allocator, connection, strings.HUMAN_MONITOR, strings.REGISTER_ARGUMENTS);
+    defer registers.deinit();
+    const result = returned(registers);
+    if (result != .string) return error.QmpInvalidResponse;
+    var words = std.mem.tokenizeAny(u8, result.string, strings.WHITESPACE);
+    while (words.next()) |word| if (std.mem.eql(u8, word, strings.CPU_HALTED)) return true;
+    return false;
+}
+
+pub fn verifySerial(allocator: std.mem.Allocator, connection: *Connection, path: []const u8) !void {
+    const channels = try command(allocator, connection, strings.QUERY_CHARDEV, null);
+    defer channels.deinit();
+    const device = try channel(returned(channels), strings.SERIAL_LABEL);
+    const filename = text(device, strings.FILENAME) orelse return error.WrongGuest;
+    if (std.mem.eql(u8, filename, strings.SERIAL_FILE)) return;
+    if (!std.mem.startsWith(u8, filename, strings.SERIAL_PREFIX) or
+        !try paths.same(allocator, path, filename[strings.SERIAL_PREFIX.len..])) return error.WrongGuest;
 }
 
 pub fn verifyPhasePort(allocator: std.mem.Allocator, connection: *Connection, port: u16) !void {
     var buffer: [strings.PHASE_FILENAME.len + 5]u8 = undefined;
     const expected = try std.fmt.bufPrint(&buffer, strings.PHASE_FILENAME, .{port});
-    const channels = try command(allocator, connection, strings.QUERY_CHARDEV);
+    const channels = try command(allocator, connection, strings.QUERY_CHARDEV, null);
     defer channels.deinit();
-    const result = field(channels.value, strings.QMP_RETURN).?;
-    if (result != .array) return error.WrongGuest;
-    var matches: usize = 0;
-    for (result.array.items) |channel| {
-        if (!equal(channel, strings.LABEL, strings.PHASE_LABEL)) continue;
-        const opened = field(channel, strings.FRONTEND_OPEN) orelse return error.WrongGuest;
-        if (opened != .bool or !opened.bool or !equal(channel, strings.FILENAME, expected)) return error.WrongGuest;
-        matches += 1;
+    const device = try channel(returned(channels), strings.PHASE_LABEL);
+    if (!equal(device, strings.FILENAME, expected)) return error.WrongGuest;
+}
+
+fn channel(devices: Value, label: []const u8) !Value {
+    if (devices != .array) return error.WrongGuest;
+    var matched: ?Value = null;
+    for (devices.array.items) |device| {
+        if (!equal(device, strings.LABEL, label)) continue;
+        if (matched != null or !boolean(device, strings.FRONTEND_OPEN, true)) return error.WrongGuest;
+        matched = device;
     }
-    if (matches != 1) return error.WrongGuest;
+    return matched orelse error.WrongGuest;
 }

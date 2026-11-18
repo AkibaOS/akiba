@@ -3,15 +3,19 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const host = @import("tests").types.host;
 const inputs = @import("tests").constants.protocol;
 const protocol = @import("tests").runner.protocol;
 const socket = @import("tests").runner.socket;
 const strings = @import("tests").strings.protocol;
 const types = @import("tests").types.protocol;
+const Connection = @import("tests").types.host.Connection;
 
 pub fn rejects(scenario: types.Scenario, expected: anyerror) !void {
     try exercise(scenario, expected);
+}
+
+pub fn accepts(scenario: types.Scenario) !void {
+    try exercise(scenario, null);
 }
 
 pub fn events() !void {
@@ -36,25 +40,23 @@ fn exercise(scenario: types.Scenario, expected: ?anyerror) !void {
         var connection = opened;
         defer connection.Stream.close();
         if (connection.Sequence != 1) actual = error.UnexpectedSequence;
-        if (scenario == .WrongName) {
-            const paths: host.Paths = .{
-                .Repo = strings.EMPTY,
-                .Run = strings.EMPTY,
-                .Image = strings.EMPTY,
-                .Serial = strings.EMPTY,
-                .Variables = strings.EMPTY,
-                .FirmwareCode = strings.EMPTY,
-                .FirmwareTemplate = strings.EMPTY,
-                .Qemu = strings.EMPTY,
-            };
-            protocol.verify(std.testing.allocator, &connection, &paths, strings.EXPECTED_NAME) catch |failure| {
-                actual = failure;
-            };
-        }
+        command(&connection, scenario) catch |failure| {
+            actual = failure;
+        };
     } else |failure| actual = failure;
     worker.join();
     if (state.Failure) |failure| return failure;
     try std.testing.expectEqual(expected, actual);
+}
+
+fn command(connection: *Connection, scenario: types.Scenario) !void {
+    switch (scenario) {
+        .WrongName => try protocol.verifyName(std.testing.allocator, connection, strings.EXPECTED_NAME),
+        .QuitClosed, .QuitRefused => try protocol.quit(std.testing.allocator, connection),
+        .LateReply => try protocol.action(std.testing.allocator, connection, strings.QUERY_JOBS, null),
+        .Headless => try protocol.verifyWindow(std.testing.allocator, connection),
+        else => {},
+    }
 }
 
 fn peer(state: *types.Peer) void {
@@ -87,20 +89,46 @@ fn serve(state: *types.Peer) !void {
             }
             return;
         },
-        .ErrorReply, .Events, .WrongName => {},
+        else => {},
     }
     try send(handle, strings.GREETING);
     var request: [inputs.REQUEST_BYTES]u8 = undefined;
     const length = try line(handle, &request);
     try std.testing.expect(std.mem.indexOf(u8, request[0..length], strings.CAPABILITIES) != null);
     if (state.Scenario == .ErrorReply) return send(handle, strings.ERROR);
+    if (state.Scenario == .Reset) return send(handle, strings.TERMINAL_EVENT ++ strings.REPLY);
     if (state.Scenario == .WrongName) {
         try send(handle, strings.REPLY);
         const query_length = try line(handle, &request);
         try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_NAME) != null);
         return send(handle, strings.WRONG_NAME);
     }
-    try send(handle, strings.EVENT ++ strings.WRONG_ID ++ strings.REPLY);
+    switch (state.Scenario) {
+        .QuitClosed, .QuitRefused => {
+            try send(handle, strings.REPLY);
+            const quit_length = try line(handle, &request);
+            try std.testing.expect(std.mem.indexOf(u8, request[0..quit_length], strings.QUIT) != null);
+            if (state.Scenario == .QuitRefused) return send(handle, strings.QUIT_REFUSED);
+        },
+        .LateReply => {
+            try send(handle, strings.REPLY);
+            const query_length = try line(handle, &request);
+            try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_JOBS) != null);
+            try send(handle, strings.JOB_REPLY_START);
+            std.Thread.sleep(inputs.LATE_REPLY_NS);
+            send(handle, strings.JOB_REPLY_END) catch {};
+        },
+        .Headless => {
+            try send(handle, strings.REPLY);
+            const query_length = line(handle, &request) catch |failure| switch (failure) {
+                error.DisconnectedPeer => return,
+                else => return failure,
+            };
+            try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_DISPLAY) != null);
+            try send(handle, strings.HEADLESS_REPLY);
+        },
+        else => try send(handle, strings.EVENT ++ strings.WRONG_ID ++ strings.REPLY),
+    }
 }
 
 fn send(handle: std.net.Stream.Handle, bytes: []const u8) !void {

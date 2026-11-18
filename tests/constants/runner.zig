@@ -2,6 +2,7 @@
 
 pub const POLL_NS: u64 = 50_000_000;
 pub const START_NS: u64 = 60_000_000_000;
+pub const SNAPSHOT_NS: u64 = 60_000_000_000;
 pub const CHECK_NS: u64 = 120_000_000_000;
 pub const QUIT_NS: u64 = 15_000_000_000;
 pub const PROTOCOL_NS: u64 = 5_000_000_000;

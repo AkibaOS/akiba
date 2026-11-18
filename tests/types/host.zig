@@ -6,14 +6,16 @@ const std = @import("std");
 const Scenario = @import("tests").types.scenario.Scenario;
 
 pub const Paths = struct {
-    Repo: []const u8,
     Run: []const u8,
     Image: []const u8,
+    FirmwareImage: []const u8,
     Serial: []const u8,
     Variables: []const u8,
+    State: []const u8,
     FirmwareCode: []const u8,
     FirmwareTemplate: []const u8,
     Qemu: []const u8,
+    QemuImage: []const u8,
 };
 
 pub const Connection = struct {
@@ -26,26 +28,40 @@ pub const Stage = enum {
     Spawn,
     Connect,
     Verify,
+    Checkpoint,
+    Restore,
     Select,
     Checks,
-    Cleanup,
     Complete,
 };
 
-pub const Report = struct {
-    Scenario: Scenario = .Standard,
-    Status: []const u8,
-    Stage: Stage,
-    CleanupError: ?[]const u8,
-    Platform: []const u8,
-    Passed: usize,
-    Started: bool,
-    OriginalProcessReaped: bool,
-    CleanupVerified: bool,
-    Image: []const u8,
-    ImageSHA256: []const u8,
-    Serial: []const u8,
-    Error: ?[]const u8,
+pub const Endpoints = struct { Qmp: u16, Phase: u16 };
+
+pub const Deadline = struct {
+    Timer: *std.time.Timer,
+    Limit: u64,
+};
+
+pub const Epoch = struct {
+    File: *const std.fs.File,
+    Start: u64,
+};
+
+pub const Fingerprint = struct {
+    Size: u64,
+    Modified: i128,
+    Digest: [32]u8,
+};
+
+pub const Session = struct {
+    Process: Process,
+    Control: ?Connection = null,
+    Owned: bool = false,
+    CleanupVerified: bool = true,
+    Stage: Stage = .Prepare,
+    Selected: ?Scenario = null,
+    SerialStart: u64 = 0,
+    Passed: usize = 0,
 };
 
 pub const Process = struct {
@@ -53,7 +69,6 @@ pub const Process = struct {
     Job: if (builtin.os.tag == .windows) ?std.os.windows.HANDLE else void = if (builtin.os.tag == .windows) null else {},
     Spawned: bool = false,
     Contained: bool = false,
-    HandlersInstalled: bool = false,
     Reaped: bool = false,
     Finished: bool = false,
     Term: ?std.process.Child.Term = null,

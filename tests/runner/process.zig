@@ -16,7 +16,16 @@ pub fn init(allocator: std.mem.Allocator, arguments: []const []const u8) Process
     return .{ .Child = std.process.Child.init(arguments, allocator) };
 }
 
+pub fn installCancellation() !void {
+    if (builtin.os.tag == .windows) try windows.install() else posix.install();
+}
+
+pub fn restoreCancellation() void {
+    if (builtin.os.tag == .windows) windows.restore() else posix.restore();
+}
+
 pub fn spawn(instance: *Process, paths: *const Paths, allocator: std.mem.Allocator) !void {
+    if (cancelled()) return error.Cancelled;
     var environment = try std.process.getEnvMap(allocator);
     defer environment.deinit();
     try environment.put(strings.ENV_TEMP, paths.Run);
@@ -29,13 +38,9 @@ pub fn spawn(instance: *Process, paths: *const Paths, allocator: std.mem.Allocat
     instance.Child.stdout_behavior = .Ignore;
     instance.Child.stderr_behavior = .Inherit;
     if (builtin.os.tag == .windows) {
-        try windows.install();
-        instance.HandlersInstalled = true;
         instance.Job = try windows.create();
         instance.Child.start_suspended = true;
     } else {
-        posix.install();
-        instance.HandlersInstalled = true;
         instance.Child.pgid = 0;
     }
     try instance.Child.spawn();
@@ -80,11 +85,6 @@ pub fn close(instance: *Process) !void {
         if (builtin.os.tag == .windows) {
             if (instance.Job) |job| windows.close(job);
             instance.Job = null;
-            if (instance.HandlersInstalled) windows.restore();
-            instance.HandlersInstalled = false;
-        } else if (instance.HandlersInstalled) {
-            posix.restore();
-            instance.HandlersInstalled = false;
         }
     }
     if (!instance.Spawned or instance.Reaped) return;
