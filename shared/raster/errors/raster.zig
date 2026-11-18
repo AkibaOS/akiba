@@ -6,6 +6,7 @@ pub const CoordinateError = error{
 
 pub const RasterError = CoordinateError || error{
     InvalidContour,
-    ShapeTooWide,
-    TooManyEdges,
+    OutOfMemory,
+    RasterWorkLimit,
+    ScratchExhausted,
 };

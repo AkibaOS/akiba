@@ -34,8 +34,12 @@ test "font metrics reject invalid glyphs and truncated storage" {
     try checks.font.face.metricErrors();
 }
 
-test "font face loading enforces declared outline capacities" {
-    try checks.font.face.declaredOutlineLimits();
+test "font face accepts large declared outlines without provisioning scratch" {
+    try checks.font.face.largeDeclaredOutline();
+}
+
+test "font face enforces metric and glyph location table bounds" {
+    try checks.font.face.mandatoryMetricsAndLocations();
 }
 
 test "font face loading requires complete mandatory tables" {
@@ -66,6 +70,10 @@ test "cmap lookup refuses glyph IDs outside its representation" {
     try checks.font.charmap.glyphDomain();
 }
 
+test "character maps reject overlapping or reversed ranges and invalid complete glyph spans" {
+    try checks.font.charmap.completeOrderingAndSpans();
+}
+
 test "cmap selection ranks supported encodings and reports malformed records" {
     try checks.font.charmap.selectionPreferenceAndErrors();
 }
@@ -90,11 +98,15 @@ test "composite outline depth accepts its boundary and rejects deeper chains" {
     try checks.font.outline.componentDepthBoundary();
 }
 
-test "outline extraction rejects invalid locations truncation and excess complexity" {
+test "composite outlines enforce placement modes and bounded instruction spans" {
+    try checks.font.outline.componentPlacementAndInstructions();
+}
+
+test "outline extraction rejects invalid locations and truncated geometry" {
     try checks.font.outline.malformedOutlineBoundsAndLimits();
 }
 
-test "simple outlines reject descending duplicate oversized and overflowing contour endpoints" {
+test "simple outlines reject descending duplicate and truncated contour endpoints" {
     try checks.font.outline.malformedContourEndpoints();
 }
 
@@ -102,7 +114,7 @@ test "outline transforms keep representable results despite wide products" {
     try checks.font.outline.wideTransformIntermediate();
 }
 
-test "simple outlines accept the full point and contour capacities" {
+test "simple outlines accept the full uint16 endpoint index and more than 128 contours" {
     try checks.font.outline.maximumSimpleOutline();
 }
 
@@ -122,8 +134,16 @@ test "raster nonzero winding preserves holes saturates overlaps and cancels oppo
     try checks.raster.coverage.nonzeroWindingAndCancellation();
 }
 
-test "raster row width accepts the maximum and rejects before sink writes" {
-    try checks.raster.coverage.rowWidthBoundary();
+test "raster writes exact wide coverage across scratch tiles" {
+    try checks.raster.coverage.wideTiledRows();
+}
+
+test "raster preserves a sloped contour and hole across shifted tile seams" {
+    try checks.raster.coverage.slopedTiledCrop();
+}
+
+test "raster clips full-range edges without losing winding" {
+    try checks.raster.coverage.longClippedEdges();
 }
 
 test "flattening places scaled flipped outlines and resets reused shapes" {
@@ -138,8 +158,8 @@ test "quadratic flattening preserves representable geometry after large translat
     try checks.raster.flatten.translatedCurves();
 }
 
-test "flattened shape edge storage rejects capacity overflow" {
-    try checks.raster.flatten.edgeCapacity();
+test "growable flattened edges exceed the old ceiling while fixed scratch reports exhaustion" {
+    try checks.raster.flatten.edgeGrowthAndFixedScratch();
 }
 
 test "UTF8 cursor positions use codepoints and fixed point tracking" {

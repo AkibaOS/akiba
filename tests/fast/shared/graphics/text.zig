@@ -7,6 +7,7 @@ const fixture = @import("tests").fast.shared.graphics.fixture;
 const font = @import("shared").font;
 const fonts = @import("tests").fast.shared.font.fixture;
 const graphics = @import("shared").graphics;
+const splash = @import("shared").splash;
 const strings = @import("tests").strings.render;
 const types = @import("tests").types.render;
 
@@ -20,7 +21,8 @@ pub fn coverageBlending() !void {
     const face = try font.face.load(data.Data[0..data.Length]);
     const background = constants.BLEND_BACKGROUND;
     const foreground = constants.BLEND_FOREGROUND;
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     for ([_]PixelFormat{ .RGB, .BGR }) |format| {
         var storage: GuardedPixels = undefined;
         var surface = fixture.small(&storage, 3, 2, 5, format);
@@ -41,7 +43,8 @@ pub fn clippedGlyphAndFontError() !void {
     var face = try font.face.load(data.Data[0..data.Length]);
     var storage: GuardedPixels = undefined;
     var surface = fixture.small(&storage, 3, 2, 5, .BGR);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     const background = constants.BLEND_BACKGROUND;
     const foreground = constants.BLEND_FOREGROUND;
     graphics.draw.clear(&surface, background);
@@ -62,7 +65,8 @@ pub fn embeddedTextIntegration() !void {
     const face = try font.face.load(graphics.assets.font.HIKARI);
     var storage: GuardedPixels = undefined;
     var surface = fixture.small(&storage, 32, 24, 36, .BGR);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     const background = Color.rgb(0, 0, 0);
     graphics.draw.clear(&surface, background);
     try graphics.text.drawString(&renderer, &surface, &face, .{ .PixelSize = 16, .Tracking = 0 }, 1, 18, strings.REAL_FACE, Color.rgb(255, 255, 255), null);
@@ -78,4 +82,13 @@ pub fn embeddedTextIntegration() !void {
     try std.testing.expect(changed > 0);
     try std.testing.expect(antialiased > 0);
     try fixture.expectSmallGuards(&storage, surface);
+
+    const boot_storage = try std.testing.allocator.create(splash.types.workspace.Workspace);
+    defer std.testing.allocator.destroy(boot_storage);
+    var boot_renderer = boot_storage.bind();
+    var reference: GuardedPixels = undefined;
+    var reference_surface = fixture.small(&reference, 32, 24, 36, .BGR);
+    graphics.draw.clear(&reference_surface, background);
+    try graphics.text.drawString(&boot_renderer, &reference_surface, &face, .{ .PixelSize = 16, .Tracking = 0 }, 1, 18, strings.REAL_FACE, Color.rgb(255, 255, 255), null);
+    try std.testing.expectEqualSlices(u32, &storage.Pixels, &reference.Pixels);
 }

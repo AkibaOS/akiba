@@ -15,7 +15,11 @@ pub fn initializeCapture() CoverageCapture {
 }
 
 pub fn sink(capture: *CoverageCapture) RowSink {
-    return .{ .Context = capture, .WriteRow = writeRow };
+    return .{
+        .Clip = .{ .Left = -0x80000000, .Top = -0x80000000, .Right = 0x80000000, .Bottom = 0x80000000 },
+        .Context = capture,
+        .WriteRow = writeRow,
+    };
 }
 
 pub fn valueAt(capture: *const CoverageCapture, x: i32, y: i32) u8 {
@@ -27,16 +31,10 @@ pub fn valueAt(capture: *const CoverageCapture, x: i32, y: i32) u8 {
     return 0;
 }
 
-pub fn outline(points: []const Point) Outline {
-    var result: Outline = undefined;
-    result.reset();
-    @memcpy(result.Points[0..points.len], points);
-    result.PointCount = @intCast(points.len);
-    if (points.len > 0) {
-        result.ContourEnds[0] = @intCast(points.len - 1);
-        result.ContourCount = 1;
-    }
-    return result;
+pub fn outline(points: []Point, ends: []usize) Outline {
+    if (points.len == 0) return .{};
+    ends[0] = points.len - 1;
+    return .{ .Points = points, .ContourEnds = ends, .PointCount = points.len, .ContourCount = 1 };
 }
 
 pub fn rectangle(shape: *Shape, left: i32, top: i32, right: i32, bottom: i32, reverse: bool) !void {

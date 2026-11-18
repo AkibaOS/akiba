@@ -11,3 +11,7 @@ pub const TRAIL_BUFFER_PIXELS: usize = TRAIL_BUFFER_WIDTH * TRAIL_BUFFER_HEIGHT;
 pub const MESSAGE_CAPACITY: usize = 64;
 
 pub const BOOT_STEPS: u8 = 18;
+
+pub const RENDER_POINTS: usize = 1024;
+pub const RENDER_CONTOURS: usize = 128;
+pub const RENDER_EDGES: usize = 4096;

@@ -6,7 +6,6 @@ const preview = @import("fontpreview");
 
 const ArgumentError = preview.errors.arguments.ArgumentError;
 
-const limits = preview.constants.limits;
 const messages = preview.strings.messages;
 
 pub fn run() !void {
@@ -22,11 +21,11 @@ pub fn run() !void {
         return ArgumentError.InvalidArgs;
     }
 
-    const data = try std.fs.cwd().readFileAlloc(allocator, args[1], limits.MAX_FONT_BYTES);
+    const data = try std.fs.cwd().readFileAlloc(allocator, args[1], std.math.maxInt(usize));
     defer allocator.free(data);
 
     if (std.mem.eql(u8, args[2], messages.MODE_OUTLINES)) {
-        return preview.dump.outlines.emit(data);
+        return preview.dump.outlines.emit(allocator, data);
     }
 
     if (std.mem.eql(u8, args[2], messages.MODE_RENDER) and args.len == 8) {

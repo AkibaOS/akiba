@@ -28,7 +28,8 @@ pub fn activeToCompleteRepaint() !void {
     defer std.testing.allocator.destroy(actual);
     const expected = try std.testing.allocator.create(GuardedFrame);
     defer std.testing.allocator.destroy(expected);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = canvases.canvas(fixture.frame(actual), face, &renderer);
     var reference = canvases.canvas(fixture.frame(expected), face, &renderer);
     splash.panel.fillBackground(&canvas);
@@ -65,7 +66,8 @@ pub fn failedRowsRenderFailNotOK() !void {
     defer std.testing.allocator.destroy(actual);
     const expected = try std.testing.allocator.create(GuardedFrame);
     defer std.testing.allocator.destroy(expected);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = canvases.canvas(fixture.frame(actual), face, &renderer);
     var reference = canvases.canvas(fixture.frame(expected), face, &renderer);
     splash.panel.fillBackground(&canvas);
@@ -100,7 +102,8 @@ pub fn malformedFontDoesNotCommitPartialTrail() !void {
     defer std.testing.allocator.destroy(actual);
     const before = try std.testing.allocator.create(GuardedFrame);
     defer std.testing.allocator.destroy(before);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = canvases.canvas(fixture.frame(actual), face, &renderer);
     splash.panel.fillBackground(&canvas);
     var state = SplashState.initialize(2);
@@ -128,7 +131,8 @@ pub fn clippedTrailPreservesOutsidePixels() !void {
     defer std.testing.allocator.destroy(actual);
     const before = try std.testing.allocator.create(GuardedFrame);
     defer std.testing.allocator.destroy(before);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = canvases.canvas(fixture.frame(actual), face, &renderer);
     splash.panel.fillBackground(&canvas);
     before.* = actual.*;

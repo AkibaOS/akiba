@@ -10,9 +10,11 @@ const Canvas = splash.types.canvas.Canvas;
 const SplashState = splash.types.state.SplashState;
 const Surface = graphics.types.surface.Surface;
 const TextRenderer = graphics.types.renderer.TextRenderer;
+const Workspace = splash.types.workspace.Workspace;
 
 var canvas: Canvas = undefined;
 var renderer: TextRenderer = undefined;
+var workspace: Workspace = undefined;
 var state: SplashState = SplashState.initialize(0);
 var ready: bool = false;
 
@@ -20,6 +22,7 @@ pub fn adopt(info: FramebufferInfo, initial_state: SplashState) bool {
     if (!initial_state.isActive() or !initial_state.isValid() or !info.isValid()) return false;
 
     const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
+    renderer = workspace.bind();
 
     canvas = Canvas.initialize(
         Surface.initialize(info.Base, info.Width, info.Height, info.Stride, info.PixelFormat),

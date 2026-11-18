@@ -42,7 +42,8 @@ pub fn repaintAndFailurePalette() !void {
     defer std.testing.allocator.destroy(actual);
     const expected = try std.testing.allocator.create(GuardedFrame);
     defer std.testing.allocator.destroy(expected);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = canvases.canvas(fixture.frame(actual), face, &renderer);
     var reference = canvases.canvas(fixture.frame(expected), face, &renderer);
     splash.panel.fillBackground(&canvas);
@@ -68,7 +69,8 @@ pub fn canvasCoverAndCentredText() !void {
     const face = try font.face.load(data.Data[0..data.Length]);
     var storage: types.GuardedPixels = undefined;
     const surface = fixture.small(&storage, 40, 24, 44, .BGR);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var canvas = Canvas.initialize(surface, face, &renderer).?;
     var tall = surface;
     tall.Height = std.math.maxInt(u32);

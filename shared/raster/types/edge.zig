@@ -6,4 +6,5 @@ pub const Edge = struct {
     X1: i32,
     Y1: i32,
     Direction: i32,
+    SweepNext: usize = 0,
 };

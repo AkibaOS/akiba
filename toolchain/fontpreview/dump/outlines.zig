@@ -3,17 +3,17 @@
 const std = @import("std");
 
 const font = @import("shared").font;
+const preview = @import("fontpreview");
 
-const strings = @import("fontpreview").strings;
-
+const Face = font.types.face.Face;
 const GlyphBuffer = font.types.outline.GlyphBuffer;
 
-const messages = strings.messages;
+const messages = preview.strings.messages;
 
-var buffer: GlyphBuffer = undefined;
-
-pub fn emit(data: []const u8) !void {
+pub fn emit(allocator: std.mem.Allocator, data: []const u8) !void {
     const face = try font.face.load(data);
+    var buffer = GlyphBuffer.initAllocating(allocator);
+    defer buffer.deinit();
 
     std.debug.print(messages.FACE, .{
         face.UnitsPerEm,
@@ -25,21 +25,19 @@ pub fn emit(data: []const u8) !void {
 
     var codepoint: u32 = 0x20;
     while (codepoint <= 0x7E) : (codepoint += 1) {
-        try emitGlyph(&face, codepoint);
+        try emitGlyph(&face, codepoint, &buffer);
     }
 
     for ([_]u32{ 0x00A9, 0x30A2, 0x30AD, 0x30D0 }) |extra| {
-        try emitGlyph(&face, extra);
+        try emitGlyph(&face, extra, &buffer);
     }
 }
 
-fn emitGlyph(face: *const font.types.face.Face, codepoint: u32) !void {
+fn emitGlyph(face: *const Face, codepoint: u32, buffer: *GlyphBuffer) !void {
     const glyph_id = try font.charmap.lookupFace(face, codepoint);
-    if (glyph_id == 0) {
-        return;
-    }
+    if (glyph_id == 0) return;
 
-    try font.outline.load(face, glyph_id, &buffer);
+    try font.outline.load(face, glyph_id, buffer);
     const advance = try font.metrics.advanceWidth(face, glyph_id);
 
     std.debug.print(messages.GLYPH, .{
@@ -50,14 +48,11 @@ fn emitGlyph(face: *const font.types.face.Face, codepoint: u32) !void {
         buffer.Shape.PointCount,
     });
 
-    var contour: u16 = 0;
-    while (contour < buffer.Shape.ContourCount) : (contour += 1) {
+    for (0..buffer.Shape.ContourCount) |contour| {
         const range = buffer.Shape.contourRange(contour);
         std.debug.print(messages.CONTOUR, .{ contour, range.Start, range.End });
 
-        var index = range.Start;
-        while (index <= range.End) : (index += 1) {
-            const point = buffer.Shape.Points[index];
+        for (buffer.Shape.Points[range.Start .. range.End + 1]) |point| {
             std.debug.print(messages.POINT, .{ point.X, point.Y, @intFromBool(point.OnCurve) });
         }
     }

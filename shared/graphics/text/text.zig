@@ -1,5 +1,6 @@
 //! Outline Text Rendering
 
+const common = @import("common");
 const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const raster = @import("shared").raster;
@@ -11,6 +12,7 @@ const BlendTarget = graphics.types.renderer.BlendTarget;
 const Color = graphics.types.color.Color;
 const Cursor = typeset.types.cursor.Cursor;
 const Face = font.types.face.Face;
+const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 const Placement = raster.types.placement.Placement;
 const RowSink = raster.types.sink.RowSink;
 const Surface = graphics.types.surface.Surface;
@@ -52,12 +54,20 @@ pub fn drawString(
     const baseline = try Placement.pixelCoordinate(baseline_y);
     var cursor = try Cursor.initialize(face, style, text, x);
     var blend = BlendTarget{ .Target = surface, .Foreground = foreground, .Background = background };
-    const sink = RowSink{ .Context = &blend, .WriteRow = writeRow };
+    const sink = RowSink{
+        .Clip = .{ .Right = surface.Width, .Bottom = surface.Height },
+        .Context = &blend,
+        .WriteRow = writeRow,
+    };
 
     while (try cursor.next()) |placed| {
-        try font.outline.load(face, placed.GlyphId, &renderer.Glyphs);
-        if (renderer.Glyphs.Shape.ContourCount == 0) continue;
-        try raster.flatten.flatten(&renderer.Glyphs.Shape, cursor.Scale, placed.PenX, baseline, &renderer.Shape);
-        try raster.fill.fill(&renderer.Shape, &renderer.Workspace, sink);
+        try drawGlyph(renderer, face, placed.GlyphId, cursor.Scale, placed.PenX, baseline, sink);
     }
+}
+
+pub fn drawGlyph(renderer: *TextRenderer, face: *const Face, glyph_id: u16, scale: Fixed16Dot16, pen_x: i32, baseline: i32, sink: RowSink) TextError!void {
+    try font.outline.load(face, glyph_id, &renderer.Glyphs);
+    if (renderer.Glyphs.Shape.ContourCount == 0) return;
+    try raster.flatten.flatten(&renderer.Glyphs.Shape, scale, pen_x, baseline, &renderer.Shape);
+    raster.fill.fill(&renderer.Shape, &renderer.Workspace, sink);
 }

@@ -28,13 +28,18 @@ pub fn flatten(
 
     const placement = Placement{ .Scale = scale, .OriginX = origin_x, .BaselineY = baseline_y };
 
-    var contour: u16 = 0;
-    while (contour < outline.ContourCount) : (contour += 1) {
-        try flattenContour(outline, contour, placement, shape);
+    var remaining_steps = limits.MAX_FLATTEN_STEPS;
+    for (0..outline.ContourCount) |contour| {
+        try flattenContour(outline, contour, placement, shape, &remaining_steps);
+    }
+    if (outline.ContourCount == 0) {
+        if (outline.PointCount != 0) return RasterError.InvalidContour;
+    } else if (outline.ContourEnds[outline.ContourCount - 1] != outline.PointCount - 1) {
+        return RasterError.InvalidContour;
     }
 }
 
-fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, shape: *Shape) RasterError!void {
+fn flattenContour(outline: *const Outline, contour: usize, placement: Placement, shape: *Shape, remaining_steps: *usize) RasterError!void {
     const range = outline.contourRange(contour);
     if (range.End < range.Start or range.End >= outline.PointCount) {
         return RasterError.InvalidContour;
@@ -50,7 +55,7 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
 
     var start_x: i32 = undefined;
     var start_y: i32 = undefined;
-    var index: u16 = 0;
+    var index: usize = 0;
 
     if (first.OnCurve) {
         start_x = try placement.deviceX(first.X);
@@ -77,7 +82,7 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
 
         if (point.OnCurve) {
             if (has_control) {
-                try emitQuadratic(shape, current_x, current_y, control_x, control_y, point_x, point_y, 0);
+                try emitQuadratic(shape, remaining_steps, current_x, current_y, control_x, control_y, point_x, point_y, 0);
                 has_control = false;
             } else {
                 try shape.addEdge(current_x, current_y, point_x, point_y);
@@ -90,7 +95,7 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
         if (has_control) {
             const implied_x = midpoint(control_x, point_x);
             const implied_y = midpoint(control_y, point_y);
-            try emitQuadratic(shape, current_x, current_y, control_x, control_y, implied_x, implied_y, 0);
+            try emitQuadratic(shape, remaining_steps, current_x, current_y, control_x, control_y, implied_x, implied_y, 0);
             current_x = implied_x;
             current_y = implied_y;
         }
@@ -101,7 +106,7 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
     }
 
     if (has_control) {
-        try emitQuadratic(shape, current_x, current_y, control_x, control_y, start_x, start_y, 0);
+        try emitQuadratic(shape, remaining_steps, current_x, current_y, control_x, control_y, start_x, start_y, 0);
         return;
     }
 
@@ -110,6 +115,7 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
 
 fn emitQuadratic(
     shape: *Shape,
+    remaining_steps: *usize,
     x0: i32,
     y0: i32,
     control_x: i32,
@@ -118,6 +124,8 @@ fn emitQuadratic(
     y1: i32,
     depth: u8,
 ) RasterError!void {
+    if (remaining_steps.* == 0) return RasterError.RasterWorkLimit;
+    remaining_steps.* -= 1;
     const deviation_x = @as(i64, x0) - 2 * @as(i64, control_x) + x1;
     const deviation_y = @as(i64, y0) - 2 * @as(i64, control_y) + y1;
     const deviation = magnitude(deviation_x) + magnitude(deviation_y);
@@ -134,8 +142,8 @@ fn emitQuadratic(
     const middle_x = midpoint(left_x, right_x);
     const middle_y = midpoint(left_y, right_y);
 
-    try emitQuadratic(shape, x0, y0, left_x, left_y, middle_x, middle_y, depth + 1);
-    try emitQuadratic(shape, middle_x, middle_y, right_x, right_y, x1, y1, depth + 1);
+    try emitQuadratic(shape, remaining_steps, x0, y0, left_x, left_y, middle_x, middle_y, depth + 1);
+    try emitQuadratic(shape, remaining_steps, middle_x, middle_y, right_x, right_y, x1, y1, depth + 1);
 }
 
 fn magnitude(value: i64) i64 {

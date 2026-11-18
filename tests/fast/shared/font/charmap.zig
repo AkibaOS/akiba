@@ -45,6 +45,8 @@ pub fn declaredLengths() !void {
 pub fn glyphDomain() !void {
     var groups = constants.CMAP12;
     const latin_start_glyph = 36;
+    encoding.writeU32(&groups, latin_start_glyph, 65535);
+    try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookup(&groups, 'A'));
     encoding.writeU32(&groups, latin_start_glyph, 65536);
     try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookup(&groups, 'A'));
     encoding.writeU32(&groups, latin_start_glyph, std.math.maxInt(u32));
@@ -54,6 +56,35 @@ pub fn glyphDomain() !void {
     encoding.writeU32(&groups, latin_start_glyph, face.GlyphCount);
     face.Charmap = &groups;
     try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookupFace(&face, 'A'));
+}
+
+pub fn completeOrderingAndSpans() !void {
+    var segments = constants.CMAP4;
+    encoding.writeU16(&segments, 24, 'A');
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&segments, 'A'));
+    segments = constants.CMAP4;
+    encoding.writeU16(&segments, 24, 'd');
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&segments, 'A'));
+    segments = constants.CMAP4;
+    encoding.writeU16(&segments, 36, 2);
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&segments, 'A'));
+    encoding.writeU16(&segments, 36, 5);
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&segments, 'A'));
+    encoding.writeU16(&segments, 36, 6);
+    try std.testing.expectError(error.UnexpectedEnd, font.charmap.lookup(&segments, 'a'));
+    segments = constants.CMAP4;
+    encoding.writeU16(&segments, 18, 0xFFFE);
+    encoding.writeU16(&segments, 26, 0xFFFE);
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&segments, 'A'));
+
+    var groups = constants.CMAP12;
+    encoding.writeU32(&groups, 28, 46);
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&groups, 0x1F642));
+    encoding.writeU32(&groups, 28, 67);
+    try std.testing.expectError(error.InvalidCharacterMap, font.charmap.lookup(&groups, 0x1F642));
+    var table = constants.CMAP;
+    encoding.writeU32(&table, constants.CMAP_HEADER.len + 36, 3);
+    try std.testing.expectError(error.GlyphOutOfRange, font.charmap.selectForFace(&table, 4));
 }
 
 pub fn selectionPreferenceAndErrors() !void {

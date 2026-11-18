@@ -40,20 +40,42 @@ pub fn metricErrors() !void {
     try std.testing.expectError(error.TableOutOfBounds, font.metrics.advanceWidth(&face, 0));
 }
 
-pub fn declaredOutlineLimits() !void {
+pub fn largeDeclaredOutline() !void {
     var data = fixture.minimal();
-    encoding.writeU16(&data.Data, constants.MAX_POINTS_OFFSET, @intCast(font.constants.limits.MAX_POINTS));
-    encoding.writeU16(&data.Data, constants.MAX_COMPOSITE_OFFSET, @intCast(font.constants.limits.MAX_POINTS));
-    encoding.writeU16(&data.Data, constants.MAX_CONTOURS_OFFSET, @intCast(font.constants.limits.MAX_CONTOURS));
-    _ = try font.face.load(data.Data[0..data.Length]);
-    encoding.writeU16(&data.Data, constants.MAX_POINTS_OFFSET, @intCast(font.constants.limits.MAX_POINTS + 1));
-    try std.testing.expectError(error.OutlineTooComplex, font.face.load(data.Data[0..data.Length]));
-    encoding.writeU16(&data.Data, constants.MAX_POINTS_OFFSET, @intCast(font.constants.limits.MAX_POINTS));
-    encoding.writeU16(&data.Data, constants.MAX_COMPOSITE_OFFSET, @intCast(font.constants.limits.MAX_POINTS + 1));
-    try std.testing.expectError(error.OutlineTooComplex, font.face.load(data.Data[0..data.Length]));
-    encoding.writeU16(&data.Data, constants.MAX_COMPOSITE_OFFSET, @intCast(font.constants.limits.MAX_POINTS));
-    encoding.writeU16(&data.Data, constants.MAX_CONTOURS_OFFSET, @intCast(font.constants.limits.MAX_CONTOURS + 1));
-    try std.testing.expectError(error.OutlineTooComplex, font.face.load(data.Data[0..data.Length]));
+    encoding.writeU16(&data.Data, constants.MAX_POINTS_OFFSET, std.math.maxInt(u16));
+    encoding.writeU16(&data.Data, constants.MAX_COMPOSITE_OFFSET, std.math.maxInt(u16));
+    encoding.writeU16(&data.Data, constants.MAX_CONTOURS_OFFSET, std.math.maxInt(i16));
+    const face = try font.face.load(data.Data[0..data.Length]);
+    try std.testing.expectEqual(@as(u16, 4), face.GlyphCount);
+}
+
+pub fn mandatoryMetricsAndLocations() !void {
+    var data = fixture.minimal();
+    encoding.writeU16(&data.Data, constants.MAXP_OFFSET + 4, 0);
+    try std.testing.expectError(error.InvalidGlyphCount, font.face.load(data.Data[0..data.Length]));
+
+    data = fixture.minimal();
+    encoding.writeU16(&data.Data, constants.HHEA_OFFSET + 34, 0);
+    try std.testing.expectError(error.InvalidMetrics, font.face.load(data.Data[0..data.Length]));
+    encoding.writeU16(&data.Data, constants.HHEA_OFFSET + 34, 5);
+    try std.testing.expectError(error.InvalidMetrics, font.face.load(data.Data[0..data.Length]));
+
+    data = fixture.minimal();
+    encoding.writeU32(&data.Data, 72, 11);
+    try std.testing.expectError(error.UnexpectedEnd, font.face.load(data.Data[0..data.Length]));
+
+    data = fixture.minimal();
+    encoding.writeU16(&data.Data, constants.HEAD_OFFSET + 50, 2);
+    try std.testing.expectError(error.InvalidLocations, font.face.load(data.Data[0..data.Length]));
+    encoding.writeU16(&data.Data, constants.HEAD_OFFSET + 50, 1);
+    try std.testing.expectError(error.UnexpectedEnd, font.face.load(data.Data[0..data.Length]));
+
+    data = fixture.minimal();
+    encoding.writeU16(&data.Data, constants.LOCA_OFFSET + 6, 10);
+    try std.testing.expectError(error.InvalidLocations, font.face.load(data.Data[0..data.Length]));
+    encoding.writeU16(&data.Data, constants.LOCA_OFFSET + 6, 22);
+    encoding.writeU16(&data.Data, constants.LOCA_OFFSET + 8, 33);
+    try std.testing.expectError(error.TableOutOfBounds, font.face.load(data.Data[0..data.Length]));
 }
 
 pub fn requiredTableBounds() !void {
@@ -90,7 +112,8 @@ pub fn embeddedFaceIntegration() !void {
     try std.testing.expect(kana != 0 and kana < face.GlyphCount);
     try std.testing.expect((try font.metrics.advanceWidth(&face, latin)) > 0);
     try std.testing.expect((try font.metrics.advanceWidth(&face, kana)) > 0);
-    var buffer: font.types.outline.GlyphBuffer = undefined;
+    var buffer = font.types.outline.GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, latin, &buffer);
     try std.testing.expect(buffer.Shape.ContourCount > 0 and buffer.Shape.PointCount > 0);
     try font.outline.load(&face, kana, &buffer);

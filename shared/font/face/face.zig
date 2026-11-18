@@ -3,14 +3,13 @@
 const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
-const constants = font.constants;
-
 const Directory = sfnt.types.directory.Directory;
 const Face = font.types.face.Face;
 const FontError = font.errors.font.FontError;
 const Reader = sfnt.types.reader.Reader;
 
-const limits = constants.limits;
+const limits = font.constants.limits;
+const metrics = font.constants.metrics;
 const tags = sfnt.constants.tags;
 
 pub fn load(data: []const u8) FontError!Face {
@@ -27,25 +26,16 @@ pub fn load(data: []const u8) FontError!Face {
     var head_reader = Reader.initialize(head);
     try head_reader.seek(limits.OFFSET_UNITS_PER_EM);
     const units_per_em = try head_reader.readU16();
-    if (units_per_em == 0) return FontError.InvalidUnitsPerEm;
+    if (units_per_em < limits.MIN_UNITS_PER_EM or units_per_em > limits.MAX_UNITS_PER_EM) {
+        return FontError.InvalidUnitsPerEm;
+    }
     try head_reader.seek(limits.OFFSET_INDEX_TO_LOCATION);
     const index_to_location = try head_reader.readI16();
 
     var maxp_reader = Reader.initialize(maxp);
     try maxp_reader.seek(limits.OFFSET_GLYPH_COUNT);
     const glyph_count = try maxp_reader.readU16();
-    try maxp_reader.seek(limits.OFFSET_MAX_POINTS);
-    const max_points = try maxp_reader.readU16();
-    const max_contours = try maxp_reader.readU16();
-    try maxp_reader.seek(limits.OFFSET_MAX_COMPOSITE_POINTS);
-    const max_composite_points = try maxp_reader.readU16();
-
-    if (max_points > limits.MAX_POINTS or max_composite_points > limits.MAX_POINTS) {
-        return FontError.OutlineTooComplex;
-    }
-    if (max_contours > limits.MAX_CONTOURS) {
-        return FontError.OutlineTooComplex;
-    }
+    if (glyph_count == 0) return FontError.InvalidGlyphCount;
 
     var hhea_reader = Reader.initialize(hhea);
     try hhea_reader.seek(limits.OFFSET_ASCENDER);
@@ -54,8 +44,18 @@ pub fn load(data: []const u8) FontError!Face {
     const line_gap = try hhea_reader.readI16();
     try hhea_reader.seek(limits.OFFSET_LONG_METRIC_COUNT);
     const long_metric_count = try hhea_reader.readU16();
+    if (long_metric_count == 0 or long_metric_count > glyph_count) return FontError.InvalidMetrics;
 
-    return Face{
+    const glyf = try directory.require(tags.GLYF);
+    const loca = try directory.require(tags.LOCA);
+    try font.location.validate(loca, index_to_location, glyph_count, glyf.len);
+
+    const hmtx = try directory.require(tags.HMTX);
+    const metric_length = @as(usize, long_metric_count) * metrics.LONG_METRIC_SIZE +
+        @as(usize, glyph_count - long_metric_count) * @sizeOf(i16);
+    if (hmtx.len < metric_length) return FontError.UnexpectedEnd;
+
+    return .{
         .Directory = directory,
         .UnitsPerEm = units_per_em,
         .GlyphCount = glyph_count,
@@ -64,9 +64,9 @@ pub fn load(data: []const u8) FontError!Face {
         .Descender = descender,
         .LineGap = line_gap,
         .LongMetricCount = long_metric_count,
-        .Glyf = try directory.require(tags.GLYF),
-        .Loca = try directory.require(tags.LOCA),
-        .Hmtx = try directory.require(tags.HMTX),
-        .Charmap = try font.charmap.select(try directory.require(tags.CMAP)),
+        .Glyf = glyf,
+        .Loca = loca,
+        .Hmtx = hmtx,
+        .Charmap = try font.charmap.selectForFace(try directory.require(tags.CMAP), glyph_count),
     };
 }

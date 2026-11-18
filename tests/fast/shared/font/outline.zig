@@ -14,18 +14,19 @@ const GlyphFixture = types.GlyphFixture;
 pub fn simpleAndEmptyOutlines() !void {
     const data = fixture.minimal();
     const face = try font.face.load(data.Data[0..data.Length]);
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, 1, &buffer);
-    try std.testing.expectEqual(@as(u16, 4), buffer.Shape.PointCount);
-    try std.testing.expectEqual(@as(u16, 1), buffer.Shape.ContourCount);
-    try std.testing.expectEqual(@as(u16, 3), buffer.Shape.ContourEnds[0]);
+    try std.testing.expectEqual(@as(usize, 4), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 1), buffer.Shape.ContourCount);
+    try std.testing.expectEqual(@as(usize, 3), buffer.Shape.ContourEnds[0]);
     try expectPoint(&buffer, 0, 0, 0, true);
     try expectPoint(&buffer, 1, 32, 0, true);
     try expectPoint(&buffer, 2, 32, 64, true);
     try expectPoint(&buffer, 3, 0, 64, true);
     try font.outline.load(&face, 0, &buffer);
-    try std.testing.expectEqual(@as(u16, 0), buffer.Shape.PointCount);
-    try std.testing.expectEqual(@as(u16, 0), buffer.Shape.ContourCount);
+    try std.testing.expectEqual(@as(usize, 0), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 0), buffer.Shape.ContourCount);
 }
 
 pub fn repeatedFlagsAndLongLocations() !void {
@@ -36,9 +37,10 @@ pub fn repeatedFlagsAndLongLocations() !void {
     face.Loca = &constants.REPEATED_LOCA;
     face.GlyphCount = 1;
     face.IndexToLocationFormat = 1;
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, 0, &buffer);
-    try std.testing.expectEqual(@as(u16, 4), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 4), buffer.Shape.PointCount);
     try expectPoint(&buffer, 0, -10, -10, true);
     try expectPoint(&buffer, 1, 10, -10, true);
     try expectPoint(&buffer, 2, 10, 10, true);
@@ -47,12 +49,16 @@ pub fn repeatedFlagsAndLongLocations() !void {
     try font.outline.load(&face, 0, &buffer);
     try expectPoint(&buffer, 0, -10, -10, false);
     try expectPoint(&buffer, 3, -10, 10, false);
+    glyph[17] = 4;
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
+    try std.testing.expectEqual(@as(usize, 0), buffer.Shape.PointCount);
 }
 
 pub fn translatedAndScaledComponents() !void {
     const data = fixture.minimal();
     var face = try font.face.load(data.Data[0..data.Length]);
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, 3, &buffer);
     try expectPoint(&buffer, 0, 32, -16, true);
     try expectPoint(&buffer, 1, 48, -16, true);
@@ -75,9 +81,10 @@ pub fn nestedMatrixAndMultipleComponents() !void {
     var face = try font.face.load(data.Data[0..data.Length]);
     var storage: GlyphFixture = undefined;
     fixture.appendGlyph(&storage, &face, &constants.MATRIX_COMPONENT);
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, 4, &buffer);
-    try std.testing.expectEqual(@as(u16, 4), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 4), buffer.Shape.PointCount);
     try expectPoint(&buffer, 0, 20, 30, true);
     try expectPoint(&buffer, 1, 20, 46, true);
     try expectPoint(&buffer, 2, -12, 46, true);
@@ -85,10 +92,10 @@ pub fn nestedMatrixAndMultipleComponents() !void {
     face = try font.face.load(data.Data[0..data.Length]);
     fixture.appendGlyph(&storage, &face, &constants.MULTIPLE_COMPONENTS);
     try font.outline.load(&face, 4, &buffer);
-    try std.testing.expectEqual(@as(u16, 8), buffer.Shape.PointCount);
-    try std.testing.expectEqual(@as(u16, 2), buffer.Shape.ContourCount);
-    try std.testing.expectEqual(@as(u16, 3), buffer.Shape.ContourEnds[0]);
-    try std.testing.expectEqual(@as(u16, 7), buffer.Shape.ContourEnds[1]);
+    try std.testing.expectEqual(@as(usize, 8), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 2), buffer.Shape.ContourCount);
+    try std.testing.expectEqual(@as(usize, 3), buffer.Shape.ContourEnds[0]);
+    try std.testing.expectEqual(@as(usize, 7), buffer.Shape.ContourEnds[1]);
     try expectPoint(&buffer, 0, 42, 4, true);
     try expectPoint(&buffer, 2, 58, 36, true);
     try expectPoint(&buffer, 4, -5, -6, true);
@@ -99,10 +106,11 @@ pub fn componentDepthBoundary() !void {
     const data = fixture.minimal();
     var face = try font.face.load(data.Data[0..data.Length]);
     var storage: GlyphFixture = undefined;
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     fixture.componentChain(&storage, &face, font.constants.limits.MAX_COMPONENT_DEPTH);
     try font.outline.load(&face, 0, &buffer);
-    try std.testing.expectEqual(@as(u16, 4), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 4), buffer.Shape.PointCount);
     try expectPoint(&buffer, 2, 32, 64, true);
     fixture.componentChain(&storage, &face, font.constants.limits.MAX_COMPONENT_DEPTH + 1);
     try std.testing.expectError(error.ComponentDepthExceeded, font.outline.load(&face, 0, &buffer));
@@ -111,7 +119,8 @@ pub fn componentDepthBoundary() !void {
 pub fn malformedOutlineBoundsAndLimits() !void {
     const data = fixture.minimal();
     var face = try font.face.load(data.Data[0..data.Length]);
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try std.testing.expectError(error.GlyphOutOfRange, font.outline.load(&face, face.GlyphCount, &buffer));
     face.GlyphCount = 1;
     face.Glyf = &constants.RECTANGLE_GLYPH;
@@ -129,11 +138,12 @@ pub fn malformedOutlineBoundsAndLimits() !void {
     try std.testing.expectError(error.UnexpectedEnd, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&storage.Loca, 2, 11);
     face.Glyf = storage.Data[0..22];
-    encoding.writeU16(&storage.Data, 0, @intCast(font.constants.limits.MAX_CONTOURS + 1));
-    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&storage.Data, 0, 129);
+    try std.testing.expectError(error.UnexpectedEnd, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&storage.Data, 0, 1);
-    encoding.writeU16(&storage.Data, 10, @intCast(font.constants.limits.MAX_POINTS));
-    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&storage.Data, 10, 1024);
+    @memset(storage.Data[14..22], 0x31);
+    try std.testing.expectError(error.UnexpectedEnd, font.outline.load(&face, 0, &buffer));
 }
 
 pub fn malformedContourEndpoints() !void {
@@ -150,23 +160,24 @@ pub fn malformedContourEndpoints() !void {
     encoding.writeU16(&glyph, 10, 2000);
     encoding.writeU16(&glyph, 12, 0);
     glyph[16] = 0x31;
-    var buffer: GlyphBuffer = undefined;
-    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&glyph, 10, 2);
     try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&glyph, 10, 0);
     try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&glyph, 0, 1);
     encoding.writeU16(&glyph, 10, std.math.maxInt(u16));
-    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    try std.testing.expectError(error.UnexpectedEnd, font.outline.load(&face, 0, &buffer));
     encoding.writeU16(&glyph, 0, 2);
     encoding.writeU16(&glyph, 10, 0);
     encoding.writeU16(&glyph, 12, 1);
     glyph[17] = 0x31;
     try font.outline.load(&face, 0, &buffer);
-    try std.testing.expectEqual(@as(u16, 2), buffer.Shape.PointCount);
-    try std.testing.expectEqual(@as(u16, 2), buffer.Shape.ContourCount);
-    try std.testing.expectEqualSlices(u16, &.{ 0, 1 }, buffer.Shape.ContourEnds[0..2]);
+    try std.testing.expectEqual(@as(usize, 2), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(usize, 2), buffer.Shape.ContourCount);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1 }, buffer.Shape.ContourEnds[0..2]);
 }
 
 pub fn wideTransformIntermediate() !void {
@@ -179,7 +190,8 @@ pub fn wideTransformIntermediate() !void {
         0x7f, 0xff, 0x7f, 0xff, 0x7f, 0xff,
     };
     fixture.appendGlyph(&storage, &face, &outline);
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, face.GlyphCount - 1, &buffer);
     try expectPoint(&buffer, 4, 5 * 32767, 0, true);
 
@@ -193,6 +205,14 @@ pub fn wideTransformIntermediate() !void {
     try std.testing.expectEqual(@as(i32, (5 * 32767) << font.constants.limits.MAX_COMPONENT_DEPTH), placed.X);
     try std.testing.expectError(error.InvalidOutline, nested.apply(std.math.maxInt(i32), 0));
     try std.testing.expectError(error.InvalidOutline, Transform.compose(try Transform.compose(nested, nested), scale));
+    var half = Transform.identity();
+    half.A = @divExact(half.A, 2);
+    half.D = @divExact(half.D, 2);
+    try half.setOffset(1, -1, true);
+    const fractional = try Transform.compose(Transform.identity(), half);
+    const point = try fractional.apply(1, -1);
+    try std.testing.expectEqual(@as(i32, 1), point.X);
+    try std.testing.expectEqual(@as(i32, -1), point.Y);
 }
 
 pub fn maximumSimpleOutline() !void {
@@ -201,11 +221,11 @@ pub fn maximumSimpleOutline() !void {
     var storage: GlyphFixture = undefined;
     @memset(&storage.Data, 0);
     @memset(&storage.Loca, 0);
-    const contours = font.constants.limits.MAX_CONTOURS;
-    const points = font.constants.limits.MAX_POINTS;
+    const contours: usize = 257;
+    const points: usize = @as(usize, std.math.maxInt(u16)) + 1;
     encoding.writeU16(&storage.Data, 0, @intCast(contours));
     for (0..contours) |index| {
-        encoding.writeU16(&storage.Data, 10 + index * 2, @intCast((index + 1) * (points / contours) - 1));
+        encoding.writeU16(&storage.Data, 10 + index * 2, @intCast((index + 1) * points / contours - 1));
     }
     var length = 10 + contours * 2 + 2;
     var remaining = points;
@@ -220,12 +240,40 @@ pub fn maximumSimpleOutline() !void {
     face.GlyphCount = 1;
     face.Glyf = storage.Data[0..length];
     face.Loca = storage.Loca[0..4];
-    var buffer: GlyphBuffer = undefined;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
     try font.outline.load(&face, 0, &buffer);
-    try std.testing.expectEqual(@as(u16, @intCast(points)), buffer.Shape.PointCount);
-    try std.testing.expectEqual(@as(u16, @intCast(contours)), buffer.Shape.ContourCount);
-    try std.testing.expectEqual(@as(u16, @intCast(points - 1)), buffer.Shape.ContourEnds[contours - 1]);
+    try std.testing.expectEqual(points, buffer.Shape.PointCount);
+    try std.testing.expectEqual(contours, buffer.Shape.ContourCount);
+    try std.testing.expectEqual(points - 1, buffer.Shape.ContourEnds[contours - 1]);
     try expectPoint(&buffer, points - 1, 0, 0, true);
+}
+
+pub fn componentPlacementAndInstructions() !void {
+    const data = fixture.minimal();
+    var face = try font.face.load(data.Data[0..data.Length]);
+    var storage: GlyphFixture = undefined;
+    var glyph = constants.SCALED_COMPONENT ++ [_]u8{ 0, 2, 0xAA, 0xBB };
+    encoding.writeU16(&glyph, 0, 0xFFFE);
+    encoding.writeU16(&glyph, 10, 0x090B);
+    fixture.appendGlyph(&storage, &face, &glyph);
+    const flags_offset = constants.GLYF.len + 10;
+    const instruction_offset = constants.GLYF.len + constants.SCALED_COMPONENT.len;
+    var buffer = GlyphBuffer.initAllocating(std.testing.allocator);
+    defer buffer.deinit();
+
+    try font.outline.load(&face, 4, &buffer);
+    try expectPoint(&buffer, 0, 16, -8, true);
+    try expectPoint(&buffer, 2, 32, 24, true);
+    encoding.writeU16(&storage.Data, instruction_offset, 3);
+    try std.testing.expectError(error.UnexpectedEnd, font.outline.load(&face, 4, &buffer));
+    try std.testing.expectEqual(@as(usize, 0), buffer.Shape.PointCount);
+    encoding.writeU16(&storage.Data, flags_offset, 0x0009);
+    try std.testing.expectError(error.UnsupportedComponentPlacement, font.outline.load(&face, 4, &buffer));
+    encoding.writeU16(&storage.Data, flags_offset, 0x004B);
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 4, &buffer));
+    encoding.writeU16(&storage.Data, flags_offset, 0x180B);
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 4, &buffer));
 }
 
 fn expectPoint(buffer: *const GlyphBuffer, index: usize, x: i32, y: i32, on_curve: bool) !void {

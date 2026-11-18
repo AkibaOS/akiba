@@ -11,11 +11,13 @@ const Canvas = splash.types.canvas.Canvas;
 const SplashState = splash.types.state.SplashState;
 const Surface = graphics.types.surface.Surface;
 const TextRenderer = graphics.types.renderer.TextRenderer;
+const Workspace = splash.types.workspace.Workspace;
 
 const limits = splash.constants.limits;
 
 var canvas: Canvas = undefined;
 var renderer: TextRenderer = undefined;
+var workspace: Workspace = undefined;
 var state: SplashState = SplashState.initialize(limits.BOOT_STEPS);
 var ready: bool = false;
 var fallback: ?*efi.types.protocols.output.SimpleTextOutputProtocol = null;
@@ -31,6 +33,7 @@ pub fn initialize(
 
     const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
     const surface = Surface.initialize(framebuffer.Base, framebuffer.Width, framebuffer.Height, framebuffer.Stride, framebuffer.PixelFormat);
+    renderer = workspace.bind();
     canvas = Canvas.initialize(surface, face, &renderer) orelse return false;
     splash.render.paint(&canvas, &state) catch return false;
     state.Active = 1;

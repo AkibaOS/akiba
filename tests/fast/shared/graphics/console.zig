@@ -19,7 +19,8 @@ pub fn geometryControlsAndWrap() !void {
     const face = try font.face.load(data.Data[0..data.Length]);
     var storage: GuardedPixels = undefined;
     var surface = fixture.small(&storage, 16, 12, 18, .BGR);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var console = try Console.initialize(&surface, &face, &renderer, 4);
     try std.testing.expectEqual(@as(i32, 4), console.CellWidth);
     try std.testing.expectEqual(@as(i32, 4), console.CellHeight);
@@ -48,7 +49,8 @@ pub fn scrollAndClearing() !void {
     const face = try font.face.load(data.Data[0..data.Length]);
     var storage: GuardedPixels = undefined;
     var surface = fixture.small(&storage, 16, 12, 18, .BGR);
-    var renderer: TextRenderer = undefined;
+    var renderer = TextRenderer.initAllocating(std.testing.allocator);
+    defer renderer.deinit();
     var console = try Console.initialize(&surface, &face, &renderer, 4);
     const background = Color.rgb(7, 8, 9);
     console.setColors(Color.rgb(255, 255, 255), background);
