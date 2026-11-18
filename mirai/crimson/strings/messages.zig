@@ -34,24 +34,7 @@ pub const KATA_THREAD = "  Kata: %d, Thread: %d\n";
 pub const ACCESS = "  Access: %s\n";
 pub const MODE_USER = "  Mode: User\n";
 pub const MODE_KERNEL = "  Mode: Kernel\n";
-pub const FAULTING_INSTRUCTION_HEADER = "Faulting Instruction:\n";
-pub const ADDRESS = "  Address: %x\n";
-pub const BYTES_LABEL = "  Bytes: ";
-pub const INSTRUCTION_BYTES_UNAVAILABLE = "  Instruction bytes unavailable without bounded reads\n\n";
-
-pub const MEMORY_AROUND = "Memory around %x:\n";
-pub const INSTRUCTION_BYTES = "Instruction bytes at %x:\n  ";
-
-pub const STACK_TRACE_HEADER = "Stack Trace:\n";
-pub const NO_STACK_FRAMES = "  (no stack frames available)\n";
-pub const STACK_TRACE_UNAVAILABLE = "  Stack trace unavailable without bounded reads\n\n";
-pub const RAW_STACK = "Raw Stack (from %x):\n";
-pub const RAW_STACK_UNAVAILABLE = "  Raw stack unavailable without bounded reads\n\n";
 pub const NEWLINE = "\n";
-
-pub const MODULES_NONE = "Loaded Modules: (none registered)\n\n";
-pub const MODULES_HEADER = "Loaded Modules:\n";
-pub const MODULE_ENTRY = "  %s: %x - %x (%d bytes)\n";
 
 pub const DUMP_REGISTERS_GENERAL_1 = "RAX: %x  RBX: %x  RCX: %x  RDX: %x\n";
 pub const DUMP_REGISTERS_GENERAL_2 = "RSI: %x  RDI: %x  RBP: %x  RSP: %x\n";
@@ -64,9 +47,6 @@ pub const CORPSE_INVALID = "Invalid corpse\n";
 pub const CORPSE_HEADER = "Corpse for Kata %d, Thread %d\n";
 pub const CORPSE_EXCEPTION = "Exception: %s (code=%x, subcode=%x)\n";
 pub const CORPSE_FAULT_ADDRESS = "Fault address: %x\n";
-
-pub const TERMINATE_KATA_THREAD = "Terminating kata %d, thread %d due to unhandled exception\n";
-pub const TERMINATE_KATA_CORPSE = "Terminating kata %d with corpse generation\n";
 
 pub const DOUBLE_COLLAPSE = "\nDouble collapse detected, halting immediately\n";
 

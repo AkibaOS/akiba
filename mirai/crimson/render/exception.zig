@@ -51,10 +51,3 @@ fn renderPageFaultDetails(error_code: u64) void {
         serial.write.printf(messages.MODE_KERNEL, .{});
     }
 }
-
-pub fn renderFaultingInstruction(rip: u64) void {
-    serial.write.printf(messages.FAULTING_INSTRUCTION_HEADER, .{});
-    serial.write.printf(messages.ADDRESS, .{rip});
-
-    serial.write.printf(messages.INSTRUCTION_BYTES_UNAVAILABLE, .{});
-}
