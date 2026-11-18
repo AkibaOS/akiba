@@ -11,6 +11,7 @@ pub const COMMAND: u16 = 0x43;
 
 pub const BASE_FREQUENCY: u32 = 1193182;
 pub const TARGET_FREQUENCY: u32 = 1000;
+pub const SQUARE_WAVE_MINIMUM_DIVISOR: u16 = 2;
 
 pub const MODE_SQUARE_WAVE: u8 = 0x36;
 pub const MODE_RATE_GENERATOR: u8 = 0x34;
