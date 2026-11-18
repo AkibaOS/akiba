@@ -22,7 +22,23 @@ pub fn run() !void {
     failures();
     geometry();
     try extents();
+    try activeFatCopy();
     try directoryChains();
+}
+
+fn activeFatCopy() !void {
+    fixture.reset();
+    const boot = encode(0, constants.BLOCK_BYTES);
+    boot.FatCount = 2;
+    boot.ExtFlags = format.constants.flags.MIRRORING_DISABLED | 1;
+    const root_cluster = clusters.CLUSTER_DATA_START;
+    fixture.writeU32(sector(2), root_cluster * @sizeOf(u32), clusters.CLUSTER_EOC);
+    var reader = try fat.Reader.initialize(&fixture.protocol, &fixture.services, 0, fixture.media.LastBlock);
+    defer reader.deinitialize();
+    verify.require((try reader.getNextCluster(root_cluster)) == null and reader.FatStartLBA == 2 and reader.DataStartLBA == 3, labels.FAT_ACTIVE_COPY);
+    reader.deinitialize();
+    boot.ExtFlags = format.constants.flags.MIRRORING_DISABLED | 2;
+    verify.require(rejects(0, fixture.media.LastBlock, error.InvalidBootSector), labels.FAT_ACTIVE_COPY);
 }
 
 fn mismatch() void {

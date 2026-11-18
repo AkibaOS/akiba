@@ -119,6 +119,8 @@ pub const Reader = struct {
         const fat_sectors: u64 = boot_sector.FatSize32;
         const fat_offset: u64 = boot_sector.ReservedSectors;
         const data_offset = fat_offset + fat_sectors * boot_sector.FatCount;
+        const active_fat = boot_sector.activeFatIndex() orelse return ReadError.InvalidBootSector;
+        const active_offset = fat_offset + fat_sectors * active_fat;
         if ((sectors_per_cluster & (sectors_per_cluster - 1)) != 0 or total_sectors <= data_offset or
             total_sectors - 1 > partition_end_lba - partition_start_lba)
         {
@@ -145,8 +147,8 @@ pub const Reader = struct {
             .PartitionStartLBA = partition_start_lba,
             .PartitionEndLBA = partition_end_lba,
             .VolumeEndLBA = partition_start_lba + (total_sectors - 1),
-            .FatStartLBA = partition_start_lba + fat_offset,
-            .FatEndLBA = partition_start_lba + (fat_offset + fat_sectors - 1),
+            .FatStartLBA = partition_start_lba + active_offset,
+            .FatEndLBA = partition_start_lba + (active_offset + fat_sectors - 1),
             .DataStartLBA = partition_start_lba + data_offset,
             .SectorsPerCluster = sectors_per_cluster,
             .BytesPerCluster = bytes_per_cluster,

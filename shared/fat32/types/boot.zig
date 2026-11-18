@@ -54,6 +54,12 @@ pub const BootSector = extern struct {
         return true;
     }
 
+    pub fn activeFatIndex(self: *const BootSector) ?u8 {
+        const flags = constants.flags;
+        const index: u8 = if ((self.ExtFlags & flags.MIRRORING_DISABLED) != 0) @intCast(self.ExtFlags & flags.ACTIVE_FAT_MASK) else 0;
+        return if (index < self.FatCount) index else null;
+    }
+
     pub fn getFatStartSector(self: *const BootSector) u32 {
         return self.ReservedSectors;
     }

@@ -20,6 +20,7 @@ pub const FAT_PRESSURE = "dormant FAT reader allocation failures unwind prior re
 pub const FAT_READ_FAILURE = "dormant FAT reader header read failure returns reserved backing";
 pub const FAT_GEOMETRY = "dormant FAT reader rejects malformed media and out-of-domain volume geometry safely";
 pub const FAT_UNIT_RELEASE = "dormant FAT allocated Unit read failure returns its output buffer without losing reader backing";
+pub const FAT_ACTIVE_COPY = "FAT uses the selected non-mirrored copy and refuses an out-of-range copy before FAT I/O";
 pub const FAT_EXTENT = "dormant FAT reader keeps boot, FAT and data reads inside the mounted extents";
 pub const FAT_MEDIA = "dormant FAT reader rejects changed media and closed handles before disk or pool work";
 pub const FAT_DIRECTORY = "dormant FAT reader resolves 8.3 entries and terminates bounded corrupt directory chains";

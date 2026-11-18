@@ -4,5 +4,6 @@ pub const attributes = @import("attributes.zig");
 pub const clusters = @import("clusters.zig");
 pub const defaults = @import("defaults.zig");
 pub const entries = @import("entries.zig");
+pub const flags = @import("flags.zig");
 pub const magic = @import("magic.zig");
 pub const sizes = @import("sizes.zig");
