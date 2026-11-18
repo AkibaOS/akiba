@@ -1,5 +1,7 @@
 //! Fixed Point Arithmetic
 
+const std = @import("std");
+
 pub const Fixed26Dot6 = struct {
     Raw: i32,
 
@@ -26,11 +28,11 @@ pub const Fixed26Dot6 = struct {
     }
 
     pub fn ceiling(self: Fixed26Dot6) i32 {
-        return @intCast(@divFloor(self.Raw + FRACTION_MASK, ONE));
+        return @intCast(@divFloor(@as(i64, self.Raw) + FRACTION_MASK, ONE));
     }
 
     pub fn round(self: Fixed26Dot6) i32 {
-        return @intCast(@divFloor(self.Raw + ONE / 2, ONE));
+        return @intCast(@divFloor(@as(i64, self.Raw) + ONE / 2, ONE));
     }
 
     pub fn fraction(self: Fixed26Dot6) i32 {
@@ -73,12 +75,13 @@ pub const Fixed16Dot16 = struct {
         return Fixed16Dot16{ .Raw = raw };
     }
 
-    pub fn fromRatio(numerator: i32, denominator: i32) Fixed16Dot16 {
+    pub fn fromRatio(numerator: i32, denominator: i32) error{Overflow}!Fixed16Dot16 {
         if (denominator == 0) {
             return Fixed16Dot16{ .Raw = 0 };
         }
         const scaled = @as(i64, numerator) << FRACTION_BITS;
-        return Fixed16Dot16{ .Raw = @intCast(roundedDivide(scaled, @as(i64, denominator))) };
+        const rounded = roundedDivide(scaled, denominator);
+        return Fixed16Dot16{ .Raw = std.math.cast(i32, rounded) orelse return error.Overflow };
     }
 
     pub fn multiply(self: Fixed16Dot16, other: Fixed16Dot16) Fixed16Dot16 {
@@ -86,10 +89,14 @@ pub const Fixed16Dot16 = struct {
         return Fixed16Dot16{ .Raw = @intCast(product >> FRACTION_BITS) };
     }
 
-    pub fn applyToUnits(self: Fixed16Dot16, units: i32) Fixed26Dot6 {
-        const product = @as(i64, units) * @as(i64, self.Raw);
+    pub fn applyToUnits(self: Fixed16Dot16, units: i32) error{Overflow}!Fixed26Dot6 {
+        return Fixed26Dot6{ .Raw = std.math.cast(i32, self.applyToUnitsRawWide(units)) orelse return error.Overflow };
+    }
+
+    pub fn applyToUnitsRawWide(self: Fixed16Dot16, units: i32) i64 {
+        const product = @as(i64, units) * self.Raw;
         const divisor = @as(i64, 1) << (FRACTION_BITS - Fixed26Dot6.FRACTION_BITS);
-        return Fixed26Dot6{ .Raw = @intCast(roundedDivide(product, divisor)) };
+        return roundedDivide(product, divisor);
     }
 };
 

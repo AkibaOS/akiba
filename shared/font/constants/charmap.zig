@@ -13,3 +13,6 @@ pub const MISSING_GLYPH: u16 = 0;
 
 pub const ENCODING_RECORD_SIZE: usize = 8;
 pub const GROUP_SIZE: usize = 12;
+pub const SEGMENT_HEADER_SIZE: usize = 16;
+pub const COVERAGE_HEADER_SIZE: usize = 16;
+pub const SEGMENT_ARRAY_COUNT: usize = 4;

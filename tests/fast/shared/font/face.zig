@@ -15,7 +15,7 @@ pub fn minimalFaceAndMetrics() !void {
     try std.testing.expectEqual(@as(u16, 4), face.GlyphCount);
     try std.testing.expectEqual(@as(i16, 48), face.Ascender);
     try std.testing.expectEqual(@as(i16, -16), face.Descender);
-    try std.testing.expectEqual(@as(i32, 8), face.lineHeight(8));
+    try std.testing.expectEqual(@as(i32, 8), try face.lineHeight(8));
     const first = try font.metrics.glyphMetrics(&face, 0);
     const second = try font.metrics.glyphMetrics(&face, 1);
     const trailing = try font.metrics.glyphMetrics(&face, 2);

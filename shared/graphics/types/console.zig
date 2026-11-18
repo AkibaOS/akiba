@@ -1,13 +1,18 @@
 //! Character Console
 
+const std = @import("std");
+
 const font = @import("shared").font;
 const graphics = @import("shared").graphics;
+const raster = @import("shared").raster;
 const typeset = @import("shared").typeset;
 
 const draw = graphics.draw;
 
 const Color = graphics.types.color.Color;
+const CoordinateError = raster.errors.raster.CoordinateError;
 const Face = font.types.face.Face;
+const FontError = font.errors.font.FontError;
 const Surface = graphics.types.surface.Surface;
 const TextError = graphics.errors.text.TextError;
 const TextRenderer = graphics.types.renderer.TextRenderer;
@@ -36,25 +41,29 @@ pub const Console = struct {
         renderer: *TextRenderer,
         pixel_size: i32,
     ) TextError!Console {
-        const reference = try font.charmap.lookup(face.Charmap, constants.REFERENCE_GLYPH);
-        const advance = try font.metrics.advanceWidth(face, reference);
-        const scale = face.scaleFor(pixel_size);
+        if (surface.Width > std.math.maxInt(i32) or surface.Height > std.math.maxInt(i32)) {
+            return CoordinateError.CoordinateOutOfRange;
+        }
 
-        const cell_width = @divTrunc(scale.applyToUnits(@intCast(advance)).Raw, constants.PIXEL_UNITS);
-        const cell_height = face.lineHeight(pixel_size);
+        const scale = try face.scaleFor(pixel_size);
+        const reference = try font.charmap.lookupFace(face, constants.REFERENCE_GLYPH);
+        const advance = try font.metrics.advanceWidth(face, reference);
+        const width = @divTrunc(scale.applyToUnitsRawWide(advance), constants.PIXEL_UNITS);
+        const cell_width = std.math.cast(i32, @max(width, 1)) orelse return FontError.MetricOutOfRange;
+        const cell_height = @max(try face.lineHeight(pixel_size), 1);
 
         return Console{
             .Surface = surface,
             .Face = face,
             .Renderer = renderer,
             .PixelSize = pixel_size,
-            .CellWidth = if (cell_width > 0) cell_width else 1,
-            .CellHeight = if (cell_height > 0) cell_height else 1,
-            .Baseline = typeset.measure.ascent(face, pixel_size),
+            .CellWidth = cell_width,
+            .CellHeight = cell_height,
+            .Baseline = try typeset.measure.ascent(face, pixel_size),
             .CursorColumn = 0,
             .CursorRow = 0,
-            .Columns = @intCast(@divTrunc(@as(i32, @intCast(surface.Width)), if (cell_width > 0) cell_width else 1)),
-            .Rows = @intCast(@divTrunc(@as(i32, @intCast(surface.Height)), if (cell_height > 0) cell_height else 1)),
+            .Columns = surface.Width / @as(u32, @intCast(cell_width)),
+            .Rows = surface.Height / @as(u32, @intCast(cell_height)),
             .ForegroundColor = palette.WHITE,
             .BackgroundColor = palette.BLACK,
         };
@@ -71,6 +80,8 @@ pub const Console = struct {
     }
 
     pub fn putChar(self: *Console, character: u8) void {
+        if (self.Columns == 0 or self.Rows == 0) return;
+
         switch (character) {
             '\n' => {
                 self.CursorColumn = 0;
@@ -80,10 +91,12 @@ pub const Console = struct {
                 self.CursorColumn = 0;
             },
             '\t' => {
-                self.CursorColumn = ((self.CursorColumn / constants.TAB_WIDTH) + 1) * constants.TAB_WIDTH;
-                if (self.CursorColumn >= self.Columns) {
+                const next_tab = ((@as(u64, self.CursorColumn) / constants.TAB_WIDTH) + 1) * constants.TAB_WIDTH;
+                if (next_tab >= self.Columns) {
                     self.CursorColumn = 0;
                     self.advanceRow();
+                } else {
+                    self.CursorColumn = @intCast(next_tab);
                 }
             },
             constants.BACKSPACE => {
@@ -93,10 +106,11 @@ pub const Console = struct {
             },
             else => {
                 self.drawCell(character);
-                self.CursorColumn += 1;
-                if (self.CursorColumn >= self.Columns) {
+                if (self.CursorColumn >= self.Columns - 1) {
                     self.CursorColumn = 0;
                     self.advanceRow();
+                } else {
+                    self.CursorColumn += 1;
                 }
             },
         }
@@ -134,7 +148,8 @@ pub const Console = struct {
     }
 
     pub fn scrollUp(self: *Console) void {
-        const scrolled: u32 = @intCast((self.Rows - 1) * @as(u32, @intCast(self.CellHeight)));
+        if (self.Rows == 0) return;
+        const scrolled = (self.Rows - 1) * @as(u32, @intCast(self.CellHeight));
 
         draw.copyRect(self.Surface, 0, @intCast(self.CellHeight), 0, 0, self.Surface.Width, scrolled);
         draw.fillRect(
@@ -148,11 +163,13 @@ pub const Console = struct {
     }
 
     fn drawCell(self: *Console, character: u8) void {
+        if (self.CursorColumn >= self.Columns or self.CursorRow >= self.Rows) return;
         const x = @as(i32, @intCast(self.CursorColumn)) * self.CellWidth;
         const y = @as(i32, @intCast(self.CursorRow)) * self.CellHeight;
 
         draw.fillRect(self.Surface, x, y, self.CellWidth, self.CellHeight, self.BackgroundColor);
 
+        const baseline = std.math.cast(i32, @as(i64, y) + self.Baseline) orelse return;
         const glyph = [_]u8{character};
         graphics.text.drawString(
             self.Renderer,
@@ -160,7 +177,7 @@ pub const Console = struct {
             self.Face,
             .{ .PixelSize = self.PixelSize, .Tracking = 0 },
             x,
-            y + self.Baseline,
+            baseline,
             &glyph,
             self.ForegroundColor,
             self.BackgroundColor,
@@ -168,10 +185,12 @@ pub const Console = struct {
     }
 
     fn advanceRow(self: *Console) void {
-        self.CursorRow += 1;
-        if (self.CursorRow >= self.Rows) {
+        if (self.Rows == 0) return;
+        if (self.CursorRow >= self.Rows - 1) {
             self.scrollUp();
             self.CursorRow = self.Rows - 1;
+        } else {
+            self.CursorRow += 1;
         }
     }
 };

@@ -16,6 +16,7 @@ const limits = font.constants.limits;
 
 pub fn load(face: *const Face, glyph_id: u16, buffer: *GlyphBuffer) FontError!void {
     buffer.Shape.reset();
+    errdefer buffer.Shape.reset();
     try appendGlyph(face, glyph_id, Transform.identity(), 0, buffer);
 }
 
@@ -147,7 +148,7 @@ fn appendSimpleGlyph(
     index = 0;
     while (index < point_count) : (index += 1) {
         const slot = &buffer.Shape.Points[base_point + index];
-        const placed = transform.apply(slot.X, slot.Y);
+        const placed = try transform.apply(slot.X, slot.Y);
         slot.X = placed.X;
         slot.Y = placed.Y;
         slot.OnCurve = (buffer.Flags[base_point + index] & constants.ON_CURVE_POINT) != 0;
@@ -205,7 +206,7 @@ fn appendCompositeGlyph(
             component.D = try readTransformValue(reader);
         }
 
-        try appendGlyph(face, component_id, Transform.compose(transform, component), depth + 1, buffer);
+        try appendGlyph(face, component_id, try Transform.compose(transform, component), depth + 1, buffer);
 
         if ((flags & constants.MORE_COMPONENTS) == 0) {
             return;

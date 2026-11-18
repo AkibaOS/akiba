@@ -34,7 +34,7 @@ pub fn emit(data: []const u8) !void {
 }
 
 fn emitGlyph(face: *const font.types.face.Face, codepoint: u32) !void {
-    const glyph_id = try font.charmap.lookup(face.Charmap, codepoint);
+    const glyph_id = try font.charmap.lookupFace(face, codepoint);
     if (glyph_id == 0) {
         return;
     }

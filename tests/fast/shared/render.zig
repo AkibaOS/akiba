@@ -58,6 +58,14 @@ test "cmap12 handles group endpoints gaps and supplementary codepoints" {
     try checks.font.charmap.segmentedCoverage();
 }
 
+test "cmap lookup respects each subtable's own byte length" {
+    try checks.font.charmap.declaredLengths();
+}
+
+test "cmap lookup refuses glyph IDs outside its representation" {
+    try checks.font.charmap.glyphDomain();
+}
+
 test "cmap selection ranks supported encodings and reports malformed records" {
     try checks.font.charmap.selectionPreferenceAndErrors();
 }
@@ -88,6 +96,10 @@ test "outline extraction rejects invalid locations truncation and excess complex
 
 test "simple outlines reject descending duplicate oversized and overflowing contour endpoints" {
     try checks.font.outline.malformedContourEndpoints();
+}
+
+test "outline transforms keep representable results despite wide products" {
+    try checks.font.outline.wideTransformIntermediate();
 }
 
 test "simple outlines accept the full point and contour capacities" {

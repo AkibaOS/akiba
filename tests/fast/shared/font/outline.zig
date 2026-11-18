@@ -169,6 +169,32 @@ pub fn malformedContourEndpoints() !void {
     try std.testing.expectEqualSlices(u16, &.{ 0, 1 }, buffer.Shape.ContourEnds[0..2]);
 }
 
+pub fn wideTransformIntermediate() !void {
+    const data = fixture.minimal();
+    var face = try font.face.load(data.Data[0..data.Length]);
+    var storage: GlyphFixture = undefined;
+    const outline = [_]u8{
+        0,    1,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    4,    0,    0,    0x29, 4,    0x7f, 0xff, 0x7f, 0xff,
+        0x7f, 0xff, 0x7f, 0xff, 0x7f, 0xff,
+    };
+    fixture.appendGlyph(&storage, &face, &outline);
+    var buffer: GlyphBuffer = undefined;
+    try font.outline.load(&face, face.GlyphCount - 1, &buffer);
+    try expectPoint(&buffer, 4, 5 * 32767, 0, true);
+
+    const Transform = font.types.transform.Transform;
+    var scale = Transform.identity();
+    scale.A *= 2;
+    scale.D *= 2;
+    var nested = Transform.identity();
+    for (0..font.constants.limits.MAX_COMPONENT_DEPTH) |_| nested = try Transform.compose(nested, scale);
+    const placed = try nested.apply(5 * 32767, 0);
+    try std.testing.expectEqual(@as(i32, (5 * 32767) << font.constants.limits.MAX_COMPONENT_DEPTH), placed.X);
+    try std.testing.expectError(error.InvalidOutline, nested.apply(std.math.maxInt(i32), 0));
+    try std.testing.expectError(error.InvalidOutline, Transform.compose(try Transform.compose(nested, nested), scale));
+}
+
 pub fn maximumSimpleOutline() !void {
     const data = fixture.minimal();
     var face = try font.face.load(data.Data[0..data.Length]);

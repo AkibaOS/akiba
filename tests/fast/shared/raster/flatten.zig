@@ -5,16 +5,21 @@ const std = @import("std");
 const common = @import("common");
 const constants = @import("tests").constants.render;
 const fixture = @import("tests").fast.shared.raster.fixture;
+const font = @import("shared").font;
 const raster = @import("shared").raster;
 
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
+const Placement = raster.types.placement.Placement;
+const Point = font.types.outline.Point;
 const Shape = raster.types.shape.Shape;
 const Workspace = raster.types.workspace.Workspace;
+
+const limits = raster.constants.limits;
 
 pub fn placementAndReset() !void {
     var outline = fixture.outline(&constants.RECTANGLE_POINTS);
     var shape: Shape = undefined;
-    try raster.flatten.flatten(&outline, Fixed16Dot16.fromRatio(1, 2), -32, 192, &shape);
+    try raster.flatten.flatten(&outline, try Fixed16Dot16.fromRatio(1, 2), -32, 192, &shape);
     try std.testing.expectEqual(@as(u16, 2), shape.EdgeCount);
     try std.testing.expectEqual(@as(i32, -32), shape.MinX);
     try std.testing.expectEqual(@as(i32, 96), shape.MaxX);
@@ -27,9 +32,15 @@ pub fn placementAndReset() !void {
     try std.testing.expectEqual(@as(u8, 128), fixture.valueAt(&capture, -1, 1));
     try std.testing.expectEqual(@as(u8, 255), fixture.valueAt(&capture, 0, 1));
     try std.testing.expectEqual(@as(u8, 128), fixture.valueAt(&capture, 1, 2));
-    outline.reset();
-    try raster.flatten.flatten(&outline, Fixed16Dot16.fromRatio(1, 1), 0, 0, &shape);
+    const identity = try Fixed16Dot16.fromRatio(1, 1);
+    try std.testing.expectError(error.CoordinateOutOfRange, raster.flatten.flatten(&outline, identity, std.math.maxInt(i32), 0, &shape));
     try std.testing.expect(shape.isEmpty());
+    outline.ContourEnds[0] = outline.PointCount;
+    try std.testing.expectError(error.InvalidContour, raster.flatten.flatten(&outline, identity, 0, 0, &shape));
+    outline.reset();
+    try raster.flatten.flatten(&outline, identity, 0, 0, &shape);
+    try std.testing.expect(shape.isEmpty());
+    try widePlacement(identity);
 }
 
 pub fn impliedPointsAndClosure() !void {
@@ -37,7 +48,7 @@ pub fn impliedPointsAndClosure() !void {
     const explicit = fixture.outline(&constants.EXPLICIT_POINTS);
     var implicit_shape: Shape = undefined;
     var explicit_shape: Shape = undefined;
-    const scale = Fixed16Dot16.fromRatio(1, 1);
+    const scale = try Fixed16Dot16.fromRatio(1, 1);
     try raster.flatten.flatten(&implied, scale, 0, 256, &implicit_shape);
     try raster.flatten.flatten(&explicit, scale, 0, 256, &explicit_shape);
     try std.testing.expect(implicit_shape.EdgeCount > 4);
@@ -64,11 +75,12 @@ pub fn impliedPointsAndClosure() !void {
             );
         }
     }
+    try fractionalImpliedMidpoint(&implicit_shape, &explicit_shape);
 }
 
 pub fn translatedCurves() !void {
     const outline = fixture.outline(&constants.IMPLIED_POINTS);
-    const scale = Fixed16Dot16.fromRatio(1, 1);
+    const scale = try Fixed16Dot16.fromRatio(1, 1);
     var reference: Shape = undefined;
     var translated: Shape = undefined;
     try raster.flatten.flatten(&outline, scale, 0, 256, &reference);
@@ -89,4 +101,30 @@ pub fn edgeCapacity() !void {
     try std.testing.expectEqual(@as(u16, @intCast(raster.constants.limits.MAX_EDGES)), shape.EdgeCount);
     try std.testing.expectError(error.TooManyEdges, shape.addEdge(64, 64, 0, 0));
     try std.testing.expectEqual(@as(u16, @intCast(raster.constants.limits.MAX_EDGES)), shape.EdgeCount);
+}
+
+fn widePlacement(identity: Fixed16Dot16) !void {
+    const units = -@divExact(std.math.minInt(i32), limits.ONE_PIXEL);
+    const placed: Placement = .{ .Scale = identity, .OriginX = std.math.minInt(i32), .BaselineY = std.math.maxInt(i32) };
+    try std.testing.expectEqual(@as(i32, 0), try placed.deviceX(units));
+    try std.testing.expectEqual(@as(i32, -1), try placed.deviceY(units));
+    try std.testing.expectError(error.CoordinateOutOfRange, placed.deviceX(-1));
+    try std.testing.expectError(error.CoordinateOutOfRange, placed.deviceY(-1));
+}
+
+fn fractionalImpliedMidpoint(wrapped: *Shape, internal: *Shape) !void {
+    const points = [_]Point{
+        .{ .X = -1, .Y = 0, .OnCurve = false },
+        .{ .X = 1, .Y = 4, .OnCurve = true },
+        .{ .X = 2, .Y = 1, .OnCurve = false },
+    };
+    const outline = fixture.outline(&points);
+    const rotated = fixture.outline(&.{ points[1], points[2], points[0] });
+    const scale = try Fixed16Dot16.fromRatio(1, 32);
+    try raster.flatten.flatten(&outline, scale, 0, 0, wrapped);
+    try raster.flatten.flatten(&rotated, scale, 0, 0, internal);
+    try std.testing.expectEqual(@as(u16, 2), wrapped.EdgeCount);
+    try std.testing.expectEqual(wrapped.EdgeCount, internal.EdgeCount);
+    try std.testing.expectEqualDeep(wrapped.Edges[0], internal.Edges[1]);
+    try std.testing.expectEqualDeep(wrapped.Edges[1], internal.Edges[0]);
 }

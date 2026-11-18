@@ -20,6 +20,11 @@ pub fn flatten(
     shape: *Shape,
 ) RasterError!void {
     shape.reset();
+    errdefer shape.reset();
+
+    if (outline.ContourCount > outline.ContourEnds.len or outline.PointCount > outline.Points.len) {
+        return RasterError.InvalidContour;
+    }
 
     const placement = Placement{ .Scale = scale, .OriginX = origin_x, .BaselineY = baseline_y };
 
@@ -31,8 +36,8 @@ pub fn flatten(
 
 fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, shape: *Shape) RasterError!void {
     const range = outline.contourRange(contour);
-    if (range.End < range.Start) {
-        return;
+    if (range.End < range.Start or range.End >= outline.PointCount) {
+        return RasterError.InvalidContour;
     }
 
     const count = range.End - range.Start + 1;
@@ -48,17 +53,15 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
     var index: u16 = 0;
 
     if (first.OnCurve) {
-        start_x = placement.deviceX(first.X);
-        start_y = placement.deviceY(first.Y);
+        start_x = try placement.deviceX(first.X);
+        start_y = try placement.deviceY(first.Y);
         index = 1;
     } else if (last.OnCurve) {
-        start_x = placement.deviceX(last.X);
-        start_y = placement.deviceY(last.Y);
-        index = 0;
+        start_x = try placement.deviceX(last.X);
+        start_y = try placement.deviceY(last.Y);
     } else {
-        start_x = placement.deviceX(@intCast(@divTrunc(@as(i64, first.X) + last.X, 2)));
-        start_y = placement.deviceY(@intCast(@divTrunc(@as(i64, first.Y) + last.Y, 2)));
-        index = 0;
+        start_x = midpoint(try placement.deviceX(last.X), try placement.deviceX(first.X));
+        start_y = midpoint(try placement.deviceY(last.Y), try placement.deviceY(first.Y));
     }
 
     var current_x = start_x;
@@ -69,31 +72,31 @@ fn flattenContour(outline: *const Outline, contour: u16, placement: Placement, s
 
     while (index < count) : (index += 1) {
         const point = outline.Points[range.Start + index];
-        const px = placement.deviceX(point.X);
-        const py = placement.deviceY(point.Y);
+        const point_x = try placement.deviceX(point.X);
+        const point_y = try placement.deviceY(point.Y);
 
         if (point.OnCurve) {
             if (has_control) {
-                try emitQuadratic(shape, current_x, current_y, control_x, control_y, px, py, 0);
+                try emitQuadratic(shape, current_x, current_y, control_x, control_y, point_x, point_y, 0);
                 has_control = false;
             } else {
-                try shape.addEdge(current_x, current_y, px, py);
+                try shape.addEdge(current_x, current_y, point_x, point_y);
             }
-            current_x = px;
-            current_y = py;
+            current_x = point_x;
+            current_y = point_y;
             continue;
         }
 
         if (has_control) {
-            const implied_x: i32 = @intCast(@divTrunc(@as(i64, control_x) + px, 2));
-            const implied_y: i32 = @intCast(@divTrunc(@as(i64, control_y) + py, 2));
+            const implied_x = midpoint(control_x, point_x);
+            const implied_y = midpoint(control_y, point_y);
             try emitQuadratic(shape, current_x, current_y, control_x, control_y, implied_x, implied_y, 0);
             current_x = implied_x;
             current_y = implied_y;
         }
 
-        control_x = px;
-        control_y = py;
+        control_x = point_x;
+        control_y = point_y;
         has_control = true;
     }
 
@@ -124,12 +127,12 @@ fn emitQuadratic(
         return;
     }
 
-    const left_x: i32 = @intCast((@as(i64, x0) + control_x) >> 1);
-    const left_y: i32 = @intCast((@as(i64, y0) + control_y) >> 1);
-    const right_x: i32 = @intCast((@as(i64, control_x) + x1) >> 1);
-    const right_y: i32 = @intCast((@as(i64, control_y) + y1) >> 1);
-    const middle_x: i32 = @intCast((@as(i64, left_x) + right_x) >> 1);
-    const middle_y: i32 = @intCast((@as(i64, left_y) + right_y) >> 1);
+    const left_x = midpoint(x0, control_x);
+    const left_y = midpoint(y0, control_y);
+    const right_x = midpoint(control_x, x1);
+    const right_y = midpoint(control_y, y1);
+    const middle_x = midpoint(left_x, right_x);
+    const middle_y = midpoint(left_y, right_y);
 
     try emitQuadratic(shape, x0, y0, left_x, left_y, middle_x, middle_y, depth + 1);
     try emitQuadratic(shape, middle_x, middle_y, right_x, right_y, x1, y1, depth + 1);
@@ -137,4 +140,8 @@ fn emitQuadratic(
 
 fn magnitude(value: i64) i64 {
     return if (value < 0) -value else value;
+}
+
+fn midpoint(first: i32, second: i32) i32 {
+    return @intCast((@as(i64, first) + second) >> 1);
 }

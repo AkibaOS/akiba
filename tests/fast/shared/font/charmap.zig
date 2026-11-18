@@ -4,6 +4,7 @@ const std = @import("std");
 
 const constants = @import("tests").constants.render;
 const encoding = @import("tests").fast.shared.sfnt.fixture;
+const fixture = @import("tests").fast.shared.font.fixture;
 const font = @import("shared").font;
 
 pub fn segmentedMapping() !void {
@@ -28,6 +29,31 @@ pub fn segmentedCoverage() !void {
     try std.testing.expectEqual(@as(u16, 0), try font.charmap.lookup(&constants.CMAP12, 'C'));
     try std.testing.expectEqual(@as(u16, 0), try font.charmap.lookup(&constants.CMAP12, 0));
     try std.testing.expectError(error.UnexpectedEnd, font.charmap.lookup(constants.CMAP12[0..16], 'A'));
+}
+
+pub fn declaredLengths() !void {
+    var segments = constants.CMAP4;
+    encoding.writeU16(&segments, 2, 16);
+    try std.testing.expectError(error.UnexpectedEnd, font.charmap.lookup(&segments, 'A'));
+    var groups = constants.CMAP12;
+    encoding.writeU32(&groups, 4, 16);
+    try std.testing.expectError(error.UnexpectedEnd, font.charmap.lookup(&groups, 'A'));
+    const selected = try font.charmap.select(&(constants.CMAP ++ constants.ENDIAN_BYTES));
+    try std.testing.expectEqual(constants.CMAP12.len, selected.len);
+}
+
+pub fn glyphDomain() !void {
+    var groups = constants.CMAP12;
+    const latin_start_glyph = 36;
+    encoding.writeU32(&groups, latin_start_glyph, 65536);
+    try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookup(&groups, 'A'));
+    encoding.writeU32(&groups, latin_start_glyph, std.math.maxInt(u32));
+    try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookup(&groups, 'B'));
+    const data = fixture.minimal();
+    var face = try font.face.load(data.Data[0..data.Length]);
+    encoding.writeU32(&groups, latin_start_glyph, face.GlyphCount);
+    face.Charmap = &groups;
+    try std.testing.expectError(error.GlyphOutOfRange, font.charmap.lookupFace(&face, 'A'));
 }
 
 pub fn selectionPreferenceAndErrors() !void {

@@ -1,5 +1,7 @@
 //! Character To Glyph Mapping
 
+const std = @import("std");
+
 const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
@@ -15,6 +17,7 @@ pub fn select(table: []const u8) FontError![]const u8 {
 
     var best: ?[]const u8 = null;
     var best_rank: u8 = 0;
+    var best_format: u16 = 0;
 
     var index: u16 = 0;
     while (index < record_count) : (index += 1) {
@@ -35,10 +38,11 @@ pub fn select(table: []const u8) FontError![]const u8 {
         if (rank > best_rank) {
             best_rank = rank;
             best = subtable;
+            best_format = format;
         }
     }
 
-    return best orelse FontError.UnsupportedCharacterMap;
+    return bounded(best orelse return FontError.UnsupportedCharacterMap, best_format);
 }
 
 fn rankSubtable(platform: u16, encoding: u16, format: u16) u8 {
@@ -61,13 +65,35 @@ fn rankSubtable(platform: u16, encoding: u16, format: u16) u8 {
     return 0;
 }
 
+pub fn lookupFace(face: *const font.types.face.Face, codepoint: u32) FontError!u16 {
+    const id = try lookup(face.Charmap, codepoint);
+    if (id >= face.GlyphCount) return FontError.GlyphOutOfRange;
+    return id;
+}
+
+fn bounded(subtable: []const u8, format: u16) FontError![]const u8 {
+    var reader = Reader.initialize(subtable);
+    try reader.skip(@sizeOf(u16));
+    const length: usize = switch (format) {
+        constants.FORMAT_SEGMENT_MAPPING => try reader.readU16(),
+        constants.FORMAT_SEGMENTED_COVERAGE => coverage: {
+            try reader.skip(@sizeOf(u16));
+            break :coverage try reader.readU32();
+        },
+        else => return FontError.UnsupportedCharacterMap,
+    };
+    const header_size = if (format == constants.FORMAT_SEGMENT_MAPPING) constants.SEGMENT_HEADER_SIZE else constants.COVERAGE_HEADER_SIZE;
+    if (length < header_size or length > subtable.len) return FontError.UnexpectedEnd;
+    return subtable[0..length];
+}
+
 pub fn lookup(subtable: []const u8, codepoint: u32) FontError!u16 {
     var reader = Reader.initialize(subtable);
     const format = try reader.readU16();
 
     return switch (format) {
-        constants.FORMAT_SEGMENT_MAPPING => lookupSegmentMapping(subtable, codepoint),
-        constants.FORMAT_SEGMENTED_COVERAGE => lookupSegmentedCoverage(subtable, codepoint),
+        constants.FORMAT_SEGMENT_MAPPING => lookupSegmentMapping(try bounded(subtable, format), codepoint),
+        constants.FORMAT_SEGMENTED_COVERAGE => lookupSegmentedCoverage(try bounded(subtable, format), codepoint),
         else => FontError.UnsupportedCharacterMap,
     };
 }
@@ -81,7 +107,10 @@ fn lookupSegmentMapping(subtable: []const u8, codepoint: u32) FontError!u16 {
     var reader = Reader.initialize(subtable);
     try reader.seek(6);
     const segment_count_doubled = try reader.readU16();
+    if (segment_count_doubled == 0 or segment_count_doubled % 2 != 0) return FontError.InvalidCharacterMap;
     const segment_count = segment_count_doubled / 2;
+    const glyphs_start = constants.SEGMENT_HEADER_SIZE + constants.SEGMENT_ARRAY_COUNT * @as(usize, segment_count_doubled);
+    if (glyphs_start > subtable.len) return FontError.UnexpectedEnd;
 
     const end_codes: usize = 14;
     const start_codes: usize = end_codes + segment_count_doubled + 2;
@@ -115,6 +144,7 @@ fn lookupSegmentMapping(subtable: []const u8, codepoint: u32) FontError!u16 {
 
         const glyph_position = range_offset_position + @as(usize, range_offset) +
             @as(usize, character - start_code) * 2;
+        if (glyph_position < glyphs_start or glyph_position % @sizeOf(u16) != 0) return FontError.InvalidCharacterMap;
         try reader.seek(glyph_position);
         const glyph = try reader.readU16();
 
@@ -132,7 +162,8 @@ fn lookupSegmentedCoverage(subtable: []const u8, codepoint: u32) FontError!u16 {
     try reader.seek(12);
     const group_count = try reader.readU32();
 
-    const groups: usize = 16;
+    const groups = constants.COVERAGE_HEADER_SIZE;
+    if (group_count > (subtable.len - groups) / constants.GROUP_SIZE) return FontError.UnexpectedEnd;
 
     var low: u32 = 0;
     var high: u32 = group_count;
@@ -149,7 +180,8 @@ fn lookupSegmentedCoverage(subtable: []const u8, codepoint: u32) FontError!u16 {
         } else if (codepoint > end_character) {
             low = middle + 1;
         } else {
-            return @truncate(start_glyph + (codepoint - start_character));
+            const id = @as(u64, start_glyph) + (codepoint - start_character);
+            return std.math.cast(u16, id) orelse FontError.GlyphOutOfRange;
         }
     }
 

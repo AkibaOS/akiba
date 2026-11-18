@@ -1,6 +1,11 @@
 //! Raster Errors
 
-pub const RasterError = error{
-    TooManyEdges,
+pub const CoordinateError = error{
+    CoordinateOutOfRange,
+};
+
+pub const RasterError = CoordinateError || error{
+    InvalidContour,
     ShapeTooWide,
+    TooManyEdges,
 };

@@ -12,5 +12,9 @@ pub const FontError = error{
     OutlineTooComplex,
     ComponentDepthExceeded,
     UnsupportedCharacterMap,
+    InvalidCharacterMap,
+    InvalidPixelSize,
+    ScaleOutOfRange,
+    MetricOutOfRange,
     GlyphOutOfRange,
 };

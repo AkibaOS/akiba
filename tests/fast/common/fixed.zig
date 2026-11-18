@@ -97,20 +97,20 @@ pub fn fixed26Ordering() !void {
 
 pub fn fixed16SignedRatios() !void {
     for (constants.FIXED16_RATIO_CASES) |case| {
-        try std.testing.expectEqual(case.Raw, fixed.Fixed16Dot16.fromRatio(case.Numerator, case.Denominator).Raw);
+        try std.testing.expectEqual(case.Raw, (try fixed.Fixed16Dot16.fromRatio(case.Numerator, case.Denominator)).Raw);
     }
 }
 
 pub fn fixed16NegativeDenominators() !void {
     for (constants.FIXED16_NEGATIVE_RATIO_CASES) |case| {
-        try std.testing.expectEqual(case.Raw, fixed.Fixed16Dot16.fromRatio(case.Numerator, case.Denominator).Raw);
+        try std.testing.expectEqual(case.Raw, (try fixed.Fixed16Dot16.fromRatio(case.Numerator, case.Denominator)).Raw);
     }
 }
 
 pub fn fixed16ZeroDenominator() !void {
-    try std.testing.expectEqual(@as(i32, 0), fixed.Fixed16Dot16.fromRatio(0, 0).Raw);
-    try std.testing.expectEqual(@as(i32, 0), fixed.Fixed16Dot16.fromRatio(1, 0).Raw);
-    try std.testing.expectEqual(@as(i32, 0), fixed.Fixed16Dot16.fromRatio(-1, 0).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try fixed.Fixed16Dot16.fromRatio(0, 0)).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try fixed.Fixed16Dot16.fromRatio(1, 0)).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try fixed.Fixed16Dot16.fromRatio(-1, 0)).Raw);
 }
 
 pub fn fixed16Multiplication() !void {
@@ -128,21 +128,23 @@ pub fn fixed16Multiplication() !void {
 }
 
 pub fn fixed16UnitScaling() !void {
-    const scale = fixed.Fixed16Dot16.fromRatio(3, 2);
+    const scale = try fixed.Fixed16Dot16.fromRatio(3, 2);
     const half = fixed.Fixed16Dot16.fromRaw(512);
     const below_half = fixed.Fixed16Dot16.fromRaw(511);
     const negative_half = fixed.Fixed16Dot16.fromRaw(-512);
     const identity = fixed.Fixed16Dot16.fromRaw(65536);
 
-    try std.testing.expectEqual(@as(i32, 480), scale.applyToUnits(5).Raw);
-    try std.testing.expectEqual(@as(i32, -480), scale.applyToUnits(-5).Raw);
-    try std.testing.expectEqual(@as(i32, 0), scale.applyToUnits(0).Raw);
-    try std.testing.expectEqual(@as(i32, 1), half.applyToUnits(1).Raw);
-    try std.testing.expectEqual(@as(i32, -1), half.applyToUnits(-1).Raw);
-    try std.testing.expectEqual(@as(i32, 0), below_half.applyToUnits(1).Raw);
-    try std.testing.expectEqual(@as(i32, 0), below_half.applyToUnits(-1).Raw);
-    try std.testing.expectEqual(@as(i32, -1), negative_half.applyToUnits(1).Raw);
-    try std.testing.expectEqual(@as(i32, 1), negative_half.applyToUnits(-1).Raw);
-    try std.testing.expectEqual(@as(i32, 2147483584), identity.applyToUnits(33554431).Raw);
-    try std.testing.expectEqual(@as(i32, -2147483648), identity.applyToUnits(-33554432).Raw);
+    try std.testing.expectEqual(@as(i32, 480), (try scale.applyToUnits(5)).Raw);
+    try std.testing.expectEqual(@as(i32, -480), (try scale.applyToUnits(-5)).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try scale.applyToUnits(0)).Raw);
+    try std.testing.expectEqual(@as(i32, 1), (try half.applyToUnits(1)).Raw);
+    try std.testing.expectEqual(@as(i32, -1), (try half.applyToUnits(-1)).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try below_half.applyToUnits(1)).Raw);
+    try std.testing.expectEqual(@as(i32, 0), (try below_half.applyToUnits(-1)).Raw);
+    try std.testing.expectEqual(@as(i32, -1), (try negative_half.applyToUnits(1)).Raw);
+    try std.testing.expectEqual(@as(i32, 1), (try negative_half.applyToUnits(-1)).Raw);
+    try std.testing.expectEqual(@as(i32, 2147483584), (try identity.applyToUnits(33554431)).Raw);
+    try std.testing.expectEqual(@as(i32, -2147483648), (try identity.applyToUnits(-33554432)).Raw);
+    try std.testing.expectError(error.Overflow, identity.applyToUnits(33554432));
+    try std.testing.expectError(error.Overflow, fixed.Fixed16Dot16.fromRatio(std.math.maxInt(i32), 1));
 }
