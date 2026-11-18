@@ -1,6 +1,6 @@
 //! Pending Owned Kernel Root Types
 
-const constants = @import("mirai").kagami.constants.bootstrap;
+const layout = @import("common").constants.memory.layout;
 const kagami = @import("mirai").kagami.types.kagami;
 const policy = @import("mirai").kagami.types.policy;
 
@@ -15,7 +15,7 @@ pub const PreparedRoot = struct {
     Phase: Phase = .Empty,
     Kagami: kagami.Kagami = .{},
     Policy: policy.Policy = .{},
-    StackFrames: [constants.MAX_STACK_FRAMES]u64 = [_]u64{0} ** constants.MAX_STACK_FRAMES,
+    StackFrames: [layout.KERNEL_STACK_PAGES]u64 = @splat(0),
     TableCount: usize = 0,
     StackCount: usize = 0,
     PreviousCR3: u64 = 0,

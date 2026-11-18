@@ -66,8 +66,7 @@ pub fn prepare(info: *const sequence.BootInfo) errors.BootError!*PreparedRoot {
     inline for (.{ manifest.Text, manifest.Rodata, manifest.Data, manifest.DoubleFault, manifest.NonMaskable, manifest.MachineCheck, manifest.Debug }) |region| {
         try mapImageRegion(&pending, region);
     }
-    if (stacklimits.STACK_PAGES != limits.MAX_STACK_FRAMES) return errors.BootError.InvalidSize;
-    while (pending.StackCount < limits.MAX_STACK_FRAMES) {
+    while (pending.StackCount < pending.StackFrames.len) {
         const page_index = pending.StackCount;
         const physical_address = try mapping.allocateStack(&pending);
         try mapping.map(&pending, stack_base + page_index * sizes.PAGE_SIZE, physical_address, sizes.PAGE_SIZE, true, false, false);

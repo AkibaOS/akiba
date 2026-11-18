@@ -26,14 +26,6 @@ pub const TSS = extern struct {
         self.RSP0 = stack_top;
     }
 
-    pub fn setRSP1(self: *TSS, stack_top: u64) void {
-        self.RSP1 = stack_top;
-    }
-
-    pub fn setRSP2(self: *TSS, stack_top: u64) void {
-        self.RSP2 = stack_top;
-    }
-
     pub fn setIST(self: *TSS, index: u8, stack_top: u64) void {
         switch (index) {
             1 => self.IST1 = stack_top,
@@ -58,10 +50,6 @@ pub const TSS = extern struct {
             7 => self.IST7,
             else => 0,
         };
-    }
-
-    pub fn getAddress(self: *const TSS) u64 {
-        return @intFromPtr(self);
     }
 
     pub fn clear(self: *TSS) void {

@@ -25,7 +25,6 @@ const types = @import("mirai").boot.types;
 const messages = strings.sequence.messages;
 const status = strings.sequence.status;
 const BootInfo = types.sequence.info.BootInfo;
-const Phase = types.sequence.phase.Phase;
 const PreparedRoot = kagami.types.prepared.PreparedRoot;
 
 var prepared_root: ?*PreparedRoot = null;
@@ -34,14 +33,11 @@ pub fn execute(boot_info: *const BootInfo) noreturn {
     print.printBanner();
     print.log(messages.STARTING, .{});
     print.log(messages.POWERED, .{});
-    state.setCurrentPhase(Phase.CPU);
     if (!cpu.execute()) {
         print.fail(status.ERROR_PROCESSOR);
         haltOnFailure();
     }
-    state.advancePhase();
     print.log(messages.NEWLINE, .{});
-    state.setCurrentPhase(Phase.Memory);
     if (!memory.prepare(boot_info)) {
         print.fail(status.ERROR_MEMORY);
         haltOnFailure();
@@ -79,17 +75,13 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }
-    state.advancePhase();
     print.log(messages.NEWLINE, .{});
-    state.setCurrentPhase(Phase.Interrupts);
     if (!interrupts.execute()) {
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }
     if (options.GUEST_CHECKS) checks.execute();
-    state.advancePhase();
     print.phase(status.READY);
-    state.setCurrentPhase(Phase.Complete);
     sensei.idle.runIdle();
 }
 
