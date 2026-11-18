@@ -18,6 +18,7 @@ pub fn run() !void {
     headerBounds();
     entryBounds();
     readFailures();
+    mediaChanges();
     allocationFailures();
 }
 
@@ -50,7 +51,7 @@ fn expandedTable(block_size: u32, count: u32, comptime label: []const u8) !void 
     fixture.encodeExpandedGPT(block_size, count);
     var parsed = try Parser.initialize(&fixture.protocol, &fixture.services);
     const last = parsed.findPartitionByIndex(count - 1);
-    const valid = parsed.EntriesCount == count and parsed.BlockSize == block_size and
+    const valid = parsed.EntriesCount == count and parsed.Media.BlockSize == block_size and
         last != null and last.?.isType(constants.TYPE_B) and
         parsed.findPartitionByType(constants.TYPE_B) == last and parsed.countValidPartitions() == 1 and
         parsed.findPartitionByIndex(count) == null and fixture.device.ReadCalls == 2 and fixture.live() == 1;
@@ -129,6 +130,22 @@ fn readFailures() void {
     fixture.encodeGPT();
     fixture.device.FailLBA = constants.TABLE_LBA;
     verify.require(header and rejects(ParseError.ReadFailed, 2, 2, 2), labels.GPT_READ_FAILURE);
+}
+
+fn mediaChanges() void {
+    fixture.reset();
+    fixture.encodeGPT();
+    var replacement = fixture.media;
+    replacement.MediaId += 1;
+    fixture.changeMediaAfterRead(constants.HEADER_LBA, replacement);
+    const replaced = rejects(ParseError.ReadFailed, 1, 1, 1);
+
+    fixture.reset();
+    fixture.encodeGPT();
+    replacement = fixture.media;
+    replacement.IOAlign = 1;
+    fixture.changeMediaAfterRead(constants.TABLE_LBA, replacement);
+    verify.require(replaced and rejects(ParseError.ReadFailed, 2, 2, 2), labels.GPT_MEDIA);
 }
 
 fn allocationFailures() void {

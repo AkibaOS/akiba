@@ -3,12 +3,14 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
+const disk = @import("hikari").disk;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 
 const BTreeError = errors.afs.BTreeError;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
 const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
+const MediaSnapshot = disk.types.media.MediaSnapshot;
 const StackRecord = afs.types.catalog.StackRecord;
 const UnitRecord = afs.types.catalog.UnitRecord;
 const ThreadRecord = afs.types.catalog.ThreadRecord;
@@ -17,7 +19,7 @@ const node = afs.btree.node;
 const search = afs.btree.search;
 
 pub const BTree = struct {
-    BlockIO: *efi.types.protocols.block.BlockIoProtocol,
+    Media: MediaSnapshot,
     BootServices: *efi.types.services.boot.BootServices,
     PartitionStartLBA: u64,
     PartitionEndLBA: u64,
@@ -32,7 +34,7 @@ pub const BTree = struct {
     NodeBuffer: [*]align(8) u8,
 
     pub fn initialize(
-        block_io: *efi.types.protocols.block.BlockIoProtocol,
+        media: MediaSnapshot,
         boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
@@ -40,7 +42,7 @@ pub const BTree = struct {
         base_span: SpanDescriptor,
         header: *const BTreeHeaderRecord,
     ) BTreeError!BTree {
-        const block_size = block_io.Media.BlockSize;
+        const block_size = media.BlockSize;
         if (afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, block_size, cell_size, base_span.StartCell, cell_size) == null or
             header.NodeSize < @sizeOf(BTreeNodeDescriptor) + @sizeOf(u16) or header.NodeSize > cell_size or
             cell_size % header.NodeSize != 0 or header.TotalNodes == 0 or header.FreeNodes > header.TotalNodes or
@@ -68,7 +70,7 @@ pub const BTree = struct {
         }
 
         return BTree{
-            .BlockIO = block_io,
+            .Media = media,
             .BootServices = boot_services,
             .PartitionStartLBA = partition_start_lba,
             .PartitionEndLBA = partition_end_lba,
@@ -100,24 +102,16 @@ pub const BTree = struct {
         const cell_lba = afs.read.bounds.cellLBA(
             self.PartitionStartLBA,
             self.PartitionEndLBA,
-            self.BlockIO.Media.BlockSize,
+            self.Media.BlockSize,
             self.CellSize,
             self.BaseSpan.StartCell + cell_offset,
             self.CellSize,
         ) orelse return BTreeError.InvalidNode;
 
-        var cell_buffer = efi.buffer.allocate(self.BootServices, self.CellSize, self.BlockIO.Media.IOAlign) orelse return BTreeError.AllocationFailed;
+        if (!self.Media.isCurrent()) return BTreeError.ReadFailed;
+        var cell_buffer = efi.buffer.allocate(self.BootServices, self.CellSize, self.Media.IOAlign) orelse return BTreeError.AllocationFailed;
         defer efi.buffer.release(self.BootServices, &cell_buffer);
-        const read_status = self.BlockIO.ReadBlocks(
-            self.BlockIO,
-            self.BlockIO.Media.MediaId,
-            cell_lba,
-            self.CellSize,
-            cell_buffer.Data,
-        );
-        if (efi.status.isError(read_status)) {
-            return BTreeError.ReadFailed;
-        }
+        if (!self.Media.read(cell_lba, cell_buffer.Data[0..cell_buffer.Size])) return BTreeError.ReadFailed;
 
         const node_pointer = cell_buffer.Data + node_offset_in_cell;
         var index: u32 = 0;

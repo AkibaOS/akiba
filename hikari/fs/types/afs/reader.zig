@@ -1,6 +1,7 @@
 //! Hikari AFS Reader
 
 const afs = @import("shared").afs;
+const disk = @import("hikari").disk;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 const text = @import("utils").text;
@@ -11,6 +12,7 @@ const AllocatedBuffer = types.afs.buffer.AllocatedBuffer;
 const BTree = types.afs.btree.BTree;
 const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
+const MediaSnapshot = disk.types.media.MediaSnapshot;
 const ReadError = errors.afs.ReadError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 const UnitRecord = afs.types.catalog.UnitRecord;
@@ -19,7 +21,7 @@ const VolumeHeader = afs.types.volume.VolumeHeader;
 const constants = afs.constants;
 
 pub const Reader = struct {
-    BlockIO: *efi.types.protocols.block.BlockIoProtocol,
+    Media: MediaSnapshot,
     BootServices: *efi.types.services.boot.BootServices,
     PartitionStartLBA: u64,
     PartitionEndLBA: u64,
@@ -31,22 +33,22 @@ pub const Reader = struct {
     CellAllocation: efi.types.buffer.AlignedBuffer,
 
     pub fn initialize(
-        block_io: *efi.types.protocols.block.BlockIoProtocol,
+        media: MediaSnapshot,
         boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
     ) ReadError!Reader {
-        const block_size = block_io.Media.BlockSize;
+        if (!media.isCurrent()) return ReadError.ReadFailed;
+        const block_size = media.BlockSize;
         if (block_size < @sizeOf(VolumeHeader) or block_size > constants.sizes.MAXIMUM_CELL_SIZE or
             (block_size & (block_size - 1)) != 0 or partition_start_lba == 0 or
-            partition_end_lba < partition_start_lba or partition_end_lba > block_io.Media.LastBlock)
+            partition_end_lba < partition_start_lba or partition_end_lba > media.LastBlock)
         {
             return ReadError.InvalidVolumeHeader;
         }
-        var sector_buffer = efi.buffer.allocate(boot_services, block_size, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+        var sector_buffer = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ReadError.AllocationFailed;
         defer efi.buffer.release(boot_services, &sector_buffer);
-        const read_status = block_io.ReadBlocks(block_io, block_io.Media.MediaId, partition_start_lba, block_size, sector_buffer.Data);
-        if (efi.status.isError(read_status)) return ReadError.ReadFailed;
+        if (!media.read(partition_start_lba, sector_buffer.Data[0..sector_buffer.Size])) return ReadError.ReadFailed;
 
         const header = @as(*const VolumeHeader, @ptrCast(@alignCast(sector_buffer.Data))).*;
         if (!header.isValid() or header.CellSize < block_size or (header.CellSize & (header.CellSize - 1)) != 0 or
@@ -59,11 +61,11 @@ pub const Reader = struct {
         if (header.TotalCells > partition_cells or !afs.read.bounds.spanFits(header.IndexSpan, header.TotalCells)) {
             return ReadError.InvalidVolumeHeader;
         }
-        var cell_buffer = efi.buffer.allocate(boot_services, header.CellSize, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+        var cell_buffer = efi.buffer.allocate(boot_services, header.CellSize, media.IOAlign) orelse return ReadError.AllocationFailed;
         errdefer efi.buffer.release(boot_services, &cell_buffer);
-        const index_header = try readBtreeHeader(block_io, boot_services, partition_start_lba, partition_end_lba, header.CellSize, header.IndexSpan);
-        const index = BTree.initialize(
-            block_io,
+        const index_header = try readBtreeHeader(media, boot_services, partition_start_lba, partition_end_lba, header.CellSize, header.IndexSpan);
+        var index = BTree.initialize(
+            media,
             boot_services,
             partition_start_lba,
             partition_end_lba,
@@ -71,9 +73,11 @@ pub const Reader = struct {
             header.IndexSpan,
             &index_header,
         ) catch return ReadError.BTreeError;
+        errdefer index.deinitialize();
+        if (!media.isCurrent()) return ReadError.ReadFailed;
 
         return Reader{
-            .BlockIO = block_io,
+            .Media = media,
             .BootServices = boot_services,
             .PartitionStartLBA = partition_start_lba,
             .PartitionEndLBA = partition_end_lba,
@@ -121,13 +125,12 @@ pub const Reader = struct {
         const cell_lba = afs.read.bounds.cellLBA(
             self.PartitionStartLBA,
             self.PartitionEndLBA,
-            self.BlockIO.Media.BlockSize,
+            self.Media.BlockSize,
             self.CellSize,
             cell_number,
             self.CellSize,
         ) orelse return ReadError.InvalidSpan;
-        const read_status = self.BlockIO.ReadBlocks(self.BlockIO, self.BlockIO.Media.MediaId, cell_lba, self.CellSize, self.CellBuffer);
-        if (efi.status.isError(read_status)) return ReadError.ReadFailed;
+        if (!self.Media.read(cell_lba, self.CellBuffer[0..self.CellSize])) return ReadError.ReadFailed;
     }
 
     pub fn readUnit(self: *Reader, unit: *const UnitRecord, buffer: [*]u8, max_size: u64) ReadError!u64 {
@@ -185,7 +188,7 @@ pub const Reader = struct {
     }
 
     fn readBtreeHeader(
-        block_io: *efi.types.protocols.block.BlockIoProtocol,
+        media: MediaSnapshot,
         boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
         partition_end_lba: u64,
@@ -193,11 +196,10 @@ pub const Reader = struct {
         span: SpanDescriptor,
     ) ReadError!BTreeHeaderRecord {
         if (cell_size < @sizeOf(BTreeNodeDescriptor) + @sizeOf(BTreeHeaderRecord)) return ReadError.InvalidVolumeHeader;
-        const cell_lba = afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, block_io.Media.BlockSize, cell_size, span.StartCell, cell_size) orelse return ReadError.InvalidSpan;
-        var cell_buffer = efi.buffer.allocate(boot_services, cell_size, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+        const cell_lba = afs.read.bounds.cellLBA(partition_start_lba, partition_end_lba, media.BlockSize, cell_size, span.StartCell, cell_size) orelse return ReadError.InvalidSpan;
+        var cell_buffer = efi.buffer.allocate(boot_services, cell_size, media.IOAlign) orelse return ReadError.AllocationFailed;
         defer efi.buffer.release(boot_services, &cell_buffer);
-        const read_status = block_io.ReadBlocks(block_io, block_io.Media.MediaId, cell_lba, cell_size, cell_buffer.Data);
-        if (efi.status.isError(read_status)) return ReadError.ReadFailed;
+        if (!media.read(cell_lba, cell_buffer.Data[0..cell_buffer.Size])) return ReadError.ReadFailed;
         const descriptor: *const BTreeNodeDescriptor = @ptrCast(@alignCast(cell_buffer.Data));
         if (!descriptor.isHeader() or descriptor.RecordCount == 0) return ReadError.InvalidVolumeHeader;
         return @as(*const BTreeHeaderRecord, @ptrCast(@alignCast(cell_buffer.Data + @sizeOf(BTreeNodeDescriptor)))).*;

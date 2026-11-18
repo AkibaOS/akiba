@@ -28,7 +28,7 @@ pub fn run(real: *services.boot.BootServices) !void {
     wrapped.AllocatePool = allocatePool;
     wrapped.FreePool = freePool;
     const found = partition.?;
-    state.Reader = try readers.Reader.initialize(found.BlockIO, &wrapped, found.StartLBA, found.EndLBA);
+    state.Reader = try readers.Reader.initialize(found.Media, &wrapped, found.StartLBA, found.EndLBA);
     const reader = if (state.Reader) |*source| source else unreachable;
     require(reader.Index.Depth >= inputs.MINIMUM_DEPTH and reader.Index.TotalNodes > inputs.FORMER_INDEX_NODES and
         reader.VolumeHeader.IndexDepth == reader.Index.Depth and reader.VolumeHeader.IndexTotalNodes == reader.Index.TotalNodes, labels.SHAPE);

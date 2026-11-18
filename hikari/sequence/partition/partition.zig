@@ -37,7 +37,7 @@ pub fn findAfsPartition(boot_services: *efi.types.services.boot.BootServices) ?P
             continue;
         }
 
-        const block_io_protocol: *efi.types.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(block_io));
+        const block_io_protocol: *efi.types.protocols.block.BlockIoProtocol = @ptrCast(@alignCast(block_io orelse continue));
 
         if (block_io_protocol.Media.LogicalPartition) {
             continue;
@@ -48,10 +48,11 @@ pub fn findAfsPartition(boot_services: *efi.types.services.boot.BootServices) ?P
         };
 
         defer gpt_parser.deinitialize();
+        if (gpt_parser.Media.LogicalPartition or !gpt_parser.Media.isCurrent()) continue;
         const afs_partition = gpt_parser.findPartitionByType(efi.constants.guids.GPT_PARTITION_TYPE_AKIBA_AFS);
         if (afs_partition) |partition| {
             return PartitionInfo{
-                .BlockIO = block_io_protocol,
+                .Media = gpt_parser.Media,
                 .StartLBA = partition.StartingLBA,
                 .EndLBA = partition.EndingLBA,
             };

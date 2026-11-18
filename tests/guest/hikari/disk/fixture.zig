@@ -9,6 +9,7 @@ const boot = @import("hikari").efi.types.services.boot;
 const constants = @import("tests").constants.acquisition;
 const convention = @import("hikari").efi.constants.convention;
 const crc = @import("utils").crc.checksum;
+const guids = @import("hikari").efi.constants.guids;
 const labels = @import("tests").strings.acquisition;
 const memory = @import("hikari").efi.types.memory;
 const protocols = @import("hikari").efi.types.protocols.block;
@@ -19,6 +20,9 @@ pub var device: types.Device = .{};
 pub var media: block.BlockIoMedia = undefined;
 pub var protocol: protocols.BlockIoProtocol = undefined;
 pub var services: boot.BootServices = undefined;
+
+var replacement: block.BlockIoMedia = undefined;
+var replacement_lba: ?u64 = null;
 
 pub fn reset() void {
     if (live() != 0) @panic(labels.FIXTURE_LIFETIME);
@@ -35,6 +39,7 @@ pub fn reset() void {
     device.FailAllocation = null;
     device.FailLBA = null;
     device.Broken = false;
+    replacement_lba = null;
     media = .{
         .MediaId = constants.MEDIA_ID,
         .RemovableMedia = false,
@@ -56,6 +61,13 @@ pub fn reset() void {
     services = undefined;
     services.AllocatePool = allocatePool;
     services.FreePool = freePool;
+    services.HandleProtocol = handleProtocol;
+    services.LocateHandleBuffer = locateHandleBuffer;
+}
+
+pub fn changeMediaAfterRead(lba: u64, next: block.BlockIoMedia) void {
+    replacement = next;
+    replacement_lba = lba;
 }
 
 pub fn live() usize {
@@ -192,6 +204,8 @@ pub fn encodeAFS() void {
     const node = start + constants.BLOCK_BYTES;
     @memcpy(device.Disk[node..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&descriptor));
     @memcpy(device.Disk[node + @sizeOf(afs.types.btree.NodeDescriptor) ..][0..@sizeOf(afs.types.btree.HeaderRecord)], std.mem.asBytes(&header));
+    const leaf: afs.types.btree.NodeDescriptor = .{ .NodeType = afs.constants.btree.NODE_TYPE_LEAF, .Height = 1 };
+    @memcpy(device.Disk[node + constants.BLOCK_BYTES ..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&leaf));
     const payload = start + constants.PAYLOAD_CELL * constants.BLOCK_BYTES;
     @memcpy(device.Disk[payload..][0..constants.UNIT_PAYLOAD.len], &constants.UNIT_PAYLOAD);
 }
@@ -244,6 +258,24 @@ fn freePool(allocation: [*]align(8) u8) callconv(convention.CALLING_CONVENTION) 
     return status.INVALID_PARAMETER;
 }
 
+fn locateHandleBuffer(search_type: memory.LocateSearchType, protocol_guid: ?*align(8) const base.GUID, search_key: ?*anyopaque, handle_count: *usize, handles: *[*]base.Handle) callconv(convention.CALLING_CONVENTION) base.Status {
+    const requested = protocol_guid orelse return status.INVALID_PARAMETER;
+    if (search_type != .ByProtocol or !requested.equals(guids.BLOCK_IO_PROTOCOL) or search_key != null) return status.INVALID_PARAMETER;
+    var buffer: [*]align(8) u8 = undefined;
+    const allocation = allocatePool(.LoaderData, @sizeOf(base.Handle), &buffer);
+    if (allocation != status.SUCCESS) return allocation;
+    handles.* = @ptrCast(buffer);
+    handles.*[0] = @ptrCast(&protocol);
+    handle_count.* = 1;
+    return status.SUCCESS;
+}
+
+fn handleProtocol(handle: base.Handle, protocol_guid: *align(8) const base.GUID, interface: *?*anyopaque) callconv(convention.CALLING_CONVENTION) base.Status {
+    if (handle != @as(base.Handle, @ptrCast(&protocol)) or !protocol_guid.equals(guids.BLOCK_IO_PROTOCOL)) return status.INVALID_PARAMETER;
+    interface.* = &protocol;
+    return status.SUCCESS;
+}
+
 fn readBlocks(self: *protocols.BlockIoProtocol, media_id: u32, lba: base.LBA, buffer_size: usize, buffer: [*]u8) callconv(convention.CALLING_CONVENTION) base.Status {
     if (device.ReadCalls >= device.Reads.len) {
         device.Broken = true;
@@ -251,8 +283,11 @@ fn readBlocks(self: *protocols.BlockIoProtocol, media_id: u32, lba: base.LBA, bu
     }
     device.Reads[device.ReadCalls] = .{ .LBA = lba, .Bytes = buffer_size, .Address = @intFromPtr(buffer) };
     device.ReadCalls += 1;
-    if (self != &protocol or media_id != constants.MEDIA_ID or lba > media.LastBlock or
-        buffer_size == 0 or buffer_size % media.BlockSize != 0 or @intFromPtr(buffer) % @max(media.IOAlign, 1) != 0)
+    if (self != &protocol) return status.INVALID_PARAMETER;
+    if (!media.MediaPresent) return status.NO_MEDIA;
+    if (media_id != media.MediaId) return status.MEDIA_CHANGED;
+    if (lba > media.LastBlock or media.BlockSize == 0 or buffer_size == 0 or buffer_size % media.BlockSize != 0 or
+        @intFromPtr(buffer) % @max(media.IOAlign, 1) != 0 or lba >= device.Disk.len / media.BlockSize)
     {
         device.Broken = true;
         return status.INVALID_PARAMETER;
@@ -264,5 +299,9 @@ fn readBlocks(self: *protocols.BlockIoProtocol, media_id: u32, lba: base.LBA, bu
     }
     if (device.FailLBA == lba) return status.DEVICE_ERROR;
     @memcpy(buffer[0..buffer_size], device.Disk[offset..][0..buffer_size]);
+    if (replacement_lba == lba) {
+        media = replacement;
+        replacement_lba = null;
+    }
     return status.SUCCESS;
 }

@@ -1,5 +1,7 @@
 //! Hikari FAT32 Reader
 
+const std = @import("std");
+
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 const fat32 = @import("shared").fat32;
@@ -7,25 +9,80 @@ const types = @import("hikari").fs.types;
 const utils = @import("utils");
 
 const AllocatedBuffer = types.fat32.buffer.AllocatedBuffer;
-const ReadError = errors.fat32.ReadError;
 const BootSector = fat32.types.boot.BootSector;
+const ReadError = errors.fat32.ReadError;
 const StackEntry = fat32.types.entry.StackEntry;
 const cluster = fat32.read.cluster;
+const clusters = fat32.constants.clusters;
 const stack = fat32.read.stack;
+const status = efi.constants.status;
+
+const MediaBinding = struct {
+    Source: *const efi.types.block.BlockIoMedia,
+    MediaId: u32,
+    BlockSize: u32,
+    IOAlign: u32,
+    LastBlock: u64,
+
+    fn capture(media: *const efi.types.block.BlockIoMedia) MediaBinding {
+        return .{
+            .Source = media,
+            .MediaId = media.MediaId,
+            .BlockSize = media.BlockSize,
+            .IOAlign = media.IOAlign,
+            .LastBlock = media.LastBlock,
+        };
+    }
+
+    fn matches(self: *const MediaBinding, media: *const efi.types.block.BlockIoMedia) bool {
+        return self.Source == media and media.MediaPresent and self.MediaId == media.MediaId and
+            self.BlockSize == media.BlockSize and self.IOAlign == media.IOAlign and self.LastBlock == media.LastBlock;
+    }
+};
+
+const Chain = struct {
+    Current: u32,
+    Remaining: u32,
+    Checkpoint: u32,
+    Window: u32 = 1,
+    Distance: u32 = 0,
+
+    fn initialize(first_cluster: u32, cluster_count: u32) Chain {
+        return .{
+            .Current = first_cluster,
+            .Remaining = cluster_count,
+            .Checkpoint = first_cluster,
+        };
+    }
+
+    fn advance(self: *Chain, next_cluster: u32) ReadError!void {
+        if (self.Remaining <= 1 or next_cluster == self.Checkpoint) return ReadError.InvalidChain;
+        self.Remaining -= 1;
+        self.Distance += 1;
+        if (self.Distance == self.Window) {
+            self.Checkpoint = next_cluster;
+            self.Window *= 2;
+            self.Distance = 0;
+        }
+        self.Current = next_cluster;
+    }
+};
 
 pub const Reader = struct {
     BlockIO: *efi.types.protocols.block.BlockIoProtocol,
     BootServices: *efi.types.services.boot.BootServices,
+    Media: MediaBinding,
+    MediaInvalidated: bool = false,
     PartitionStartLBA: u64,
-    BootSector: BootSector,
-    BytesPerSector: u32,
+    PartitionEndLBA: u64,
+    VolumeEndLBA: u64,
+    FatStartLBA: u64,
+    FatEndLBA: u64,
+    DataStartLBA: u64,
     SectorsPerCluster: u32,
     BytesPerCluster: u32,
-    FatStartLBA: u64,
-    DataStartLBA: u64,
+    ClusterCount: u32,
     OriginCluster: u32,
-    ClusterBuffer: [*]u8,
-    SectorBuffer: [*]u8,
     ClusterAllocation: efi.types.buffer.AlignedBuffer,
     SectorAllocation: efi.types.buffer.AlignedBuffer,
 
@@ -33,63 +90,68 @@ pub const Reader = struct {
         block_io: *efi.types.protocols.block.BlockIoProtocol,
         boot_services: *efi.types.services.boot.BootServices,
         partition_start_lba: u64,
+        partition_end_lba: u64,
     ) ReadError!Reader {
-        const block_size = block_io.Media.BlockSize;
+        const media = MediaBinding.capture(block_io.Media);
+        if (!media.Source.MediaPresent) return ReadError.ReadFailed;
+        if (partition_start_lba > partition_end_lba or partition_end_lba > media.LastBlock) return ReadError.InvalidPartition;
+        const block_size = media.BlockSize;
         if (block_size < @sizeOf(BootSector) or block_size > fat32.constants.sizes.SECTOR_SIZE_MAX or
-            (block_size & (block_size - 1)) != 0 or partition_start_lba > block_io.Media.LastBlock)
+            (block_size & (block_size - 1)) != 0)
         {
             return ReadError.InvalidBootSector;
         }
-        var sector_allocation = efi.buffer.allocate(boot_services, block_size, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+
+        var sector_allocation = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ReadError.AllocationFailed;
         errdefer efi.buffer.release(boot_services, &sector_allocation);
-        const sector_buffer = sector_allocation.Data;
+        if (!media.matches(block_io.Media)) return ReadError.MediaChanged;
+        const read_status = block_io.ReadBlocks(block_io, media.MediaId, partition_start_lba, block_size, sector_allocation.Data);
+        if (mediaLost(read_status) or !media.matches(block_io.Media)) return ReadError.MediaChanged;
+        if (read_status != status.SUCCESS) return ReadError.ReadFailed;
 
-        const read_status = block_io.ReadBlocks(
-            block_io,
-            block_io.Media.MediaId,
-            partition_start_lba,
-            block_size,
-            sector_buffer,
-        );
-        if (efi.status.isError(read_status)) {
-            return ReadError.ReadFailed;
-        }
-
-        const boot_sector: *const BootSector = @ptrCast(@alignCast(sector_buffer));
-        if (!boot_sector.isValid() or boot_sector.BytesPerSector != block_size) {
+        const boot_sector: *const BootSector = @ptrCast(sector_allocation.Data);
+        if (!boot_sector.isValid() or boot_sector.BytesPerSector != block_size or boot_sector.ReservedSectors == 0) {
             return ReadError.InvalidBootSector;
         }
 
-        const bytes_per_sector: u32 = boot_sector.BytesPerSector;
         const sectors_per_cluster: u32 = boot_sector.SectorsPerCluster;
         const total_sectors: u64 = boot_sector.TotalSectors32;
-        const data_offset = @as(u64, boot_sector.ReservedSectors) + @as(u64, boot_sector.FatCount) * boot_sector.FatSize32;
-        if ((sectors_per_cluster & (sectors_per_cluster - 1)) != 0 or total_sectors == 0 or
-            total_sectors - 1 > block_io.Media.LastBlock - partition_start_lba or data_offset >= total_sectors or
-            boot_sector.RootCluster < fat32.constants.clusters.CLUSTER_DATA_START or
-            boot_sector.RootCluster - fat32.constants.clusters.CLUSTER_DATA_START >= (total_sectors - data_offset) / sectors_per_cluster)
+        const fat_sectors: u64 = boot_sector.FatSize32;
+        const fat_offset: u64 = boot_sector.ReservedSectors;
+        const data_offset = fat_offset + fat_sectors * boot_sector.FatCount;
+        if ((sectors_per_cluster & (sectors_per_cluster - 1)) != 0 or total_sectors <= data_offset or
+            total_sectors - 1 > partition_end_lba - partition_start_lba)
         {
             return ReadError.InvalidBootSector;
         }
-        const bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
-        const cluster_allocation = efi.buffer.allocate(boot_services, bytes_per_cluster, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
-        const cluster_buffer = cluster_allocation.Data;
-        const fat_start_lba = partition_start_lba + boot_sector.ReservedSectors;
-        const data_start_lba = partition_start_lba + data_offset;
 
-        return Reader{
+        const cluster_count = (total_sectors - data_offset) / sectors_per_cluster;
+        const fat_entries = fat_sectors * (block_size / @sizeOf(u32));
+        if (cluster_count + clusters.CLUSTER_DATA_START > @min(fat_entries, clusters.CLUSTER_HIGH_RESERVED_START) or
+            !clusterFits(boot_sector.RootCluster, cluster_count))
+        {
+            return ReadError.InvalidBootSector;
+        }
+
+        const bytes_per_cluster = block_size * sectors_per_cluster;
+        var cluster_allocation = efi.buffer.allocate(boot_services, bytes_per_cluster, media.IOAlign) orelse return ReadError.AllocationFailed;
+        errdefer efi.buffer.release(boot_services, &cluster_allocation);
+        if (!media.matches(block_io.Media)) return ReadError.MediaChanged;
+
+        return .{
             .BlockIO = block_io,
             .BootServices = boot_services,
+            .Media = media,
             .PartitionStartLBA = partition_start_lba,
-            .BootSector = boot_sector.*,
-            .BytesPerSector = bytes_per_sector,
+            .PartitionEndLBA = partition_end_lba,
+            .VolumeEndLBA = partition_start_lba + (total_sectors - 1),
+            .FatStartLBA = partition_start_lba + fat_offset,
+            .FatEndLBA = partition_start_lba + (fat_offset + fat_sectors - 1),
+            .DataStartLBA = partition_start_lba + data_offset,
             .SectorsPerCluster = sectors_per_cluster,
             .BytesPerCluster = bytes_per_cluster,
-            .FatStartLBA = fat_start_lba,
-            .DataStartLBA = data_start_lba,
+            .ClusterCount = @intCast(cluster_count),
             .OriginCluster = boot_sector.RootCluster,
-            .ClusterBuffer = cluster_buffer,
-            .SectorBuffer = sector_buffer,
             .ClusterAllocation = cluster_allocation,
             .SectorAllocation = sector_allocation,
         };
@@ -101,171 +163,126 @@ pub const Reader = struct {
     }
 
     pub fn readCluster(self: *Reader, cluster_number: u32) ReadError!void {
-        if (!cluster.isValidCluster(cluster_number)) {
+        try self.ensureReady();
+        if (!clusterFits(cluster_number, self.ClusterCount)) return ReadError.InvalidCluster;
+        const cluster_offset = std.math.mul(u64, cluster_number - clusters.CLUSTER_DATA_START, self.SectorsPerCluster) catch
             return ReadError.InvalidCluster;
-        }
-
-        const cluster_lba = cluster.clusterToLba(
-            cluster_number,
-            self.DataStartLBA,
-            self.SectorsPerCluster,
-        );
-
-        const read_status = self.BlockIO.ReadBlocks(
-            self.BlockIO,
-            self.BlockIO.Media.MediaId,
-            cluster_lba,
-            self.BytesPerCluster,
-            self.ClusterBuffer,
-        );
-        if (efi.status.isError(read_status)) {
-            return ReadError.ReadFailed;
-        }
+        const cluster_lba = std.math.add(u64, self.DataStartLBA, cluster_offset) catch return ReadError.InvalidCluster;
+        try self.readRange(self.DataStartLBA, self.VolumeEndLBA, cluster_lba, self.SectorsPerCluster, &self.ClusterAllocation);
     }
 
     pub fn getNextCluster(self: *Reader, cluster_number: u32) ReadError!?u32 {
-        const position = cluster.getFatPosition(cluster_number, self.BytesPerSector);
-        const fat_sector_lba = self.FatStartLBA + position.Sector;
-
-        const read_status = self.BlockIO.ReadBlocks(
-            self.BlockIO,
-            self.BlockIO.Media.MediaId,
-            fat_sector_lba,
-            self.BytesPerSector,
-            self.SectorBuffer,
-        );
-        if (efi.status.isError(read_status)) {
-            return ReadError.ReadFailed;
-        }
-
-        const fat_entry_pointer: *align(1) const u32 = @ptrCast(self.SectorBuffer + position.Offset);
-        const fat_entry = fat_entry_pointer.*;
-
-        return cluster.parseFatEntry(fat_entry) catch {
-            return ReadError.InvalidCluster;
-        };
+        try self.ensureReady();
+        if (!clusterFits(cluster_number, self.ClusterCount)) return ReadError.InvalidCluster;
+        const position = cluster.getFatPosition(cluster_number, self.Media.BlockSize);
+        const fat_lba = std.math.add(u64, self.FatStartLBA, position.Sector) catch return ReadError.InvalidCluster;
+        if (position.Offset > self.Media.BlockSize - @sizeOf(u32)) return ReadError.InvalidCluster;
+        try self.readRange(self.FatStartLBA, self.FatEndLBA, fat_lba, 1, &self.SectorAllocation);
+        const fat_entry = std.mem.readInt(u32, self.SectorAllocation.Data[position.Offset..][0..@sizeOf(u32)], .little);
+        const next = (cluster.parseFatEntry(fat_entry) catch return ReadError.InvalidCluster) orelse return null;
+        if (!clusterFits(next, self.ClusterCount)) return ReadError.InvalidCluster;
+        return next;
     }
 
     pub fn findInStack(self: *Reader, stack_cluster: u32, identity: []const u8) ReadError!?StackEntry {
-        var current_cluster = stack_cluster;
-
+        var chain = Chain.initialize(stack_cluster, self.ClusterCount);
         while (true) {
-            try self.readCluster(current_cluster);
-
-            const entries_per_cluster = self.BytesPerCluster / @sizeOf(StackEntry);
-            const entries: [*]const StackEntry = @ptrCast(@alignCast(self.ClusterBuffer));
-
-            var index: usize = 0;
-            while (index < entries_per_cluster) : (index += 1) {
-                const entry = &entries[index];
-
-                if (entry.isEnd()) {
-                    return null;
-                }
-                if (entry.isFree()) {
-                    continue;
-                }
-                if (entry.isLongIdentity()) {
-                    continue;
-                }
-                if (entry.isVolumeId()) {
-                    continue;
-                }
-
-                if (stack.entryMatchesIdentity(entry, identity)) {
-                    return entry.*;
-                }
+            try self.readCluster(chain.Current);
+            const entries: [*]const StackEntry = @ptrCast(self.ClusterAllocation.Data);
+            for (entries[0 .. self.BytesPerCluster / @sizeOf(StackEntry)]) |*entry| {
+                if (entry.isEnd()) return null;
+                if (entry.isFree() or entry.isLongIdentity() or entry.isVolumeId()) continue;
+                if (stack.entryMatchesIdentity(entry, identity)) return entry.*;
             }
-
-            const next_cluster = try self.getNextCluster(current_cluster);
-            if (next_cluster) |next| {
-                current_cluster = next;
-            } else {
-                return null;
-            }
+            const next = (try self.getNextCluster(chain.Current)) orelse return null;
+            try chain.advance(next);
         }
     }
 
     pub fn openLocation(self: *Reader, location: []const u8) ReadError!StackEntry {
+        try self.ensureReady();
         var current_cluster = self.OriginCluster;
         var is_stack = true;
-
         var iterator = utils.path.types.iterator.LocationIterator.init(location);
         var last_entry: ?StackEntry = null;
-
         while (iterator.next()) |component| {
-            if (!is_stack) {
-                return ReadError.NotAStack;
-            }
-
-            const entry = try self.findInStack(current_cluster, component);
-
-            if (entry) |found| {
-                current_cluster = found.getFirstCluster();
-                is_stack = found.isStack();
-                last_entry = found;
-            } else {
-                return ReadError.NotFound;
-            }
+            if (!is_stack) return ReadError.NotAStack;
+            const found = (try self.findInStack(current_cluster, component)) orelse return ReadError.NotFound;
+            current_cluster = found.getFirstCluster();
+            is_stack = found.isStack();
+            last_entry = found;
         }
-
-        if (last_entry) |entry| {
-            return entry;
-        }
-
-        return ReadError.NotFound;
+        return last_entry orelse ReadError.NotFound;
     }
 
     pub fn readUnit(self: *Reader, entry: *const StackEntry, buffer: [*]u8, max_size: u32) ReadError!u32 {
+        try self.checkUnit(entry, max_size);
         const unit_size = entry.UnitSize;
-        if (unit_size > max_size) {
-            return ReadError.UnitTooLarge;
-        }
-
-        var current_cluster = entry.getFirstCluster();
+        var chain = Chain.initialize(entry.getFirstCluster(), self.ClusterCount);
         var bytes_read: u32 = 0;
-
         while (bytes_read < unit_size) {
-            try self.readCluster(current_cluster);
-
-            const bytes_remaining = unit_size - bytes_read;
-            const bytes_to_copy = if (bytes_remaining < self.BytesPerCluster) bytes_remaining else self.BytesPerCluster;
-
-            var index: u32 = 0;
-            while (index < bytes_to_copy) : (index += 1) {
-                buffer[bytes_read + index] = self.ClusterBuffer[index];
-            }
-
+            try self.readCluster(chain.Current);
+            const bytes_to_copy = @min(unit_size - bytes_read, self.BytesPerCluster);
+            @memcpy(buffer[bytes_read..][0..bytes_to_copy], self.ClusterAllocation.Data[0..bytes_to_copy]);
             bytes_read += bytes_to_copy;
-
-            if (bytes_read < unit_size) {
-                const next_cluster = try self.getNextCluster(current_cluster);
-                if (next_cluster) |next| {
-                    current_cluster = next;
-                } else {
-                    break;
-                }
+            const next = try self.getNextCluster(chain.Current);
+            if (bytes_read == unit_size) {
+                if (next != null) return ReadError.InvalidChain;
+            } else {
+                try chain.advance(next orelse return ReadError.InvalidChain);
             }
         }
-
         return bytes_read;
     }
 
-    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry) ReadError!AllocatedBuffer {
-        const unit_size = entry.UnitSize;
-
+    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry, max_size: u32) ReadError!AllocatedBuffer {
+        const unit = entry.*;
+        try self.checkUnit(&unit, max_size);
         var buffer: [*]align(8) u8 = undefined;
-        const allocation_status = self.BootServices.AllocatePool(
-            .LoaderData,
-            unit_size,
-            &buffer,
-        );
-        if (efi.status.isError(allocation_status)) {
-            return ReadError.AllocationFailed;
-        }
-
+        const allocation_status = self.BootServices.AllocatePool(.LoaderData, @max(unit.UnitSize, 1), &buffer);
+        if (efi.status.isError(allocation_status)) return ReadError.AllocationFailed;
         errdefer _ = self.BootServices.FreePool(buffer);
-        const bytes_read = try self.readUnit(entry, buffer, unit_size);
+        const bytes_read = try self.readUnit(&unit, buffer, unit.UnitSize);
         return .{ .Buffer = buffer, .Size = bytes_read };
     }
+
+    fn ensureReady(self: *Reader) ReadError!void {
+        if (self.ClusterAllocation.Size == 0 or self.SectorAllocation.Size == 0) return ReadError.ReaderClosed;
+        if (self.MediaInvalidated or !self.Media.matches(self.BlockIO.Media)) {
+            self.MediaInvalidated = true;
+            return ReadError.MediaChanged;
+        }
+    }
+
+    fn checkUnit(self: *Reader, entry: *const StackEntry, max_size: u32) ReadError!void {
+        try self.ensureReady();
+        const volume_bytes = @as(u64, self.ClusterCount) * self.BytesPerCluster;
+        if (entry.UnitSize > max_size or entry.UnitSize > volume_bytes) return ReadError.UnitTooLarge;
+        if (entry.UnitSize != 0 and !clusterFits(entry.getFirstCluster(), self.ClusterCount)) return ReadError.InvalidCluster;
+    }
+
+    fn readRange(self: *Reader, start_lba: u64, end_lba: u64, lba: u64, sector_count: u32, allocation: *const efi.types.buffer.AlignedBuffer) ReadError!void {
+        if (start_lba < self.PartitionStartLBA or end_lba > @min(self.PartitionEndLBA, self.VolumeEndLBA, self.Media.LastBlock) or
+            lba < start_lba or lba > end_lba or sector_count == 0 or sector_count - 1 > end_lba - lba)
+        {
+            return ReadError.InvalidCluster;
+        }
+        const size = std.math.mul(usize, sector_count, self.Media.BlockSize) catch return ReadError.InvalidCluster;
+        if (size != allocation.Size) return ReadError.InvalidCluster;
+        const read_status = self.BlockIO.ReadBlocks(self.BlockIO, self.Media.MediaId, lba, size, allocation.Data);
+        if (mediaLost(read_status) or !self.Media.matches(self.BlockIO.Media)) {
+            self.MediaInvalidated = true;
+            return ReadError.MediaChanged;
+        }
+        if (read_status != status.SUCCESS) return ReadError.ReadFailed;
+    }
 };
+
+fn clusterFits(cluster_number: u32, cluster_count: u64) bool {
+    return cluster_number >= clusters.CLUSTER_DATA_START and cluster_number < clusters.CLUSTER_HIGH_RESERVED_START and
+        cluster_number - clusters.CLUSTER_DATA_START < cluster_count;
+}
+
+fn mediaLost(read_status: efi.types.base.Status) bool {
+    return read_status == status.MEDIA_CHANGED or read_status == status.NO_MEDIA;
+}

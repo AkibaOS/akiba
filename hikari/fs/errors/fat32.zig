@@ -1,12 +1,15 @@
 //! Hikari FAT32 Adapter Errors
 
 pub const ReadError = error{
-    InvalidBootSector,
-    InvalidFsInfo,
-    ReadFailed,
     AllocationFailed,
-    NotFound,
-    NotAStack,
+    InvalidBootSector,
+    InvalidChain,
     InvalidCluster,
+    InvalidPartition,
+    MediaChanged,
+    NotAStack,
+    NotFound,
+    ReadFailed,
+    ReaderClosed,
     UnitTooLarge,
 };

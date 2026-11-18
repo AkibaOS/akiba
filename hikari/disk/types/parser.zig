@@ -9,12 +9,12 @@ const errors = @import("hikari").disk.errors;
 const math = @import("utils").math;
 const types = @import("hikari").disk.types;
 
+const MediaSnapshot = types.media.MediaSnapshot;
 const ParseError = errors.gpt.ParseError;
 
 pub const Parser = struct {
-    BlockIO: *efi.types.protocols.block.BlockIoProtocol,
+    Media: MediaSnapshot,
     BootServices: *efi.types.services.boot.BootServices,
-    BlockSize: u32,
     Header: types.gpt.Header,
     EntriesBuffer: [*]align(8) u8,
     EntriesAllocation: efi.types.buffer.AlignedBuffer,
@@ -22,26 +22,17 @@ pub const Parser = struct {
     EntrySize: u32,
 
     pub fn initialize(block_io: *efi.types.protocols.block.BlockIoProtocol, boot_services: *efi.types.services.boot.BootServices) ParseError!Parser {
-        const block_size = block_io.Media.BlockSize;
+        const media = MediaSnapshot.capture(block_io) orelse return ParseError.ReadFailed;
+        const block_size = media.BlockSize;
         if (block_size < constants.gpt.HEADER_SIZE_MINIMUM or
-            (block_size & (block_size - 1)) != 0 or block_io.Media.LastBlock <= constants.gpt.HEADER_LBA)
+            (block_size & (block_size - 1)) != 0 or media.LastBlock <= constants.gpt.HEADER_LBA)
         {
             return ParseError.InvalidLayout;
         }
 
-        var header_buffer = efi.buffer.allocate(boot_services, block_size, block_io.Media.IOAlign) orelse return ParseError.AllocationFailed;
+        var header_buffer = efi.buffer.allocate(boot_services, block_size, media.IOAlign) orelse return ParseError.AllocationFailed;
         defer efi.buffer.release(boot_services, &header_buffer);
-        const header_read_status = block_io.ReadBlocks(
-            block_io,
-            block_io.Media.MediaId,
-            constants.gpt.HEADER_LBA,
-            block_size,
-            header_buffer.Data,
-        );
-
-        if (efi.status.isError(header_read_status)) {
-            return ParseError.ReadFailed;
-        }
+        if (!media.read(constants.gpt.HEADER_LBA, header_buffer.Data[0..header_buffer.Size])) return ParseError.ReadFailed;
 
         const header: *types.gpt.Header = @ptrCast(@alignCast(header_buffer.Data));
 
@@ -69,9 +60,9 @@ pub const Parser = struct {
             return ParseError.NoPartitions;
         }
 
-        if (header.CurrentLBA != constants.gpt.HEADER_LBA or header.BackupLBA > block_io.Media.LastBlock or
+        if (header.CurrentLBA != constants.gpt.HEADER_LBA or header.BackupLBA > media.LastBlock or
             header.BackupLBA == header.CurrentLBA or header.FirstUsableLBA > header.LastUsableLBA or
-            header.LastUsableLBA >= block_io.Media.LastBlock or
+            header.LastUsableLBA >= media.LastBlock or
             header.PartitionEntrySize < @sizeOf(types.gpt.PartitionEntry) or
             (header.PartitionEntrySize % @alignOf(types.gpt.PartitionEntry)) != 0 or
             header.PartitionEntriesLBA < constants.gpt.PARTITION_ENTRIES_START_LBA or
@@ -85,20 +76,9 @@ pub const Parser = struct {
         const rounded_size = std.math.mul(u64, entries_blocks, block_size) catch return ParseError.InvalidLayout;
         const entries_buffer_size = std.math.cast(usize, rounded_size) orelse return ParseError.InvalidLayout;
 
-        var entries_buffer = efi.buffer.allocate(boot_services, entries_buffer_size, block_io.Media.IOAlign) orelse return ParseError.AllocationFailed;
+        var entries_buffer = efi.buffer.allocate(boot_services, entries_buffer_size, media.IOAlign) orelse return ParseError.AllocationFailed;
         errdefer efi.buffer.release(boot_services, &entries_buffer);
-
-        const entries_read_status = block_io.ReadBlocks(
-            block_io,
-            block_io.Media.MediaId,
-            header.PartitionEntriesLBA,
-            entries_buffer_size,
-            entries_buffer.Data,
-        );
-
-        if (efi.status.isError(entries_read_status)) {
-            return ParseError.ReadFailed;
-        }
+        if (!media.read(header.PartitionEntriesLBA, entries_buffer.Data[0..entries_buffer.Size])) return ParseError.ReadFailed;
 
         const calculated_entries_crc = crc.checksum.calculate(entries_buffer.Data[0..entries_total_size]);
         if (calculated_entries_crc != header.PartitionEntriesCRC32) {
@@ -106,9 +86,8 @@ pub const Parser = struct {
         }
 
         return Parser{
-            .BlockIO = block_io,
+            .Media = media,
             .BootServices = boot_services,
-            .BlockSize = block_size,
             .Header = header.*,
             .EntriesBuffer = entries_buffer.Data,
             .EntriesAllocation = entries_buffer,

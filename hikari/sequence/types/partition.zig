@@ -1,9 +1,9 @@
 //! Hikari Partition Information
 
-const efi = @import("hikari").efi;
+const media = @import("hikari").disk.types.media;
 
 pub const PartitionInfo = struct {
-    BlockIO: *efi.types.protocols.block.BlockIoProtocol,
+    Media: media.MediaSnapshot,
     StartLBA: u64,
     EndLBA: u64,
 };

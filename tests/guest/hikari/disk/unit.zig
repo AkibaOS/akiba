@@ -7,6 +7,7 @@ const constants = @import("tests").constants.acquisition;
 const errors = @import("hikari").fs.errors.afs;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const labels = @import("tests").strings.acquisition;
+const media = @import("hikari").disk.types.media;
 const reader = @import("hikari").fs.types.afs.reader;
 const status = @import("hikari").efi.constants.status;
 const verify = @import("tests").verify;
@@ -20,12 +21,14 @@ pub fn run() !void {
     try rejectBeforeAllocation();
     try malformedSpans();
     try readFailure();
+    try changedGeometry();
 }
 
 fn initialize() !Reader {
     fixture.reset();
     fixture.encodeAFS();
-    return Reader.initialize(&fixture.protocol, &fixture.services, constants.PARTITION_FIRST_LBA, constants.PARTITION_LAST_LBA);
+    const snapshot = media.MediaSnapshot.capture(&fixture.protocol) orelse return ReadError.ReadFailed;
+    return Reader.initialize(snapshot, &fixture.services, constants.PARTITION_FIRST_LBA, constants.PARTITION_LAST_LBA);
 }
 
 fn acquire() !void {
@@ -100,6 +103,18 @@ fn readFailure() !void {
         fixture.device.Reads[reads].Bytes == constants.BLOCK_BYTES and fixture.live() == 2;
     source.deinitialize();
     verify.require(rejected and rolled_back and fixture.device.AllocateCalls == fixture.device.FreeCalls and fixture.clean(), labels.UNIT_READ_FAILURE);
+}
+
+fn changedGeometry() !void {
+    var source = try initialize();
+    defer source.deinitialize();
+    const reads = fixture.device.ReadCalls;
+    const record = fixture.unit();
+    fixture.media.LastBlock -= 1;
+    const rejected = rejects(&source, &record, constants.UNIT_LIMIT, ReadError.ReadFailed) and
+        fixture.device.ReadCalls == reads and fixture.live() == 2;
+    source.deinitialize();
+    verify.require(rejected and fixture.device.AllocateCalls == fixture.device.FreeCalls and fixture.clean(), labels.UNIT_MEDIA);
 }
 
 fn rejects(source: *Reader, record: *const UnitRecord, maximum: u64, expected: ReadError) bool {
