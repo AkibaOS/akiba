@@ -1,4 +1,4 @@
-//! Bounded Kernel Letter Storage
+//! Stable Copied Letter Header And Owner Membership
 
 const limits = @import("mirai").postman.constants.limits;
 
@@ -10,11 +10,17 @@ const Status = @import("mirai").postman.types.status.Status;
 pub const Envelope = struct {
     Status: Status = .Free,
     Next: ?*Envelope = null,
+    Previous: ?*Envelope = null,
+    Queued: bool = false,
+    SourcePrevious: ?*Envelope = null,
+    SourceNext: ?*Envelope = null,
+    HeldPrevious: ?*Envelope = null,
+    HeldNext: ?*Envelope = null,
     Source: ?*Mailbox = null,
     Destination: ?*Mailbox = null,
     Client: ?*Record = null,
     Receiver: ?*Record = null,
     Ticket: u64 = 0,
     Header: Header = .{ .Sender = 0, .Type = 0, .Length = 0, .ReplyTicket = 0 },
-    Payload: [limits.MAX_PAYLOAD_BYTES]u8 = undefined,
+    Payload: *[limits.MAX_PAYLOAD_BYTES]u8,
 };

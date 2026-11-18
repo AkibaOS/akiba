@@ -1,7 +1,10 @@
 //! Postman Guest Regression Exports
 
 pub const call = @import("call.zig");
+pub const capacity = @import("capacity.zig");
 pub const delivery = @import("delivery.zig");
+pub const duplex = @import("duplex.zig");
+pub const growth = @import("growth.zig");
 pub const harness = @import("harness.zig");
 pub const program = @import("program.zig");
 pub const receive = @import("receive.zig");

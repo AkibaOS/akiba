@@ -13,5 +13,7 @@ pub const Mailbox = struct {
     Queued: usize = 0,
     Held: usize = 0,
     Outgoing: usize = 0,
+    OutgoingHead: ?*Envelope = null,
+    HeldHead: ?*Envelope = null,
     Receivers: Queue = .{},
 };

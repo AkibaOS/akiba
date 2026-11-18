@@ -4,7 +4,6 @@ const fifo = @import("mirai").postman.fifo;
 const messages = @import("mirai").postman.strings.invariants;
 const notification = @import("mirai").postman.notification;
 const record = @import("mirai").postman.record;
-const state = @import("mirai").postman.state;
 const storage = @import("mirai").postman.storage;
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
@@ -63,8 +62,9 @@ pub fn returnCall(envelope: *Envelope) void {
 pub fn close(mailbox: *Mailbox) void {
     if (mailbox.Closed) return;
     mailbox.Closed = true;
-    for (&state.getState().Envelopes) |*envelope| {
-        if (envelope.Destination != mailbox) continue;
+    var current = mailbox.HeldHead;
+    while (current) |envelope| {
+        current = envelope.HeldNext;
         switch (envelope.Status) {
             .OneWay => discardLetter(envelope),
             .Queued, .Delivered => returnCall(envelope),
@@ -72,7 +72,7 @@ pub fn close(mailbox: *Mailbox) void {
             .Free => @panic(messages.INVALID_ENVELOPE),
         }
     }
-    if (mailbox.Head != null or mailbox.Tail != null or mailbox.Queued != 0 or mailbox.Held != 0) {
+    if (mailbox.Head != null or mailbox.Tail != null or mailbox.Queued != 0 or mailbox.Held != 0 or mailbox.HeldHead != null) {
         @panic(messages.INVALID_MAILBOX);
     }
     notification.receivers(mailbox);
@@ -81,10 +81,5 @@ pub fn close(mailbox: *Mailbox) void {
 pub fn clearRecord(entry: *Record) void {
     if (entry.Pending) |pending| cancelClient(pending);
     if (entry.Serving) |serving| returnCall(serving);
-    for (&state.getState().Envelopes) |*envelope| {
-        if (envelope.Receiver != entry) continue;
-        if (envelope.Status != .OneWay and envelope.Status != .Queued) @panic(messages.INVALID_RECORD);
-        envelope.Receiver = null;
-    }
     record.release(entry);
 }

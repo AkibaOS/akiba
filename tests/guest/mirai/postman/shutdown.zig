@@ -121,7 +121,7 @@ fn callerDelivered() !void {
     try harness.advance(&pair.Peer, 1);
     try harness.waitStep(&pair.Peer, 2);
     verify.require((try harness.resultIs(&pair.Peer, 2, .PeerGone, 0)) and record.Serving == null and
-        serving.Status == .Free and destination.Held == 0 and destination.Queued == 0, labels.CALLER_DELIVERED);
+        !postman.storage.owns(serving) and destination.Held == 0 and destination.Queued == 0, labels.CALLER_DELIVERED);
 }
 
 fn callerReplied() !void {
@@ -132,7 +132,7 @@ fn callerReplied() !void {
     const pending = (try harness.record(&pair.Client)).Pending orelse return FixtureError.InvalidFixture;
     try harness.check(destination.Held == 1);
     harness.dispose(pair.Client.ID);
-    verify.require(pending.Status == .Free and destination.Held == 0 and destination.Queued == 0 and
+    verify.require(!postman.storage.owns(pending) and destination.Held == 0 and destination.Queued == 0 and
         (try harness.record(&pair.Peer)).Serving == null, labels.CALLER_REPLIED);
 }
 

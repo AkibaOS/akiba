@@ -198,10 +198,7 @@ pub fn resources() Resources {
     const flags = guard.acquire();
     defer guard.release(flags);
     var result: Resources = .{};
-    const state = postman.state.getState();
-    for (&state.Envelopes) |*envelope| {
-        if (envelope.Status != .Free) result.Envelopes += 1;
-    }
+    result.Envelopes = postman.storage.count();
     var owner = kata.state.first();
     while (owner) |current| {
         if (postman.inbox.find(current) != null) result.Mailboxes += 1;

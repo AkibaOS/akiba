@@ -54,10 +54,12 @@ pub fn kataRelease(owner: *Kata) void {
         lifetime.close(incoming);
     }
     const incoming = mailbox orelse return;
-    for (&state.getState().Envelopes) |*envelope| {
-        if (envelope.Source != incoming) continue;
+    var current = incoming.OutgoingHead;
+    while (current) |envelope| {
+        current = envelope.SourceNext;
         if (envelope.Status == .OneWay) storage.detachSource(envelope) else lifetime.cancelClient(envelope);
     }
-    if (incoming.Outgoing != 0 or incoming.Held != 0 or incoming.Queued != 0) @panic(messages.INVALID_MAILBOX);
+    if (incoming.Outgoing != 0 or incoming.Held != 0 or incoming.Queued != 0 or
+        incoming.OutgoingHead != null or incoming.HeldHead != null) @panic(messages.INVALID_MAILBOX);
     incoming.* = .{};
 }
