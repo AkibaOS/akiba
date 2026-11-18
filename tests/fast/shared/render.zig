@@ -22,8 +22,8 @@ test "SFNT directories distinguish signatures and truncated records" {
     try checks.sfnt.directory.signaturesAndTruncation();
 }
 
-test "SFNT table counts honor the supported maximum" {
-    try checks.sfnt.directory.tableCountLimit();
+test "SFNT directories grow beyond the retired cache and still reject truncated backing" {
+    try checks.sfnt.directory.tableGrowth();
 }
 
 test "minimal font face loads signed and trailing horizontal metrics" {
@@ -84,6 +84,10 @@ test "composite outline depth accepts its boundary and rejects deeper chains" {
 
 test "outline extraction rejects invalid locations truncation and excess complexity" {
     try checks.font.outline.malformedOutlineBoundsAndLimits();
+}
+
+test "simple outlines reject descending duplicate oversized and overflowing contour endpoints" {
+    try checks.font.outline.malformedContourEndpoints();
 }
 
 test "simple outlines accept the full point and contour capacities" {

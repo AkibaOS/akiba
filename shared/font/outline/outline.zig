@@ -87,11 +87,15 @@ fn appendSimpleGlyph(
     var contour: u16 = 0;
     var last_end: u16 = 0;
     while (contour < contour_count) : (contour += 1) {
-        last_end = try reader.readU16();
-        buffer.Shape.ContourEnds[base_contour + contour] = base_point + last_end;
+        const endpoint = try reader.readU16();
+        if (contour != 0 and endpoint <= last_end) return FontError.InvalidOutline;
+        const rebased = @as(usize, base_point) + endpoint;
+        if (rebased >= limits.MAX_POINTS) return FontError.OutlineTooComplex;
+        buffer.Shape.ContourEnds[base_contour + contour] = @intCast(rebased);
+        last_end = endpoint;
     }
 
-    const point_count: u16 = if (contour_count == 0) 0 else last_end + 1;
+    const point_count: u16 = if (contour_count == 0) 0 else @intCast(@as(usize, last_end) + 1);
     if (@as(usize, base_point) + point_count > limits.MAX_POINTS) {
         return FontError.OutlineTooComplex;
     }

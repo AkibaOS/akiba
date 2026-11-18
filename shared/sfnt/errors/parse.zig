@@ -5,7 +5,6 @@ pub const ParseError = error{
     InvalidSignature,
     UnsupportedOutlines,
     UnsupportedCollection,
-    TooManyTables,
     TableMissing,
     TableOutOfBounds,
 };

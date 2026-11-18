@@ -43,14 +43,19 @@ pub fn signaturesAndTruncation() !void {
     _ = try Directory.parse(data.Data[0..data.Length]);
 }
 
-pub fn tableCountLimit() !void {
-    var entries: [sfnt.constants.limits.MAX_TABLES]TableFixture = undefined;
+pub fn tableGrowth() !void {
+    var entries: [constants.SFNT_GROWTH_TABLES]TableFixture = undefined;
     for (&entries, 0..) |*entry, index| {
         entry.* = .{ .Tag = @intCast(index), .Bytes = &.{} };
     }
+    entries[entries.len - 1].Bytes = &constants.ENDIAN_BYTES;
     var data = fixture.pack(&entries);
     const directory = try Directory.parse(data.Data[0..data.Length]);
-    try std.testing.expectEqual(sfnt.constants.limits.MAX_TABLES, directory.Count);
-    fixture.writeU16(&data.Data, 4, sfnt.constants.limits.MAX_TABLES + 1);
-    try std.testing.expectError(error.TooManyTables, Directory.parse(data.Data[0..data.Length]));
+    try std.testing.expectEqual(constants.SFNT_GROWTH_TABLES, directory.Count);
+    try std.testing.expectEqualSlices(u8, &constants.ENDIAN_BYTES, try directory.require(entries.len - 1));
+    for (0..entries.len - 1) |index| try std.testing.expectEqual(@as(usize, 0), (try directory.require(@intCast(index))).len);
+    const payload_end = sfnt.constants.limits.OFFSET_TABLE_SIZE + entries.len * sfnt.constants.limits.TABLE_RECORD_SIZE + constants.ENDIAN_BYTES.len;
+    try std.testing.expectError(error.TableOutOfBounds, Directory.parse(data.Data[0 .. payload_end - 1]));
+    fixture.writeU16(&data.Data, 4, constants.SFNT_GROWTH_TABLES + 1);
+    try std.testing.expectError(error.UnexpectedEnd, Directory.parse(data.Data[0..data.Length]));
 }

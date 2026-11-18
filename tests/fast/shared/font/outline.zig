@@ -136,6 +136,39 @@ pub fn malformedOutlineBoundsAndLimits() !void {
     try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
 }
 
+pub fn malformedContourEndpoints() !void {
+    const data = fixture.minimal();
+    var face = try font.face.load(data.Data[0..data.Length]);
+    var glyph: [18]u8 = @splat(0);
+    var loca: [4]u8 = @splat(0);
+    encoding.writeU16(&loca, 2, 9);
+    face.GlyphCount = 1;
+    face.Glyf = &glyph;
+    face.Loca = &loca;
+    face.IndexToLocationFormat = 0;
+    encoding.writeU16(&glyph, 0, 2);
+    encoding.writeU16(&glyph, 10, 2000);
+    encoding.writeU16(&glyph, 12, 0);
+    glyph[16] = 0x31;
+    var buffer: GlyphBuffer = undefined;
+    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&glyph, 10, 2);
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&glyph, 10, 0);
+    try std.testing.expectError(error.InvalidOutline, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&glyph, 0, 1);
+    encoding.writeU16(&glyph, 10, std.math.maxInt(u16));
+    try std.testing.expectError(error.OutlineTooComplex, font.outline.load(&face, 0, &buffer));
+    encoding.writeU16(&glyph, 0, 2);
+    encoding.writeU16(&glyph, 10, 0);
+    encoding.writeU16(&glyph, 12, 1);
+    glyph[17] = 0x31;
+    try font.outline.load(&face, 0, &buffer);
+    try std.testing.expectEqual(@as(u16, 2), buffer.Shape.PointCount);
+    try std.testing.expectEqual(@as(u16, 2), buffer.Shape.ContourCount);
+    try std.testing.expectEqualSlices(u16, &.{ 0, 1 }, buffer.Shape.ContourEnds[0..2]);
+}
+
 pub fn maximumSimpleOutline() !void {
     const data = fixture.minimal();
     var face = try font.face.load(data.Data[0..data.Length]);
