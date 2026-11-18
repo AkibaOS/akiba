@@ -4,7 +4,7 @@ const status = @import("hikari").efi.constants.status;
 const storage = @import("tests").firmware.constants.storage;
 const types = @import("tests").types.firmware;
 
-pub const ASSERTION_COUNT: usize = 50 + storage.ASSERTION_COUNT;
+pub const ASSERTION_COUNT: usize = 55 + storage.ASSERTION_COUNT;
 pub const SERIAL_POLL_LIMIT: usize = 1000000;
 pub const NEWLINE_BYTE: u8 = 10;
 pub const CARRIAGE_RETURN_BYTE: u8 = 13;

@@ -2,6 +2,7 @@
 
 pub const constants = @import("constants/constants.zig");
 pub const handoff = @import("handoff.zig");
+pub const kernel = @import("kernel.zig");
 pub const loader = @import("loader.zig");
 pub const paging = @import("paging.zig");
 pub const run = @import("run.zig");

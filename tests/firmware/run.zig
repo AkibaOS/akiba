@@ -7,6 +7,7 @@ const bounds = @import("common").constants.serial.format;
 const efi = @import("hikari").efi;
 const inputs = @import("tests").constants.firmware;
 const io = @import("asm").io;
+const kernel = @import("tests").firmware.kernel;
 const labels = @import("tests").strings.firmware;
 const loader = @import("tests").firmware.loader;
 const loadinglabels = @import("tests").strings.loading;
@@ -28,6 +29,7 @@ pub fn main() void {
     suite.run(system_table.BootServices, image_handle) catch |failure| fail(@errorName(failure));
     writeText(loadinglabels.GROUP);
     loader.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
+    kernel.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
     writeText(storagelabels.GROUP);
     storage.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
     writeText(labels.PAGING_GROUP);

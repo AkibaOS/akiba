@@ -10,7 +10,6 @@ pub const LoadError = error{
     UnsupportedElfType,
     NoLoadableSegments,
     TooManySegments,
-    ImageTooLarge,
     AllocationFailed,
     SegmentOverlap,
 };

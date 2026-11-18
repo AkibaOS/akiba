@@ -67,11 +67,11 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         return status.NOT_FOUND;
     };
     const kernel_size = kernel_unit.DataChannel.LogicalSize;
-    if (kernel_size < loader.constants.elf.ELF64_HEADER_SIZE or kernel_size > loader.constants.kernel.MAX_UNIT_SIZE) {
+    if (kernel_size < loader.constants.elf.ELF64_HEADER_SIZE) {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
-    const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit, loader.constants.kernel.MAX_UNIT_SIZE) catch {
+    const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit, std.math.maxInt(usize)) catch {
         splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };

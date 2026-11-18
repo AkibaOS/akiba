@@ -19,6 +19,10 @@ pub const TEXT_BYTE: u8 = 0x90;
 pub const READ_ONLY_BYTE: u8 = 0x5a;
 pub const DATA_BYTE: u8 = 0x3c;
 pub const DIRTY_BYTE: u8 = 0xa7;
+pub const LARGE_UNIT_BYTES: usize = 64 * 1024 * 1024 + PAGE_BYTES;
+pub const LARGE_BSS_BYTES: usize = 256 * 1024 * 1024;
+pub const DATA_SEGMENT_INDEX: usize = 2;
+pub const FIRST_STACK_INDEX: usize = 3;
 
 pub const SEGMENTS = [_]types.SegmentExpectation{
     .{ .PhysicalOffset = 0x00000, .VirtualAddress = 0xffffffff80100000, .MemorySize = 0x1000, .Flags = 5 },

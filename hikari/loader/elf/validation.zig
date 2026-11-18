@@ -21,7 +21,6 @@ const ImageLayout = types.elf.ImageLayout;
 const LoadError = errors.elf.LoadError;
 
 pub fn validateImage(data: []const u8) LoadError!ImageLayout {
-    if (data.len > constants.kernel.MAX_UNIT_SIZE) return LoadError.ImageTooLarge;
     const header = try validateHeader(data);
     const program_headers = try readProgramHeaders(data, header);
 
@@ -92,7 +91,6 @@ pub fn validateImage(data: []const u8) LoadError!ImageLayout {
     const memory_size = physical_end - image.PhysicalBase;
     if (memory_size > std.math.maxInt(u64) - sizes.PAGE_MASK) return LoadError.UnsupportedImageLayout;
     image.Size = math.integer.alignUp(memory_size, sizes.PAGE_SIZE);
-    if (image.Size > constants.kernel.MAX_MEMORY_SIZE) return LoadError.ImageTooLarge;
     if (image.Size > std.math.maxInt(u64) - image.PhysicalBase or
         image.VirtualBase > std.math.maxInt(u64) - sizes.PAGE_SIZE or
         image.Size > std.math.maxInt(u64) - sizes.PAGE_SIZE - image.VirtualBase)
