@@ -1,6 +1,5 @@
 //! Memory Phase
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const heap = @import("mirai").memory.heap;
 const kalloc = @import("mirai").memory.kalloc;
@@ -17,9 +16,11 @@ const zone = @import("mirai").memory.zone;
 const kalloc_sizes = @import("mirai").memory.constants.kalloc.sizes;
 const layout = common.constants.memory.layout;
 const messages = strings.sequence.messages;
-const status = strings.sequence.status;
 const sizes = common.constants.memory.sizes;
+const status = strings.sequence.status;
 const BootInfo = types.sequence.info.BootInfo;
+const MemoryRegion = pmm.types.region.MemoryRegion;
+const Range = pmm.types.storage.Range;
 
 pub fn prepare(boot_info: *const BootInfo) bool {
     print.phase(status.SYSTEM_MEMORY);
@@ -31,21 +32,10 @@ pub fn prepare(boot_info: *const BootInfo) bool {
         print.log(messages.INVALID_PHYSMAP, .{});
         return false;
     }
-    const bitmap_location = findBitmapLocation(boot_info);
-    if (bitmap_location == 0 or !pmm.init.setup.initializeFromMemoryMap(
-        boot_info.MemoryMap,
-        boot_info.MemoryMapCount,
-        bitmap_location,
-        boot_info.PhysmapSize,
-    )) {
-        print.log(messages.NO_BITMAP, .{});
+    if (!initializePMM(boot_info)) {
+        print.log(messages.NO_PMM, .{});
         return false;
     }
-    const framebuffer_start = math.integer.alignDown(boot_info.FramebufferPhysicalAddress, sizes.LARGE_PAGE_SIZE);
-    const framebuffer_end = math.integer.alignUp(boot_info.FramebufferPhysicalAddress + boot_info.FramebufferSize, sizes.LARGE_PAGE_SIZE);
-    pmm.init.setup.reservePhysicalRange(framebuffer_start, framebuffer_end - framebuffer_start);
-    pmm.init.setup.reservePhysicalRange(boot_info.KernelPhysicalBase, boot_info.KernelPhysicalEnd - boot_info.KernelPhysicalBase);
-    pmm.init.setup.reservePhysicalRange(boot_info.BootStackTop - layout.PHYSMAP_BASE - boot_info.BootStackSize, boot_info.BootStackSize);
     if (options.GUEST_CHECKS) @call(.never_inline, rootchecks.checkZoneRollback, .{});
     zone.bootstrap.init() catch {
         print.log(messages.NO_ZONES, .{});
@@ -53,9 +43,9 @@ pub fn prepare(boot_info: *const BootInfo) bool {
     };
     const statistics = pmm.state.getStatistics();
     print.log(messages.PHYSMAP_COVERAGE, .{boot_info.PhysmapSize / sizes.MEGABYTE});
-    print.log(messages.BITMAP_STORAGE, .{ pmm.state.getState().BitmapSize, bitmap_location });
-    print.log(messages.FOUND_PAGES, .{ statistics.TotalPages, statistics.TotalPages * sizes.PAGE_SIZE / sizes.MEGABYTE });
-    print.log(messages.AVAILABLE, .{ statistics.FreePages, statistics.FreePages * sizes.PAGE_SIZE / sizes.MEGABYTE });
+    print.log(messages.PMM_STORAGE, .{ statistics.MetadataBytes, statistics.MetadataPages });
+    print.log(messages.MANAGED_PAGES, .{ statistics.TotalPages, statistics.totalBytes() / sizes.MEGABYTE, statistics.ReservedPages });
+    print.log(messages.AVAILABLE, .{ statistics.FreePages, statistics.freeBytes() / sizes.MEGABYTE });
     return true;
 }
 
@@ -81,30 +71,32 @@ pub fn finish(boot_info: *const BootInfo) bool {
     return true;
 }
 
-fn findBitmapLocation(boot_info: *const BootInfo) u64 {
-    const page_count = pmm.init.setup.managedPageCount(boot_info.MemoryMap, boot_info.MemoryMapCount, boot_info.PhysmapSize);
-    const bitmap_span = math.integer.alignUp(bits.operations.bitmapBytes(page_count), sizes.PAGE_SIZE);
-    if (bitmap_span == 0) return 0;
-    const reserved_end = pmm.constants.limits.KERNEL_RESERVED_PAGES * sizes.PAGE_SIZE;
-    const framebuffer_start = math.integer.alignDown(boot_info.FramebufferPhysicalAddress, sizes.LARGE_PAGE_SIZE);
-    const framebuffer_end = math.integer.alignUp(boot_info.FramebufferPhysicalAddress + boot_info.FramebufferSize, sizes.LARGE_PAGE_SIZE);
-    var index: u64 = 0;
-    while (index < boot_info.MemoryMapCount) : (index += 1) {
-        const region = boot_info.MemoryMap[index];
-        if (!region.isUsable() or region.BaseAddress >= boot_info.PhysmapSize) continue;
-        const end = math.integer.alignDown(region.BaseAddress + @min(region.Length, boot_info.PhysmapSize - region.BaseAddress), sizes.PAGE_SIZE);
-        var candidate = math.integer.alignUp(@max(region.BaseAddress, reserved_end), sizes.PAGE_SIZE);
-        while (candidate < end and bitmap_span <= end - candidate) {
-            if (candidate < boot_info.KernelPhysicalEnd and boot_info.KernelPhysicalBase < candidate + bitmap_span) {
-                candidate = boot_info.KernelPhysicalEnd;
-                continue;
-            }
-            if (candidate < framebuffer_end and framebuffer_start < candidate + bitmap_span) {
-                candidate = framebuffer_end;
-                continue;
-            }
-            return candidate;
-        }
-    }
-    return 0;
+fn initializePMM(info: *const BootInfo) bool {
+    const limit = info.PhysmapSize;
+    const map_address = @intFromPtr(info.MemoryMap);
+    if (map_address < layout.PHYSMAP_BASE or map_address % @alignOf(MemoryRegion) != 0 or
+        info.BootStackTop < layout.PHYSMAP_BASE or info.BootStackSize == 0 or
+        info.KernelPhysicalBase >= info.KernelPhysicalEnd or info.KernelPhysicalEnd > limit or
+        info.FramebufferSize == 0 or info.FramebufferPhysicalAddress >= limit or
+        info.FramebufferSize > limit - info.FramebufferPhysicalAddress) return false;
+    const map_start = map_address - layout.PHYSMAP_BASE;
+    const stack_end = info.BootStackTop - layout.PHYSMAP_BASE;
+    if (map_start >= limit or info.MemoryMapCount == 0 or
+        info.MemoryMapCount > (limit - map_start) / @sizeOf(MemoryRegion) or
+        stack_end > limit or info.BootStackSize > stack_end) return false;
+    const exclusions = [_]Range{
+        roundedRange(info.KernelPhysicalBase, info.KernelPhysicalEnd, sizes.PAGE_SIZE, limit),
+        roundedRange(stack_end - info.BootStackSize, stack_end, sizes.PAGE_SIZE, limit),
+        roundedRange(info.FramebufferPhysicalAddress, info.FramebufferPhysicalAddress + info.FramebufferSize, sizes.LARGE_PAGE_SIZE, limit),
+        roundedRange(map_start, map_start + info.MemoryMapCount * @sizeOf(MemoryRegion), sizes.PAGE_SIZE, limit),
+        roundedRange(info.LoaderPML4Physical, info.LoaderPML4Physical + sizes.PAGE_SIZE, sizes.PAGE_SIZE, limit),
+    };
+    return pmm.init.setup.initializeFromMemoryMap(info.MemoryMap[0..info.MemoryMapCount], limit, &exclusions);
+}
+
+fn roundedRange(start: u64, end: u64, alignment: u64, limit: u64) Range {
+    return .{
+        .Start = math.integer.alignDown(start, alignment) / sizes.PAGE_SIZE,
+        .End = @min(limit, math.integer.alignUp(end, alignment)) / sizes.PAGE_SIZE,
+    };
 }

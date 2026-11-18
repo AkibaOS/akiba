@@ -12,6 +12,7 @@ pub const LIVE_RELEASE = "typed storage refuses destruction while values remain 
 pub const LIFETIME = "recycled value addresses expose a fresh nonwrapping lifetime witness";
 pub const TARGETED = "targeted storage collection returns the selected empty backing without a global scan";
 pub const REINITIALIZED = "typed storage retains identity history across backing and zone recreation";
+pub const COLD_ROLLBACK = "failed first reservation returns a newly grown descriptor slab and restores the allocator cursor";
 pub const FAILURE = "failed typed storage expansion preserves existing values and accounting";
 pub const RECOVERY = "typed storage recovers after failed expansion without allocating during release";
 pub const EXHAUSTED = "typed storage refuses lifetime counter wrap even after reinitialization";

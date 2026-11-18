@@ -74,8 +74,7 @@ pub fn reserve(root: *Kagami, launcher_id: u64) ?*Kata {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (!initialized or next_id == std.math.maxInt(u64) or !kagami.create.owns(root) or root.ExecutionOwners != 1) return null;
-    if (records.Zone == null) records.init(labels.KATA) catch return null;
-    const slot = records.reserve() catch return null;
+    const slot = records.reserveNamed(labels.KATA) catch return null;
     const id = next_id;
     slot.* = .{ .Descriptor = .{ .ID = id, .AddressSpace = root } };
     if (!completion.storage.reserve(id, launcher_id)) {
@@ -141,4 +140,5 @@ pub fn release(owner: *Kata) bool {
 fn discard(slot: *Slot) void {
     if (!records.release(slot)) @panic(messages.INVALID_CLEANUP);
     _ = records.collectAt(slot);
+    records.pruneEmpty();
 }

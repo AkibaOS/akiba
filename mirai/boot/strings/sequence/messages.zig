@@ -20,9 +20,9 @@ pub const LOW_IDENTITY_REMOVED = "  Low identity mappings absent\n";
 
 pub const INVALID_PHYSMAP = "  Unsupported physical-memory mapping\n";
 pub const PHYSMAP_COVERAGE = "  Physmap coverage: %d MB\n";
-pub const BITMAP_STORAGE = "  Page bitmap: %d bytes at %x\n";
-pub const NO_BITMAP = "  No suitable location for page bitmap\n";
-pub const FOUND_PAGES = "  Found %d pages (%d MB total)\n";
+pub const PMM_STORAGE = "  Sparse PMM metadata: %d packed bytes across %d frames\n";
+pub const NO_PMM = "  Invalid physical-memory ranges or insufficient PMM metadata frames\n";
+pub const MANAGED_PAGES = "  Managed: %d conventional pages (%d MB), %d reserved\n";
 pub const AVAILABLE = "  Available: %d pages (%d MB)\n";
 pub const NO_ZONES = "  Zone allocator initialization failed\n";
 pub const NO_KALLOC = "  Kernel allocator initialization failed\n";

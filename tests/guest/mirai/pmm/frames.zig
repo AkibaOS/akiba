@@ -3,7 +3,6 @@
 const std = @import("std");
 
 const address = @import("utils").address;
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
@@ -11,6 +10,7 @@ const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").verify;
 
+const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
 pub fn run() !void {
@@ -25,14 +25,15 @@ pub fn run() !void {
         frames[count] = frame;
         count += 1;
         verify.require((frame & sizes.PAGE_MASK) == 0 and
-            bits.operations.testBit(pmm.state.getState().Bitmap, frame / sizes.PAGE_SIZE), labels.PMM_FRAMES);
+            pmm.state.isAllocated(frame), labels.PMM_FRAMES);
         for (frames[0 .. count - 1]) |other| verify.require(frame != other, labels.PMM_FRAMES);
     }
     const allocated = pmm.state.getStatistics();
     verify.require(allocated.FreePages + frames.len == before.FreePages and
         allocated.UsedPages == before.UsedPages + frames.len and
         allocated.TotalPages == before.TotalPages and allocated.ReservedPages == before.ReservedPages and
-        allocated.WiredPages == before.WiredPages and
+        allocated.MetadataPages == before.MetadataPages and allocated.MetadataBytes == before.MetadataBytes and
+        allocated.TotalPages == allocated.FreePages + allocated.UsedPages + allocated.ReservedPages and
         allocated.totalBytes() == before.totalBytes() and
         allocated.freeBytes() + frames.len * sizes.PAGE_SIZE == before.freeBytes() and
         allocated.usedBytes() == before.usedBytes() + frames.len * sizes.PAGE_SIZE, labels.PMM_COUNTS);
@@ -52,4 +53,16 @@ pub fn run() !void {
     count = 0;
     pmm.free.single.freePage(released);
     verify.require(std.meta.eql(pmm.state.getStatistics(), before), labels.PMM_FREE);
+    try checkWrap();
+}
+
+fn checkWrap() !void {
+    const state = pmm.state.getState();
+    const previous = state.SearchStart;
+    defer state.SearchStart = previous;
+    const expected = pmm.state.firstFreeAtOrAfter(0) orelse @panic(labels.PMM_WRAP);
+    state.SearchStart = layout.PHYSMAP_MAX_SIZE / sizes.PAGE_SIZE;
+    const wrapped = try pmm.allocate.single.allocatePage();
+    defer pmm.free.single.freePage(wrapped);
+    verify.require(wrapped == expected and state.SearchStart == wrapped / sizes.PAGE_SIZE + 1, labels.PMM_WRAP);
 }

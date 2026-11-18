@@ -5,11 +5,12 @@ const common = @import("common");
 const sizes = common.constants.memory.sizes;
 
 pub const Statistics = struct {
-    TotalPages: u64,
-    FreePages: u64,
-    UsedPages: u64,
-    ReservedPages: u64,
-    WiredPages: u64,
+    TotalPages: u64 = 0,
+    FreePages: u64 = 0,
+    UsedPages: u64 = 0,
+    ReservedPages: u64 = 0,
+    MetadataPages: u64 = 0,
+    MetadataBytes: u64 = 0,
 
     pub fn totalBytes(self: Statistics) u64 {
         return self.TotalPages * sizes.PAGE_SIZE;
@@ -21,10 +22,5 @@ pub const Statistics = struct {
 
     pub fn usedBytes(self: Statistics) u64 {
         return self.UsedPages * sizes.PAGE_SIZE;
-    }
-
-    pub fn usagePercentage(self: Statistics) u8 {
-        if (self.TotalPages == 0) return 0;
-        return @truncate((self.UsedPages * 100) / self.TotalPages);
     }
 };

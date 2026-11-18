@@ -1,40 +1,16 @@
-//! Contiguous Page Allocation
+//! Contiguous And Aligned Physical First-Fit Allocation
 
 const address = @import("utils").address;
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").pmm.state;
+const storage = @import("mirai").pmm.storage;
 
-const AllocationError = common.errors.memory.allocation.AllocationError;
 const sizes = common.constants.memory.sizes;
+const AllocationError = common.errors.memory.allocation.AllocationError;
 
 pub fn allocateContiguous(page_count: u64) AllocationError!u64 {
-    const previous_flags = guard.acquire();
-    defer guard.release(previous_flags);
-
-    if (page_count == 0) {
-        return AllocationError.InvalidSize;
-    }
-
-    const pmm_state = state.getState();
-
-    if (pmm_state.FreePages < page_count) {
-        return AllocationError.OutOfMemory;
-    }
-
-    const start_page = bits.operations.findContiguousClear(
-        pmm_state.Bitmap,
-        0,
-        pmm_state.TotalPages,
-        page_count,
-    ) orelse return AllocationError.OutOfMemory;
-
-    bits.operations.setRange(pmm_state.Bitmap, start_page, page_count);
-    pmm_state.FreePages -= page_count;
-    pmm_state.UsedPages += page_count;
-
-    return address.translate.pageToAddress(start_page);
+    return allocateAligned(page_count, 1);
 }
 
 pub fn allocateContiguousZeroed(page_count: u64) AllocationError!u64 {
@@ -49,42 +25,14 @@ pub fn allocateContiguousZeroed(page_count: u64) AllocationError!u64 {
 pub fn allocateAligned(page_count: u64, alignment_pages: u64) AllocationError!u64 {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-
-    if (page_count == 0 or alignment_pages == 0) {
-        return AllocationError.InvalidSize;
-    }
-
+    if (page_count == 0 or alignment_pages == 0) return AllocationError.InvalidSize;
     const pmm_state = state.getState();
-
-    if (pmm_state.FreePages < page_count or pmm_state.TotalPages < page_count) {
+    if (pmm_state.Statistics.FreePages < page_count) return AllocationError.OutOfMemory;
+    const index = pmm_state.Index;
+    const page = storage.search.find(index, 0, index.PhysicalPages, page_count, alignment_pages) orelse
         return AllocationError.OutOfMemory;
-    }
-
-    const last_start = pmm_state.TotalPages - page_count;
-    var search_start: u64 = 0;
-    while (search_start <= last_start) {
-        const remainder = search_start % alignment_pages;
-        const padding = if (remainder == 0) 0 else alignment_pages - remainder;
-        if (padding > last_start - search_start) break;
-        const aligned_start = search_start + padding;
-
-        var found = true;
-        var check_index: u64 = 0;
-        while (check_index < page_count) : (check_index += 1) {
-            if (bits.operations.testBit(pmm_state.Bitmap, aligned_start + check_index)) {
-                found = false;
-                search_start = aligned_start + check_index + 1;
-                break;
-            }
-        }
-
-        if (found) {
-            bits.operations.setRange(pmm_state.Bitmap, aligned_start, page_count);
-            pmm_state.FreePages -= page_count;
-            pmm_state.UsedPages += page_count;
-            return address.translate.pageToAddress(aligned_start);
-        }
-    }
-
-    return AllocationError.OutOfMemory;
+    storage.access.assign(index, .{ .Start = page, .End = page + page_count }, .Allocated);
+    pmm_state.Statistics.FreePages -= page_count;
+    pmm_state.Statistics.UsedPages += page_count;
+    return page * sizes.PAGE_SIZE;
 }

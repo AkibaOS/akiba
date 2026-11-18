@@ -3,3 +3,4 @@
 pub const frames = @import("frames.zig");
 pub const ranges = @import("ranges.zig");
 pub const reservation = @import("reservation.zig");
+pub const sparse = @import("sparse.zig");

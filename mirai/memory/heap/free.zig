@@ -1,6 +1,5 @@
 //! Checked Allocation Free Kernel Heap Release
 
-const bits = @import("utils").bits;
 const cleanup = @import("mirai").memory.heap.cleanup;
 const common = @import("common");
 const frames = @import("mirai").memory.heap.frames;
@@ -34,9 +33,7 @@ fn validate(record: *const Allocation) bool {
         if (remaining == 0 or !frames.owns(frame)) return false;
         remaining -= 1;
         if (frame.Owner != record or frame.VA != extent.Base + remaining * sizes.PAGE_SIZE or !frame.Mapped or
-            frame.PA == 0 or (frame.PA & sizes.PAGE_MASK) != 0 or frames.find(frame.PA) != frame or
-            frame.PA / sizes.PAGE_SIZE >= pmm.state.getState().TotalPages or
-            !bits.operations.testBit(pmm.state.getState().Bitmap, frame.PA / sizes.PAGE_SIZE)) return false;
+            !pmm.state.isAllocated(frame.PA) or frames.find(frame.PA) != frame) return false;
         const mapped = kagami.extract.lookup(kagami.state.getKernelKagami(), frame.VA) orelse return false;
         if (mapped.PageSize != sizes.PAGE_SIZE or mapped.PhysicalAddress != frame.PA or !mapped.Writable or
             mapped.UserAccessible or mapped.Executable or

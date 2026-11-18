@@ -1,6 +1,5 @@
 //! Owned User Address And Alias Checks
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
@@ -27,20 +26,11 @@ pub fn isValidRange(virtual_address: u64, length: usize) bool {
 }
 
 pub fn isPayloadPhysical(physical_address: u64) bool {
-    if (!pmm.state.isInitialized() or physical_address == 0 or (physical_address & sizes.PAGE_MASK) != 0) return false;
+    if (!pmm.state.isAllocated(physical_address)) return false;
     const policy = kagami.state.getPolicy();
-    const managed_end = pmm.state.getState().TotalPages * sizes.PAGE_SIZE;
-    if (physical_address < pmm.constants.limits.KERNEL_RESERVED_PAGES * sizes.PAGE_SIZE or
-        physical_address >= managed_end or physical_address >= policy.PhysmapSize or
-        sizes.PAGE_SIZE > policy.PhysmapSize - physical_address) return false;
-    if (!bits.operations.testBit(pmm.state.getState().Bitmap, physical_address / sizes.PAGE_SIZE)) return false;
-    if ((physical_address >= policy.Image.PhysicalStart and physical_address < policy.Image.PhysicalEnd) or
-        (physical_address >= policy.FramebufferStart and physical_address < policy.FramebufferEnd)) return false;
-    const bitmap_address = @intFromPtr(pmm.state.getState().Bitmap.ptr);
-    if (bitmap_address < layout.PHYSMAP_BASE) return false;
-    const bitmap_start = bitmap_address - layout.PHYSMAP_BASE;
-    const bitmap_size = (pmm.state.getState().BitmapSize + sizes.PAGE_MASK) & ~sizes.PAGE_MASK;
-    return physical_address < bitmap_start or physical_address - bitmap_start >= bitmap_size;
+    return physical_address < policy.PhysmapSize and sizes.PAGE_SIZE <= policy.PhysmapSize - physical_address and
+        (physical_address < policy.Image.PhysicalStart or physical_address >= policy.Image.PhysicalEnd) and
+        (physical_address < policy.FramebufferStart or physical_address >= policy.FramebufferEnd);
 }
 
 pub fn lookupOwned(record: *const Record) ?Lookup {

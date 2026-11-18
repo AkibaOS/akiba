@@ -29,11 +29,11 @@ pub fn create() AllocationError!*Kagami {
     }
     const search = pmm.state.getState().SearchStart;
     errdefer pmm.state.getState().SearchStart = search;
-    if (records.Zone == null) try records.init(labels.DESCRIPTORS);
-    const root = try records.reserve();
+    const root = try records.reserveNamed(labels.DESCRIPTORS);
     errdefer {
         if (!records.release(root)) unreachable;
         _ = records.collectAt(root);
+        records.pruneEmpty();
     }
     root.* = .{ .Ownership = .User, .SharesKernel = true };
     root.PML4Physical = try tables.allocate.allocateTable(root);
@@ -56,5 +56,6 @@ pub fn freeKagamiStruct(root: *Kagami) bool {
     if (root.PML4Physical != 0 or root.ReferenceCount != 0 or root.ExecutionOwners != 0 or root.TablePages != 0 or root.Frames != null) return false;
     if (!records.release(root)) return false;
     _ = records.collectAt(root);
+    records.pruneEmpty();
     return true;
 }

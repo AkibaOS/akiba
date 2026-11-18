@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const budget = @import("tests").guest.support.allocation;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
@@ -62,16 +61,14 @@ pub fn run() !void {
     budget.clear();
     const restored = kagami.tables.walk.lookup(kernel.PML4Physical, layout.PHYSMAP_BASE + physical).?;
     verify.require(restored.Writable and !restored.Executable and !restored.UserAccessible and
-        !bits.operations.testBit(pmm.state.getState().Bitmap, physical / sizes.PAGE_SIZE) and
+        pmm.state.getRole(physical) == .Free and
         !user.state.ledger.ownsPhysical(physical) and owner.AddressSpace.?.ResidentPages == 0, labels.ALIAS_RELEASE);
 }
 
 fn select() ?u64 {
-    const state = pmm.state.getState();
-    var page: u64 = pmm.constants.limits.KERNEL_RESERVED_PAGES;
-    while (page < state.TotalPages) : (page += 1) {
-        if (bits.operations.testBit(state.Bitmap, page)) continue;
-        const physical = page * sizes.PAGE_SIZE;
+    var next_physical: u64 = 0;
+    while (pmm.state.firstFreeAtOrAfter(next_physical)) |physical| {
+        next_physical = physical + sizes.PAGE_SIZE;
         const alias = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, layout.PHYSMAP_BASE + physical) orelse continue;
         if (alias.PageSize > sizes.PAGE_SIZE and alias.Writable and !alias.Executable and !alias.UserAccessible) return physical;
     }

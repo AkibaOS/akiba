@@ -2,16 +2,14 @@
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const labels = @import("mirai").memory.strings.heap.storage;
-const pool = @import("mirai").memory.types.pool.store;
 const pmm = @import("mirai").pmm;
+const pool = @import("mirai").memory.types.pool.store;
 const tree = common.datatypes.tree;
 const types = @import("mirai").memory.types.heap;
 
-const sizes = common.constants.memory.sizes;
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const Allocation = types.allocation.Allocation;
 const Frame = types.frame.Frame;
@@ -40,9 +38,7 @@ pub fn bind(record: *Frame, physical: u64) bool {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (!records.owns(record)) return false;
-    if (record.PA != 0 or record.PhysicalIndex.Linked or physical == 0 or (physical & sizes.PAGE_MASK) != 0 or
-        physical / sizes.PAGE_SIZE >= pmm.state.getState().TotalPages or
-        !bits.operations.testBit(pmm.state.getState().Bitmap, physical / sizes.PAGE_SIZE)) return false;
+    if (record.PA != 0 or record.PhysicalIndex.Linked or !pmm.state.isAllocated(physical)) return false;
     if (!tree.insert.insert(&physicals, &record.PhysicalIndex, physical)) return false;
     record.PA = physical;
     return true;

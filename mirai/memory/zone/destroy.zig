@@ -17,5 +17,6 @@ pub fn destroy(zone: *Zone) bool {
     _ = gc.collect(zone);
     if (zone.PageCount != 0 or zone.PageIndex.Count != 0 or zone.PageIndex.Root != null) return false;
     alloc.zfree(zones, @ptrCast(zone));
+    _ = gc.collectPage(zones, @ptrCast(zone));
     return true;
 }

@@ -22,7 +22,7 @@ pub fn collect(zone: *Zone) usize {
     var current = zone.PartialPages;
     while (current) |meta| {
         const next = meta.Next;
-        if (meta.InUse == 0 and !(metadata and bootstrap.isEarlyMeta(meta))) {
+        if (meta.InUse == 0 and !bootstrap.isEarlyMeta(meta)) {
             releaseEmpty(zone, meta, metadata);
             freed += 1;
         }
@@ -38,7 +38,7 @@ pub fn collectPage(zone: *Zone, pointer: *const anyopaque) usize {
     const meta = pages.find(zone, virtual) orelse return 0;
     const metadata = zone == bootstrap.getPageMetaZone();
     const early = bootstrap.isEarlyMeta(meta);
-    if (meta.Zone != zone or meta.InUse != 0 or (metadata and early)) return 0;
+    if (meta.Zone != zone or meta.InUse != 0 or early) return 0;
     const record: *const anyopaque = @ptrCast(meta);
     releaseEmpty(zone, meta, metadata);
     const additional = if (!metadata and !early) collectPage(bootstrap.getPageMetaZone(), record) else 0;

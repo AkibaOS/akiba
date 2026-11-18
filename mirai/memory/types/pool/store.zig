@@ -5,6 +5,7 @@ const std = @import("std");
 const common = @import("common");
 const fields = @import("mirai").memory.strings.pool.fields;
 const guard = @import("asm").interrupts.guard;
+const pmm = @import("mirai").pmm;
 const records = @import("mirai").memory.types.pool.record;
 const types = @import("mirai").memory.types;
 const zone = @import("mirai").memory.zone;
@@ -37,6 +38,23 @@ pub fn create(comptime Value: type) type {
             if (@sizeOf(Record) > sizes.PAGE_SIZE) return AllocationError.SizeTooLarge;
             self.Zone = try zone.create.create(name, @sizeOf(Record));
             self.Location = @intFromPtr(self);
+        }
+
+        pub fn reserveNamed(self: *Self, name: []const u8) AllocationError!*Value {
+            const flags = guard.acquire();
+            defer guard.release(flags);
+            const search = pmm.state.getState().SearchStart;
+            errdefer pmm.state.getState().SearchStart = search;
+            const cold = self.Zone == null;
+            if (cold) try self.init(name);
+            errdefer if (cold and !self.deinit()) unreachable;
+            return try self.reserve();
+        }
+
+        pub fn pruneEmpty(self: *Self) void {
+            const flags = guard.acquire();
+            defer guard.release(flags);
+            if (self.Zone != null and self.Count == 0 and !self.deinit()) unreachable;
         }
 
         pub fn reserve(self: *Self) AllocationError!*Value {

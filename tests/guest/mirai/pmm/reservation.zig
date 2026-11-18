@@ -1,8 +1,7 @@
-//! Owned Physical Range Reservation Regressions
+//! Checked Physical Page Release Regressions
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
@@ -10,6 +9,7 @@ const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").verify;
 
+const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
 pub fn run() !void {
@@ -17,26 +17,25 @@ pub fn run() !void {
     defer guard.release(flags);
     const before = pmm.state.getStatistics();
     const owned = try pmm.allocate.contiguous.allocateContiguous(inputs.RANGE_PAGES);
-    var owns_range = true;
-    defer if (owns_range) pmm.free.range.freeRange(owned, inputs.RANGE_PAGES);
-    const allocated = pmm.state.getStatistics();
-    pmm.free.range.freeRange(owned, 0);
-    pmm.init.setup.reservePhysicalRange(owned + inputs.SINGLE_BYTE, 0);
-    verify.require(std.meta.eql(allocated, pmm.state.getStatistics()), labels.PMM_RESERVE_EMPTY);
-    pmm.free.range.freeRange(owned + sizes.PAGE_SIZE, inputs.RANGE_PAGES - 2);
-    const holes = pmm.state.getStatistics();
-    verify.require(holes.FreePages == allocated.FreePages + inputs.RANGE_PAGES - 2, labels.PMM_COUNTS);
-    pmm.init.setup.reservePhysicalRange(owned + sizes.PAGE_SIZE + inputs.SINGLE_BYTE, sizes.PAGE_SIZE);
-    verify.require(std.meta.eql(allocated, pmm.state.getStatistics()), labels.PMM_RESERVE);
-    pmm.init.setup.reservePhysicalRange(owned + inputs.SINGLE_BYTE, inputs.RANGE_PAGES * sizes.PAGE_SIZE - 2 * inputs.SINGLE_BYTE);
-    pmm.init.setup.reservePhysicalRange(owned, inputs.RANGE_PAGES * sizes.PAGE_SIZE);
-    verify.require(std.meta.eql(allocated, pmm.state.getStatistics()), labels.PMM_RESERVE);
-    var index: u64 = 0;
-    while (index < inputs.RANGE_PAGES) : (index += 1) {
-        verify.require(bits.operations.testBit(pmm.state.getState().Bitmap, owned / sizes.PAGE_SIZE + index), labels.PMM_RESERVE);
+    defer {
+        for (0..inputs.RANGE_PAGES) |index| pmm.free.single.freePage(owned + index * sizes.PAGE_SIZE);
     }
-    pmm.free.range.freeRange(owned, inputs.RANGE_PAGES);
-    owns_range = false;
-    pmm.free.range.freeRange(owned, inputs.RANGE_PAGES);
-    verify.require(std.meta.eql(before, pmm.state.getStatistics()), labels.PMM_FREE);
+    const allocated = pmm.state.getStatistics();
+    const cursor = pmm.state.getState().SearchStart;
+    verify.require(!pmm.free.range.releaseRange(owned, 0) and
+        !pmm.free.single.releasePage(owned + inputs.SINGLE_BYTE) and
+        !pmm.free.range.releaseRange(owned, std.math.maxInt(u64)) and
+        !pmm.free.single.releasePage(0) and !pmm.free.single.releasePage(layout.PHYSMAP_MAX_SIZE) and
+        pmm.state.getState().SearchStart == cursor and std.meta.eql(allocated, pmm.state.getStatistics()), labels.PMM_RELEASE_INVALID);
+    const middle = owned + sizes.PAGE_SIZE;
+    verify.require(pmm.free.range.releaseRange(middle, inputs.RANGE_PAGES - 2), labels.PMM_FREE);
+    const partial = pmm.state.getStatistics();
+    const partial_cursor = pmm.state.getState().SearchStart;
+    const last = owned + (inputs.RANGE_PAGES - 1) * sizes.PAGE_SIZE;
+    verify.require(!pmm.free.range.releaseRange(owned, inputs.RANGE_PAGES) and
+        !pmm.free.single.releasePage(middle) and pmm.state.isAllocated(owned) and pmm.state.isAllocated(last) and
+        pmm.state.getRole(middle) == .Free and pmm.state.getState().SearchStart == partial_cursor and
+        std.meta.eql(partial, pmm.state.getStatistics()), labels.PMM_RELEASE_ATOMIC);
+    verify.require(pmm.free.single.releasePage(owned) and pmm.free.single.releasePage(last) and
+        std.meta.eql(before, pmm.state.getStatistics()), labels.PMM_FREE);
 }

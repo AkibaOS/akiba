@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const budget = @import("tests").guest.support.allocation;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
@@ -37,7 +36,7 @@ pub fn run() !void {
     const destroyed = kagami.destroy.destroy(root);
     live_root = false;
     verify.require(destroyed == .Destroyed and !kagami.create.owns(root) and
-        bits.operations.testBit(pmm.state.getState().Bitmap, payload / sizes.PAGE_SIZE), labels.RELEASE);
+        pmm.state.isAllocated(payload), labels.RELEASE);
     pmm.free.single.freePage(payload);
     live_payload = false;
     budget.clear();

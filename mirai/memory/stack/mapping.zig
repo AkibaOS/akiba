@@ -1,6 +1,5 @@
 //! Owned Kernel Stack Mapping Validation And Unwind
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const kagami = @import("mirai").kagami;
 const labels = @import("mirai").memory.strings.stack.storage;
@@ -21,8 +20,7 @@ pub fn validate(record: *const Record) bool {
     const kernel = kagami.state.getKernelKagami();
     if (kagami.extract.isMapped(kernel, stack.Base - sizes.PAGE_SIZE) or kagami.extract.isMapped(kernel, stack.Top)) return false;
     for (record.Pages, 0..) |physical, index| {
-        if (physical == 0 or (physical & sizes.PAGE_MASK) != 0 or physical / sizes.PAGE_SIZE >= pmm.state.getState().TotalPages or
-            !bits.operations.testBit(pmm.state.getState().Bitmap, physical / sizes.PAGE_SIZE)) return false;
+        if (!pmm.state.isAllocated(physical)) return false;
         const mapped = kagami.extract.lookup(kernel, stack.Base + index * sizes.PAGE_SIZE) orelse return false;
         if (mapped.PageSize != sizes.PAGE_SIZE or mapped.PhysicalAddress != physical or !mapped.Writable or
             mapped.Executable or mapped.UserAccessible or !mapped.Entry.isWired()) return false;

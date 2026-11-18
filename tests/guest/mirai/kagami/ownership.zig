@@ -3,7 +3,6 @@
 const std = @import("std");
 
 const address = @import("utils").address;
-const bits = @import("utils").bits;
 const common = @import("common");
 const decompose = @import("utils").address.decompose;
 const guard = @import("asm").interrupts.guard;
@@ -56,11 +55,11 @@ pub fn run() !void {
     const before_destroy = pmm.state.getStatistics();
     const destroyed = kagami.destroy.destroy(root);
     const after_destroy = pmm.state.getStatistics();
-    var released = !bits.operations.testBit(pmm.state.getState().Bitmap, descriptor / sizes.PAGE_SIZE);
-    for (frames) |frame| released = released and !bits.operations.testBit(pmm.state.getState().Bitmap, frame / sizes.PAGE_SIZE);
+    var released = pmm.state.getRole(descriptor) == .Free;
+    for (frames) |frame| released = released and pmm.state.getRole(frame) == .Free;
     verify.require(destroyed == .Destroyed and !kagami.create.owns(root) and released and tables == frames.len and
         after_destroy.FreePages >= before_destroy.FreePages + tables and
-        bits.operations.testBit(pmm.state.getState().Bitmap, payload / sizes.PAGE_SIZE) and
+        pmm.state.isAllocated(payload) and
         std.mem.allEqual(u8, bytes[0..sizes.PAGE_SIZE], inputs.DIRTY_BYTE), labels.KAGAMI_PAYLOAD);
     pmm.free.single.freePage(payload);
     owns_payload = false;

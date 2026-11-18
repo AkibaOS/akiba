@@ -37,8 +37,7 @@ pub fn reserve(id: u64, owner_id: u64) bool {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (id == constants.KERNEL_ID or id == owner_id or find(id) != null) return false;
-    if (records.Zone == null) records.init(labels.COMPLETION) catch return false;
-    const record = records.reserve() catch return false;
+    const record = records.reserveNamed(labels.COMPLETION) catch return false;
     record.* = .{ .ID = id, .OwnerID = owner_id };
     if (!tree.insert.insert(&identities, &record.Index, id)) {
         discard(record);
@@ -93,4 +92,5 @@ fn ownerKey(owner_id: u64, id: u64) u128 {
 fn discard(record: *Completion) void {
     if (!records.release(record)) @panic(messages.INVALID_OBSERVER);
     _ = records.collectAt(record);
+    records.pruneEmpty();
 }

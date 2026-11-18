@@ -79,8 +79,7 @@ pub fn register(owner: *Kata, virtual_address: u64, physical_address: u64) UserE
     if (!checks.isPayloadPhysical(physical_address)) return UserError.InvalidPhysmap;
     const root = owner.AddressSpace.?;
     if (findRoot(root, virtual_address) != null or ownsPhysical(physical_address)) return UserError.AlreadyOwned;
-    if (records.Zone == null) try records.init(labels.NAME);
-    const record = try records.reserve();
+    const record = try records.reserveNamed(labels.NAME);
     record.* = .{ .Owner = owner, .Root = root, .VA = virtual_address, .PA = physical_address };
     if (!tree.insert.insert(&virtuals, &record.VirtualIndex, virtualKey(root, virtual_address))) {
         discard(record);
@@ -120,4 +119,5 @@ fn virtualKey(root: *const Kagami, virtual_address: u64) u128 {
 fn discard(record: *Record) void {
     if (!records.release(record)) @panic(labels.INVALID_STATE);
     _ = records.collectAt(record);
+    records.pruneEmpty();
 }

@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
@@ -274,13 +273,14 @@ fn release(owner: *Kata, baseline: pmm.types.statistics.Statistics, baseline_ker
     for (physical) |frame| {
         const alias = kagami.extract.lookup(kagami.state.getKernelKagami(), layout.PHYSMAP_BASE + frame).?;
         verify.require(!user.state.ledger.ownsPhysical(frame) and
-            !bits.operations.testBit(pmm.state.getState().Bitmap, frame / sizes.PAGE_SIZE) and
+            pmm.state.getRole(frame) == .Free and
             alias.PhysicalAddress == frame and alias.Writable and !alias.Executable and !alias.UserAccessible, labels.USER_RELEASE);
     }
     const after = pmm.state.getStatistics();
     verify.require(after.FreePages + retained_tables == baseline.FreePages and
         after.UsedPages == baseline.UsedPages + retained_tables and after.ReservedPages == baseline.ReservedPages and
-        after.WiredPages == baseline.WiredPages and kagami.state.getKernelKagami().TablePages == kernel_tables, labels.USER_RELEASE_COUNTS);
+        after.MetadataPages == baseline.MetadataPages and after.MetadataBytes == baseline.MetadataBytes and
+        kagami.state.getKernelKagami().TablePages == kernel_tables, labels.USER_RELEASE_COUNTS);
     try user.memory.release.releaseAll(owner);
     verify.require(std.meta.eql(after, pmm.state.getStatistics()), labels.USER_RELEASE_COUNTS);
 }

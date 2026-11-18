@@ -11,3 +11,8 @@ pub const MappingRejection = struct {
     Protection: u8,
     Failure: anyerror,
 };
+
+pub const SparseBacking = struct {
+    Pages: [3]u64,
+    Mapped: usize = 0,
+};

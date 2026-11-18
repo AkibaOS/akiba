@@ -3,7 +3,6 @@
 const std = @import("std");
 
 const address = @import("utils").address;
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
@@ -27,7 +26,7 @@ pub fn run() !void {
         std.mem.allEqual(u8, bytes[0 .. inputs.RANGE_PAGES * sizes.PAGE_SIZE], 0), labels.PMM_RANGE);
     var index: u64 = 0;
     while (index < inputs.RANGE_PAGES) : (index += 1) {
-        verify.require(bits.operations.testBit(pmm.state.getState().Bitmap, contiguous / sizes.PAGE_SIZE + index), labels.PMM_RANGE);
+        verify.require(pmm.state.isAllocated(contiguous + index * sizes.PAGE_SIZE), labels.PMM_RANGE);
     }
     @memset(bytes[0 .. inputs.RANGE_PAGES * sizes.PAGE_SIZE], inputs.DIRTY_BYTE);
     const aligned = try pmm.allocate.contiguous.allocateAligned(inputs.RANGE_PAGES, inputs.ALIGNMENT_PAGES);

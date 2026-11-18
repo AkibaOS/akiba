@@ -5,4 +5,5 @@ pub const constants = @import("constants/constants.zig");
 pub const free = @import("free/free.zig");
 pub const init = @import("init/init.zig");
 pub const state = @import("state/state.zig");
+pub const storage = @import("storage/storage.zig");
 pub const types = @import("types/types.zig");

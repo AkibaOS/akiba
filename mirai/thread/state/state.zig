@@ -162,8 +162,7 @@ pub fn reserve(owner: *Kata) ?*Thread {
     defer guard.release(flags);
     if (!boot_initialized or !kata.state.owns(owner) or owner.State == .Dead or owner.AddressSpace == null) return null;
     const owned = kata.state.data(owner) orelse return null;
-    if (records.Zone == null) records.init(labels.DESCRIPTORS) catch return null;
-    const slot = records.reserve() catch return null;
+    const slot = records.reserveNamed(labels.DESCRIPTORS) catch return null;
     slot.* = .{ .Descriptor = .{ .Owner = owner, .Stack = .{ .Base = 0, .Top = 0 } }, .OwnerNext = owned.Threads };
     if (owned.Threads) |first_thread| {
         const first_slot = data(first_thread) orelse @panic(messages.INVALID_CONTEXT);
@@ -195,6 +194,7 @@ pub fn release(target: *Thread) bool {
     }
     if (!records.release(slot)) @panic(messages.INVALID_CONTEXT);
     _ = records.collectAt(slot);
+    records.pruneEmpty();
     return true;
 }
 

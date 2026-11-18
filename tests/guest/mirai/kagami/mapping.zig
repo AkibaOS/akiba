@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const bits = @import("utils").bits;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
@@ -55,8 +54,7 @@ pub fn run() !void {
     try kagami.enter.enterReplace(root, inputs.MAP_ADDRESS, second, protection.USER_WRITE | protection.WIRED);
     verify.require(root.ResidentPages == 4 and root.WiredPages == 2 and
         kagami.extract.extract(root, inputs.MAP_ADDRESS).? == second and
-        bits.operations.testBit(pmm.state.getState().Bitmap, first / sizes.PAGE_SIZE) and
-        bits.operations.testBit(pmm.state.getState().Bitmap, second / sizes.PAGE_SIZE) and
+        pmm.state.isAllocated(first) and pmm.state.isAllocated(second) and
         std.meta.eql(before_duplicate, pmm.state.getStatistics()), labels.KAGAMI_REPLACE);
     try kagami.enter.enterReplace(root, inputs.MAP_NEIGHBOR, first, protection.USER_WRITE);
     verify.require(root.ResidentPages == 4 and root.WiredPages == 1 and

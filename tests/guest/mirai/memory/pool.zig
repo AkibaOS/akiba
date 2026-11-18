@@ -33,8 +33,42 @@ pub fn run() !void {
     try membership();
     try lifetimes();
     try failure();
+    try coldFailure();
     try exhausted();
     geometry();
+}
+
+fn coldFailure() !void {
+    const zone = memory.zone.bootstrap.getZoneZone();
+    var held: [sizes.PAGE_SIZE / @sizeOf(memory.types.zone.Zone)]*memory.types.zone.Zone = undefined;
+    var count: usize = 0;
+    defer for (held[0..count]) |descriptor| {
+        verify.require(memory.zone.destroy.destroy(descriptor), labels.ZONE_LIFETIME);
+    };
+    while (zone.PartialPages != null and count < held.len) {
+        held[count] = try memory.zone.create.create(labels.NAME, @sizeOf(Value));
+        count += 1;
+    }
+    verify.require(zone.PartialPages == null, labels.COLD_ROLLBACK);
+
+    const before = pmm.state.getStatistics();
+    const search_start = pmm.state.getState().SearchStart;
+    var candidate: Store = .{};
+    var attempts: usize = 0;
+    while (true) : (attempts += 1) {
+        budget.arm(attempts);
+        if (candidate.reserveNamed(labels.NAME)) |value| {
+            budget.clear();
+            verify.require(attempts >= 2 and candidate.release(value), labels.COLD_ROLLBACK);
+            candidate.pruneEmpty();
+            break;
+        } else |reason| {
+            budget.clear();
+            verify.require(reason == error.OutOfMemory and candidate.Zone == null and candidate.Count == 0 and
+                search_start == pmm.state.getState().SearchStart and std.meta.eql(before, pmm.state.getStatistics()), labels.COLD_ROLLBACK);
+        }
+    }
+    verify.require(candidate.Zone == null and std.meta.eql(before, pmm.state.getStatistics()), labels.COLD_ROLLBACK);
 }
 
 fn growth() !void {

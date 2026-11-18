@@ -4,6 +4,7 @@ const common = @import("common");
 const errors = @import("mirai").kata.errors.ownership;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
+const pmm = @import("mirai").pmm;
 const state = @import("mirai").kata.state;
 const thread = @import("mirai").thread;
 const types = @import("mirai").kata.types;
@@ -27,6 +28,8 @@ pub fn createFor(launcher: *const Kata) (AllocationError || OwnershipError)!*Kat
     if (!state.owns(launcher)) return OwnershipError.InvalidKata;
     if (launcher.State != .Alive and launcher.State != .Sleeping) return OwnershipError.InvalidState;
     if (!state.canReserve()) return AllocationError.OutOfMemory;
+    const search_start = pmm.state.getState().SearchStart;
+    errdefer pmm.state.getState().SearchStart = search_start;
     const root = try kagami.create.create();
     errdefer _ = kagami.destroy.destroy(root);
     if (!kagami.retain.acquire(root)) return OwnershipError.InvalidState;

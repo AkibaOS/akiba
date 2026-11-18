@@ -9,6 +9,7 @@ const errors = @import("mirai").thread.errors.ownership;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
+const pmm = @import("mirai").pmm;
 const stack = @import("mirai").memory.stack;
 const state = @import("mirai").thread.state;
 const types = @import("mirai").thread.types;
@@ -28,6 +29,8 @@ pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationErro
     const root = owner.AddressSpace orelse return OwnershipError.InvalidState;
     if (owner.State == .Dead or owner.ThreadCount == std.math.maxInt(u64) or root.ExecutionOwners == 0 or
         !kagami.activate.canActivate(root)) return OwnershipError.InvalidState;
+    const search_start = pmm.state.getState().SearchStart;
+    errdefer pmm.state.getState().SearchStart = search_start;
     const thread = state.reserve(owner) orelse return AllocationError.OutOfMemory;
     errdefer _ = state.release(thread);
     const kernel_stack = try stack.allocate.allocate();

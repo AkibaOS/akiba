@@ -39,11 +39,7 @@ pub const Registry = struct {
             entry.Ports.set(exception_type, port);
             return true;
         }
-        if (self.Records.Zone == null) self.Records.init(name) catch return false;
-        const entry = self.Records.reserve() catch {
-            self.releaseEmpty();
-            return false;
-        };
+        const entry = self.Records.reserveNamed(name) catch return false;
         entry.* = .{ .OwnerId = owner_id };
         entry.Ports.set(exception_type, port);
         if (!tree.insert.insert(&self.Identities, &entry.Index, owner_id)) {
