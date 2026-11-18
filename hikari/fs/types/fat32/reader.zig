@@ -26,6 +26,8 @@ pub const Reader = struct {
     OriginCluster: u32,
     ClusterBuffer: [*]u8,
     SectorBuffer: [*]u8,
+    ClusterAllocation: efi.types.buffer.AlignedBuffer,
+    SectorAllocation: efi.types.buffer.AlignedBuffer,
 
     pub fn initialize(
         block_io: *efi.types.protocols.block.BlockIoProtocol,
@@ -33,16 +35,14 @@ pub const Reader = struct {
         partition_start_lba: u64,
     ) ReadError!Reader {
         const block_size = block_io.Media.BlockSize;
-
-        var sector_buffer: [*]align(8) u8 = undefined;
-        var allocation_status = boot_services.AllocatePool(
-            .LoaderData,
-            block_size,
-            &sector_buffer,
-        );
-        if (efi.status.isError(allocation_status)) {
-            return ReadError.AllocationFailed;
+        if (block_size < @sizeOf(BootSector) or block_size > fat32.constants.sizes.SECTOR_SIZE_MAX or
+            (block_size & (block_size - 1)) != 0 or partition_start_lba > block_io.Media.LastBlock)
+        {
+            return ReadError.InvalidBootSector;
         }
+        var sector_allocation = efi.buffer.allocate(boot_services, block_size, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+        errdefer efi.buffer.release(boot_services, &sector_allocation);
+        const sector_buffer = sector_allocation.Data;
 
         const read_status = block_io.ReadBlocks(
             block_io,
@@ -56,26 +56,26 @@ pub const Reader = struct {
         }
 
         const boot_sector: *const BootSector = @ptrCast(@alignCast(sector_buffer));
-        if (!boot_sector.isValid()) {
+        if (!boot_sector.isValid() or boot_sector.BytesPerSector != block_size) {
             return ReadError.InvalidBootSector;
         }
 
         const bytes_per_sector: u32 = boot_sector.BytesPerSector;
         const sectors_per_cluster: u32 = boot_sector.SectorsPerCluster;
-        const bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
-
-        var cluster_buffer: [*]align(8) u8 = undefined;
-        allocation_status = boot_services.AllocatePool(
-            .LoaderData,
-            bytes_per_cluster,
-            &cluster_buffer,
-        );
-        if (efi.status.isError(allocation_status)) {
-            return ReadError.AllocationFailed;
+        const total_sectors: u64 = boot_sector.TotalSectors32;
+        const data_offset = @as(u64, boot_sector.ReservedSectors) + @as(u64, boot_sector.FatCount) * boot_sector.FatSize32;
+        if ((sectors_per_cluster & (sectors_per_cluster - 1)) != 0 or total_sectors == 0 or
+            total_sectors - 1 > block_io.Media.LastBlock - partition_start_lba or data_offset >= total_sectors or
+            boot_sector.RootCluster < fat32.constants.clusters.CLUSTER_DATA_START or
+            boot_sector.RootCluster - fat32.constants.clusters.CLUSTER_DATA_START >= (total_sectors - data_offset) / sectors_per_cluster)
+        {
+            return ReadError.InvalidBootSector;
         }
-
-        const fat_start_lba = partition_start_lba + boot_sector.getFatStartSector();
-        const data_start_lba = partition_start_lba + boot_sector.getDataStartSector();
+        const bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
+        const cluster_allocation = efi.buffer.allocate(boot_services, bytes_per_cluster, block_io.Media.IOAlign) orelse return ReadError.AllocationFailed;
+        const cluster_buffer = cluster_allocation.Data;
+        const fat_start_lba = partition_start_lba + boot_sector.ReservedSectors;
+        const data_start_lba = partition_start_lba + data_offset;
 
         return Reader{
             .BlockIO = block_io,
@@ -90,7 +90,14 @@ pub const Reader = struct {
             .OriginCluster = boot_sector.RootCluster,
             .ClusterBuffer = cluster_buffer,
             .SectorBuffer = sector_buffer,
+            .ClusterAllocation = cluster_allocation,
+            .SectorAllocation = sector_allocation,
         };
+    }
+
+    pub fn deinitialize(self: *Reader) void {
+        efi.buffer.release(self.BootServices, &self.ClusterAllocation);
+        efi.buffer.release(self.BootServices, &self.SectorAllocation);
     }
 
     pub fn readCluster(self: *Reader, cluster_number: u32) ReadError!void {
@@ -257,6 +264,7 @@ pub const Reader = struct {
             return ReadError.AllocationFailed;
         }
 
+        errdefer _ = self.BootServices.FreePool(buffer);
         const bytes_read = try self.readUnit(entry, buffer, unit_size);
         return .{ .Buffer = buffer, .Size = bytes_read };
     }

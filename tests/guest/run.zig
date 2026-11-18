@@ -39,6 +39,7 @@ pub fn execute() void {
     }
     serial.printf(acquisitionlabels.GROUP, .{});
     check(guest.hikari.disk.gpt.run);
+    check(guest.hikari.disk.fat.run);
     @call(.never_inline, guest.hikari.disk.reader.run, .{});
     check(guest.hikari.disk.unit.run);
     serial.printf(hikarilabels.GROUP_ELF, .{});

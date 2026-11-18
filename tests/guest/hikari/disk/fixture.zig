@@ -252,7 +252,7 @@ fn readBlocks(self: *protocols.BlockIoProtocol, media_id: u32, lba: base.LBA, bu
     device.Reads[device.ReadCalls] = .{ .LBA = lba, .Bytes = buffer_size, .Address = @intFromPtr(buffer) };
     device.ReadCalls += 1;
     if (self != &protocol or media_id != constants.MEDIA_ID or lba > media.LastBlock or
-        buffer_size == 0 or buffer_size % media.BlockSize != 0 or @intFromPtr(buffer) % constants.IO_ALIGNMENT != 0)
+        buffer_size == 0 or buffer_size % media.BlockSize != 0 or @intFromPtr(buffer) % @max(media.IOAlign, 1) != 0)
     {
         device.Broken = true;
         return status.INVALID_PARAMETER;
