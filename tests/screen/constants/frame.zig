@@ -25,3 +25,4 @@ pub const MINIMUM_WIDTH: u32 = 512;
 pub const DATE_BYTES: usize = 8;
 pub const LAST_FOUR_DIGIT_YEAR_SECOND: i128 = 253_402_300_799;
 pub const ANIMATION_MILLISECONDS: u64 = 120;
+pub const BOOT_CHECKPOINT_INTERVAL: usize = 32;

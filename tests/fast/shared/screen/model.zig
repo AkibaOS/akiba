@@ -92,6 +92,28 @@ pub fn failure() !void {
     try std.testing.expect(!model.complete(&state));
 }
 
+pub fn checkpoints() !void {
+    const model = project.screen.model;
+    var rows: [6]project.screen.types.model.Row = undefined;
+    var state = model.initialize(&rows, 2);
+    try std.testing.expect(!model.checkpoint(&state, 1));
+    try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
+    try std.testing.expect(model.checkpoint(&state, 32));
+    try std.testing.expect(!model.checkpoint(&state, 32));
+    try std.testing.expect(!model.checkpoint(&state, 31));
+    try std.testing.expect(model.checkpoint(&state, 64));
+    const running = model.row(&state, 1).?;
+    try std.testing.expectEqual(.Running, running.Kind);
+    try std.testing.expectEqual(@as(?usize, 64), running.Verified);
+    try std.testing.expect(model.row(&state, 2) == null);
+    try std.testing.expectEqual(@as(usize, 0), model.percent(&state));
+    try std.testing.expect(model.finish(&state, .Pass));
+    try std.testing.expectEqual(@as(?usize, 64), model.row(&state, 1).?.Verified);
+    try std.testing.expectEqual(@as(usize, 50), model.percent(&state));
+    try std.testing.expect(model.begin(&state, labels.NEXT_CASE));
+    try std.testing.expectEqual(@as(?usize, null), model.row(&state, 2).?.Verified);
+}
+
 pub fn metadata() !void {
     const date = project.screen.date;
     var buffer: [project.screen.constants.frame.DATE_BYTES]u8 = undefined;

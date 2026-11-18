@@ -43,7 +43,11 @@ pub fn execute(boot_info: *const BootInfo) noreturn {
         print.fail(status.ERROR_MEMORY);
         haltOnFailure();
     }
-    if (options.GUEST_CHECKS and selector.selectEarly() == .Standard) @call(.never_inline, rootchecks.run, .{boot_info});
+    if (options.GUEST_CHECKS and selector.selectEarly() == .Standard) {
+        checks.beginBootstrap();
+        @call(.never_inline, rootchecks.run, .{boot_info});
+        checks.finishBootstrap();
+    }
     const prepared = bootstrap.prepare(boot_info) catch |failure| {
         print.log(messages.ROOT_PREPARE_FAILED, .{@errorName(failure)});
         haltOnFailure();

@@ -76,8 +76,19 @@ pub fn record(outcome: Outcome, name: []const u8) void {
     if (active) |*session| screen.model.evidence(&session.Progress, outcome, name);
 }
 
+pub fn isActive() bool {
+    return active != null;
+}
+
 pub fn checkpoint() void {
     refresh(false);
+}
+
+pub fn bootCheckpoint(verified: usize) void {
+    const flags = guard.acquire();
+    const changed = if (active) |*session| screen.model.checkpoint(&session.Progress, verified) else false;
+    guard.release(flags);
+    if (changed) refreshAt(true, verified / screen.constants.frame.BOOT_CHECKPOINT_INTERVAL);
 }
 
 pub fn finish(outcome: Outcome) void {
@@ -110,13 +121,17 @@ pub fn release() void {
 }
 
 fn refresh(force: bool) void {
+    refreshAt(force, null);
+}
+
+fn refreshAt(force: bool, checkpoint_frame: ?usize) void {
     const flags = guard.acquire();
     const session = if (active) |*value| value else {
         guard.release(flags);
         return;
     };
     const ticks_per_frame = @max(1, screen.constants.frame.ANIMATION_MILLISECONDS * rate.TARGET_FREQUENCY / std.time.ms_per_s);
-    const frame = @as(usize, @intCast((pit.getTicks() -| session.Started) / ticks_per_frame % screen.strings.text.SPINNER.len));
+    const frame = (checkpoint_frame orelse @as(usize, @intCast((pit.getTicks() -| session.Started) / ticks_per_frame))) % screen.strings.text.SPINNER.len;
     if (session.Rendering or (!force and frame == session.LastFrame)) {
         guard.release(flags);
         return;

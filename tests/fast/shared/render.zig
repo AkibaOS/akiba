@@ -270,6 +270,10 @@ test "diagnostic assertion evidence does not advance group progress" {
     try checks.screen.model.evidence();
 }
 
+test "boot refusal counts update the running row without completing its check" {
+    try checks.screen.model.checkpoints();
+}
+
 test "diagnostic build date uses the cached image timestamp in UTC" {
     try checks.screen.model.metadata();
 }

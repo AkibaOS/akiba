@@ -1,5 +1,7 @@
 //! Boot Message Printing
 
+const options = @import("options");
+const screen = if (options.GUEST_CHECKS) @import("tests").guest.screen.control else null;
 const serial = @import("mirai").drivers.serial;
 const splash = @import("mirai").boot.splash;
 const strings = @import("mirai").boot.strings;
@@ -13,7 +15,7 @@ pub fn log(comptime fmt: []const u8, args: anytype) void {
 
 pub fn phase(message: []const u8) void {
     serial.write.printf(messages.LINE, .{message});
-    splash.report(message);
+    if (!options.GUEST_CHECKS or !screen.isActive()) splash.report(message);
 }
 
 pub fn fail(message: []const u8) void {

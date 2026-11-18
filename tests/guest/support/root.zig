@@ -10,10 +10,12 @@ const labels = @import("tests").strings.tables;
 const memory = @import("mirai").boot.sequence.memory;
 const pmm = @import("mirai").pmm;
 const retirement = @import("mirai").boot.retirement;
+const screen = @import("tests").guest.screen.control;
 const serial = @import("mirai").drivers.serial.write;
 const types = @import("mirai").boot.types;
 const zones = @import("mirai").memory.zone.bootstrap;
 
+const CHECKPOINT_INTERVAL = @import("tests").screen.constants.frame.BOOT_CHECKPOINT_INTERVAL;
 const BootInfo = types.sequence.info.BootInfo;
 const Range = pmm.types.storage.Range;
 const sizes = common.constants.memory.sizes;
@@ -64,11 +66,13 @@ pub fn run(info: *const BootInfo) void {
                 !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
             completed = true;
             serial.printf(labels.ROLLBACK_COMPLETE, .{});
+            screen.bootCheckpoint(failures);
             return;
         } else |failure| {
             allocation.clear();
             if (failure != error.OutOfMemory or previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
                 !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
+            if ((failures + 1) % CHECKPOINT_INTERVAL == 0) screen.bootCheckpoint(failures + 1);
         }
     }
 }

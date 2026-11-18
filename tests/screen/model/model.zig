@@ -18,6 +18,12 @@ pub fn begin(state: *types.Model, name: []const u8) bool {
     return true;
 }
 
+pub fn checkpoint(state: *types.Model, verified: usize) bool {
+    if (state.Active == null or verified <= (state.ActiveVerified orelse 0)) return false;
+    state.ActiveVerified = verified;
+    return true;
+}
+
 pub fn finish(state: *types.Model, outcome: types.Outcome) bool {
     const name = state.Active orelse return false;
     return closeActive(state, outcome, name);
@@ -32,7 +38,8 @@ fn closeActive(state: *types.Model, outcome: types.Outcome, name: []const u8) bo
     state.Active = null;
     state.Completed += 1;
     if (outcome == .Fail) state.Failed += 1;
-    append(state, .{ .Kind = if (outcome == .Pass) .Pass else .Fail, .Text = name });
+    append(state, .{ .Kind = if (outcome == .Pass) .Pass else .Fail, .Text = name, .Verified = state.ActiveVerified });
+    state.ActiveVerified = null;
     return true;
 }
 
@@ -65,7 +72,7 @@ pub fn row(state: *const types.Model, index: usize) ?types.Row {
     const active = state.Active != null;
     const visible = state.Count + @intFromBool(active and state.Count < state.Rows.len);
     if (index >= visible) return null;
-    if (active and index == visible - 1) return .{ .Kind = .Running, .Text = state.Active.? };
+    if (active and index == visible - 1) return .{ .Kind = .Running, .Text = state.Active.?, .Verified = state.ActiveVerified };
     const skipped = state.Count - (visible - @intFromBool(active));
     return state.Rows[wrap(state.Oldest, skipped + index, state.Rows.len)];
 }

@@ -19,6 +19,7 @@ const retentionlabels = @import("tests").strings.retention;
 const runnerlabels = @import("tests").strings.runner;
 const scenariolabels = @import("tests").strings.scenario;
 const screen = @import("tests").guest.screen.control;
+const screentext = @import("tests").screen.strings.text;
 const senseilabels = @import("tests").strings.sensei;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
@@ -82,9 +83,21 @@ pub fn execute() bool {
     }
 }
 
-fn standard() bool {
+pub fn beginBootstrap() void {
+    if (startScreen(groups.len + 1)) screen.begin(screentext.BOOTSTRAP_ROLLBACK);
+}
+
+pub fn finishBootstrap() void {
+    screen.finish(.Pass);
+}
+
+fn startScreen(total: usize) bool {
     var date_buffer: [metadata.MAX_VALUE_BYTES]u8 = undefined;
-    const owned = screen.start(groups.len, guest.support.selector.buildDate(&date_buffer));
+    return screen.start(total, guest.support.selector.buildDate(&date_buffer));
+}
+
+fn standard() bool {
+    const owned = screen.isActive() or startScreen(groups.len);
     defer screen.release();
     inline for (groups) |group| {
         const title = group[0][runnerlabels.GROUP_PREFIX.len .. group[0].len - 1];

@@ -7,6 +7,7 @@ pub const Row = struct {
     Kind: Kind,
     Text: []const u8,
     Repeats: usize = 1,
+    Verified: ?usize = null,
 };
 
 pub const Model = struct {
@@ -17,6 +18,7 @@ pub const Model = struct {
     Completed: usize = 0,
     Failed: usize = 0,
     Active: ?[]const u8 = null,
+    ActiveVerified: ?usize = null,
     TailIsPassEvidence: bool = false,
     Done: bool = false,
 };

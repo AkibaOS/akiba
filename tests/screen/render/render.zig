@@ -122,19 +122,21 @@ fn renderRow(line: *Surface, text: Text, entry: types.model.Row, animation_frame
     };
     var pen = try drawFitted(line, text, frame.BODY_SIZE, 0, frame.ROW_BASELINE, prefix, status_color);
     if (entry.Kind != .Info) pen = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, strings.TEST_PREFIX, palette.INFORMATION);
-    if (entry.Repeats == 1) {
-        _ = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, entry.Text, palette.INFORMATION);
+    if (entry.Verified) |verified| {
+        try countedLabel(line, text, entry.Text, pen, strings.VERIFIED_REFUSALS, verified);
+    } else if (entry.Repeats > 1) {
+        try countedLabel(line, text, entry.Text, pen, strings.REPEATED, entry.Repeats);
     } else {
-        try repeatedLabel(line, text, entry, pen);
+        _ = try drawFitted(line, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, entry.Text, palette.INFORMATION);
     }
 }
 
-fn repeatedLabel(line: *Surface, text: Text, entry: types.model.Row, pen: i32) !void {
-    var buffer: [@bitSizeOf(usize) + strings.REPEATED.len]u8 = undefined;
-    const suffix = try std.fmt.bufPrint(&buffer, strings.REPEATED, .{entry.Repeats});
+fn countedLabel(line: *Surface, text: Text, name: []const u8, pen: i32, comptime format: []const u8, count: usize) !void {
+    var buffer: [@bitSizeOf(usize) + format.len]u8 = undefined;
+    const suffix = try std.fmt.bufPrint(&buffer, format, .{count});
     const reserved = @as(u32, @intCast(suffix.len)) * frame.BAR_CELL;
     var label = scoped(line, .{ .X = 0, .Y = 0, .Width = line.Width -| reserved, .Height = line.Height });
-    const suffix_start = try drawFitted(&label, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, entry.Text, palette.INFORMATION);
+    const suffix_start = try drawFitted(&label, text, frame.BODY_SIZE, pen, frame.ROW_BASELINE, name, palette.INFORMATION);
     _ = try drawFitted(line, text, frame.BODY_SIZE, suffix_start, frame.ROW_BASELINE, suffix, palette.INFORMATION);
 }
 
