@@ -5,8 +5,10 @@ const common = @import("common");
 const heap = @import("mirai").memory.heap;
 const kalloc = @import("mirai").memory.kalloc;
 const math = @import("utils").math;
+const options = @import("options");
 const pmm = @import("mirai").pmm;
 const print = @import("mirai").boot.sequence.print;
+const rootchecks = if (options.GUEST_CHECKS) @import("tests").guest.support.root else null;
 const stack = @import("mirai").memory.stack;
 const strings = @import("mirai").boot.strings;
 const types = @import("mirai").boot.types;
@@ -44,6 +46,7 @@ pub fn prepare(boot_info: *const BootInfo) bool {
     pmm.init.setup.reservePhysicalRange(framebuffer_start, framebuffer_end - framebuffer_start);
     pmm.init.setup.reservePhysicalRange(boot_info.KernelPhysicalBase, boot_info.KernelPhysicalEnd - boot_info.KernelPhysicalBase);
     pmm.init.setup.reservePhysicalRange(boot_info.BootStackTop - layout.PHYSMAP_BASE - boot_info.BootStackSize, boot_info.BootStackSize);
+    if (options.GUEST_CHECKS) @call(.never_inline, rootchecks.checkZoneRollback, .{});
     zone.bootstrap.init() catch {
         print.log(messages.NO_ZONES, .{});
         return false;

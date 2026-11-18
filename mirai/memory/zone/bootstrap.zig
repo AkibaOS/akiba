@@ -2,6 +2,7 @@
 
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
+const guard = @import("asm").interrupts.guard;
 const math = @import("utils").math;
 const page = @import("mirai").memory.zone.page;
 const pmm = @import("mirai").pmm;
@@ -21,20 +22,26 @@ const ZonePageMeta = types.zone.ZonePageMeta;
 var zone_zone: Zone = undefined;
 var page_meta_zone: Zone = undefined;
 
-pub var early_page_metas: [limits.EARLY_META_COUNT]ZonePageMeta = undefined;
-var early_meta_used: usize = 0;
+var zone_seed: ZonePageMeta = undefined;
+var metadata_seed: ZonePageMeta = undefined;
 
 var initialized: bool = false;
 
 pub fn init() AllocationError!void {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
     if (initialized) return;
+
+    const search_start = pmm.state.getState().SearchStart;
+    errdefer pmm.state.getState().SearchStart = search_start;
+    const zone_physical = try pmm.allocate.single.allocatePage();
+    errdefer pmm.free.single.freePage(zone_physical);
+    const metadata_physical = try pmm.allocate.single.allocatePage();
 
     initZone(&zone_zone, labels.ZONE, @sizeOf(Zone));
     initZone(&page_meta_zone, labels.PAGE_METADATA, @sizeOf(ZonePageMeta));
-
-    try expandZoneEarly(&zone_zone);
-    try expandZoneEarly(&page_meta_zone);
-
+    page.attach(&zone_zone, &zone_seed, zone_physical, 0);
+    page.attach(&page_meta_zone, &metadata_seed, metadata_physical, 0);
     initialized = true;
 }
 
@@ -55,15 +62,6 @@ fn initZone(zone: *Zone, name: []const u8, element_size: usize) void {
     zone.NameLength = @truncate(copy_length);
 }
 
-fn expandZoneEarly(zone: *Zone) AllocationError!void {
-    if (early_meta_used >= early_page_metas.len) return AllocationError.OutOfMemory;
-
-    const physical = try pmm.allocate.single.allocatePage();
-    const meta = &early_page_metas[early_meta_used];
-    early_meta_used += 1;
-    page.attach(zone, meta, physical, 0);
-}
-
 pub fn getZoneZone() *Zone {
     return &zone_zone;
 }
@@ -77,8 +75,5 @@ pub fn isInitialized() bool {
 }
 
 pub fn isEarlyMeta(meta: *const ZonePageMeta) bool {
-    const meta_address = @intFromPtr(meta);
-    const early_start = @intFromPtr(&early_page_metas);
-    const early_end = early_start + @sizeOf(@TypeOf(early_page_metas));
-    return meta_address >= early_start and meta_address < early_end;
+    return meta == &zone_seed or meta == &metadata_seed;
 }

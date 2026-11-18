@@ -7,6 +7,7 @@ pub const ALIAS_RELEASE = "split owned alias restores writable NX permissions an
 pub const METADATA_FAILURE = "failed table metadata reservation returns its unpublished frame without changing existing mappings counts or search";
 pub const TRANSFER = "table ownership transfer rejects a live destination moves exactly once and allocates nothing";
 pub const EARLY_ROLLBACK = "all bootstrap allocation refusal points and zero-budget abort restore frame ownership PMM and inherited CR3";
+pub const ZONE_SEED_ROLLBACK = "Bootstrap zone seeds must not consume backing on a failed reservation";
 pub const EARLY_FAILURE = "Invalid bootstrap allocation rollback check";
 pub const SPARSE = "sparse mappings grow beyond former owned table backing without moving existing mappings";
 pub const RELEASE = "large inactive table graph reclaims all owned tables without allocating or freeing payload";

@@ -8,10 +8,27 @@ const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.tables;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").boot.types;
+const zones = @import("mirai").memory.zone.bootstrap;
 
 const BootInfo = types.sequence.info.BootInfo;
 
 var completed: bool = false;
+
+pub fn checkZoneRollback() void {
+    defer allocation.clear();
+    const before = pmm.state.getStatistics();
+    const search_start = pmm.state.getState().SearchStart;
+    for (0..2) |budget| {
+        allocation.arm(budget);
+        if (zones.init()) |_| {
+            @panic(labels.ZONE_SEED_ROLLBACK);
+        } else |failure| {
+            if (failure != error.OutOfMemory or zones.isInitialized() or
+                !std.meta.eql(before, pmm.state.getStatistics()) or search_start != pmm.state.getState().SearchStart)
+                @panic(labels.ZONE_SEED_ROLLBACK);
+        }
+    }
+}
 
 pub fn run(info: *const BootInfo) void {
     defer allocation.clear();
