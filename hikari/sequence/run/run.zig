@@ -9,6 +9,7 @@ const common = @import("common");
 const console = @import("hikari").sequence.console;
 const constants = @import("hikari").sequence.constants;
 const control = @import("asm").cpu.control;
+const cpuid = @import("asm").cpu.cpuid;
 const efi = @import("hikari").efi;
 const fpu = @import("asm").cpu.fpu;
 const fs = @import("hikari").fs;
@@ -39,16 +40,30 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     };
     const mode = gop.Mode;
     const info = mode.Info;
-    const row_bytes = @as(u64, info.PixelsPerScanLine) * @sizeOf(u32);
-    if (mode.FramebufferBase == 0 or mode.FramebufferSize == 0 or info.HorizontalResolution == 0 or
-        mode.FramebufferSize > std.math.maxInt(u64) - mode.FramebufferBase or
-        info.VerticalResolution == 0 or info.PixelsPerScanLine < info.HorizontalResolution or row_bytes == 0 or
-        info.VerticalResolution > mode.FramebufferSize / row_bytes)
-    {
+    const framebuffer = boot.types.framebuffer.FramebufferInfo{
+        .Base = mode.FramebufferBase,
+        .Size = mode.FramebufferSize,
+        .Width = info.HorizontalResolution,
+        .Height = info.VerticalResolution,
+        .Stride = info.PixelsPerScanLine,
+        .PixelFormat = switch (info.PixelFormat) {
+            .RGB => .RGB,
+            .BGR => .BGR,
+            else => .Unknown,
+        },
+        .RedMaskSize = @bitSizeOf(u8),
+        .RedMaskShift = 2 * @bitSizeOf(u8),
+        .GreenMaskSize = @bitSizeOf(u8),
+        .GreenMaskShift = @bitSizeOf(u8),
+        .BlueMaskSize = @bitSizeOf(u8),
+        .BlueMaskShift = 0,
+        .Reserved = .{ 0, 0 },
+    };
+    if (!framebuffer.isValid()) {
         console.print(console_output, messages.ERROR_DISPLAY);
         return status.UNSUPPORTED;
     }
-    _ = splash.initialize(gop, console_output);
+    _ = splash.initialize(framebuffer, console_output);
     splash.report(messages.INITIALIZING_DISPLAY);
     splash.report(messages.LOCATING_FILE_SYSTEM);
     const afs_partition = partition.findAfsPartition(boot_services) orelse {
@@ -56,7 +71,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         return status.NOT_FOUND;
     };
     splash.report(messages.INITIALIZING_FILE_SYSTEM);
-    var afs_reader = fs.types.afs.reader.Reader.initialize(afs_partition.BlockIO, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
+    var afs_reader = fs.types.afs.reader.Reader.initialize(afs_partition.Media, boot_services, afs_partition.StartLBA, afs_partition.EndLBA) catch {
         splash.fail(messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
@@ -86,6 +101,16 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     };
+    if (!cpuid.supportsNoExecute()) {
+        splash.fail(messages.ERROR_MEMORY);
+        return status.UNSUPPORTED;
+    }
+    const firmware_efer = msr.read(processor.msr.EFER);
+    const firmware_cr0 = control.readCR0();
+    defer {
+        control.writeCR0(firmware_cr0);
+        msr.write(processor.msr.EFER, firmware_efer);
+    }
     if (!msr.enableNoExecute() or !control.enableWriteProtect()) {
         splash.fail(messages.ERROR_MEMORY);
         return status.UNSUPPORTED;
@@ -146,25 +171,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     defer handoff.deinitialize(&startup);
     splash.report(messages.PREPARING_STARTUP);
     const boot_params = handoff.parameters(&startup);
-    boot_params.Framebuffer = boot.types.framebuffer.FramebufferInfo{
-        .Base = mode.FramebufferBase,
-        .Size = mode.FramebufferSize,
-        .Width = info.HorizontalResolution,
-        .Height = info.VerticalResolution,
-        .Stride = info.PixelsPerScanLine,
-        .PixelFormat = switch (info.PixelFormat) {
-            .RGB => .RGB,
-            .BGR => .BGR,
-            else => .Unknown,
-        },
-        .RedMaskSize = @bitSizeOf(u8),
-        .RedMaskShift = 2 * @bitSizeOf(u8),
-        .GreenMaskSize = @bitSizeOf(u8),
-        .GreenMaskShift = @bitSizeOf(u8),
-        .BlueMaskSize = @bitSizeOf(u8),
-        .BlueMaskShift = 0,
-        .Reserved = .{ 0, 0 },
-    };
+    boot_params.Framebuffer = framebuffer;
     boot_params.Kernel = .{
         .PhysicalBase = loaded_image.BaseAddress,
         .VirtualBase = loaded_image.VirtualBase,
@@ -181,7 +188,11 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     splash.report(messages.STARTING_AKIBA);
     boot_params.Splash = splash.getState().*;
     handoff.exit(&startup, image_handle) catch {
-        if (splash.isReady()) splash.fail(messages.ERROR_MEMORY_SURVEY);
+        if (startup.ExitAttempted) {
+            if (splash.isReady()) splash.fail(messages.ERROR_MEMORY_SURVEY);
+            assembly.halt.haltLoop();
+        }
+        splash.fail(messages.ERROR_MEMORY_SURVEY);
         return status.LOAD_ERROR;
     };
     const floating_control = processor.control;

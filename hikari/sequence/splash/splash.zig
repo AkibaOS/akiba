@@ -1,5 +1,6 @@
 //! Hikari Splash Session
 
+const boot = @import("shared").boot;
 const console = @import("hikari").sequence.console;
 const efi = @import("hikari").efi;
 const font = @import("shared").font;
@@ -20,42 +21,19 @@ var ready: bool = false;
 var fallback: ?*efi.types.protocols.output.SimpleTextOutputProtocol = null;
 
 pub fn initialize(
-    gop: *efi.types.protocols.graphics.GraphicsOutputProtocol,
+    framebuffer: boot.types.framebuffer.FramebufferInfo,
     console_output: *efi.types.protocols.output.SimpleTextOutputProtocol,
 ) bool {
     fallback = console_output;
-
-    const mode = gop.Mode;
-    const info = mode.Info;
-
-    if (mode.FramebufferBase == 0 or mode.FramebufferSize == 0) {
-        return false;
-    }
-    if (info.HorizontalResolution == 0 or info.VerticalResolution == 0) {
-        return false;
-    }
-    if (info.PixelFormat != .RGB and info.PixelFormat != .BGR) {
-        return false;
-    }
+    ready = false;
+    state = SplashState.initialize(limits.BOOT_STEPS);
+    if (!framebuffer.isValid()) return false;
 
     const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
-
-    const surface = Surface.initialize(
-        mode.FramebufferBase,
-        info.HorizontalResolution,
-        info.VerticalResolution,
-        info.PixelsPerScanLine,
-        switch (info.PixelFormat) {
-            .RGB => .RGB,
-            .BGR => .BGR,
-            else => .Unknown,
-        },
-    );
-
-    canvas = Canvas.initialize(surface, face, &renderer);
-    state.Active = 1;
-
+    const surface = Surface.initialize(framebuffer.Base, framebuffer.Width, framebuffer.Height, framebuffer.Stride, framebuffer.PixelFormat);
+    canvas = Canvas.initialize(surface, face, &renderer) orelse return false;
     splash.render.paint(&canvas, &state) catch return false;
+    state.Active = 1;
     ready = true;
     return true;
 }

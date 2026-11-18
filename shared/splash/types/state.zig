@@ -45,6 +45,14 @@ pub const SplashState = extern struct {
         return self.TrailText[index][0..self.TrailLength[index]];
     }
 
+    pub fn isValid(self: *const SplashState) bool {
+        if (self.Active > 1 or self.Failed > 1 or self.ProgressStep > self.ProgressTotal) return false;
+        for (self.TrailLength) |length| {
+            if (length > limits.MESSAGE_CAPACITY) return false;
+        }
+        return true;
+    }
+
     pub fn isActive(self: *const SplashState) bool {
         return self.Active != 0;
     }

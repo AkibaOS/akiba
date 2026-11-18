@@ -1,7 +1,10 @@
 //! Resolved Splash Canvas
 
+const std = @import("std");
+
 const font = @import("shared").font;
 const graphics = @import("shared").graphics;
+const raster = @import("shared").raster;
 const splash = @import("shared").splash;
 const typeset = @import("shared").typeset;
 
@@ -44,17 +47,20 @@ pub const Canvas = struct {
     BackgroundOffsetX: i32,
     BackgroundOffsetY: i32,
 
-    pub fn initialize(surface: Surface, face: Face, renderer: *TextRenderer) Canvas {
+    pub fn initialize(surface: Surface, face: Face, renderer: *TextRenderer) ?Canvas {
+        const coordinate_limit = std.math.maxInt(i32) / raster.constants.limits.ONE_PIXEL;
+        if (surface.Width == 0 or surface.Height == 0 or surface.Width > coordinate_limit or surface.Height > coordinate_limit or
+            surface.Stride < surface.Width) return null;
         const width: i32 = @intCast(surface.Width);
         const height: i32 = @intCast(surface.Height);
         const scaled_width = @as(i64, height) * background.WIDTH;
         const scaled_height = @as(i64, width) * background.HEIGHT;
         const cover_width: i32 = if (scaled_width > scaled_height)
-            @intCast(@divTrunc(scaled_width + background.HEIGHT - 1, background.HEIGHT))
+            std.math.cast(i32, @divTrunc(scaled_width + background.HEIGHT - 1, background.HEIGHT)) orelse return null
         else
             width;
         const cover_height: i32 = if (scaled_height > scaled_width)
-            @intCast(@divTrunc(scaled_height + background.WIDTH - 1, background.WIDTH))
+            std.math.cast(i32, @divTrunc(scaled_height + background.WIDTH - 1, background.WIDTH)) orelse return null
         else
             height;
 

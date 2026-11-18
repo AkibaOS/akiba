@@ -127,10 +127,6 @@ pub const PageTableSetup = struct {
         try self.mapRange(start, start, size, flags.PRESENT | flags.WRITABLE);
     }
 
-    pub fn mapKernel(self: *PageTableSetup, virtual: u64, physical: u64, size: u64) SetupError!void {
-        try self.mapKernelSegment(virtual, physical, size, false, true);
-    }
-
     pub fn mapKernelSegment(self: *PageTableSetup, virtual: u64, physical: u64, size: u64, writable: bool, executable: bool) SetupError!void {
         if (virtual < layout.KERNEL_BASE or (writable and executable)) return SetupError.InvalidMapping;
         var page_flags = flags.PRESENT | flags.GLOBAL;

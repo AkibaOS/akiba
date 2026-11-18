@@ -17,14 +17,7 @@ var state: SplashState = SplashState.initialize(0);
 var ready: bool = false;
 
 pub fn adopt(info: FramebufferInfo, initial_state: SplashState) bool {
-    if (!initial_state.isActive()) return false;
-    const row_bytes = @as(u64, info.Stride) * @sizeOf(u32);
-    if (info.Base == 0 or info.Size == 0 or info.Width == 0 or info.Height == 0 or
-        info.Stride < info.Width or row_bytes == 0 or info.Height > info.Size / row_bytes or
-        (info.PixelFormat != .RGB and info.PixelFormat != .BGR))
-    {
-        return false;
-    }
+    if (!initial_state.isActive() or !initial_state.isValid() or !info.isValid()) return false;
 
     const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
 
@@ -32,7 +25,7 @@ pub fn adopt(info: FramebufferInfo, initial_state: SplashState) bool {
         Surface.initialize(info.Base, info.Width, info.Height, info.Stride, info.PixelFormat),
         face,
         &renderer,
-    );
+    ) orelse return false;
     state = initial_state;
     ready = true;
     return true;

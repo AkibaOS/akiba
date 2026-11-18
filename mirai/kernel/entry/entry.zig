@@ -62,27 +62,16 @@ fn snapshot(params: *const BootParams) ?BootInfo {
     const current_stack = cpu.state.readStackPointer();
     if (current_stack < kernel.StackTop - kernel.StackSize or current_stack >= kernel.StackTop) return null;
     const framebuffer = params.Framebuffer;
-    const row_bytes = @as(u64, framebuffer.Stride) * @sizeOf(u32);
-    if (framebuffer.Base == 0 or framebuffer.Size == 0 or framebuffer.Base >= coverage or framebuffer.Size > coverage - framebuffer.Base or
-        framebuffer.Width == 0 or framebuffer.Height == 0 or framebuffer.Stride < framebuffer.Width or
-        row_bytes == 0 or row_bytes > std.math.maxInt(u32) or framebuffer.Height > framebuffer.Size / row_bytes or
-        (framebuffer.PixelFormat != .RGB and framebuffer.PixelFormat != .BGR))
-    {
+    if (!framebuffer.isValid() or framebuffer.Base >= coverage or framebuffer.Size > coverage - framebuffer.Base) {
         return null;
     }
     const memory_regions = regions.convert.consume(params.MemoryMap, coverage) orelse return null;
-    const rsdp = params.ACPI.RSDPAddress;
-    if (rsdp >= coverage) return null;
     return .{
         .MemoryMap = memory_regions.ptr,
         .MemoryMapCount = memory_regions.len,
         .FramebufferAddress = layout.PHYSMAP_BASE + framebuffer.Base,
         .FramebufferPhysicalAddress = framebuffer.Base,
         .FramebufferSize = framebuffer.Size,
-        .FramebufferWidth = framebuffer.Width,
-        .FramebufferHeight = framebuffer.Height,
-        .FramebufferPitch = @intCast(row_bytes),
-        .FramebufferBPP = @bitSizeOf(u32),
         .KernelPhysicalBase = kernel.PhysicalBase,
         .KernelPhysicalEnd = kernel.PhysicalBase + kernel.Size,
         .KernelVirtualBase = kernel.VirtualBase,
@@ -90,7 +79,6 @@ fn snapshot(params: *const BootParams) ?BootInfo {
         .LoaderPML4Physical = kernel.PML4Address,
         .PhysmapBase = kernel.PhysmapBase,
         .PhysmapSize = coverage,
-        .RSDPAddress = if (rsdp == 0) 0 else layout.PHYSMAP_BASE + rsdp,
         .BootStackTop = kernel.StackTop,
         .BootStackSize = kernel.StackSize,
     };

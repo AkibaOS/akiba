@@ -26,6 +26,6 @@ pub const Surface = struct {
     }
 
     pub fn offset(self: Surface, x: u32, y: u32) usize {
-        return y * self.Stride + x;
+        return @as(usize, y) * self.Stride + x;
     }
 };

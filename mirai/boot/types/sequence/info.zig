@@ -10,10 +10,6 @@ pub const BootInfo = struct {
     FramebufferAddress: u64,
     FramebufferPhysicalAddress: u64,
     FramebufferSize: u64,
-    FramebufferWidth: u32,
-    FramebufferHeight: u32,
-    FramebufferPitch: u32,
-    FramebufferBPP: u8,
     KernelPhysicalBase: u64,
     KernelPhysicalEnd: u64,
     KernelVirtualBase: u64,
@@ -21,7 +17,6 @@ pub const BootInfo = struct {
     LoaderPML4Physical: u64,
     PhysmapBase: u64,
     PhysmapSize: u64,
-    RSDPAddress: u64,
     BootStackTop: u64,
     BootStackSize: u64,
 

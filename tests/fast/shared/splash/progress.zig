@@ -69,7 +69,13 @@ pub fn canvasCoverAndCentredText() !void {
     var storage: types.GuardedPixels = undefined;
     const surface = fixture.small(&storage, 40, 24, 44, .BGR);
     var renderer: TextRenderer = undefined;
-    var canvas = Canvas.initialize(surface, face, &renderer);
+    var canvas = Canvas.initialize(surface, face, &renderer).?;
+    var tall = surface;
+    tall.Height = std.math.maxInt(u32);
+    try std.testing.expect(Canvas.initialize(tall, face, &renderer) == null);
+    var wide_stride = surface;
+    wide_stride.Stride = std.math.maxInt(u32);
+    try std.testing.expectEqual(2 * @as(usize, std.math.maxInt(u32)) + 1, wide_stride.offset(1, 2));
     try std.testing.expectEqual(@as(i32, 20), canvas.CentreX);
     try std.testing.expectEqual(@as(i32, 40), canvas.BackgroundWidth);
     try std.testing.expectEqual(@as(i32, 26), canvas.BackgroundHeight);

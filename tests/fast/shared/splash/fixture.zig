@@ -15,7 +15,7 @@ const Surface = graphics.types.surface.Surface;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 
 pub fn canvas(surface: Surface, face: Face, renderer: *TextRenderer) Canvas {
-    var result = Canvas.initialize(surface, face, renderer);
+    var result = Canvas.initialize(surface, face, renderer).?;
     result.RuleX = constants.RULE_X;
     result.RuleY = constants.RULE_Y;
     result.TrailBaseline = constants.TRAIL_BASELINE;
