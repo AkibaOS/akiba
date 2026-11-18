@@ -71,6 +71,7 @@ pub fn execute() void {
     check(guest.mirai.kagami.mapping.run);
     check(guest.mirai.kagami.ownership.run);
     check(guest.mirai.kagami.rejection.run);
+    check(guest.mirai.kagami.validity.run);
     check(guest.mirai.kagami.effective.run);
     check(guest.mirai.kagami.failure.run);
     check(guest.mirai.kagami.graph.run);
@@ -102,6 +103,7 @@ pub fn execute() void {
     serial.printf(retentionlabels.GROUP_POPULATION, .{});
     check(guest.mirai.kata.population.run);
     serial.printf(labels.GROUP_LIFECYCLE, .{});
+    check(guest.mirai.kata.destruction.run);
     check(guest.mirai.kata.lifecycle.run);
     serial.printf(labels.GROUP_COMPLETION, .{});
     check(guest.mirai.kata.completion.run);

@@ -27,23 +27,8 @@ pub fn destroy(kagami: *Kagami) DestroyResult {
         kagami.ReferenceCount -= 1;
         return .Retained;
     }
-    if (kagami.TablePages == 0 or !tables.ownership.reset(kagami)) return .Refused;
+    if (!validate(kagami)) return .Refused;
     const root = tables.walk.getPML4(kagami.PML4Physical);
-    const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
-    var upper: usize = constants.tables.KERNEL_PML4_START;
-    while (upper < sizes.ENTRIES_PER_PAGE_TABLE) : (upper += 1) {
-        const shared = root.Entries[upper];
-        if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or
-            (shared.AvailableLow & constants.ownership.SHARED_TABLE) == 0 or
-            shared.getPhysicalAddress() != kernel.Entries[upper].getPhysicalAddress()) return .Refused;
-    }
-    var owned_count: u64 = 0;
-    if (!validateOwned(kagami, kagami.PML4Physical, sizes.PAGE_TABLE_LEVELS, &owned_count) or
-        owned_count != kagami.TablePages)
-    {
-        _ = tables.ownership.reset(kagami);
-        return .Refused;
-    }
     root.clearAll();
     cpu.control.flushAllTLB();
     while (kagami.Frames) |frame| tables.allocate.freeTable(kagami, frame.PA);
@@ -53,6 +38,26 @@ pub fn destroy(kagami: *Kagami) DestroyResult {
     kagami.WiredPages = 0;
     if (!create.freeKagamiStruct(kagami)) unreachable;
     return .Destroyed;
+}
+
+pub fn validate(kagami: *Kagami) bool {
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    if (!create.owns(kagami) or !kagami.SharesKernel or kagami.TablePages == 0 or
+        !tables.ownership.reset(kagami)) return false;
+    defer _ = tables.ownership.reset(kagami);
+    const root = tables.walk.getPML4(kagami.PML4Physical);
+    const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
+    var upper: usize = constants.tables.KERNEL_PML4_START;
+    while (upper < sizes.ENTRIES_PER_PAGE_TABLE) : (upper += 1) {
+        const shared = root.Entries[upper];
+        if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or
+            (shared.AvailableLow & constants.ownership.SHARED_TABLE) == 0 or
+            shared.getPhysicalAddress() != kernel.Entries[upper].getPhysicalAddress()) return false;
+    }
+    var owned_count: u64 = 0;
+    return validateOwned(kagami, kagami.PML4Physical, sizes.PAGE_TABLE_LEVELS, &owned_count) and
+        owned_count == kagami.TablePages;
 }
 
 fn validateOwned(owner: *const Kagami, physical_address: u64, level: u8, count: *u64) bool {

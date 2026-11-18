@@ -54,5 +54,8 @@ pub fn getActivePML4() u64 {
 }
 
 pub fn isActive(kagami: *const Kagami) bool {
-    return getActivePML4() == kagami.PML4Physical;
+    const previous_flags = guard.acquire();
+    defer guard.release(previous_flags);
+    return state.hasOwnedKernel() and (kagami == state.getKernelKagami() or create.owns(kagami)) and
+        getActivePML4() == kagami.PML4Physical;
 }

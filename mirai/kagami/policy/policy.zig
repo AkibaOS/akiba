@@ -18,7 +18,9 @@ const Kagami = types.kagami.Kagami;
 pub fn canMutate(kagami: *const Kagami, virtual_address: u64) MappingError!void {
     if ((virtual_address & sizes.PAGE_MASK) != 0) return MappingError.AddressNotAligned;
     if (!walk.isCanonical(virtual_address)) return MappingError.InvalidAddress;
-    if (!state.hasOwnedKernel() or !walk.isValidTable(kagami.PML4Physical)) return MappingError.PermissionDenied;
+    if (!state.hasOwnedKernel() or
+        !(kagami == state.getKernelKagami() or create.owns(kagami))) return MappingError.PermissionDenied;
+    if (!walk.isValidTable(kagami.PML4Physical)) return MappingError.PermissionDenied;
     switch (kagami.Ownership) {
         .Kernel => {
             if (kagami != state.getKernelKagami() or virtual_address <= layout.USER_SPACE_END) return MappingError.PermissionDenied;

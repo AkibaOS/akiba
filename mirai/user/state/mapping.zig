@@ -17,6 +17,7 @@ pub fn permitsMapping(root: *const Kagami, virtual_address: u64, physical_addres
 }
 
 pub fn permitsRemoval(root: *const Kagami, virtual_address: u64, physical_address: u64) bool {
+    if (!kagami.create.owns(root)) return false;
     if (root == kagami.state.getCurrentKagami() or kagami.activate.isActive(root) or
         root.ExecutionOwners != 1 or root.ReferenceCount != 1) return false;
     const record = ledger.findRoot(root, virtual_address) orelse return false;
