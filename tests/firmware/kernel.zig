@@ -36,11 +36,11 @@ fn span(real: *efi.types.services.boot.BootServices) !void {
     }
     const planned = try validation.validateImage(&bytes);
     output.require(planned.Size == inputs.IMAGE_BYTES + inputs.LARGE_BSS_BYTES, labels.LARGE_PLAN);
-    const refused = if (loader.load(real, inputs.LARGE_BSS_BYTES, &bytes)) |_| false else |failure| failure == error.UnsupportedImageLayout;
-    output.require(refused, labels.LARGE_GEOMETRY);
-    const image = try loader.load(real, inputs.PHYSICAL_LIMIT, &bytes);
-    defer if (efi.status.isError(real.FreePages(image.BaseAddress, @intCast(image.totalSize() / inputs.PAGE_BYTES))))
-        output.fail(labels.CLEANUP_FAILED);
+    var backing: efi.types.pages.Claim = .{};
+    defer if (!efi.pages.release(real, &backing.Backing)) output.fail(labels.CLEANUP_FAILED);
+    const refused = if (loader.load(real, inputs.LARGE_BSS_BYTES, &bytes, &backing)) |_| false else |failure| failure == error.UnsupportedImageLayout;
+    output.require(refused and backing.Backing == null and !backing.Untrusted, labels.LARGE_GEOMETRY);
+    const image = try loader.load(real, inputs.PHYSICAL_LIMIT, &bytes, &backing);
     const payload: [*]const u8 = @ptrFromInt(image.BaseAddress);
     output.require(image.totalSize() == planned.Size and payload[0] == inputs.TEXT_BYTE and
         payload[inputs.TEXT_END] == inputs.READ_ONLY_BYTE and payload[inputs.READ_ONLY_END] == inputs.DATA_BYTE and

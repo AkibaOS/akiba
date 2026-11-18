@@ -8,7 +8,6 @@ const text = @import("utils").text;
 const types = @import("hikari").fs.types;
 const utils = @import("utils");
 
-const AllocatedBuffer = types.afs.buffer.AllocatedBuffer;
 const BTree = types.afs.btree.BTree;
 const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
 const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
@@ -174,17 +173,18 @@ pub const Reader = struct {
         }
     }
 
-    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64) ReadError!AllocatedBuffer {
+    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64, owner: *?[*]align(8) u8) ReadError![]u8 {
+        if (owner.* != null) return ReadError.AllocationFailed;
         const unit_size = unit.DataChannel.LogicalSize;
         if (unit_size == 0 or unit_size > max_size) return ReadError.UnitTooLarge;
         const volume_size = @mulWithOverflow(@as(u64, self.VolumeHeader.TotalCells), @as(u64, self.CellSize));
         if (volume_size[1] != 0 or unit_size > volume_size[0]) return ReadError.UnitTooLarge;
         var buffer: [*]align(8) u8 = undefined;
-        const allocation_status = self.BootServices.AllocatePool(.LoaderData, unit_size, &buffer);
-        if (efi.status.isError(allocation_status)) return ReadError.AllocationFailed;
-        errdefer _ = self.BootServices.FreePool(buffer);
+        if (self.BootServices.AllocatePool(.LoaderData, @intCast(unit_size), &buffer) != efi.constants.status.SUCCESS)
+            return ReadError.AllocationFailed;
+        owner.* = buffer;
         const bytes_read = try self.readUnit(unit, buffer, max_size);
-        return .{ .Buffer = buffer, .Size = bytes_read };
+        return buffer[0..@intCast(bytes_read)];
     }
 
     fn readBtreeHeader(

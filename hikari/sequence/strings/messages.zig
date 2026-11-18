@@ -23,3 +23,4 @@ pub const ERROR_MEMORY = "System Memory Setup Failed";
 pub const ERROR_KERNEL_MEMORY = "Not Enough Memory for Mirai Kernel";
 pub const ERROR_STARTUP = "Not Enough Memory to Start Akiba";
 pub const ERROR_MEMORY_SURVEY = "System Memory Survey Failed";
+pub const ERROR_CLEANUP = "Firmware Boot Memory Cleanup Incomplete";

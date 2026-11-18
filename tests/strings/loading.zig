@@ -9,6 +9,7 @@ pub const ZERO = "ELF loading clears dirty BSS guard gaps and uninitialized stac
 pub const SEGMENTS = "ELF loading relocates all seven physical segments without changing virtual layout or flags";
 pub const RELEASE = "ELF loading transfers one exact allocation for caller release through real firmware";
 pub const FAILURE = "ELF allocation failure leaves no owned pages or release callbacks";
+pub const WRONG_FIXED_ADDRESS = "a wrong fixed reply leaves boot cleanup incomplete without using or freeing the address";
 pub const CLEANUP_FAILED = "ELF loading fixture page release failed";
 pub const LARGE_UNIT = "kernel ELF validation accepts a real file larger than the retired sixty-four-megabyte budget";
 pub const LARGE_PLAN = "kernel ELF planning accepts valid BSS beyond the retired loaded-span budget";

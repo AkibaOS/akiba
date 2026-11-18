@@ -1,6 +1,7 @@
 //! Firmware Handoff Regression Types
 
 const base = @import("hikari").efi.types.base;
+const boot = @import("shared").boot;
 const constants = @import("tests").constants.firmware;
 const services = @import("hikari").efi.types.services;
 
@@ -22,6 +23,7 @@ pub const Fixture = struct {
     ImageHandle: base.Handle,
     MapScript: []const MapReply = &.{},
     ExitScript: []const base.Status = &.{},
+    PublishedParams: ?*const boot.types.params.BootParams = null,
     Ledger: [constants.LEDGER_CAPACITY]PageAllocation = [_]PageAllocation{.{}} ** constants.LEDGER_CAPACITY,
     Created: [constants.TRACE_CAPACITY]PageAllocation = [_]PageAllocation{.{}} ** constants.TRACE_CAPACITY,
     Freed: [constants.TRACE_CAPACITY]PageAllocation = [_]PageAllocation{.{}} ** constants.TRACE_CAPACITY,
@@ -33,6 +35,9 @@ pub const Fixture = struct {
     MapCalls: usize = 0,
     ExitCalls: usize = 0,
     FailAllocateCall: ?usize = null,
-    FailFreeCall: ?usize = null,
+    FailFreeCalls: []const usize = &.{},
+    Source: ?[*]align(8) u8 = null,
+    PoolFreeCalls: usize = 0,
+    FailPoolFreeCall: ?usize = null,
     ScriptMismatch: bool = false,
 };

@@ -2,7 +2,7 @@
 
 const types = @import("tests").types.loading;
 
-pub const ASSERTION_COUNT: usize = 7;
+pub const ASSERTION_COUNT: usize = 8;
 pub const REQUEST_CAPACITY: usize = 2;
 pub const PHYSICAL_LIMIT: u64 = 0x100000000;
 pub const PREFERRED_ADDRESS: u64 = 0x100000;

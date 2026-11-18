@@ -15,4 +15,5 @@ pub const MISSING = "storage rejects key gaps and foreign-parent identities thro
 pub const FENCES = "storage routes exact maximum separators at both internal levels through Hikari Reader";
 pub const LEAVES = "storage preserves real first and last leaf endpoints";
 pub const RELEASED = "storage releases every real EFI pool allocation on reader cleanup";
+pub const SOURCE_RELEASE = "failed Unit read retains its source pool until abort cleanup releases it";
 pub const CLEANUP_FAILED = "Firmware AFS pool cleanup failed";

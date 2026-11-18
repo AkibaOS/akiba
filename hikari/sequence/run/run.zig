@@ -5,6 +5,7 @@ const std = @import("std");
 const acpi = @import("hikari").sequence.acpi;
 const assembly = @import("hikari").assembly;
 const boot = @import("shared").boot;
+const cleanup = @import("hikari").sequence.cleanup;
 const common = @import("common");
 const console = @import("hikari").sequence.console;
 const constants = @import("hikari").sequence.constants;
@@ -20,11 +21,11 @@ const interrupts = @import("asm").interrupts.flags;
 const loader = @import("hikari").loader;
 const math = @import("utils").math;
 const msr = @import("asm").cpu.msr;
-const paging = @import("hikari").paging;
 const partition = @import("hikari").sequence.partition;
 const processor = @import("asm").cpu.constants;
 const splash = @import("hikari").sequence.splash;
 const strings = @import("hikari").sequence.strings;
+const types = @import("hikari").sequence.types;
 
 const layout = common.constants.memory.layout;
 const messages = strings.messages;
@@ -33,6 +34,19 @@ const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
 pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable) efi.types.base.Status {
+    var claims: types.cleanup.Claims = .{ .Paging = .{ .BootServices = system_table.BootServices } };
+    const result = launch(image_handle, system_table, &claims);
+    if (!cleanup.finish(&claims)) {
+        const attempted = if (claims.Handoff) |state| state.ExitAttempted or state.Exited else false;
+        if (!attempted) splash.fail(messages.ERROR_CLEANUP);
+        interrupts.disableInterrupts();
+        if (attempted and splash.isReady()) splash.fail(messages.ERROR_CLEANUP);
+        assembly.halt.haltLoop();
+    }
+    return result;
+}
+
+fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable, claims: *types.cleanup.Claims) efi.types.base.Status {
     const boot_services = system_table.BootServices;
     const console_output = system_table.ConsoleOutput;
     _ = console_output.ClearScreen(console_output);
@@ -88,17 +102,12 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
     }
-    const kernel_data = afs_reader.readUnitToAllocated(&kernel_unit, std.math.maxInt(usize)) catch {
+    const kernel_bytes = afs_reader.readUnitToAllocated(&kernel_unit, std.math.maxInt(usize), &claims.Source) catch {
         splash.fail(messages.ERROR_KERNEL_READ);
         return status.DEVICE_ERROR;
     };
-    var kernel_buffer_live = true;
-    defer if (kernel_buffer_live) {
-        _ = boot_services.FreePool(@alignCast(kernel_data.Buffer));
-    };
     afs_reader.deinitialize();
     splash.report(messages.VERIFYING_KERNEL);
-    const kernel_bytes = kernel_data.Buffer[0..kernel_data.Size];
     _ = loader.elf.validation.validateImage(kernel_bytes) catch {
         splash.fail(messages.ERROR_KERNEL_DAMAGED);
         return status.INVALID_PARAMETER;
@@ -120,20 +129,17 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         return status.UNSUPPORTED;
     }
     splash.report(messages.PREPARING_MEMORY);
-    var page_setup = paging.types.setup.PageTableSetup.initialize(boot_services) catch {
+    const page_setup = &claims.Paging;
+    page_setup.initialize() catch {
         splash.fail(messages.ERROR_MEMORY);
         return status.OUT_OF_RESOURCES;
     };
-    defer _ = page_setup.deinitialize();
     splash.report(messages.PREPARING_KERNEL);
-    const loaded_image = loader.elf.loader.load(boot_services, page_setup.PhysmapLimit, kernel_bytes) catch {
+    const loaded_image = loader.elf.loader.load(boot_services, page_setup.PhysmapLimit, kernel_bytes, &claims.Image) catch {
         splash.fail(messages.ERROR_KERNEL_LOAD);
         return status.LOAD_ERROR;
     };
-    defer _ = boot_services.FreePages(loaded_image.BaseAddress, @intCast(loaded_image.totalSize() / sizes.PAGE_SIZE));
-    const release_buffer = boot_services.FreePool(@alignCast(kernel_data.Buffer));
-    if (efi.status.isError(release_buffer)) return status.DEVICE_ERROR;
-    kernel_buffer_live = false;
+    if (!cleanup.releaseSource(claims)) return status.DEVICE_ERROR;
 
     page_setup.mapIdentity(0, constants.memory.IDENTITY_MAP_SIZE) catch {
         splash.fail(messages.ERROR_MEMORY);
@@ -168,13 +174,14 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     }
 
     splash.report(messages.RESERVING_KERNEL_MEMORY);
-    var startup = handoff.initialize(boot_services, page_setup.PhysmapSize) catch {
+    claims.Handoff = .{ .BootServices = boot_services, .PhysicalLimit = page_setup.PhysmapSize };
+    const startup = &claims.Handoff.?;
+    handoff.initialize(startup) catch {
         splash.fail(messages.ERROR_STARTUP);
         return status.OUT_OF_RESOURCES;
     };
-    defer handoff.deinitialize(&startup);
     splash.report(messages.PREPARING_STARTUP);
-    const boot_params = handoff.parameters(&startup);
+    const boot_params = handoff.parameters(startup);
     boot_params.Framebuffer = framebuffer;
     boot_params.Kernel = .{
         .PhysicalBase = loaded_image.BaseAddress,
@@ -184,15 +191,15 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
         .PML4Address = page_setup.getL4Address(),
         .PhysmapBase = layout.PHYSMAP_BASE,
         .PhysmapSize = page_setup.PhysmapSize,
-        .StackTop = handoff.stackTop(&startup),
-        .StackSize = startup.StackPages * sizes.PAGE_SIZE,
+        .StackTop = handoff.stackTop(startup),
+        .StackSize = startup.Stack.?.Pages * sizes.PAGE_SIZE,
     };
     boot_params.ACPI = acpi.findACPI(system_table);
     splash.report(messages.SURVEYING_MEMORY);
     splash.report(messages.STARTING_AKIBA);
     boot_params.Splash = splash.getState().*;
     boot_params.Retirement = page_setup.retirementInventory();
-    handoff.exit(&startup, image_handle) catch {
+    handoff.exit(startup, image_handle) catch {
         if (startup.ExitAttempted) {
             interrupts.disableInterrupts();
             if (splash.isReady()) splash.fail(messages.ERROR_MEMORY_SURVEY);
@@ -208,5 +215,5 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     fpu.initializeFpu();
     const mxcsr = processor.fpu.DEFAULT_MXCSR;
     fpu.loadMXCSR(&mxcsr);
-    assembly.jump.jumpToKernel(loaded_image.EntryPoint, handoff.stackTop(&startup), handoff.parameterAlias(&startup), page_setup.getL4Address());
+    assembly.jump.jumpToKernel(loaded_image.EntryPoint, handoff.stackTop(startup), handoff.parameterAlias(startup), page_setup.getL4Address());
 }

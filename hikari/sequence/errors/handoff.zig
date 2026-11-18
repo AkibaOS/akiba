@@ -2,6 +2,8 @@
 
 pub const HandoffError = error{
     AllocationFailed,
+    ReleaseFailed,
+    InvalidState,
     InvalidMemoryMap,
     ExitFailed,
 };

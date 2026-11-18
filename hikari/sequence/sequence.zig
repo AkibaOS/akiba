@@ -1,6 +1,7 @@
 //! Hikari Boot Sequence
 
 pub const acpi = @import("acpi/acpi.zig");
+pub const cleanup = @import("cleanup/cleanup.zig");
 pub const console = @import("console/console.zig");
 pub const constants = @import("constants/constants.zig");
 pub const errors = @import("errors/errors.zig");

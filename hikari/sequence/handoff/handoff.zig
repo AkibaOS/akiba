@@ -10,6 +10,7 @@ const errors = @import("hikari").sequence.errors;
 const math = @import("utils").math;
 const types = @import("hikari").sequence.types;
 
+const Allocation = efi.types.pages.Allocation;
 const BootParams = boot.types.params.BootParams;
 const Handoff = types.handoff.Handoff;
 const HandoffError = errors.handoff.HandoffError;
@@ -18,51 +19,44 @@ const memory = boot.constants.memory;
 const sizes = common.constants.memory.sizes;
 const status = efi.constants.status;
 
-pub fn initialize(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64) HandoffError!Handoff {
-    if (physical_limit < sizes.PAGE_SIZE or physical_limit > layout.PHYSMAP_MAX_SIZE or
-        (physical_limit & sizes.PAGE_MASK) != 0) return HandoffError.AllocationFailed;
-    var state = Handoff{ .BootServices = boot_services, .PhysicalLimit = physical_limit };
-    errdefer deinitialize(&state);
-    state.StackPages = layout.KERNEL_STACK_PAGES;
-    state.StackPhysical = try allocatePages(&state, state.StackPages);
-    state.ParamsPages = math.integer.divideCeil(@sizeOf(BootParams), sizes.PAGE_SIZE);
-    state.ParamsPhysical = try allocatePages(&state, state.ParamsPages);
-    parameters(&state).* = BootParams.initialize();
-    return state;
+pub fn initialize(state: *Handoff) HandoffError!void {
+    if (state.Closing or state.UntrustedAllocation or state.Exited or state.ExitAttempted or state.Stack != null or state.Parameters != null or
+        state.Map != null or state.Replacement != null) return HandoffError.InvalidState;
+    if (state.PhysicalLimit < sizes.PAGE_SIZE or state.PhysicalLimit > layout.PHYSMAP_MAX_SIZE or
+        state.PhysicalLimit & sizes.PAGE_MASK != 0) return HandoffError.AllocationFailed;
+    try allocate(state, &state.Stack, layout.KERNEL_STACK_PAGES);
+    try allocate(state, &state.Parameters, math.integer.divideCeil(@sizeOf(BootParams), sizes.PAGE_SIZE));
+    parameters(state).* = BootParams.initialize();
 }
 
-pub fn deinitialize(state: *Handoff) void {
-    if (state.Exited) return;
-    if (state.MapPhysical != 0) _ = state.BootServices.FreePages(state.MapPhysical, state.MapPages);
-    if (state.ParamsPhysical != 0) _ = state.BootServices.FreePages(state.ParamsPhysical, state.ParamsPages);
-    if (state.StackPhysical != 0) _ = state.BootServices.FreePages(state.StackPhysical, state.StackPages);
-    state.MapPhysical = 0;
-    state.ParamsPhysical = 0;
-    state.StackPhysical = 0;
+pub fn deinitialize(state: *Handoff) bool {
+    if (state.ExitAttempted or state.Exited) return false;
+    state.Closing = true;
+    var released = true;
+    if (!efi.pages.release(state.BootServices, &state.Replacement)) released = false;
+    if (!efi.pages.release(state.BootServices, &state.Map)) released = false;
+    if (!efi.pages.release(state.BootServices, &state.Parameters)) released = false;
+    if (!efi.pages.release(state.BootServices, &state.Stack)) released = false;
+    return released and !state.UntrustedAllocation;
 }
 
 pub fn parameters(state: *const Handoff) *BootParams {
-    return @ptrFromInt(state.ParamsPhysical);
+    return @ptrFromInt(state.Parameters.?.Physical);
 }
 
 pub fn parameterAlias(state: *const Handoff) u64 {
-    return layout.PHYSMAP_BASE + state.ParamsPhysical;
+    return layout.PHYSMAP_BASE + state.Parameters.?.Physical;
 }
 
 pub fn stackTop(state: *const Handoff) u64 {
-    return layout.PHYSMAP_BASE + state.StackPhysical + state.StackPages * sizes.PAGE_SIZE;
+    const stack = state.Stack.?;
+    return layout.PHYSMAP_BASE + stack.Physical + stack.Pages * sizes.PAGE_SIZE;
 }
 
-fn allocatePages(state: *const Handoff, pages: usize) HandoffError!u64 {
-    if (pages == 0 or pages > state.PhysicalLimit / sizes.PAGE_SIZE) return HandoffError.AllocationFailed;
-    var address: efi.types.base.PhysicalAddress = state.PhysicalLimit - 1;
-    const allocation = state.BootServices.AllocatePages(.MaxAddress, .LoaderData, pages, &address);
-    if (efi.status.isError(allocation)) return HandoffError.AllocationFailed;
-    if (address == 0 or (address & sizes.PAGE_MASK) != 0 or address > state.PhysicalLimit - pages * sizes.PAGE_SIZE) {
-        _ = state.BootServices.FreePages(address, pages);
-        return HandoffError.AllocationFailed;
-    }
-    return address;
+fn allocate(state: *Handoff, owner: *?Allocation, pages: usize) HandoffError!void {
+    const acquired = efi.pages.acquire(state.BootServices, null, state.PhysicalLimit, pages, owner);
+    if (acquired == .Untrusted) state.UntrustedAllocation = true;
+    if (acquired != .Acquired or owner.*.?.Physical == 0) return HandoffError.AllocationFailed;
 }
 
 fn growMap(state: *Handoff, required: usize, descriptor_size: usize) HandoffError!void {
@@ -71,56 +65,58 @@ fn growMap(state: *Handoff, required: usize, descriptor_size: usize) HandoffErro
     const extra = constants.MEMORY_MAP_EXTRA_DESCRIPTORS * stride;
     if (extra > state.PhysicalLimit or required > state.PhysicalLimit - extra) return HandoffError.InvalidMemoryMap;
     const bytes = required + extra;
-    const pages = bytes / sizes.PAGE_SIZE + @intFromBool(bytes % sizes.PAGE_SIZE != 0);
-    const address = try allocatePages(state, pages);
-    if (state.MapPhysical != 0) {
-        const release = state.BootServices.FreePages(state.MapPhysical, state.MapPages);
-        if (efi.status.isError(release)) {
-            _ = state.BootServices.FreePages(address, pages);
-            return HandoffError.AllocationFailed;
-        }
+    const pages = math.integer.divideCeil(bytes, sizes.PAGE_SIZE);
+    try allocate(state, &state.Replacement, pages);
+    if (!efi.pages.release(state.BootServices, &state.Map)) {
+        _ = efi.pages.release(state.BootServices, &state.Replacement);
+        return HandoffError.ReleaseFailed;
     }
-    state.MapPhysical = address;
-    state.MapPages = pages;
+    state.Map = state.Replacement;
+    state.Replacement = null;
 }
 
 pub fn exit(state: *Handoff, image_handle: efi.types.base.Handle) HandoffError!void {
+    if (state.Closing or state.UntrustedAllocation or state.ExitAttempted or state.Exited or state.Replacement != null or
+        state.Stack == null or state.Stack.?.Physical == 0 or
+        state.Parameters == null or state.Parameters.?.Physical == 0) return HandoffError.InvalidState;
     var attempt: usize = 0;
     while (attempt < constants.EXIT_BOOT_SERVICES_ATTEMPTS) : (attempt += 1) {
-        var size: usize = state.MapPages * sizes.PAGE_SIZE;
+        const capacity = if (state.Map) |map| map.Pages * sizes.PAGE_SIZE else 0;
+        var size = capacity;
         var key: usize = 0;
         var descriptor_size: usize = 0;
         var descriptor_version: u32 = 0;
         var unused_descriptor: efi.types.memory.MemoryDescriptor = undefined;
-        const descriptors: [*]efi.types.memory.MemoryDescriptor = if (state.MapPhysical == 0)
-            @ptrCast(&unused_descriptor)
+        const descriptors: [*]efi.types.memory.MemoryDescriptor = if (state.Map) |map|
+            @ptrFromInt(map.Physical)
         else
-            @ptrFromInt(state.MapPhysical);
+            @ptrCast(&unused_descriptor);
         const result = state.BootServices.GetMemoryMap(&size, descriptors, &key, &descriptor_size, &descriptor_version);
         if (result == status.BUFFER_TOO_SMALL) {
             try growMap(state, size, descriptor_size);
             continue;
         }
-        if (efi.status.isError(result) or state.MapPhysical == 0 or size == 0 or
-            size > state.MapPages * sizes.PAGE_SIZE or descriptor_size < @sizeOf(efi.types.memory.MemoryDescriptor) or
+        if (result != status.SUCCESS or state.Map == null or size == 0 or
+            size > capacity or descriptor_size < @sizeOf(efi.types.memory.MemoryDescriptor) or
             descriptor_size > std.math.maxInt(u32) or descriptor_size % @alignOf(efi.types.memory.MemoryDescriptor) != 0 or
             size % descriptor_size != 0 or descriptor_version != memory.DESCRIPTOR_VERSION or size / descriptor_size > std.math.maxInt(u32))
         {
             return HandoffError.InvalidMemoryMap;
         }
+        const map = state.Map.?;
         parameters(state).MemoryMap = .{
-            .Entries = state.MapPhysical,
+            .Entries = map.Physical,
             .EntryCount = @intCast(size / descriptor_size),
             .EntrySize = @intCast(descriptor_size),
             .DescriptorVersion = descriptor_version,
             .Reserved = 0,
         };
         const ownership = &parameters(state).Retirement;
-        ownership.MapPages = state.MapPages;
+        ownership.MapPages = map.Pages;
         if (ownership.LedgerPhysical != 0) {
             const ledger: *boot.types.retirement.Ledger = @ptrFromInt(ownership.LedgerPhysical);
-            ledger.MapPhysical = state.MapPhysical;
-            ledger.MapPages = state.MapPages;
+            ledger.MapPhysical = map.Physical;
+            ledger.MapPages = map.Pages;
         }
         state.ExitAttempted = true;
         const exit_status = state.BootServices.ExitBootServices(image_handle, key);

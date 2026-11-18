@@ -2,9 +2,12 @@
 
 const std = @import("std");
 
+const abort = @import("hikari").sequence.cleanup;
 const base = @import("hikari").efi.types.base;
+const claimtypes = @import("hikari").sequence.types.cleanup;
 const codes = @import("hikari").efi.constants.status;
 const convention = @import("hikari").efi.constants.convention;
+const efi = @import("hikari").efi;
 const errors = @import("hikari").loader.errors.elf;
 const fixtures = @import("tests").constants.hikari;
 const inputs = @import("tests").constants.loading;
@@ -24,6 +27,7 @@ pub fn run(real: *services.boot.BootServices) !void {
     try rejectBeforeAllocation(real);
     try loadFallback(real);
     try allocationFailure(real);
+    try wrongFixedAddress(real);
 }
 
 pub fn cleanup() bool {
@@ -53,9 +57,11 @@ fn rejectBeforeAllocation(real: *services.boot.BootServices) !void {
 
 fn loadFallback(real: *services.boot.BootServices) !void {
     var wrapped = try begin(real);
-    const image = try loader.load(&wrapped, inputs.PHYSICAL_LIMIT, &fixtures.VALID_ELF);
+    var backing: efi.types.pages.Claim = .{};
+    const image = try loader.load(&wrapped, inputs.PHYSICAL_LIMIT, &fixtures.VALID_ELF, &backing);
     const allocation = fixture.Created orelse return errors.LoadError.AllocationFailed;
-    const fallback = fixture.AllocateCalls == 2 and fixture.FreeCalls == 0 and fixture.Owned != null and
+    const fallback = !backing.Untrusted and backing.Backing != null and backing.Backing.?.Physical == allocation.Address and backing.Backing.?.Pages == allocation.Pages and
+        fixture.AllocateCalls == 2 and fixture.FreeCalls == 0 and fixture.Owned != null and
         fixture.Requests[0].AllocateType == .Address and fixture.Requests[0].MemoryType == .LoaderData and
         fixture.Requests[0].Pages == inputs.IMAGE_PAGES and fixture.Requests[0].Address == inputs.PREFERRED_ADDRESS and
         fixture.Requests[1].AllocateType == .MaxAddress and fixture.Requests[1].MemoryType == .LoaderData and
@@ -84,8 +90,8 @@ fn loadFallback(real: *services.boot.BootServices) !void {
             }
         }
     }
-    const release_status = wrapped.FreePages(image.BaseAddress, inputs.IMAGE_PAGES);
-    const release_matches = release_status == codes.SUCCESS and fixture.FreeCalls == 1 and fixture.Owned == null and
+    const relinquished = efi.pages.release(&wrapped, &backing.Backing);
+    const release_matches = relinquished and backing.Backing == null and fixture.FreeCalls == 1 and fixture.Owned == null and
         fixture.Freed != null and fixture.Freed.?.Address == allocation.Address and fixture.Freed.?.Pages == inputs.IMAGE_PAGES;
     const matched = !fixture.ProtocolMismatch;
     const released = cleanup();
@@ -107,6 +113,22 @@ fn allocationFailure(real: *services.boot.BootServices) !void {
     output.require(rejected and unowned and released, labels.FAILURE);
 }
 
+fn wrongFixedAddress(real: *services.boot.BootServices) !void {
+    var wrapped = try begin(real);
+    fixture.WrongFixedAddress = true;
+    var claims: claimtypes.Claims = .{ .Paging = .{ .BootServices = &wrapped } };
+    const rejected = if (loader.load(&wrapped, inputs.PHYSICAL_LIMIT, &fixtures.VALID_ELF, &claims.Image)) |_| false else |failure| failure == error.AllocationFailed;
+    const incomplete = !abort.finish(&claims);
+    const allocation = fixture.Owned orelse return errors.LoadError.AllocationFailed;
+    const bytes = @as([*]const u8, @ptrFromInt(allocation.Address))[0..inputs.IMAGE_BYTES];
+    const untouched = rejected and incomplete and claims.Image.Untrusted and claims.Image.Backing == null and
+        allocation.Address != inputs.PREFERRED_ADDRESS and fixture.Dirtied and
+        std.mem.allEqual(u8, bytes, inputs.DIRTY_BYTE) and fixture.AllocateCalls == 1 and fixture.FreeCalls == 0 and
+        !fixture.ProtocolMismatch;
+    const released = cleanup();
+    output.require(untouched and released, labels.WRONG_FIXED_ADDRESS);
+}
+
 fn begin(real: *services.boot.BootServices) !services.boot.BootServices {
     if (!cleanup()) return errors.LoadError.AllocationFailed;
     fixture = .{ .Real = real };
@@ -118,8 +140,8 @@ fn begin(real: *services.boot.BootServices) !services.boot.BootServices {
 }
 
 fn rejects(wrapped: *services.boot.BootServices, physical_limit: u64, data: []const u8, expected: errors.LoadError) bool {
-    _ = loader.load(wrapped, physical_limit, data) catch |failure| return failure == expected;
-    return false;
+    var backing: efi.types.pages.Claim = .{};
+    if (loader.load(wrapped, physical_limit, data, &backing)) |_| return false else |failure| return failure == expected and backing.Backing == null and !backing.Untrusted;
 }
 
 fn allocatePages(allocate_type: memory.AllocateType, memory_type: memory.MemoryType, pages: usize, address: *base.PhysicalAddress) callconv(convention.CALLING_CONVENTION) base.Status {
@@ -138,13 +160,15 @@ fn allocatePages(allocate_type: memory.AllocateType, memory_type: memory.MemoryT
         fixture.ProtocolMismatch = true;
         return codes.INVALID_PARAMETER;
     }
-    if (allocate_type == .Address) return codes.NOT_FOUND;
-    if (allocate_type != .MaxAddress or fixture.Owned != null) {
+    const substitute = allocate_type == .Address and fixture.WrongFixedAddress;
+    if (allocate_type == .Address and !substitute) return codes.NOT_FOUND;
+    if ((allocate_type != .MaxAddress and !substitute) or fixture.Owned != null) {
         fixture.ProtocolMismatch = true;
         return codes.INVALID_PARAMETER;
     }
     if (fixture.RejectFallback) return codes.OUT_OF_RESOURCES;
-    const result = fixture.Real.AllocatePages(allocate_type, memory_type, pages, address);
+    if (substitute) address.* = inputs.PHYSICAL_LIMIT - 1;
+    const result = fixture.Real.AllocatePages(.MaxAddress, memory_type, pages, address);
     if (!status.isError(result)) {
         const allocation = types.PageAllocation{ .Address = address.*, .Pages = pages };
         fixture.Owned = allocation;

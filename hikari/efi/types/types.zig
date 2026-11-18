@@ -6,6 +6,7 @@ pub const buffer = @import("buffer.zig");
 pub const graphics = @import("graphics.zig");
 pub const input = @import("input.zig");
 pub const memory = @import("memory.zig");
+pub const pages = @import("pages.zig");
 pub const protocols = @import("protocols/protocols.zig");
 pub const reset = @import("reset.zig");
 pub const services = @import("services/services.zig");

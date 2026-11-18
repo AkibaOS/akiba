@@ -32,6 +32,7 @@ pub const Fixture = struct {
     AllocateCalls: usize = 0,
     FreeCalls: usize = 0,
     RejectFallback: bool = false,
+    WrongFixedAddress: bool = false,
     Dirtied: bool = false,
     ProtocolMismatch: bool = false,
 };

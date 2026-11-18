@@ -4,7 +4,7 @@ const status = @import("hikari").efi.constants.status;
 const storage = @import("tests").firmware.constants.storage;
 const types = @import("tests").types.firmware;
 
-pub const ASSERTION_COUNT: usize = 56 + storage.ASSERTION_COUNT;
+pub const ASSERTION_COUNT: usize = 63 + storage.ASSERTION_COUNT;
 pub const SERIAL_POLL_LIMIT: usize = 1000000;
 pub const NEWLINE_BYTE: u8 = 10;
 pub const CARRIAGE_RETURN_BYTE: u8 = 13;
@@ -48,6 +48,7 @@ pub const BAD_VERSION_MAPS = [_]types.MapReply{
 pub const STALE_MAPS = [_]types.MapReply{
     .{ .Status = status.BUFFER_TOO_SMALL },
     .{ .Status = status.SUCCESS, .Key = FIRST_KEY },
+    .{ .Status = status.BUFFER_TOO_SMALL, .Size = GROWN_MAP_BYTES },
     .{ .Status = status.SUCCESS, .Key = SECOND_KEY },
 };
 pub const BOUNDED_MAPS = [_]types.MapReply{

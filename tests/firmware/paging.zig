@@ -23,6 +23,9 @@ var allocated: usize = 0;
 var freed: usize = 0;
 var allocation_budget: ?usize = null;
 var release_budget: ?usize = null;
+var zero_after: ?usize = null;
+var zero_owned: bool = false;
+var zero_releases: usize = 0;
 
 pub fn run(real: *services.boot.BootServices) !void {
     real_services = real;
@@ -34,12 +37,15 @@ pub fn run(real: *services.boot.BootServices) !void {
     try growth(&wrapped);
     try pressure(&wrapped);
     try retained(&wrapped);
+    try zeroRoot(&wrapped);
+    try zeroChild(&wrapped);
     for (0..inputs.PAGING_RELEASE_PAGES) |position| try release(&wrapped, position);
     try active(&wrapped);
 }
 
 fn growth(wrapped: *services.boot.BootServices) !void {
-    var setup = try Setup.initialize(wrapped);
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
     defer _ = setup.deinitialize();
     var first: ?*Table = null;
     var last: ?*Table = null;
@@ -68,15 +74,14 @@ fn growth(wrapped: *services.boot.BootServices) !void {
 
 fn pressure(wrapped: *services.boot.BootServices) !void {
     allocation_budget = 0;
-    const refused = if (Setup.initialize(wrapped)) |value| failed: {
-        var setup = value;
-        _ = setup.deinitialize();
-        break :failed false;
-    } else |failure| failure == error.AllocationFailed;
+    var initial: Setup = .{ .BootServices = wrapped };
+    const refused = if (initial.initialize()) |_| false else |failure| failure == error.AllocationFailed;
     allocation_budget = null;
-    output.require(refused and allocated == freed, labels.PAGING_ROOT_PRESSURE);
+    const released = initial.deinitialize();
+    output.require(refused and released and !initial.RootOwned and initial.Rejected == null and allocated == freed, labels.PAGING_ROOT_PRESSURE);
 
-    var setup = try Setup.initialize(wrapped);
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
     defer _ = setup.deinitialize();
     for (0..inputs.PAGING_RESERVATION_POINTS) |position| {
         const baseline = allocated - freed;
@@ -107,7 +112,8 @@ fn pressure(wrapped: *services.boot.BootServices) !void {
 }
 
 fn retained(wrapped: *services.boot.BootServices) !void {
-    var setup = try Setup.initialize(wrapped);
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
     defer _ = setup.deinitialize();
     const baseline = allocated - freed;
     allocation_budget = 1;
@@ -121,8 +127,41 @@ fn retained(wrapped: *services.boot.BootServices) !void {
     output.require(setup.AllocatedCount == 1 and setup.deinitialize() and allocated == freed, labels.PAGING_RETAINED_RECOVERY);
 }
 
+fn zeroRoot(wrapped: *services.boot.BootServices) !void {
+    var setup: Setup = .{ .BootServices = wrapped };
+    const baseline = zero_releases;
+    zero_after = 0;
+    const refused = if (setup.initialize()) |_| false else |failure| failure == error.AllocationFailed;
+    const pending = setup.Rejected != null and setup.Rejected.?.Physical == 0 and setup.Rejected.?.Pages == 1 and
+        !setup.RootOwned and setup.getL4Address() == 0 and zero_owned;
+    release_budget = 0;
+    const still_owned = !setup.deinitialize() and setup.Rejected != null and zero_owned;
+    const released = setup.deinitialize() and setup.deinitialize();
+    output.require(refused and pending and still_owned and released and setup.Rejected == null and !zero_owned and
+        zero_releases == baseline + 1 and allocated == freed, labels.PAGING_ZERO_ROOT);
+}
+
+fn zeroChild(wrapped: *services.boot.BootServices) !void {
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
+    const baseline = zero_releases;
+    zero_after = 1;
+    release_budget = 0;
+    const refused = refusesTable(&setup);
+    const both_retained = setup.Rejected != null and setup.Rejected.?.Physical == 0 and zero_owned and
+        setup.Ledger != null and setup.Ledger.?.Count == 0 and setup.AllocatedCount == 0 and
+        setup.getL4Address() == 0 and allocated - freed == 2;
+    release_budget = 0;
+    const only_zero_retained = !setup.deinitialize() and setup.Rejected != null and zero_owned and
+        !setup.RootOwned and setup.Ledger == null and allocated == freed;
+    const released = setup.deinitialize() and setup.deinitialize();
+    output.require(refused and both_retained and only_zero_retained and released and setup.Rejected == null and
+        !zero_owned and zero_releases == baseline + 1, labels.PAGING_ZERO_CHILD);
+}
+
 fn release(wrapped: *services.boot.BootServices, position: usize) !void {
-    var setup = try Setup.initialize(wrapped);
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
     defer _ = setup.deinitialize();
     try setup.mapIdentity(0, inputs.PAGE_BYTES);
     const baseline = freed;
@@ -153,7 +192,8 @@ fn release(wrapped: *services.boot.BootServices, position: usize) !void {
 }
 
 fn active(wrapped: *services.boot.BootServices) !void {
-    var setup = try Setup.initialize(wrapped);
+    var setup: Setup = .{ .BootServices = wrapped };
+    try setup.initialize();
     const original = setup.L4;
     setup.L4 = @ptrFromInt(control.readCR3() & indices.ADDRESS_MASK);
     const baseline = freed;
@@ -171,6 +211,16 @@ fn allocatePages(kind: memory.AllocateType, usage: memory.MemoryType, pages: usi
     if (allocation_budget) |remaining| {
         if (remaining == 0) return statuses.OUT_OF_RESOURCES;
     }
+    if (zero_after) |remaining| {
+        if (remaining == 0) {
+            zero_after = null;
+            if (kind != .MaxAddress or usage != .LoaderData or pages != 1 or zero_owned) return statuses.INVALID_PARAMETER;
+            address.* = 0;
+            zero_owned = true;
+            return statuses.SUCCESS;
+        }
+        zero_after = remaining - 1;
+    }
     const result = real_services.AllocatePages(kind, usage, pages, address);
     if (!status.isError(result)) {
         allocated += pages;
@@ -185,6 +235,12 @@ fn freePages(address: base.PhysicalAddress, pages: usize) callconv(convention.CA
             release_budget = null;
             return statuses.DEVICE_ERROR;
         }
+    }
+    if (address == 0) {
+        if (!zero_owned or pages != 1) return statuses.INVALID_PARAMETER;
+        zero_owned = false;
+        zero_releases += 1;
+        return statuses.SUCCESS;
     }
     const result = real_services.FreePages(address, pages);
     if (!status.isError(result)) {

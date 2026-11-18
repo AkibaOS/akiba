@@ -35,13 +35,14 @@ fn acquire() !void {
     var source = try initialize();
     defer source.deinitialize();
     const record = fixture.unit();
-    const bytes = try source.readUnitToAllocated(&record, constants.UNIT_LIMIT);
-    const valid = bytes.Size == constants.UNIT_PAYLOAD.len and
-        std.mem.eql(u8, bytes.Buffer[0..bytes.Size], &constants.UNIT_PAYLOAD) and
+    var storage: ?[*]align(8) u8 = null;
+    const bytes = try source.readUnitToAllocated(&record, constants.UNIT_LIMIT, &storage);
+    const valid = bytes.len == constants.UNIT_PAYLOAD.len and storage != null and bytes.ptr == storage.? and
+        std.mem.eql(u8, bytes, &constants.UNIT_PAYLOAD) and
         fixture.device.Requested[fixture.device.AllocateCalls - 1] == constants.UNIT_PAYLOAD.len and
         fixture.device.ReadCalls == 3 and fixture.device.Reads[2].LBA == constants.PARTITION_FIRST_LBA + constants.PAYLOAD_CELL and
         fixture.device.Reads[2].Bytes == constants.BLOCK_BYTES and fixture.live() == 3;
-    const released = fixture.services.FreePool(@alignCast(bytes.Buffer));
+    const released = if (storage) |allocation| fixture.services.FreePool(allocation) else status.INVALID_PARAMETER;
     source.deinitialize();
     source.deinitialize();
     verify.require(valid and released == status.SUCCESS and fixture.device.AllocateCalls == fixture.device.FreeCalls and
@@ -118,7 +119,8 @@ fn changedGeometry() !void {
 }
 
 fn rejects(source: *Reader, record: *const UnitRecord, maximum: u64, expected: ReadError) bool {
-    const bytes = source.readUnitToAllocated(record, maximum) catch |failure| return failure == expected;
-    _ = fixture.services.FreePool(@alignCast(bytes.Buffer));
-    return false;
+    var storage: ?[*]align(8) u8 = null;
+    const rejected = if (source.readUnitToAllocated(record, maximum, &storage)) |_| false else |failure| failure == expected;
+    const released = if (storage) |allocation| fixture.services.FreePool(allocation) == status.SUCCESS else true;
+    return rejected and released;
 }

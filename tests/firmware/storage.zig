@@ -2,8 +2,10 @@
 
 const std = @import("std");
 
+const abort = @import("hikari").sequence.cleanup;
 const afs = @import("shared").afs;
 const base = @import("hikari").efi.types.base;
+const claimtypes = @import("hikari").sequence.types.cleanup;
 const codes = @import("hikari").efi.constants.status;
 const convention = @import("hikari").efi.constants.convention;
 const efi = @import("hikari").efi;
@@ -41,14 +43,35 @@ pub fn run(real: *services.boot.BootServices) !void {
     const last = (try reader.Index.readNode(reader.Index.LastLeaf)).*;
     require(first.isLeaf() and last.isLeaf() and first.Height == 1 and last.Height == 1 and
         first.BackwardLink == 0 and last.ForwardLink == 0, labels.LEAVES);
+    const source_released = try readOwnership(reader, &wrapped);
     const released = cleanup();
     require(released, labels.RELEASED);
+    require(source_released, labels.SOURCE_RELEASE);
+}
+
+fn readOwnership(reader: *readers.Reader, wrapped: *services.boot.BootServices) !bool {
+    var identity: [inputs.IDENTITY_BYTES]u8 = undefined;
+    createIdentity(0, &identity);
+    var location: [labels.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
+    const path = try std.fmt.bufPrint(&location, labels.LOCATION_FORMAT, .{&identity});
+    var unit = try reader.openLocation(path);
+    unit.DataChannel.PhysicalSize = 0;
+    var claims: claimtypes.Claims = .{ .Paging = .{ .BootServices = wrapped } };
+    const initial_pools = state.LivePools;
+    state.CaptureSource = true;
+    const rejected = if (reader.readUnitToAllocated(&unit, inputs.PAYLOAD_BYTES, &claims.Source)) |_| false else |failure| failure == error.InvalidSpan;
+    const retained = claims.Source != null and claims.Source == state.Source and state.LivePools == initial_pools + 1 and
+        state.SourceFreeCalls == 0;
+    const released = abort.finish(&claims);
+    return rejected and retained and released and claims.Source == null and state.Source == null and
+        state.SourceFreeCalls == 2 and state.LivePools == initial_pools;
 }
 
 pub fn cleanup() bool {
     if (!active) return true;
     if (state.Reader) |*reader| reader.deinitialize();
     state.Reader = null;
+    if (state.Source) |source| _ = freePool(source);
     const valid = !state.Broken and state.LivePools == 0 and state.Allocations == state.Releases;
     active = false;
     return valid;
@@ -169,16 +192,26 @@ fn allocatePool(pool_type: efi.types.memory.MemoryType, size: usize, allocation:
     if (!efi.status.isError(result)) {
         state.Allocations += 1;
         state.LivePools += 1;
+        if (state.CaptureSource) {
+            state.Source = allocation.*;
+            state.CaptureSource = false;
+        }
     }
     return result;
 }
 
 fn freePool(allocation: [*]align(8) u8) callconv(convention.CALLING_CONVENTION) base.Status {
     if (!active) return codes.INVALID_PARAMETER;
+    const source = state.Source != null and state.Source.? == allocation;
+    if (source) {
+        state.SourceFreeCalls += 1;
+        if (state.SourceFreeCalls == 1) return codes.DEVICE_ERROR;
+    }
     const result = state.Real.FreePool(allocation);
     if (efi.status.isError(result)) {
         state.Broken = true;
     } else {
+        if (source) state.Source = null;
         state.Releases += 1;
         if (state.LivePools == 0) {
             state.Broken = true;

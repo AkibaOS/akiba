@@ -1,7 +1,5 @@
 //! Hikari ELF Loader
 
-const std = @import("std");
-
 const common = @import("common");
 const efi = @import("hikari").efi;
 const errors = @import("hikari").loader.errors.elf;
@@ -11,7 +9,8 @@ const validation = @import("hikari").loader.elf.validation;
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
-pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64, unit_data: []const u8) errors.LoadError!types.LoadedImage {
+pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64, unit_data: []const u8, owner: *efi.types.pages.Claim) errors.LoadError!types.LoadedImage {
+    if (owner.Untrusted) return error.AllocationFailed;
     const image_layout = try validation.validateImage(unit_data);
     if (physical_limit == 0 or (physical_limit & sizes.PAGE_MASK) != 0 or
         image_layout.Size > physical_limit)
@@ -19,23 +18,15 @@ pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit
         return error.UnsupportedImageLayout;
     }
     const pages_needed: usize = @intCast(image_layout.Size / sizes.PAGE_SIZE);
-    var physical_base: efi.types.base.PhysicalAddress = layout.KERNEL_PHYSICAL_BASE;
-    const allocation_status = if (physical_base <= physical_limit - image_layout.Size)
-        boot_services.AllocatePages(.Address, .LoaderData, pages_needed, &physical_base)
+    const preferred = efi.pages.acquire(boot_services, layout.KERNEL_PHYSICAL_BASE, physical_limit, pages_needed, &owner.Backing);
+    const acquired = if (preferred == .Unavailable)
+        efi.pages.acquire(boot_services, null, physical_limit, pages_needed, &owner.Backing)
     else
-        efi.constants.status.UNSUPPORTED;
-    if (efi.status.isError(allocation_status)) {
-        physical_base = physical_limit - 1;
-        const fallback_status = boot_services.AllocatePages(.MaxAddress, .LoaderData, pages_needed, &physical_base);
-        if (efi.status.isError(fallback_status)) return error.AllocationFailed;
-    }
-    if (physical_base == 0 or (physical_base & sizes.PAGE_MASK) != 0 or
-        physical_base > physical_limit - image_layout.Size or
-        image_layout.Size > std.math.maxInt(u64) - physical_base)
-    {
-        _ = boot_services.FreePages(physical_base, pages_needed);
-        return error.AllocationFailed;
-    }
+        preferred;
+    owner.Untrusted = acquired == .Untrusted;
+    if (acquired != .Acquired) return error.AllocationFailed;
+    const physical_base = owner.Backing.?.Physical;
+    if (physical_base == 0) return error.AllocationFailed;
 
     const destination_base: [*]u8 = @ptrFromInt(physical_base);
     const allocation_size: usize = @intCast(image_layout.Size);

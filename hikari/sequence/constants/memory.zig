@@ -8,3 +8,4 @@ pub const IDENTITY_MAP_SIZE: u64 = 4 * sizes.GIGABYTE;
 
 pub const MEMORY_MAP_EXTRA_DESCRIPTORS: usize = 2;
 pub const EXIT_BOOT_SERVICES_ATTEMPTS: usize = 8;
+pub const ABORT_CLEANUP_ATTEMPTS: usize = 2;
