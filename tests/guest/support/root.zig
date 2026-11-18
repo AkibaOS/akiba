@@ -10,6 +10,7 @@ const labels = @import("tests").strings.tables;
 const memory = @import("mirai").boot.sequence.memory;
 const pmm = @import("mirai").pmm;
 const retirement = @import("mirai").boot.retirement;
+const serial = @import("mirai").drivers.serial.write;
 const types = @import("mirai").boot.types;
 const zones = @import("mirai").memory.zone.bootstrap;
 
@@ -39,6 +40,7 @@ pub fn checkZoneRollback() void {
 pub fn run(info: *const BootInfo) void {
     defer allocation.clear();
     completed = false;
+    serial.printf(labels.ROLLBACK_BEGIN, .{});
     mustRefuseRetirement(info);
     const warm = kagami.bootstrap.prepare(info) catch @panic(labels.EARLY_FAILURE);
     allocation.arm(0);
@@ -61,6 +63,7 @@ pub fn run(info: *const BootInfo) void {
                 previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
                 !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
             completed = true;
+            serial.printf(labels.ROLLBACK_COMPLETE, .{});
             return;
         } else |failure| {
             allocation.clear();

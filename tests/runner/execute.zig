@@ -157,6 +157,7 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 const frozen = try serial.read(PAGE, evidence);
                 defer PAGE.free(frozen);
                 if (try result.evaluate(frozen, selected) != count) return error.GuestOutcomeChanged;
+                try result.verifyBootstrap(frozen, selected);
                 if (selected == .Devices and try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
                 if (timer.read() >= limits.CHECK_NS) return error.GuestCheckTimeout;
                 terminal.passed(selected, count, frozen);

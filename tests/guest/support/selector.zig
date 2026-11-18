@@ -10,7 +10,19 @@ const phase = @import("tests").guest.support.phase;
 const port = @import("asm").io.port;
 const Scenario = @import("tests").types.scenario.Scenario;
 
+var choice: ?Scenario = null;
+
+pub fn selectEarly() Scenario {
+    const scenario = choose();
+    choice = scenario;
+    return scenario;
+}
+
 pub fn selected() Scenario {
+    return choice orelse @panic(labels.INVALID_PHASE);
+}
+
+fn choose() Scenario {
     var value: [inputs.MAX_VALUE_BYTES]u8 = undefined;
     if (readValue(labels.PHASE_FILE, &value, true)) |flag| {
         if (!std.mem.eql(u8, flag, labels.PHASE_VALUE)) @panic(labels.INVALID_PHASE);

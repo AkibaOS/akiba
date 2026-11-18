@@ -5,6 +5,7 @@ const std = @import("std");
 const firmware = @import("tests").strings.firmware;
 const labels = @import("tests").strings.scenario;
 const strings = @import("tests").strings.runner;
+const tables = @import("tests").strings.tables;
 const Scenario = @import("tests").types.scenario.Scenario;
 
 pub fn failedBeforeSelection(bytes: []const u8) bool {
@@ -28,6 +29,19 @@ pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     const passed = try std.fmt.parseInt(usize, number[0..end], 10);
     if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
     return passed;
+}
+
+pub fn verifyBootstrap(bytes: []const u8, scenario: Scenario) !void {
+    const began = uniqueLine(bytes, tables.ROLLBACK_BEGIN) catch return error.InvalidBootstrapEvidence;
+    const ended = uniqueLine(bytes, tables.ROLLBACK_COMPLETE) catch return error.InvalidBootstrapEvidence;
+    if (scenario != .Standard) {
+        if (began != null or ended != null) return error.UnexpectedBootstrapSweep;
+        return;
+    }
+    const begin = began orelse return error.InvalidBootstrapEvidence;
+    const complete = ended orelse return error.InvalidBootstrapEvidence;
+    const checks = (uniqueLine(bytes, strings.CHECK_BEGIN) catch return error.InvalidBootstrapEvidence) orelse return error.InvalidBootstrapEvidence;
+    if (begin >= complete or complete >= checks) return error.InvalidBootstrapEvidence;
 }
 
 fn firmwareResult(bytes: []const u8) !?usize {

@@ -10,6 +10,7 @@ const peer = @import("tests").fast.runner.protocol;
 const result = @import("tests").runner.result;
 const runner = @import("tests").runner;
 const Epoch = @import("tests").types.host.Epoch;
+const Scenario = @import("tests").types.scenario.Scenario;
 
 test "serial evidence starts at the new boot boundary and rejects truncation" {
     var directory = std.testing.tmpDir(.{});
@@ -142,6 +143,24 @@ test "firmware oracle rejects standard output and an empty firmware run" {
     try std.testing.expectError(error.UnexpectedFirmwareOutcome, result.evaluate(fixtures.VALID, .Firmware));
     try std.testing.expectError(error.IncompleteGuestChecks, result.evaluate(fixtures.FIRMWARE_EMPTY, .Firmware));
     try std.testing.expectError(error.GuestCheckFailed, result.evaluate(fixtures.FIRMWARE_VALID ++ fixtures.PANIC, .Firmware));
+}
+
+test "standard requires a completed early rollback before guest checks" {
+    const begin = fixtures.BOOT_ROLLBACK_BEGIN;
+    const end = fixtures.BOOT_ROLLBACK_END;
+    try result.verifyBootstrap(begin ++ end ++ fixtures.VALID, .Standard);
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.verifyBootstrap(fixtures.VALID, .Standard));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.verifyBootstrap(begin ++ fixtures.VALID, .Standard));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.verifyBootstrap(end ++ begin ++ fixtures.VALID, .Standard));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.verifyBootstrap(begin ++ end ++ begin ++ fixtures.VALID, .Standard));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.verifyBootstrap(fixtures.VALID ++ begin ++ end, .Standard));
+}
+
+test "alternate phases reject a repeated exhaustive boot rollback" {
+    for ([_]Scenario{ .PulseDeath, .Firmware, .Devices, .Collapse }) |selected| {
+        try result.verifyBootstrap(fixtures.BEGIN, selected);
+        try std.testing.expectError(error.UnexpectedBootstrapSweep, result.verifyBootstrap(fixtures.BOOT_ROLLBACK_BEGIN ++ fixtures.BEGIN, selected));
+    }
 }
 
 test "serial oracle accepts completed nonempty standard checks" {

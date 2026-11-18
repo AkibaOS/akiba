@@ -1,25 +1,16 @@
 //! Test Only COM2 Phase Selection
 
 const common = @import("common");
-const control = @import("asm").cpu.constants.control;
-const cpu = @import("asm").cpu.state;
-const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.scenario;
 const phase = @import("tests").phase;
-const pit = @import("mirai").drivers.constants.pit.limits;
 const poll = @import("mirai").drivers.serial.poll;
 const port = @import("asm").io.port;
-const ticks = @import("mirai").drivers.pit.handler;
 
 const Scenario = @import("tests").types.scenario.Scenario;
 const registers = common.constants.serial.registers;
 const ports = common.constants.serial.ports;
 
-var accepted: ?phase.types.ticket.Ticket = null;
-
 pub fn select() ?Scenario {
-    if (accepted) |ticket| return ticket.Scenario;
-    if ((cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE) == 0) return null;
     initialize();
     if (!send(&phase.constants.wire.READY)) return null;
     var frame: phase.types.ticket.Frame = undefined;
@@ -27,7 +18,6 @@ pub fn select() ?Scenario {
     const ticket = phase.wire.decode(&frame, .Offer) orelse return null;
     const acknowledgement = phase.wire.encode(ticket, .Acknowledgement) orelse return null;
     if (!send(&acknowledgement)) return null;
-    accepted = ticket;
     return ticket.Scenario;
 }
 
@@ -51,18 +41,9 @@ fn send(bytes: []const u8) bool {
     return true;
 }
 
-fn readTicks() u64 {
-    const flags = guard.acquire();
-    defer guard.release(flags);
-    return ticks.getTicks();
-}
-
 fn receive(frame: *phase.types.ticket.Frame) bool {
-    const deadline = inputs.PHASE_WAIT_SECONDS * pit.TARGET_FREQUENCY;
-    const start = readTicks();
     var offset: usize = 0;
     for (0..inputs.PHASE_POLL_LIMIT) |_| {
-        if (readTicks() -% start >= deadline) return false;
         const status = port.readByte(inputs.PHASE_PORT + registers.LINE_STATUS_REGISTER);
         if ((status & inputs.PHASE_RECEIVE_ERRORS) != 0) return false;
         if ((status & registers.LINE_STATUS_DATA_READY) != 0) {
