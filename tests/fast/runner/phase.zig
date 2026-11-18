@@ -7,6 +7,36 @@ const labels = @import("tests").strings.scenario;
 const project = @import("tests");
 const Scenario = @import("tests").types.scenario.Scenario;
 
+pub fn actions() !void {
+    const wire = project.phase.action;
+    const Action = project.phase.types.action.Action;
+    const epoch = 0x0807060504030201;
+    const boot = [_]u8{ 'A', 'K', 'M', 'A', 1, 2, 3, 4, 5, 6, 7, 8, 1 };
+    const stop = boot[0..12].* ++ [_]u8{2};
+    const timeout = boot[0..12].* ++ [_]u8{3};
+    const cancel = boot[0..12].* ++ [_]u8{4};
+    try std.testing.expectEqualSlices(u8, &boot, &wire.encode(epoch, .Boot).?);
+    try std.testing.expectEqual(@as(?Action, .Boot), wire.decode(&boot, epoch, .Menu));
+    try std.testing.expectEqual(@as(?Action, .Shutdown), wire.decode(&stop, epoch, .Menu));
+    try std.testing.expectEqual(@as(?Action, .Timeout), wire.decode(&timeout, epoch, .Menu));
+    try std.testing.expectEqual(@as(?Action, .Cancel), wire.decode(&cancel, epoch, .Testing));
+    try std.testing.expect(wire.decode(&boot, epoch, .Testing) == null);
+    try std.testing.expect(wire.decode(&stop, epoch, .Testing) == null);
+    try std.testing.expect(wire.decode(&timeout, epoch, .Testing) == null);
+    try std.testing.expect(wire.decode(&cancel, epoch, .Menu) == null);
+    try std.testing.expect(wire.decode(&cancel, epoch, .Closed) == null);
+    try std.testing.expect(wire.decode(&boot, epoch, .Closed) == null);
+    try std.testing.expect(wire.decode(&boot, epoch + 1, .Menu) == null);
+    try std.testing.expect(wire.decode(boot[0..12], epoch, .Menu) == null);
+    try std.testing.expect(wire.encode(0, .Boot) == null);
+    var malformed = boot;
+    malformed[0] = 'S';
+    try std.testing.expect(wire.decode(&malformed, epoch, .Menu) == null);
+    malformed = boot;
+    malformed[12] = 255;
+    try std.testing.expect(wire.decode(&malformed, epoch, .Menu) == null);
+}
+
 pub fn earlyFailures() !void {
     const result = project.runner.result;
     try std.testing.expect(result.failedBeforeSelection(fixtures.FAIL));

@@ -81,6 +81,10 @@ test "QMP verification refuses an explicitly headless display" {
     try peer.rejects(.Headless, error.MissingQemuWindow);
 }
 
+test "session controls reject stale epochs and actions inappropriate to the active screen" {
+    try phase.actions();
+}
+
 test "phase frames encode four Mirai choices with an explicit nonzero epoch" {
     try phase.frames();
 }
