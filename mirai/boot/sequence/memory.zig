@@ -1,15 +1,19 @@
 //! Memory Phase
 
 const common = @import("common");
+const cpu = @import("asm").cpu;
 const heap = @import("mirai").memory.heap;
+const kagami = @import("mirai").kagami;
 const kalloc = @import("mirai").memory.kalloc;
 const math = @import("utils").math;
 const options = @import("options");
 const pmm = @import("mirai").pmm;
 const print = @import("mirai").boot.sequence.print;
+const retirement = @import("mirai").boot.retirement;
 const rootchecks = if (options.GUEST_CHECKS) @import("tests").guest.support.root else null;
 const stack = @import("mirai").memory.stack;
 const strings = @import("mirai").boot.strings;
+const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
 const zone = @import("mirai").memory.zone;
 
@@ -19,7 +23,6 @@ const messages = strings.sequence.messages;
 const sizes = common.constants.memory.sizes;
 const status = strings.sequence.status;
 const BootInfo = types.sequence.info.BootInfo;
-const MemoryRegion = pmm.types.region.MemoryRegion;
 const Range = pmm.types.storage.Range;
 
 pub fn prepare(boot_info: *const BootInfo) bool {
@@ -71,27 +74,26 @@ pub fn finish(boot_info: *const BootInfo) bool {
     return true;
 }
 
+pub fn retireLoader(info: *const BootInfo) ?u64 {
+    const stack_pointer = cpu.state.readStackPointer();
+    const active_root = kagami.activate.getActivePML4();
+    if (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE != 0 or
+        !kagami.state.hasOwnedKernel() or kagami.state.getCurrentKagami() != kagami.state.getKernelKagami() or
+        active_root != info.PML4Physical or active_root == info.LoaderPML4Physical or
+        info.BootStackSize > info.BootStackTop or stack_pointer < info.BootStackTop - info.BootStackSize or
+        stack_pointer >= info.BootStackTop or tss.state.getBootTSS().RSP0 != info.BootStackTop) return null;
+    return retirement.release.from(pmm.state.getState(), info);
+}
+
 fn initializePMM(info: *const BootInfo) bool {
+    if (!retirement.layout.validate(info, null)) return false;
+    const owned = info.Retirement.?;
     const limit = info.PhysmapSize;
-    const map_address = @intFromPtr(info.MemoryMap);
-    if (map_address < layout.PHYSMAP_BASE or map_address % @alignOf(MemoryRegion) != 0 or
-        info.BootStackTop < layout.PHYSMAP_BASE or info.BootStackSize == 0 or
-        info.KernelPhysicalBase >= info.KernelPhysicalEnd or info.KernelPhysicalEnd > limit or
-        info.FramebufferSize == 0 or info.FramebufferPhysicalAddress >= limit or
-        info.FramebufferSize > limit - info.FramebufferPhysicalAddress) return false;
-    const map_start = map_address - layout.PHYSMAP_BASE;
-    const stack_end = info.BootStackTop - layout.PHYSMAP_BASE;
-    if (map_start >= limit or info.MemoryMapCount == 0 or
-        info.MemoryMapCount > (limit - map_start) / @sizeOf(MemoryRegion) or
-        stack_end > limit or info.BootStackSize > stack_end) return false;
     const exclusions = [_]Range{
         roundedRange(info.KernelPhysicalBase, info.KernelPhysicalEnd, sizes.PAGE_SIZE, limit),
-        roundedRange(stack_end - info.BootStackSize, stack_end, sizes.PAGE_SIZE, limit),
         roundedRange(info.FramebufferPhysicalAddress, info.FramebufferPhysicalAddress + info.FramebufferSize, sizes.LARGE_PAGE_SIZE, limit),
-        roundedRange(map_start, map_start + info.MemoryMapCount * @sizeOf(MemoryRegion), sizes.PAGE_SIZE, limit),
-        roundedRange(info.LoaderPML4Physical, info.LoaderPML4Physical + sizes.PAGE_SIZE, sizes.PAGE_SIZE, limit),
-    };
-    return pmm.init.setup.initializeFromMemoryMap(info.MemoryMap[0..info.MemoryMapCount], limit, &exclusions);
+    } ++ owned.fixed();
+    return pmm.init.setup.initializeFromMemoryMap(info.MemoryMap, limit, &exclusions);
 }
 
 fn roundedRange(start: u64, end: u64, alignment: u64, limit: u64) Range {

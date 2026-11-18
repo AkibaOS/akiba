@@ -16,6 +16,11 @@ pub fn getBootInfo() ?*const BootInfo {
     return if (boot_info_ready) &boot_info else null;
 }
 
+pub fn finishRetirement() void {
+    boot_info.Retirement = null;
+    boot_info.MemoryMap = &.{};
+}
+
 pub fn updateMemory(root_physical: u64, stack_top: u64, stack_size: u64) void {
     boot_info.PML4Physical = root_physical;
     boot_info.BootStackTop = stack_top;

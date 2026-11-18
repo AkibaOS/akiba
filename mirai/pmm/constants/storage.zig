@@ -2,7 +2,7 @@
 
 const types = @import("mirai").pmm.types.storage;
 
-pub const ROLE_BITS = @bitSizeOf(types.Role);
+pub const ROLE_BITS = @bitSizeOf(u2);
 pub const PAGES_PER_BYTE = @bitSizeOf(u8) / ROLE_BITS;
 pub const ROLE_MASK: u8 = (1 << ROLE_BITS) - 1;
 pub const LOW_ROLE_BITS: u8 = 0x55;

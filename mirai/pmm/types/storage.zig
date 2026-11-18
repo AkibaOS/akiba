@@ -4,10 +4,11 @@ const common = @import("common");
 
 const sizes = common.constants.memory.sizes;
 
-pub const Role = enum(u2) {
+pub const Role = enum {
     Free,
     Allocated,
     Reserved,
+    Retiring,
     Hole,
 };
 

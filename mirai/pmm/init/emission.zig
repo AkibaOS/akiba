@@ -52,6 +52,13 @@ pub fn build(
         .Root = storage.index.balance(&first, geometry.MetadataPages),
         .PhysicalPages = source.PhysicalPages,
     };
+    for (memory_map) |region| {
+        if (region.RegionType != .LoaderData or region.BaseAddress >= physical_limit) continue;
+        storage.access.assign(index, .{
+            .Start = region.BaseAddress / sizes.PAGE_SIZE,
+            .End = @min(physical_limit, region.endAddress()) / sizes.PAGE_SIZE,
+        }, .Reserved);
+    }
     storage.access.assign(index, regions.lowReservation(source.PhysicalPages), .Reserved);
     for (exclusions) |range| storage.access.assign(index, range, .Reserved);
     markMetadata(index, source, exclusions, geometry.MetadataPages);

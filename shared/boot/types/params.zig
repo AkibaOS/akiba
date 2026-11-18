@@ -6,6 +6,7 @@ const acpi = @import("shared").boot.types.acpi;
 const framebuffer = @import("shared").boot.types.framebuffer;
 const kernel = @import("shared").boot.types.kernel;
 const memory = @import("shared").boot.types.memory;
+const retirement = @import("shared").boot.types.retirement;
 const splash = @import("shared").splash;
 
 const constants = @import("shared").boot.constants;
@@ -21,6 +22,7 @@ pub const BootParams = extern struct {
     ACPI: acpi.ACPIInfo,
     Splash: splash.types.state.SplashState,
     BootTime: u64,
+    Retirement: retirement.Inventory,
 
     Reserved: [constants.params.RESERVED_SIZE]u8,
 

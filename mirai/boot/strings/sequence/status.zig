@@ -10,5 +10,6 @@ pub const READY = "Akiba Ready";
 
 pub const ERROR_PROCESSOR = "Processor Initialization Failed";
 pub const ERROR_MEMORY = "System Memory Initialization Failed";
+pub const ERROR_RETIREMENT = "Loader Memory Retirement Refused";
 pub const ERROR_SERVICES = "System Services Failed to Start";
 pub const ERROR_HALTED = "Akiba Startup Failed";

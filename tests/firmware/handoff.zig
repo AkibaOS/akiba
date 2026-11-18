@@ -89,7 +89,7 @@ fn mapGrowth(real: *services.boot.BootServices, image_handle: base.Handle) !void
         fixture.MapCapacities[1] == inputs.PAGE_BYTES and fixture.MapCapacities[2] == 2 * inputs.PAGE_BYTES and
         published.Entries == state.MapPhysical and published.EntryCount == inputs.MAP_ENTRIES and
         published.EntrySize == inputs.DESCRIPTOR_BYTES and published.DescriptorVersion == inputs.DESCRIPTOR_VERSION and
-        published.Reserved == 0;
+        published.Reserved == 0 and handoff.parameters(&state).Retirement.MapPages == state.MapPages;
     const stack_address = state.StackPhysical;
     const params_address = state.ParamsPhysical;
     const map_address = state.MapPhysical;

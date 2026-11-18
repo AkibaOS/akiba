@@ -9,6 +9,7 @@ pub const TRANSFER = "table ownership transfer rejects a live destination moves 
 pub const EARLY_ROLLBACK = "all bootstrap allocation refusal points and zero-budget abort restore frame ownership PMM and inherited CR3";
 pub const ZONE_SEED_ROLLBACK = "Bootstrap zone seeds must not consume backing on a failed reservation";
 pub const EARLY_FAILURE = "Invalid bootstrap allocation rollback check";
+pub const RETIREMENT_FAILURE = "Loader retirement violated preflight, one-shot ownership, or exact frame accounting";
 pub const SPARSE = "sparse mappings grow beyond former owned table backing without moving existing mappings";
 pub const RELEASE = "large inactive table graph reclaims all owned tables without allocating or freeing payload";
 pub const RECOVERY = "table graph and metadata reclamation restore the warmed physical memory baseline";

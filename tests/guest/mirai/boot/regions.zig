@@ -89,18 +89,24 @@ fn check(count: u32, stride: u32, descending: bool, comptime label: []const u8) 
             .Attribute = 0,
         };
     }
-    budget.arm(0);
-    const converted = conversion.consume(.{
+    const info: boot.types.memory.MemoryMapInfo = .{
         .Entries = physical,
         .EntryCount = count,
         .EntrySize = stride,
         .DescriptorVersion = boot.constants.memory.DESCRIPTOR_VERSION,
         .Reserved = 0,
-    }, kagami.state.getPolicy().PhysmapSize);
+    };
+    const limit = kagami.state.getPolicy().PhysmapSize;
+    const raw = conversion.inspect(info, limit).?;
+    const backing = conversion.ownsLoaderBacking(raw, .{ .Start = 4, .End = 5 }) and
+        !conversion.ownsLoaderBacking(raw, .{ .Start = 4, .End = 6 }) and
+        !conversion.ownsLoaderBacking(raw, .{ .Start = 2, .End = 3 });
+    budget.arm(0);
+    const converted = conversion.consume(info, limit);
     budget.clear();
-    verify.require(converted != null and converted.?.len == count, label);
+    verify.require(backing and converted != null and converted.?.len == count, label);
     var correct = true;
     for (converted.?, 0..) |region, index| correct = correct and region.BaseAddress == (index + 1) * 2 * sizes.PAGE_SIZE and
-        region.Length == sizes.PAGE_SIZE and region.isUsable() == (index % 2 == 0);
+        region.Length == sizes.PAGE_SIZE and region.RegionType == (if (index % 2 == 0) pmm.types.region.RegionType.Available else .LoaderData);
     verify.require(correct, label);
 }

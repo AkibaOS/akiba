@@ -115,6 +115,13 @@ pub fn exit(state: *Handoff, image_handle: efi.types.base.Handle) HandoffError!v
             .DescriptorVersion = descriptor_version,
             .Reserved = 0,
         };
+        const ownership = &parameters(state).Retirement;
+        ownership.MapPages = state.MapPages;
+        if (ownership.LedgerPhysical != 0) {
+            const ledger: *boot.types.retirement.Ledger = @ptrFromInt(ownership.LedgerPhysical);
+            ledger.MapPhysical = state.MapPhysical;
+            ledger.MapPages = state.MapPages;
+        }
         state.ExitAttempted = true;
         const exit_status = state.BootServices.ExitBootServices(image_handle, key);
         if (exit_status == status.SUCCESS) {

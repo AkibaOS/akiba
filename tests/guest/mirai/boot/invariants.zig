@@ -1,5 +1,6 @@
 //! Active Boot And CPU Invariants
 
+const bootstate = @import("mirai").boot.sequence.state;
 const common = @import("common");
 const construction = @import("tests").guest.support.root;
 const cpu = @import("asm").cpu;
@@ -9,6 +10,8 @@ const interrupts = @import("mirai").interrupts;
 const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.boot;
 const ownership = @import("tests").strings.tables;
+const pmm = @import("mirai").pmm;
+const retirement = @import("mirai").boot.retirement.layout;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const thread = @import("mirai").thread;
 const tss = @import("mirai").boot.tss;
@@ -34,6 +37,15 @@ pub fn run() void {
     verify.require(kagami.tables.ownership.reset(root) and kagami.tables.ownership.owns(root, root.PML4Physical) and
         root.Frames != null, labels.FRAMES);
     verify.require(kagami.tables.walk.lookup(root.PML4Physical, layout.KERNEL_PHYSICAL_BASE) == null, labels.LOW);
+    const inherited = bootstate.getBootInfo().?.LoaderPML4Physical;
+    const retired_role = pmm.state.getRole(inherited);
+    const boot_info = bootstate.getBootInfo().?;
+    const page = inherited / sizes.PAGE_SIZE;
+    var protected = false;
+    for (retirement.retainedWindows(boot_info)) |range| protected = protected or (range.Start <= page and page < range.End);
+    const correct_role = if (protected) retired_role == .Reserved else (retired_role == .Free or retired_role == .Allocated);
+    verify.require(construction.retirementPassed() and boot_info.Retirement == null and boot_info.MemoryMap.len == 0 and
+        inherited != root.PML4Physical and correct_role, labels.RETIRED_ROOT);
     verify.require(cpu.control.readCR0() & control.CR0_WRITE_PROTECT != 0 and
         cpu.msr.read(msr.EFER) & msr.EFER_NO_EXECUTE_ENABLE != 0, labels.PROTECTION);
     verify.require(cpu.control.readCR0() & (control.CR0_EMULATION | control.CR0_TASK_SWITCHED) == 0 and

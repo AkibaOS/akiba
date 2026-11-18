@@ -1,12 +1,13 @@
-//! Boot Information Type
+//! Memory And Address Information Carried Through Early Boot
 
 const pmm = @import("mirai").pmm;
+const retirement = @import("mirai").boot.types.retirement;
 
 const MemoryRegion = pmm.types.region.MemoryRegion;
 
 pub const BootInfo = struct {
-    MemoryMap: [*]const MemoryRegion,
-    MemoryMapCount: u64,
+    MemoryMap: []const MemoryRegion,
+    Retirement: ?retirement.Footprint,
     FramebufferAddress: u64,
     FramebufferPhysicalAddress: u64,
     FramebufferSize: u64,
@@ -19,28 +20,4 @@ pub const BootInfo = struct {
     PhysmapSize: u64,
     BootStackTop: u64,
     BootStackSize: u64,
-
-    pub fn totalMemory(self: BootInfo) u64 {
-        var total: u64 = 0;
-        var index: u64 = 0;
-        while (index < self.MemoryMapCount) : (index += 1) {
-            total += self.MemoryMap[index].Length;
-        }
-        return total;
-    }
-
-    pub fn usableMemory(self: BootInfo) u64 {
-        var usable: u64 = 0;
-        var index: u64 = 0;
-        while (index < self.MemoryMapCount) : (index += 1) {
-            if (self.MemoryMap[index].isUsable()) {
-                usable += self.MemoryMap[index].Length;
-            }
-        }
-        return usable;
-    }
-
-    pub fn kernelSize(self: BootInfo) u64 {
-        return self.KernelPhysicalEnd - self.KernelPhysicalBase;
-    }
 };

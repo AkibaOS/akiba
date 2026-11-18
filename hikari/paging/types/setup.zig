@@ -12,6 +12,8 @@ const errors = @import("hikari").paging.errors;
 const math = @import("utils").math;
 const msr = @import("asm").cpu.msr;
 const registers = @import("asm").cpu.constants.control;
+const retirement = @import("shared").boot.types.retirement;
+const retirementlimits = @import("shared").boot.constants.retirement;
 const types = @import("hikari").paging.types;
 
 const flags = common.constants.paging.flags;
@@ -23,7 +25,7 @@ const SetupError = errors.setup.SetupError;
 pub const PageTableSetup = struct {
     BootServices: *efi.types.services.boot.BootServices,
     L4: *types.table.TableL4,
-    Ledger: ?*types.ledger.Ledger,
+    Ledger: ?*retirement.Ledger,
     AllocatedCount: usize,
     Closing: bool,
     PhysmapL3: ?*types.table.TableL3,
@@ -78,7 +80,7 @@ pub const PageTableSetup = struct {
                 page.Count -= 1;
                 self.AllocatedCount -= 1;
             }
-            const next = page.Next;
+            const next: ?*retirement.Ledger = @ptrFromInt(page.NextPhysical);
             if (efi.status.isError(self.BootServices.FreePages(@intFromPtr(page), 1))) return false;
             self.Ledger = next;
         }
@@ -91,11 +93,11 @@ pub const PageTableSetup = struct {
 
     pub fn allocateTable(self: *PageTableSetup) SetupError!*types.table.PageTable {
         if (!self.RootOwned or self.Closing or self.AllocatedCount == std.math.maxInt(usize)) return SetupError.AllocationFailed;
-        var pending: ?*types.ledger.Ledger = null;
-        if (self.Ledger == null or self.Ledger.?.Count == constants.ledger.CAPACITY) {
+        var pending: ?*retirement.Ledger = null;
+        if (self.Ledger == null or self.Ledger.?.Count == retirementlimits.LEDGER_CAPACITY) {
             const physical = try self.allocatePage();
-            const page: *types.ledger.Ledger = @ptrFromInt(physical);
-            page.* = .{ .Next = self.Ledger };
+            const page: *retirement.Ledger = @ptrFromInt(physical);
+            page.* = .{ .NextPhysical = @intFromPtr(self.Ledger) };
             pending = page;
         }
         errdefer if (pending) |page| {
@@ -180,6 +182,10 @@ pub const PageTableSetup = struct {
                 physical_address += mapped_size;
             }
         }
+    }
+
+    pub fn retirementInventory(self: *const PageTableSetup) retirement.Inventory {
+        return .{ .LedgerPhysical = @intFromPtr(self.Ledger), .ChildFrames = self.AllocatedCount };
     }
 
     pub fn getL4Address(self: *PageTableSetup) u64 {

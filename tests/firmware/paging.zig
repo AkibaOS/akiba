@@ -9,6 +9,8 @@ const labels = @import("tests").strings.firmware;
 const memory = @import("hikari").efi.types.memory;
 const output = @import("tests").firmware.run;
 const paging = @import("hikari").paging;
+const retirement = @import("shared").boot.types.retirement;
+const retirementlimits = @import("shared").boot.constants.retirement;
 const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.status;
 const statuses = @import("hikari").efi.constants.status;
@@ -46,9 +48,19 @@ fn growth(wrapped: *services.boot.BootServices) !void {
         if (index == 0) first = table;
         last = table;
     }
-    output.require(setup.AllocatedCount == inputs.OWNED_TABLES and first != last and
+    const inventory = setup.retirementInventory();
+    var remaining = inventory.ChildFrames;
+    var physical = inventory.LedgerPhysical;
+    while (remaining != 0 and physical != 0) {
+        const node: *const retirement.Ledger = @ptrFromInt(physical);
+        const count = (remaining - 1) % retirementlimits.LEDGER_CAPACITY + 1;
+        if (node.Count != count) break;
+        remaining -= count;
+        physical = node.NextPhysical;
+    }
+    output.require(inventory.ChildFrames == inputs.OWNED_TABLES and remaining == 0 and physical == 0 and first != last and
         first.?.Entries[0].toRaw() == 0 and last.?.Entries[0].toRaw() == 0 and
-        @sizeOf(paging.types.ledger.Ledger) <= inputs.PAGE_BYTES, labels.PAGING_GROWTH);
+        @sizeOf(retirement.Ledger) <= inputs.PAGE_BYTES, labels.PAGING_GROWTH);
     const released = setup.deinitialize();
     output.require(released and setup.deinitialize() and !setup.RootOwned and
         setup.AllocatedCount == 0 and allocated == freed, labels.PAGING_RELEASE);
@@ -79,7 +91,7 @@ fn pressure(wrapped: *services.boot.BootServices) !void {
     const failed = refusesTable(&setup);
     allocation_budget = null;
     output.require(failed and setup.AllocatedCount == 1 and first.Entries[0].toRaw() == 0, labels.PAGING_EXISTING_PRESSURE);
-    while (setup.AllocatedCount < paging.constants.ledger.CAPACITY) _ = try setup.allocateTable();
+    while (setup.AllocatedCount < retirementlimits.LEDGER_CAPACITY) _ = try setup.allocateTable();
     const previous = setup.Ledger;
     for (0..inputs.PAGING_RESERVATION_POINTS) |position| {
         const baseline = allocated - freed;
@@ -87,7 +99,7 @@ fn pressure(wrapped: *services.boot.BootServices) !void {
         const rejected = refusesTable(&setup);
         allocation_budget = null;
         output.require(rejected and setup.Ledger == previous and
-            setup.AllocatedCount == paging.constants.ledger.CAPACITY and allocated - freed == baseline and
+            setup.AllocatedCount == retirementlimits.LEDGER_CAPACITY and allocated - freed == baseline and
             first.Entries[0].toRaw() == 0, labels.PAGING_BOUNDARY_PRESSURE);
     }
     _ = try setup.allocateTable();
@@ -123,7 +135,7 @@ fn release(wrapped: *services.boot.BootServices, position: usize) !void {
     var represented: usize = 1;
     var cursor = setup.Ledger;
     var tables: usize = 0;
-    while (cursor) |page| : (cursor = page.Next) {
+    while (cursor) |page| : (cursor = @ptrFromInt(page.NextPhysical)) {
         represented += 1 + page.Count;
         tables += page.Count;
     }

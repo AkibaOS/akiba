@@ -10,6 +10,7 @@ pub const RegionType = enum(u32) {
     ACPIReclaimable = 3,
     ACPINVS = 4,
     Bad = 5,
+    LoaderData = 6,
     _,
 };
 

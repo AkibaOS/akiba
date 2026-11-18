@@ -64,6 +64,12 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
     state.updateMemory(bootstrap.rootPhysical(prepared), top, top - base);
     tss.state.getBootTSS().setRSP0(top);
     const info = state.getBootInfo() orelse halt.haltLoop();
+    const retired = (if (options.GUEST_CHECKS) @call(.never_inline, rootchecks.retire, .{info}) else memory.retireLoader(info)) orelse {
+        print.fail(status.ERROR_RETIREMENT);
+        haltOnFailure();
+    };
+    state.finishRetirement();
+    print.log(messages.RETIRED_FRAMES, .{retired});
     print.log(messages.OWNED_ROOT, .{ info.PML4Physical, previous_info.LoaderPML4Physical, prepared.TableCount });
     print.log(messages.HIGH_STACK_ACTIVE, .{registers.readStackPointer()});
     print.log(messages.LOW_IDENTITY_REMOVED, .{});

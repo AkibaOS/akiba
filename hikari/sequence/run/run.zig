@@ -191,6 +191,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     splash.report(messages.SURVEYING_MEMORY);
     splash.report(messages.STARTING_AKIBA);
     boot_params.Splash = splash.getState().*;
+    boot_params.Retirement = page_setup.retirementInventory();
     handoff.exit(&startup, image_handle) catch {
         if (startup.ExitAttempted) {
             interrupts.disableInterrupts();

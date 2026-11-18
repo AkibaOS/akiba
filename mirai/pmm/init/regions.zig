@@ -22,7 +22,7 @@ pub fn validate(regions: []const MemoryRegion, physical_limit: u64, exclusions: 
             (region.BaseAddress | region.Length) & sizes.PAGE_MASK != 0 or
             region.Length > std.math.maxInt(u64) - region.BaseAddress) return false;
         switch (region.RegionType) {
-            .Available, .Reserved, .ACPIReclaimable, .ACPINVS, .Bad => {},
+            .Available, .Reserved, .ACPIReclaimable, .ACPINVS, .Bad, .LoaderData => {},
             else => return false,
         }
         previous_end = region.endAddress();
@@ -38,16 +38,24 @@ pub fn lowReservation(physical_pages: u64) Range {
 }
 
 pub fn nextManaged(source: *Source) ?Range {
+    return nextRegion(source, true);
+}
+
+fn included(region: MemoryRegion, include_loader: bool) bool {
+    return region.isUsable() or (include_loader and region.RegionType == .LoaderData);
+}
+
+fn nextRegion(source: *Source, include_loader: bool) ?Range {
     while (source.Position < source.Regions.len) {
         const region = source.Regions[source.Position];
         source.Position += 1;
         const start = region.BaseAddress / sizes.PAGE_SIZE;
         if (start >= source.PhysicalPages) return null;
-        if (!region.isUsable()) continue;
+        if (!included(region, include_loader)) continue;
         var end = @min(source.PhysicalPages, start + region.pageCount());
         while (end < source.PhysicalPages and source.Position < source.Regions.len) {
             const adjacent = source.Regions[source.Position];
-            if (!adjacent.isUsable() or adjacent.BaseAddress / sizes.PAGE_SIZE != end) break;
+            if (!included(adjacent, include_loader) or adjacent.BaseAddress / sizes.PAGE_SIZE != end) break;
             source.Position += 1;
             end = @min(source.PhysicalPages, end + adjacent.pageCount());
         }
@@ -59,7 +67,7 @@ pub fn nextManaged(source: *Source) ?Range {
 pub fn nextEligible(eligible: *Eligible) ?Range {
     while (true) {
         if (eligible.Remaining.Start == eligible.Remaining.End) {
-            eligible.Remaining = nextManaged(&eligible.Source) orelse return null;
+            eligible.Remaining = nextRegion(&eligible.Source, false) orelse return null;
         }
         const start = eligible.Remaining.Start;
         const stop = eligible.Remaining.End;

@@ -10,6 +10,7 @@ pub fn read(view: types.View, page: u64) types.Role {
 }
 
 pub fn assign(view: types.View, start: u64, end: u64, role: types.Role) void {
+    if (role == .Hole) unreachable;
     var relative = start - view.Range.Start;
     const limit = end - view.Range.Start;
     while (relative < limit and relative % geometry.PAGES_PER_BYTE != 0) : (relative += 1) {

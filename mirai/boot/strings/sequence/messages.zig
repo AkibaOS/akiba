@@ -14,6 +14,7 @@ pub const EARLY_STATE_READY = "  Early processor and exception state ready\n";
 
 pub const INVALID_BOOT_INFO = "Invalid Kernel Startup Information";
 pub const ROOT_PREPARE_FAILED = "  Kernel map preparation failed: %s\n";
+pub const RETIRED_FRAMES = "  Retired loader frames returned to PMM: %d\n";
 pub const OWNED_ROOT = "  Owned PML4 %x; loader PML4 %x; %d table pages\n";
 pub const HIGH_STACK_ACTIVE = "  Active high RSP %x\n";
 pub const LOW_IDENTITY_REMOVED = "  Low identity mappings absent\n";
@@ -22,7 +23,7 @@ pub const INVALID_PHYSMAP = "  Unsupported physical-memory mapping\n";
 pub const PHYSMAP_COVERAGE = "  Physmap coverage: %d MB\n";
 pub const PMM_STORAGE = "  Sparse PMM metadata: %d packed bytes across %d frames\n";
 pub const NO_PMM = "  Invalid physical-memory ranges or insufficient PMM metadata frames\n";
-pub const MANAGED_PAGES = "  Managed: %d conventional pages (%d MB), %d reserved\n";
+pub const MANAGED_PAGES = "  Managed: %d pages (%d MB), %d reserved\n";
 pub const AVAILABLE = "  Available: %d pages (%d MB)\n";
 pub const NO_ZONES = "  Zone allocator initialization failed\n";
 pub const NO_KALLOC = "  Kernel allocator initialization failed\n";

@@ -5,6 +5,7 @@ pub const early = @import("early/early.zig");
 pub const gdt = @import("gdt/gdt.zig");
 pub const image = @import("image/image.zig");
 pub const regions = @import("regions/regions.zig");
+pub const retirement = @import("retirement/retirement.zig");
 pub const sequence = @import("sequence/sequence.zig");
 pub const splash = @import("splash/splash.zig");
 pub const strings = @import("strings/strings.zig");
