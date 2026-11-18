@@ -249,3 +249,35 @@ test "malformed font errors do not commit partial splash trail frames" {
 test "splash trail clips its buffered commit and ignores offscreen bands" {
     try checks.splash.trail.clippedTrailPreservesOutsidePixels();
 }
+
+test "diagnostic progress advances only after named checks end" {
+    try checks.screen.model.lifecycle();
+}
+
+test "diagnostic viewport scrolls without limiting completed checks" {
+    try checks.screen.model.scrolling();
+}
+
+test "diagnostic screen repaints only the log and progress while retaining stride guards" {
+    try checks.screen.render.fixedChrome();
+}
+
+test "failed diagnostic composition leaves the previous frame intact" {
+    try checks.screen.render.failedComposition();
+}
+
+test "diagnostic assertion evidence does not advance group progress" {
+    try checks.screen.model.evidence();
+}
+
+test "diagnostic build date uses the cached image timestamp in UTC" {
+    try checks.screen.model.metadata();
+}
+
+test "the diagnostic fallback date fits at the minimum screen width" {
+    try checks.screen.render.fallbackTitle();
+}
+
+test "a terminal assertion replaces the running row with its actual failed check" {
+    try checks.screen.model.failure();
+}

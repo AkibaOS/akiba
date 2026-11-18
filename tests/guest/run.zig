@@ -13,125 +13,98 @@ const hikarilabels = @import("tests").strings.hikari;
 const invocationlabels = @import("tests").strings.invocations;
 const labels = @import("tests").strings.guest;
 const memorylabels = @import("tests").strings.memory;
+const metadata = @import("tests").constants.scenario;
 const postmanlabels = @import("tests").strings.postman;
 const retentionlabels = @import("tests").strings.retention;
+const runnerlabels = @import("tests").strings.runner;
 const scenariolabels = @import("tests").strings.scenario;
+const screen = @import("tests").guest.screen.control;
 const senseilabels = @import("tests").strings.sensei;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
 
-pub fn execute() void {
+const groups = .{
+    .{ acquisitionlabels.GROUP, .{ guest.hikari.disk.gpt.run, guest.hikari.disk.fat.run, guest.hikari.disk.reader.run, guest.hikari.disk.unit.run } },
+    .{ hikarilabels.GROUP_ELF, .{guest.hikari.loader.validation.run} },
+    .{ hikarilabels.GROUP_EFI, .{guest.hikari.efi.buffer.run} },
+    .{ bootlabels.GROUP, .{ guest.mirai.boot.invariants.run, guest.mirai.boot.regions.run } },
+    .{ memorylabels.GROUP_PMM, .{ guest.mirai.pmm.frames.run, guest.mirai.pmm.ranges.run, guest.mirai.pmm.reservation.run, guest.mirai.pmm.sparse.run } },
+    .{ memorylabels.GROUP_KERNEL, .{
+        guest.mirai.memory.allocation.run,  guest.mirai.memory.range.run,     guest.mirai.memory.heap.run,
+        guest.mirai.memory.validation.run,  guest.mirai.memory.allocator.run, guest.mirai.memory.zone.run,
+        guest.mirai.memory.growth.run,      guest.mirai.memory.validity.run,  guest.mirai.memory.failure.run,
+        guest.mirai.memory.pool.run,        guest.mirai.memory.stack.run,     guest.mirai.memory.reuse.run,
+        guest.mirai.memory.reservation.run,
+    } },
+    .{ memorylabels.GROUP_KAGAMI, .{
+        guest.mirai.kagami.mapping.run,  guest.mirai.kagami.ownership.run,  guest.mirai.kagami.rejection.run,
+        guest.mirai.kagami.validity.run, guest.mirai.kagami.effective.run,  guest.mirai.kagami.failure.run,
+        guest.mirai.kagami.graph.run,    guest.mirai.kagami.population.run, guest.mirai.kagami.alias.run,
+    } },
+    .{ memorylabels.GROUP_OWNED, .{ guest.mirai.user.regressions.run, guest.mirai.user.population.run, guest.mirai.user.failure.run } },
+    .{ labels.GROUP_MEMORY, .{guest.mirai.user.memory.run} },
+    .{ elflabels.GROUP, .{
+        guest.mirai.bootstrap.image.run,     guest.mirai.bootstrap.rejection.run,    guest.mirai.bootstrap.pressure.run,
+        guest.mirai.bootstrap.growth.run,    guest.mirai.bootstrap.finalization.run, guest.mirai.bootstrap.order.run,
+        guest.mirai.bootstrap.execution.run,
+    } },
+    .{ senseilabels.GROUP, .{ guest.mirai.sensei.admission.run, guest.mirai.sensei.waiting.run, guest.mirai.sensei.deferral.run, guest.mirai.sensei.population.run, guest.mirai.sensei.width.run } },
+    .{ retentionlabels.GROUP, .{ guest.mirai.kata.retention.run, guest.mirai.kata.race.run } },
+    .{ retentionlabels.GROUP_POPULATION, .{guest.mirai.kata.population.run} },
+    .{ labels.GROUP_LIFECYCLE, .{ guest.mirai.kata.destruction.run, guest.mirai.kata.lifecycle.run } },
+    .{ labels.GROUP_COMPLETION, .{guest.mirai.kata.completion.run} },
+    .{ accesslabels.GROUP, .{guest.mirai.user.access.run} },
+    .{ labels.GROUP_PERSONA, .{guest.mirai.thread.persona.run} },
+    .{ invocationlabels.GROUP, .{ guest.mirai.invocations.query.run, guest.mirai.invocations.state.run } },
+    .{ completionlabels.GROUP, .{guest.mirai.invocations.completion.run.run} },
+    .{ labels.GROUP_TERMINATION, .{guest.mirai.invocations.termination.run} },
+    .{ postmanlabels.GROUP, .{guest.mirai.postman.scenarios.run} },
+    .{ contextlabels.GROUP, .{ guest.mirai.thread.construction.run, guest.mirai.thread.context.run } },
+    .{ crimsonlabels.GROUP, .{ guest.mirai.crimson.codec.run, guest.mirai.crimson.ports.run, guest.mirai.crimson.corpse.run, guest.mirai.crimson.modules.run } },
+};
+
+pub fn execute() bool {
     serial.printf(labels.BEGIN, .{});
     switch (guest.support.selector.selected()) {
-        .Standard => {},
+        .Standard => return standard(),
         .Collapse => @call(.never_inline, guest.mirai.crimson.fatal.run, .{}),
         .Firmware => @panic(scenariolabels.INVALID),
         .Devices => {
             serial.printf(driverlabels.GROUP, .{});
             @call(.never_inline, guest.mirai.drivers.input.run, .{});
             serial.printf(labels.COMPLETE, .{verify.count()});
-            return;
+            return false;
         },
         .PulseDeath => {
             check(guest.mirai.kata.fatal.run);
-            return;
+            return false;
         },
     }
-    serial.printf(acquisitionlabels.GROUP, .{});
-    check(guest.hikari.disk.gpt.run);
-    check(guest.hikari.disk.fat.run);
-    @call(.never_inline, guest.hikari.disk.reader.run, .{});
-    check(guest.hikari.disk.unit.run);
-    serial.printf(hikarilabels.GROUP_ELF, .{});
-    check(guest.hikari.loader.validation.run);
-    serial.printf(hikarilabels.GROUP_EFI, .{});
-    @call(.never_inline, guest.hikari.efi.buffer.run, .{});
-    serial.printf(bootlabels.GROUP, .{});
-    @call(.never_inline, guest.mirai.boot.invariants.run, .{});
-    check(guest.mirai.boot.regions.run);
-    serial.printf(memorylabels.GROUP_PMM, .{});
-    check(guest.mirai.pmm.frames.run);
-    check(guest.mirai.pmm.ranges.run);
-    check(guest.mirai.pmm.reservation.run);
-    check(guest.mirai.pmm.sparse.run);
-    serial.printf(memorylabels.GROUP_KERNEL, .{});
-    check(guest.mirai.memory.allocation.run);
-    check(guest.mirai.memory.range.run);
-    check(guest.mirai.memory.heap.run);
-    check(guest.mirai.memory.validation.run);
-    check(guest.mirai.memory.allocator.run);
-    check(guest.mirai.memory.zone.run);
-    check(guest.mirai.memory.growth.run);
-    check(guest.mirai.memory.validity.run);
-    check(guest.mirai.memory.failure.run);
-    check(guest.mirai.memory.pool.run);
-    check(guest.mirai.memory.stack.run);
-    check(guest.mirai.memory.reuse.run);
-    check(guest.mirai.memory.reservation.run);
-    serial.printf(memorylabels.GROUP_KAGAMI, .{});
-    check(guest.mirai.kagami.mapping.run);
-    check(guest.mirai.kagami.ownership.run);
-    check(guest.mirai.kagami.rejection.run);
-    check(guest.mirai.kagami.validity.run);
-    check(guest.mirai.kagami.effective.run);
-    check(guest.mirai.kagami.failure.run);
-    check(guest.mirai.kagami.graph.run);
-    check(guest.mirai.kagami.population.run);
-    check(guest.mirai.kagami.alias.run);
-    serial.printf(memorylabels.GROUP_OWNED, .{});
-    check(guest.mirai.user.regressions.run);
-    check(guest.mirai.user.population.run);
-    check(guest.mirai.user.failure.run);
-    serial.printf(labels.GROUP_MEMORY, .{});
-    check(guest.mirai.user.memory.run);
-    serial.printf(elflabels.GROUP, .{});
-    check(guest.mirai.bootstrap.image.run);
-    check(guest.mirai.bootstrap.rejection.run);
-    check(guest.mirai.bootstrap.pressure.run);
-    check(guest.mirai.bootstrap.growth.run);
-    check(guest.mirai.bootstrap.finalization.run);
-    check(guest.mirai.bootstrap.order.run);
-    check(guest.mirai.bootstrap.execution.run);
-    serial.printf(senseilabels.GROUP, .{});
-    check(guest.mirai.sensei.admission.run);
-    check(guest.mirai.sensei.waiting.run);
-    check(guest.mirai.sensei.deferral.run);
-    check(guest.mirai.sensei.population.run);
-    check(guest.mirai.sensei.width.run);
-    serial.printf(retentionlabels.GROUP, .{});
-    check(guest.mirai.kata.retention.run);
-    check(guest.mirai.kata.race.run);
-    serial.printf(retentionlabels.GROUP_POPULATION, .{});
-    check(guest.mirai.kata.population.run);
-    serial.printf(labels.GROUP_LIFECYCLE, .{});
-    check(guest.mirai.kata.destruction.run);
-    check(guest.mirai.kata.lifecycle.run);
-    serial.printf(labels.GROUP_COMPLETION, .{});
-    check(guest.mirai.kata.completion.run);
-    serial.printf(accesslabels.GROUP, .{});
-    check(guest.mirai.user.access.run);
-    serial.printf(labels.GROUP_PERSONA, .{});
-    check(guest.mirai.thread.persona.run);
-    serial.printf(invocationlabels.GROUP, .{});
-    check(guest.mirai.invocations.query.run);
-    check(guest.mirai.invocations.state.run);
-    serial.printf(completionlabels.GROUP, .{});
-    check(guest.mirai.invocations.completion.run.run);
-    serial.printf(labels.GROUP_TERMINATION, .{});
-    check(guest.mirai.invocations.termination.run);
-    serial.printf(postmanlabels.GROUP, .{});
-    check(guest.mirai.postman.scenarios.run);
-    serial.printf(contextlabels.GROUP, .{});
-    check(guest.mirai.thread.construction.run);
-    check(guest.mirai.thread.context.run);
-    serial.printf(crimsonlabels.GROUP, .{});
-    @call(.never_inline, guest.mirai.crimson.codec.run, .{});
-    @call(.never_inline, guest.mirai.crimson.ports.run, .{});
-    @call(.never_inline, guest.mirai.crimson.corpse.run, .{});
-    @call(.never_inline, guest.mirai.crimson.modules.run, .{});
+}
+
+fn standard() bool {
+    var date_buffer: [metadata.MAX_VALUE_BYTES]u8 = undefined;
+    const owned = screen.start(groups.len, guest.support.selector.buildDate(&date_buffer));
+    defer screen.release();
+    inline for (groups) |group| {
+        const title = group[0][runnerlabels.GROUP_PREFIX.len .. group[0].len - 1];
+        screen.begin(title);
+        serial.printf(group[0], .{});
+        inline for (group[1]) |subject| {
+            check(subject);
+            screen.checkpoint();
+        }
+        screen.finish(.Pass);
+    }
+    screen.complete();
     serial.printf(labels.COMPLETE, .{verify.count()});
+    return owned;
 }
 
 fn check(comptime subject: anytype) void {
-    @call(.never_inline, subject, .{}) catch |failure| verify.failure(failure);
+    if (@typeInfo(@TypeOf(subject)).@"fn".return_type.? == void) {
+        @call(.never_inline, subject, .{});
+    } else {
+        @call(.never_inline, subject, .{}) catch |failure| verify.failure(failure);
+    }
 }

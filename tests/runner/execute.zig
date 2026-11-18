@@ -11,6 +11,7 @@ const process = @import("tests").runner.process;
 const protocol = @import("tests").runner.protocol;
 const result = @import("tests").runner.result;
 const scenario = @import("tests").strings.scenario;
+const screen = @import("tests").screen;
 const strings = @import("tests").strings.runner;
 const terminal = @import("tests").runner.terminal;
 const types = @import("tests").types.host;
@@ -80,6 +81,13 @@ pub fn run() !void {
     for (std.enums.values(Scenario)) |selected| try runScenario(selected);
 }
 
+fn buildDateArgument(allocator: std.mem.Allocator, path: []const u8) ?[]const u8 {
+    const image_stat = std.fs.cwd().statFile(path) catch return null;
+    var buffer: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+    const date = screen.date.format(&buffer, image_stat.mtime) orelse return null;
+    return std.fmt.allocPrint(allocator, scenario.BUILD_DATE_ARGUMENT, .{date}) catch null;
+}
+
 fn runScenario(selected: Scenario) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -106,7 +114,9 @@ fn runScenario(selected: Scenario) !void {
         try std.fmt.allocPrint(allocator, strings.QMP_ARGUMENT, .{port}),             strings.NETWORK_FLAG, strings.NETWORK_NONE,                                                    scenario.FLAG,                                                                 try std.fmt.allocPrint(allocator, scenario.ARGUMENT, .{@tagName(selected)}),
     };
     const device_arguments = standard_arguments ++ [_][]const u8{ strings.DISPLAY_FLAG, strings.DISPLAY_NONE };
-    const arguments: []const []const u8 = if (selected == .Devices) &device_arguments else &standard_arguments;
+    const date_argument = if (selected == .Standard) buildDateArgument(allocator, inputs.Image) else null;
+    const screen_arguments = standard_arguments ++ [_][]const u8{ scenario.FLAG, date_argument orelse scenario.ARGUMENT };
+    const arguments: []const []const u8 = if (selected == .Devices) &device_arguments else if (date_argument != null) &screen_arguments else &standard_arguments;
     var instance = process.init(allocator, arguments);
     var connection: ?Connection = null;
     var owned = false;

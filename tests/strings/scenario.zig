@@ -2,6 +2,8 @@
 
 pub const FILE = "opt/akiba/tests";
 pub const ARGUMENT = "name=" ++ FILE ++ ",string={s}";
+pub const BUILD_DATE_FILE = "opt/akiba/test-build-date";
+pub const BUILD_DATE_ARGUMENT = "name=" ++ BUILD_DATE_FILE ++ ",string={s}";
 pub const FLAG = "-fw_cfg";
 pub const CHECKPOINT = "CHECK FATAL PulseDeath\n";
 pub const PANIC = "KERNEL PANIC: System Pulse terminated\n";

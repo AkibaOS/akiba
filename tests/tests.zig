@@ -5,6 +5,7 @@ pub const fast = @import("fast/fast.zig");
 pub const firmware = @import("firmware/firmware.zig");
 pub const guest = @import("guest/guest.zig");
 pub const runner = @import("runner/runner.zig");
+pub const screen = @import("screen/screen.zig");
 pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");
 pub const verify = @import("verify/verify.zig");

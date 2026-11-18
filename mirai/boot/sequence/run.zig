@@ -86,8 +86,12 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
     }
-    if (options.GUEST_CHECKS) checks.execute();
-    print.phase(status.READY);
+    const diagnostic_screen = if (options.GUEST_CHECKS) checks.execute() else false;
+    if (diagnostic_screen) {
+        print.log(messages.LINE, .{status.READY});
+    } else {
+        print.phase(status.READY);
+    }
     sensei.idle.runIdle();
 }
 
