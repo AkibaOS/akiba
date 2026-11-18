@@ -24,7 +24,7 @@ pub fn initialize() bool {
 
     if (!boot.tss.setup.initializeBoot()) return false;
     if (!boot.gdt.state.isInitialized()) {
-        boot.gdt.setup.initialize(boot.tss.state.getBootTSSAddress(), boot.constants.tss.limits.TSS_SIZE);
+        boot.gdt.setup.initialize(@intFromPtr(boot.tss.state.getBootTSS()));
     }
 
     interrupts.setup.initializeExceptions();

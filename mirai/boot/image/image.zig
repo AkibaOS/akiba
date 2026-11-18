@@ -3,7 +3,6 @@
 const common = @import("common");
 const errors = @import("mirai").kagami.errors.bootstrap;
 const image = @import("mirai").boot.types.image;
-const limits = @import("mirai").boot.constants.tss.limits;
 const sequence = @import("mirai").boot.types.sequence.info;
 
 const layout = common.constants.memory.layout;
@@ -75,7 +74,7 @@ pub fn read(info: *const sequence.BootInfo) errors.BootError!image.Manifest {
     var previous_end = manifest.Data.VirtualEnd;
     inline for (.{ manifest.DoubleFault, manifest.NonMaskable, manifest.MachineCheck, manifest.Debug }) |body| {
         if (body.VirtualStart <= previous_end or body.VirtualStart - previous_end < sizes.PAGE_SIZE or
-            body.VirtualEnd - body.VirtualStart != limits.DEFAULT_STACK_SIZE)
+            body.VirtualEnd - body.VirtualStart != layout.BOOT_INTERRUPT_STACK_SIZE)
         {
             return errors.BootError.InvalidImage;
         }

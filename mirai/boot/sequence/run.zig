@@ -66,7 +66,7 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
     const top = bootstrap.stackTop(prepared);
     const base = bootstrap.stackBase(prepared);
     state.updateMemory(bootstrap.rootPhysical(prepared), top, top - base);
-    tss.state.setCurrentRSP0(0, top);
+    tss.state.getBootTSS().setRSP0(top);
     const info = state.getBootInfo() orelse halt.haltLoop();
     print.log(messages.OWNED_ROOT, .{ info.PML4Physical, previous_info.LoaderPML4Physical, prepared.TableCount });
     print.log(messages.HIGH_STACK_ACTIVE, .{registers.readStackPointer()});

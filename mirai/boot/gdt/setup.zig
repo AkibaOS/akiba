@@ -6,8 +6,8 @@ const state = @import("mirai").boot.gdt.state;
 
 const selectors = constants.gdt.selectors;
 
-pub fn initialize(tss_address: u64, tss_size: u20) void {
-    state.setupEntries(tss_address, tss_size);
+pub fn initialize(tss_address: u64) void {
+    state.setupEntries(tss_address);
 
     const descriptor = state.getGDTR();
     load.loadTable(&descriptor);

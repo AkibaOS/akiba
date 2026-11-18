@@ -3,6 +3,7 @@
 const common = @import("common");
 const construction = @import("tests").guest.support.root;
 const cpu = @import("asm").cpu;
+const gdt = @import("mirai").boot.gdt;
 const guard = @import("asm").interrupts.guard;
 const interrupts = @import("mirai").interrupts;
 const kagami = @import("mirai").kagami;
@@ -52,7 +53,10 @@ pub fn run() void {
         verify.require(!framebuffer.UserAccessible and !framebuffer.Executable and framebuffer.Entry.CacheDisabled, labels.FRAMEBUFFER);
     }
     const active_tss = tss.state.getBootTSS();
-    verify.require(active_tss.RSP0 == current.Stack.Top and active_tss.IOPBOffset == @sizeOf(@TypeOf(active_tss.*)), labels.TSS_STACK);
+    const descriptor = gdt.state.getTable().TSS;
+    const limit = (@as(u20, @as(u4, @truncate(descriptor.LimitHighAndFlags))) << @bitSizeOf(u16)) | descriptor.LimitLow;
+    verify.require(active_tss.RSP0 == current.Stack.Top and active_tss.IOPBOffset == @sizeOf(TSS) and
+        limit + 1 == @sizeOf(TSS) and active_tss.IOPBOffset > limit, labels.TSS_STACK);
     const regions = [_]Region{
         policy.Image.DoubleFault, policy.Image.NonMaskable, policy.Image.MachineCheck, policy.Image.Debug,
     };

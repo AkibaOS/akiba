@@ -45,18 +45,6 @@ pub fn createUserData() Entry {
     );
 }
 
-pub fn createTSSDescriptor(tss_address: u64, tss_size: u20) TSSDescriptor {
-    return TSSDescriptor.init(
-        tss_address,
-        tss_size,
-        access.TSS_ACCESS,
-    );
-}
-
-pub fn markTSSBusy(descriptor: *TSSDescriptor) void {
-    descriptor.Access = access.TSS_ACCESS_BUSY;
-}
-
-pub fn markTSSAvailable(descriptor: *TSSDescriptor) void {
-    descriptor.Access = access.TSS_ACCESS;
+pub fn createTSSDescriptor(tss_address: u64) TSSDescriptor {
+    return TSSDescriptor.init(tss_address, @sizeOf(types.tss.structure.TSS) - 1, access.TSS_ACCESS);
 }

@@ -11,7 +11,7 @@ const tss = @import("mirai").boot.tss;
 pub fn initialize() bool {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
-    if (state.getCurrent() != null or !tss.state.isInitialized() or tss.state.getCoreCount() != 0) return false;
+    if (state.getCurrent() != null or !tss.state.isInitialized()) return false;
     const stacks = stack.state.getState();
     const pointer = cpu.state.readStackPointer();
     if (stacks.BootStackBase == 0 or stacks.BootStackTop <= stacks.BootStackBase or

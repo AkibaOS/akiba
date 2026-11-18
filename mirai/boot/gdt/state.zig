@@ -26,15 +26,11 @@ pub fn setInitialized() void {
     initialized = true;
 }
 
-pub fn setupEntries(tss_address: u64, tss_size: u20) void {
+pub fn setupEntries(tss_address: u64) void {
     global_gdt.Null = Entry.nullEntry();
     global_gdt.KernelCode = entries.createKernelCode();
     global_gdt.KernelData = entries.createKernelData();
     global_gdt.UserCode = entries.createUserCode();
     global_gdt.UserData = entries.createUserData();
-    global_gdt.TSS = entries.createTSSDescriptor(tss_address, tss_size);
-}
-
-pub fn updateTSS(tss_address: u64, tss_size: u20) void {
-    global_gdt.TSS = entries.createTSSDescriptor(tss_address, tss_size);
+    global_gdt.TSS = entries.createTSSDescriptor(tss_address);
 }
