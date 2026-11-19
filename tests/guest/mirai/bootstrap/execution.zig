@@ -67,15 +67,16 @@ fn execute(comptime failure: u64) !void {
         kata.completion.storage.ownerOf(image.ID) == actor.ID;
     try completion.identify(&actor, image.ID);
     try harness.advance(&actor, 1);
-    {
+    const identifier = launched: {
         const flags = guard.acquire();
         defer guard.release(flags);
-        try sensei.control.start(image.Thread);
+        const started = try bootstrap.image.start.start(image);
         sensei.run.rescheduleTo(false, actor.Target.?);
-    }
+        break :launched started;
+    };
     try harness.waitStep(&actor, 2);
     const expected: types.Record = .{ .Kind = invocations.EXITED, .Result = if (failure == 0) inputs.EXIT_RESULT else failure };
-    verify.require(persona and (try completion.response(&actor, 2, invocations.SUCCESS, invocations.RECORD_BYTES)) and
+    verify.require(persona and identifier == image.ID and (try completion.response(&actor, 2, invocations.SUCCESS, invocations.RECORD_BYTES)) and
         std.meta.eql(expected, try completion.record(&actor)) and kata.state.findByID(image.ID) == null, if (failure == 0) labels.EXECUTION else labels.NEGATIVE);
     for (3..5) |step| {
         try harness.advance(&actor, step - 1);

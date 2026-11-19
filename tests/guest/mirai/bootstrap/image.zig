@@ -62,8 +62,8 @@ pub fn run() !void {
         !kagami.extract.isMapped(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS + inputs.PAGE_BYTES) and
         kagami.extract.isExecutable(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS) and
         !kagami.extract.isWritable(shared.Owner.AddressSpace.?, inputs.CODE_ADDRESS), labels.RIGHTS);
-    try published();
     try recycled();
+    try published();
 }
 
 fn recycled() !void {
@@ -80,6 +80,11 @@ fn recycled() !void {
     verify.require(replacement == image.Thread and thread.state.generation(replacement).? > image.ThreadGeneration and
         refused and thread.state.owns(replacement) and
         kata.state.owns(image.Owner) and image.Owner.State == .Born and image.Owner.ThreadCount == 1, labels.RECYCLED_THREAD);
+    const rejected = if (bootstrap.image.start.start(image)) |_| false else |failure| failure == error.InvalidImage;
+    const untouched = image.Owner.State == .Born and image.Owner.LiveThreadCount == 0 and
+        !replacement.Managed and !replacement.Admitted and !observable(image.ID);
+    try support.dispose(image.ID);
+    verify.require(rejected and untouched, labels.RECYCLED_START);
 }
 
 fn published() !void {
@@ -87,7 +92,17 @@ fn published() !void {
     defer guard.release(flags);
     const image = try prepare(&IMAGE_BYTES);
     defer support.dispose(image.ID) catch |failure| verify.failure(failure);
-    try sensei.control.start(image.Thread);
+    const rejected = denied: {
+        sensei.preemption.disable();
+        defer sensei.preemption.enable();
+        break :denied if (bootstrap.image.start.start(image)) |_| false else |failure| failure == error.UnsafeContext;
+    };
+    verify.require(rejected and image.Owner.State == .Born and image.Owner.LiveThreadCount == 0 and
+        !image.Thread.Managed and !image.Thread.Admitted and !observable(image.ID), labels.START_REFUSED);
+    const identifier = try bootstrap.image.start.start(image);
+    const duplicate = if (bootstrap.image.start.start(image)) |_| false else |failure| failure == error.InUse;
+    verify.require(identifier == image.ID and duplicate and image.Owner.State == .Alive and image.Owner.LiveThreadCount == 1 and
+        image.Owner.RunnableThreadCount == 1 and image.Thread.Mode == .Persona and observable(identifier), labels.START_ONCE);
     var refused = false;
     bootstrap.image.abort.abort(image) catch |failure| {
         refused = failure == error.InUse;
@@ -95,6 +110,12 @@ fn published() !void {
     const intact = refused and image.Owner.State == .Alive and image.Thread.Managed and image.Thread.Admitted;
     try support.dispose(image.ID);
     verify.require(intact and kata.state.findByID(image.ID) == null and kata.completion.storage.ownerOf(image.ID) == null, labels.IN_USE);
+}
+
+fn observable(identifier: u64) bool {
+    _ = kata.completion.lifetime.borrow(identifier) catch return false;
+    kata.completion.lifetime.drop(identifier);
+    return true;
 }
 
 fn prepare(bytes: []const u8) !bootstrap.types.image.Prepared {
