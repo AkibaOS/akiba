@@ -3,8 +3,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const strings = @import("tests").strings.runner;
+const limits = @import("tests").runner.constants.limits;
+const strings = @import("tests").runner.strings.runner;
 
 pub fn open(port: u16) !std.net.Stream {
     const address = try std.net.Address.parseIp4(strings.ADDRESS, port);

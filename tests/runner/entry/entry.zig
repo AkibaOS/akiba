@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const execute = @import("tests").runner.execute;
-const strings = @import("tests").strings.runner;
+const execute = @import("tests").runner.session.execute;
+const strings = @import("tests").runner.strings.runner;
 
 pub fn main() void {
     launch() catch |failure| {

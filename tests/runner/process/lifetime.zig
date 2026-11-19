@@ -3,11 +3,11 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const posix = @import("tests").runner.posix;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.host;
-const windows = @import("tests").runner.windows;
+const limits = @import("tests").runner.constants.limits;
+const posix = @import("tests").runner.process.posix;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.host;
+const windows = @import("tests").runner.process.windows;
 
 const Paths = types.Paths;
 const Process = types.Process;

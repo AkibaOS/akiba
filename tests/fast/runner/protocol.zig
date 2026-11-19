@@ -3,14 +3,14 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const fixtures = @import("tests").strings.oracle;
-const inputs = @import("tests").constants.protocol;
-const protocol = @import("tests").runner.protocol;
+const fixtures = @import("tests").fast.runner.strings.oracle;
+const inputs = @import("tests").fast.runner.constants.protocol;
+const protocol = @import("tests").runner.transport.protocol;
 const runner = @import("tests").runner;
-const socket = @import("tests").runner.socket;
-const strings = @import("tests").strings.protocol;
-const types = @import("tests").types.protocol;
-const Connection = @import("tests").types.host.Connection;
+const socket = @import("tests").runner.transport.socket;
+const strings = @import("tests").fast.runner.strings.protocol;
+const types = @import("tests").fast.runner.types.protocol;
+const Connection = @import("tests").runner.types.host.Connection;
 
 pub fn rejects(scenario: types.Scenario, expected: anyerror) !void {
     try exercise(scenario, expected);
@@ -58,7 +58,7 @@ fn command(connection: *Connection, scenario: types.Scenario) !void {
         .LateReply => try protocol.action(std.testing.allocator, connection, strings.QUERY_JOBS, null),
         .Headless => try protocol.verifyWindow(std.testing.allocator, connection),
         .OperatorClosed, .OperatorQuit, .ResetToShutdown, .OrdinaryPanic => try ordinary(connection, scenario == .OrdinaryPanic),
-        .RecoverRunning, .RecoverPaused, .RecoverReset => try runner.recovery.quiesce(std.testing.allocator, connection),
+        .RecoverRunning, .RecoverPaused, .RecoverReset => try runner.session.recovery.quiesce(std.testing.allocator, connection),
         else => {},
     }
 }

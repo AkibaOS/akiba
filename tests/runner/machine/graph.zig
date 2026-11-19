@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const paths = @import("tests").runner.paths;
-const protocol = @import("tests").runner.protocol;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.host;
+const paths = @import("tests").runner.machine.paths;
+const protocol = @import("tests").runner.transport.protocol;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.host;
 
 const Value = std.json.Value;
 

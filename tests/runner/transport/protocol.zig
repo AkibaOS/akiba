@@ -3,14 +3,14 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const paths = @import("tests").runner.paths;
-const process = @import("tests").runner.process;
-const serial = @import("tests").runner.serial;
-const socket = @import("tests").runner.socket;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.host;
-const verdict = @import("tests").runner.result;
+const limits = @import("tests").runner.constants.limits;
+const paths = @import("tests").runner.machine.paths;
+const process = @import("tests").runner.process.lifetime;
+const serial = @import("tests").runner.transport.serial;
+const socket = @import("tests").runner.transport.socket;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.host;
+const verdict = @import("tests").runner.report.result;
 
 const Connection = types.Connection;
 const Deadline = types.Deadline;

@@ -5,8 +5,8 @@ const std = @import("std");
 const inputs = @import("tests").constants.drivers;
 const labels = @import("tests").strings.drivers;
 const markers = @import("tests").phase.strings.serial;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.input;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.input;
 
 pub fn choose() types.Keys {
     comptime std.debug.assert(labels.KEY_NAMES.len == inputs.MAKE_CODES.len);

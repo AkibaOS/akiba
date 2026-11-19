@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const types = @import("tests").types.windows;
+const limits = @import("tests").runner.constants.limits;
+const types = @import("tests").runner.types.windows;
 
 const HANDLE = std.os.windows.HANDLE;
 const BOOL = std.os.windows.BOOL;

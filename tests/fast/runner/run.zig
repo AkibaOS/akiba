@@ -2,14 +2,14 @@
 
 const std = @import("std");
 
-const fixtures = @import("tests").strings.oracle;
-const input = @import("tests").types.input;
+const fixtures = @import("tests").fast.runner.strings.oracle;
+const input = @import("tests").runner.types.input;
 const labels = @import("tests").strings.scenario;
 const phase = @import("tests").fast.runner.phase;
 const peer = @import("tests").fast.runner.protocol;
-const result = @import("tests").runner.result;
+const result = @import("tests").runner.report.result;
 const runner = @import("tests").runner;
-const Epoch = @import("tests").types.host.Epoch;
+const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").types.scenario.Scenario;
 
 test "a boot selector acknowledgement binds the exact role and epoch" {
@@ -41,12 +41,12 @@ test "serial evidence starts at the new boot boundary and rejects truncation" {
     const start = try file.getEndPos();
     try file.writeAll(fixtures.PENDING);
     const epoch: Epoch = .{ .File = &file, .Start = start };
-    const evidence = try runner.serial.read(std.testing.allocator, epoch);
+    const evidence = try runner.transport.serial.read(std.testing.allocator, epoch);
     defer std.testing.allocator.free(evidence);
     try std.testing.expectEqualStrings(fixtures.PENDING, evidence);
     try std.testing.expectEqual(@as(?usize, null), try result.evaluate(evidence, .Standard));
     try file.setEndPos(0);
-    try std.testing.expectError(error.SerialHistoryLost, runner.serial.read(std.testing.allocator, epoch));
+    try std.testing.expectError(error.SerialHistoryLost, runner.transport.serial.read(std.testing.allocator, epoch));
 }
 
 test "input challenge rejects prior and unsolicited IRQ evidence" {
@@ -54,21 +54,21 @@ test "input challenge rejects prior and unsolicited IRQ evidence" {
     const make = fixtures.INPUT_MAKE;
     const release = fixtures.INPUT_BREAK;
     var challenge: input.Challenge = .{ .Keys = &.{.{ .Name = fixtures.KEY, .Make = 0x30 }} };
-    try std.testing.expectError(error.MissingInjectedInput, runner.input.observe(&challenge, ready ++ fixtures.VALID));
+    try std.testing.expectError(error.MissingInjectedInput, runner.session.input.observe(&challenge, ready ++ fixtures.VALID));
     challenge = .{ .Keys = challenge.Keys };
-    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, ready ++ make ++ release));
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.session.input.observe(&challenge, ready ++ make ++ release));
     challenge = .{ .Keys = challenge.Keys };
-    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, make ++ fixtures.INPUT_READY_PARTIAL));
-    try std.testing.expectEqual(.Inject, try runner.input.observe(&challenge, make ++ ready));
-    runner.input.sent(&challenge);
-    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, make ++ ready ++ release));
+    try std.testing.expectEqual(.Waiting, try runner.session.input.observe(&challenge, make ++ fixtures.INPUT_READY_PARTIAL));
+    try std.testing.expectEqual(.Inject, try runner.session.input.observe(&challenge, make ++ ready));
+    runner.session.input.sent(&challenge);
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.session.input.observe(&challenge, make ++ ready ++ release));
     challenge = .{ .Keys = challenge.Keys };
-    try std.testing.expectEqual(.Inject, try runner.input.observe(&challenge, ready));
-    runner.input.sent(&challenge);
-    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, ready ++ make));
-    try std.testing.expectEqual(.Complete, try runner.input.observe(&challenge, ready ++ make ++ release));
-    try std.testing.expectEqual(.Waiting, try runner.input.observe(&challenge, ready ++ make ++ release ++ fixtures.INPUT_PARTIAL_IRQ));
-    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.input.observe(&challenge, ready ++ make ++ release ++ make));
+    try std.testing.expectEqual(.Inject, try runner.session.input.observe(&challenge, ready));
+    runner.session.input.sent(&challenge);
+    try std.testing.expectEqual(.Waiting, try runner.session.input.observe(&challenge, ready ++ make));
+    try std.testing.expectEqual(.Complete, try runner.session.input.observe(&challenge, ready ++ make ++ release));
+    try std.testing.expectEqual(.Waiting, try runner.session.input.observe(&challenge, ready ++ make ++ release ++ fixtures.INPUT_PARTIAL_IRQ));
+    try std.testing.expectError(error.UnexpectedKeyboardInput, runner.session.input.observe(&challenge, ready ++ make ++ release ++ make));
 }
 
 test "snapshot job must conclude successfully and belong to this session" {
@@ -78,23 +78,23 @@ test "snapshot job must conclude successfully and belong to this session" {
     defer complete.deinit();
     const failed = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixtures.SNAPSHOT_FAILED, .{});
     defer failed.deinit();
-    try std.testing.expect(!try runner.checkpoint.concluded(pending.value, fixtures.SNAPSHOT_ID));
-    try std.testing.expect(try runner.checkpoint.concluded(complete.value, fixtures.SNAPSHOT_ID));
-    try std.testing.expectError(error.SnapshotJobLost, runner.checkpoint.concluded(complete.value, fixtures.OTHER_JOB));
-    try std.testing.expectError(error.SnapshotJobFailed, runner.checkpoint.concluded(failed.value, fixtures.SNAPSHOT_ID));
+    try std.testing.expect(!try runner.machine.checkpoint.concluded(pending.value, fixtures.SNAPSHOT_ID));
+    try std.testing.expect(try runner.machine.checkpoint.concluded(complete.value, fixtures.SNAPSHOT_ID));
+    try std.testing.expectError(error.SnapshotJobLost, runner.machine.checkpoint.concluded(complete.value, fixtures.OTHER_JOB));
+    try std.testing.expectError(error.SnapshotJobFailed, runner.machine.checkpoint.concluded(failed.value, fixtures.SNAPSHOT_ID));
 }
 
 test "only failures local to a test phase can proceed to cold recovery" {
-    try std.testing.expect(runner.recovery.local(.Select, error.GuestPhaseTimeout));
-    try std.testing.expect(runner.recovery.local(.Checks, error.GuestCheckTimeout));
-    try std.testing.expect(runner.recovery.local(.Checks, error.UnexpectedKeyboardInput));
-    try std.testing.expect(runner.recovery.local(.Checks, error.UnexpectedFatalOutcome));
-    try std.testing.expect(!runner.recovery.local(.Restore, error.GuestPhaseTimeout));
-    try std.testing.expect(!runner.recovery.local(.Menu, error.GuestCheckFailed));
-    try std.testing.expect(!runner.recovery.local(.Select, error.InvalidPhaseAcknowledgement));
-    try std.testing.expect(!runner.recovery.local(.Checks, error.UnexpectedGuestEvent));
-    try std.testing.expect(!runner.recovery.local(.Checks, error.GuestExited));
-    try std.testing.expect(!runner.recovery.local(.Checks, error.Cancelled));
+    try std.testing.expect(runner.session.recovery.local(.Select, error.GuestPhaseTimeout));
+    try std.testing.expect(runner.session.recovery.local(.Checks, error.GuestCheckTimeout));
+    try std.testing.expect(runner.session.recovery.local(.Checks, error.UnexpectedKeyboardInput));
+    try std.testing.expect(runner.session.recovery.local(.Checks, error.UnexpectedFatalOutcome));
+    try std.testing.expect(!runner.session.recovery.local(.Restore, error.GuestPhaseTimeout));
+    try std.testing.expect(!runner.session.recovery.local(.Menu, error.GuestCheckFailed));
+    try std.testing.expect(!runner.session.recovery.local(.Select, error.InvalidPhaseAcknowledgement));
+    try std.testing.expect(!runner.session.recovery.local(.Checks, error.UnexpectedGuestEvent));
+    try std.testing.expect(!runner.session.recovery.local(.Checks, error.GuestExited));
+    try std.testing.expect(!runner.session.recovery.local(.Checks, error.Cancelled));
 }
 
 test "QMP recovery requires a verified pause and rejects a reset" {

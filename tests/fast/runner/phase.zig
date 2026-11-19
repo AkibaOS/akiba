@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const fixtures = @import("tests").strings.oracle;
-const inputs = @import("tests").constants.protocol;
+const fixtures = @import("tests").fast.runner.strings.oracle;
+const inputs = @import("tests").fast.runner.constants.protocol;
 const labels = @import("tests").strings.scenario;
 const project = @import("tests");
 const Scenario = @import("tests").types.scenario.Scenario;
@@ -67,9 +67,9 @@ pub fn menuCountdownFrame() !void {
 }
 
 pub fn menuIdleCountdown() !void {
-    const transport = project.runner.phase;
-    const network = project.runner.socket;
-    const address = try std.net.Address.parseIp4(project.strings.protocol.ADDRESS, 0);
+    const transport = project.runner.transport.phase;
+    const network = project.runner.transport.socket;
+    const address = try std.net.Address.parseIp4(project.fast.runner.strings.protocol.ADDRESS, 0);
     var server = try address.listen(.{});
     defer server.deinit();
     const peer = idle: {
@@ -95,9 +95,9 @@ pub fn menuIdleCountdown() !void {
 }
 
 pub fn menuFramePastCutoff() !void {
-    const transport = project.runner.phase;
-    const network = project.runner.socket;
-    const address = try std.net.Address.parseIp4(project.strings.protocol.ADDRESS, 0);
+    const transport = project.runner.transport.phase;
+    const network = project.runner.transport.socket;
+    const address = try std.net.Address.parseIp4(project.fast.runner.strings.protocol.ADDRESS, 0);
     var server = try address.listen(.{});
     defer server.deinit();
     const client = try network.startConnection(server.listen_address.getPort());
@@ -119,7 +119,7 @@ fn writeTail(handle: std.net.Stream.Handle, bytes: []const u8) void {
     std.Thread.sleep(inputs.ACTION_TAIL_DELAY_NS);
     var sent: usize = 0;
     while (sent < bytes.len) {
-        const count = project.runner.socket.send(handle, bytes[sent..]) catch return;
+        const count = project.runner.transport.socket.send(handle, bytes[sent..]) catch return;
         if (count == 0) return;
         sent += count;
     }
@@ -249,7 +249,7 @@ pub fn liveHistory() !void {
 }
 
 pub fn earlyFailures() !void {
-    const result = project.runner.result;
+    const result = project.runner.report.result;
     try std.testing.expect(result.failedBeforeSelection(fixtures.FAIL));
     try std.testing.expect(result.failedBeforeSelection(labels.PANIC));
     try std.testing.expect(result.failedBeforeSelection(fixtures.COLLAPSE_VALID));

@@ -2,11 +2,11 @@
 
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const process = @import("tests").runner.process;
-const protocol = @import("tests").runner.protocol;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.host;
+const limits = @import("tests").runner.constants.limits;
+const process = @import("tests").runner.process.lifetime;
+const protocol = @import("tests").runner.transport.protocol;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.host;
 
 pub fn run(allocator: std.mem.Allocator, instance: *types.Process, connection: *types.Connection, operation: []const u8) !void {
     var timer = try std.time.Timer.start();

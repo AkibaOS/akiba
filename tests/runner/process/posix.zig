@@ -3,7 +3,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
+const limits = @import("tests").runner.constants.limits;
 const linux = std.os.linux;
 
 const Information = if (builtin.os.tag == .linux) linux.siginfo_t else std.c.siginfo_t;

@@ -2,17 +2,17 @@
 
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
+const limits = @import("tests").runner.constants.limits;
 const phase = @import("tests").phase;
-const process = @import("tests").runner.process;
-const result = @import("tests").runner.result;
-const serial = @import("tests").runner.serial;
-const socket = @import("tests").runner.socket;
-const strings = @import("tests").strings.runner;
-const CancelChannel = @import("tests").types.host.CancelChannel;
-const Deadline = @import("tests").types.host.Deadline;
-const Epoch = @import("tests").types.host.Epoch;
-const Process = @import("tests").types.host.Process;
+const process = @import("tests").runner.process.lifetime;
+const result = @import("tests").runner.report.result;
+const serial = @import("tests").runner.transport.serial;
+const socket = @import("tests").runner.transport.socket;
+const strings = @import("tests").runner.strings.runner;
+const CancelChannel = @import("tests").runner.types.host.CancelChannel;
+const Deadline = @import("tests").runner.types.host.Deadline;
+const Epoch = @import("tests").runner.types.host.Epoch;
+const Process = @import("tests").runner.types.host.Process;
 
 pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stream {
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.CHECK_NS };

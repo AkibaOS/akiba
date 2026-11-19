@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const protocol = @import("tests").runner.protocol;
-const strings = @import("tests").strings.runner;
-const Connection = @import("tests").types.host.Connection;
-const Stage = @import("tests").types.host.Stage;
+const protocol = @import("tests").runner.transport.protocol;
+const strings = @import("tests").runner.strings.runner;
+const Connection = @import("tests").runner.types.host.Connection;
+const Stage = @import("tests").runner.types.host.Stage;
 
 pub fn local(stage: Stage, reason: anyerror) bool {
     return switch (stage) {

@@ -3,10 +3,10 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const host = @import("tests").types.host;
-const limits = @import("tests").constants.runner;
+const host = @import("tests").runner.types.host;
+const limits = @import("tests").runner.constants.limits;
 const options = @import("runneroptions");
-const strings = @import("tests").strings.paths;
+const strings = @import("tests").runner.strings.paths;
 
 pub fn prepare(allocator: std.mem.Allocator) !host.Paths {
     const repo = try std.fs.cwd().realpathAlloc(allocator, strings.CURRENT_DIRECTORY);

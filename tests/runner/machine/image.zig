@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const limits = @import("tests").constants.runner;
-const process = @import("tests").runner.process;
-const strings = @import("tests").strings.runner;
-const types = @import("tests").types.host;
+const limits = @import("tests").runner.constants.limits;
+const process = @import("tests").runner.process.lifetime;
+const strings = @import("tests").runner.strings.runner;
+const types = @import("tests").runner.types.host;
 
 pub fn fingerprint(path: []const u8) !types.Fingerprint {
     var file = try std.fs.cwd().openFile(path, .{});
