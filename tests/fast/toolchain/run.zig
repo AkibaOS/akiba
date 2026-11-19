@@ -6,6 +6,10 @@ test "mkafsdisk creates reciprocal GPT FAT boot files and readable AFS units in 
     try image.integration.createAndReadback();
 }
 
+test "published disk statistics match the actual image and AFS header" {
+    try image.integration.publishedStats();
+}
+
 test "disk packing reports real unit progress without a row per file name" {
     try image.integration.unitProgress();
 }

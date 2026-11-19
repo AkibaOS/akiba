@@ -15,7 +15,7 @@ pub fn unitProgress() !void {
     try checks.fixture.createSource(temporary.dir, true);
     try checks.fixture.addMutableUnit(temporary.dir);
     var next: u32 = 0;
-    try mkafsdisk.image.create.createDiskImageObserved(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, .{ .Context = &next, .UpdateFn = recordUnit });
+    _ = try mkafsdisk.image.create.createDiskImageReported(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, .{ .Context = &next, .UpdateFn = recordUnit });
     try std.testing.expectEqual(@as(u32, 3), next);
     const image = try temporary.dir.openFile(strings.IMAGE_NAME, .{});
     defer image.close();
@@ -27,6 +27,35 @@ fn recordUnit(context: ?*anyopaque, done: u32, total: u32) !void {
     try std.testing.expectEqual(@as(u32, 2), total);
     try std.testing.expectEqual(next.*, done);
     next.* += 1;
+}
+
+pub fn publishedStats() !void {
+    const create = mkafsdisk.image.create;
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    var paths = try checks.fixture.paths(std.testing.allocator, temporary.dir);
+    defer paths.deinit();
+    try checks.fixture.createSource(temporary.dir, true);
+    try checks.fixture.addMutableUnit(temporary.dir);
+    const report = try create.createDiskImageReported(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, null);
+    const image = try temporary.dir.openFile(strings.IMAGE_NAME, .{});
+    defer image.close();
+    try std.testing.expectEqual(try image.getEndPos(), report.SizeBytes);
+    try std.testing.expectEqual(constants.ESP_FIRST_LBA, report.EspFirstSector);
+    try std.testing.expectEqual(constants.ESP_LAST_LBA, report.EspLastSector);
+    try std.testing.expectEqual(constants.AFS_FIRST_LBA, report.AfsFirstSector);
+    try std.testing.expectEqual(constants.AFS_LAST_LBA, report.AfsLastSector);
+    try std.testing.expectEqual(@as(u64, constants.BOOTLOADER_BYTES.len), report.BootloaderBytes);
+    const Header = @import("shared").afs.types.volume.VolumeHeader;
+    var header: Header = undefined;
+    try checks.io.readExact(image, report.AfsFirstSector * constants.SECTOR_BYTES, std.mem.asBytes(&header));
+    try std.testing.expect(header.isValid());
+    try std.testing.expectEqual(header.UnitCount, report.Units);
+    try std.testing.expectEqual(header.StackCount, report.Stacks);
+    try std.testing.expectEqual(header.CellSize, report.CellBytes);
+    try std.testing.expectEqual(header.TotalCells, report.TotalCells);
+    try std.testing.expectEqual(header.FreeCells, report.FreeCells);
+    try std.testing.expectEqual(report, @TypeOf(report).decode(&report.encode()));
 }
 
 pub fn createAndReadback() !void {

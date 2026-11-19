@@ -2,11 +2,13 @@
 
 const std = @import("std");
 
+const display = @import("../../mkafsdisk/command/display.zig");
 const messages = @import("../../mkafsdisk/strings/messages.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const Pack = @import("../types/pack.zig").Pack;
 const Record = @import("../../mkafsdisk/types/progress.zig").Record;
+const Report = @import("../../mkafsdisk/types/report.zig").Report;
 
 pub fn image(builder: *std.Build, stage: *std.Build.Step.WriteFile, packer: *std.Build.Step.Compile, name: []const u8) std.Build.LazyPath {
     const pack = builder.allocator.create(Pack) catch @panic("OOM");
@@ -41,27 +43,21 @@ fn make(step: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
     pack.Output.path = output;
     const published = if (hit) null else fresh: {
         try builder.cache_root.handle.makePath(directory);
-        break :fresh try emit(step, options, executable, source, output);
+        break :fresh try emit(step, options, pack.ImageName, executable, source, output);
     };
     const info = std.fs.cwd().statFile(output) catch return step.fail(steps.PACK_IMAGE_MISSING, .{output});
     if (info.kind != .file) return step.fail(steps.PACK_IMAGE_MISSING, .{output});
     if (published) |result| {
+        if (info.size != result.SizeBytes) return step.fail(steps.PACK_STATISTICS, .{output});
         try step.writeManifestAndWatch(&manifest);
-        reportImage(pack.ImageName, result.Total);
+        display.report(pack.ImageName, result);
     }
 }
 
-fn reportImage(name: []const u8, units: u32) void {
-    var buffer: [256]u8 = undefined;
-    const label = if (units == 1) steps.PACK_UNIT else steps.PACK_UNITS;
-    const line = std.fmt.bufPrint(&buffer, steps.PACK_COMPLETE, .{ name, units, label }) catch return;
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-    std.fs.File.stdout().writeAll(line) catch {};
-}
-
-fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, executable: []const u8, source: []const u8, output: []const u8) !Record {
+fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, name: []const u8, executable: []const u8, source: []const u8, output: []const u8) !Report {
     const arguments = &.{ executable, source, output, paths.GUEST_IMAGE_MB, messages.PROGRESS_STREAM };
+    var progress = display.Progress.init(name);
+    defer progress.end();
     var child = std.process.Child.init(arguments, options.gpa);
     child.stdin_behavior = .Ignore;
     child.stdout_behavior = .Pipe;
@@ -71,25 +67,38 @@ fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, executable: 
     errdefer if (!reaped) {
         _ = child.kill() catch {};
     };
-    const last = observe(child.stdout.?, options.progress_node) catch |failure| return step.fail(steps.PACK_PROGRESS, .{@errorName(failure)});
+    const stats = observe(child.stdout.?, options.progress_node, &progress) catch |failure| return step.fail(steps.PACK_PROGRESS, .{@errorName(failure)});
     const result = try child.wait();
     reaped = true;
     if (result != .Exited or result.Exited != 0) return step.fail(steps.PACK_EXIT, .{result});
-    if (last == null or last.?.Written != last.?.Total) return step.fail(steps.PACK_INCOMPLETE, .{});
-    return last.?;
+    return stats orelse return step.fail(steps.PACK_INCOMPLETE, .{});
 }
 
-fn observe(pipe: std.fs.File, node: std.Progress.Node) !?Record {
+fn observe(pipe: std.fs.File, node: std.Progress.Node, progress: *display.Progress) !?Report {
     var last: ?Record = null;
     var bytes: [Record.BYTES]u8 = undefined;
     while (true) {
         const count = try pipe.readAll(&bytes);
-        if (count == 0) return last;
+        if (count == 0) return null;
         if (count != bytes.len) return error.TruncatedProgressRecord;
         const event = Record.decode(&bytes);
         if (!event.follows(last)) return error.UnorderedProgressRecord;
         if (last == null) node.setEstimatedTotalItems(event.Total);
         node.setCompletedItems(event.Written);
+        progress.update(event.Written, event.Total);
+        if (event.Written == event.Total) return readReport(pipe, event.Total);
         last = event;
     }
+}
+
+fn readReport(pipe: std.fs.File, units: u32) !?Report {
+    var raw: [Report.BYTES]u8 = undefined;
+    const count = try pipe.readAll(&raw);
+    if (count == 0) return null;
+    if (count != raw.len) return error.TruncatedImageStatistics;
+    var tail: [1]u8 = undefined;
+    if (try pipe.readAll(&tail) != 0) return error.UnexpectedImageStatistics;
+    const stats = Report.decode(&raw);
+    if (stats.Units != units or stats.FreeCells > stats.TotalCells) return error.InvalidImageStatistics;
+    return stats;
 }

@@ -25,7 +25,7 @@ pub fn createEsp(
     esp_start_sector: u32,
     esp_sector_count: u32,
 ) !void {
-    return createEspUsingIO(allocator, file, source_location, esp_start_sector, esp_sector_count, backend.native());
+    _ = try createEspUsingIO(allocator, file, source_location, esp_start_sector, esp_sector_count, backend.native());
 }
 
 pub fn createEspUsingIO(
@@ -35,7 +35,7 @@ pub fn createEspUsingIO(
     esp_start_sector: u32,
     esp_sector_count: u32,
     operations: types.io.Operations,
-) !void {
+) !types.report.Esp {
     const esp_start_byte: u64 = @as(u64, esp_start_sector) * disk.SECTOR_SIZE;
 
     if (esp_sector_count <= esp.RESERVED_SECTORS) return ImageError.EspTooSmall;
@@ -186,6 +186,7 @@ pub fn createEspUsingIO(
     try file.writeAll(fat_table);
     try file.seekTo(fat2_offset);
     try file.writeAll(fat_table);
+    return .{ .Clusters = total_clusters, .BootloaderBytes = bootloader_size, .BootloaderClusters = bootloader_clusters };
 }
 
 fn writeEntry(sector: []u8, slot: usize, entry: StackEntry) void {

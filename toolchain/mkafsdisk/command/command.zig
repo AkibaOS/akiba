@@ -4,9 +4,10 @@ const std = @import("std");
 
 const tool = @import("mkafsdisk");
 
+const display = @import("display.zig");
+const messages = tool.strings.messages;
 const ArgumentError = tool.errors.arguments.ArgumentError;
 const Record = tool.types.progress.Record;
-const messages = tool.strings.messages;
 
 pub fn run() !void {
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -25,26 +26,26 @@ pub fn run() !void {
     const output_image_path = args[2];
     const size_megabytes = try std.fmt.parseInt(u32, args[3], 10);
     if (stream) {
-        return tool.image.create.createDiskImageObserved(allocator, source_location, output_image_path, size_megabytes, .{
+        const stats = try tool.image.create.createDiskImageReported(allocator, source_location, output_image_path, size_megabytes, .{
             .Context = null,
             .UpdateFn = reportStream,
         });
+        return std.fs.File.stdout().writeAll(&stats.encode());
     }
 
-    const name = try std.fmt.allocPrint(allocator, messages.PACKING, .{std.fs.path.basename(output_image_path)});
-    defer allocator.free(name);
-    var progress = std.Progress.start(.{ .root_name = name });
+    const name = std.fs.path.basename(output_image_path);
+    var progress = display.Progress.init(name);
     defer progress.end();
-    try tool.image.create.createDiskImageObserved(allocator, source_location, output_image_path, size_megabytes, .{
+    const stats = try tool.image.create.createDiskImageReported(allocator, source_location, output_image_path, size_megabytes, .{
         .Context = &progress,
         .UpdateFn = reportTerminal,
     });
+    display.report(name, stats);
 }
 
 fn reportTerminal(context: ?*anyopaque, written: u32, total: u32) !void {
-    const progress: *std.Progress.Node = @ptrCast(@alignCast(context.?));
-    progress.setEstimatedTotalItems(total);
-    progress.setCompletedItems(written);
+    const progress: *display.Progress = @ptrCast(@alignCast(context.?));
+    progress.update(written, total);
 }
 
 fn reportStream(_: ?*anyopaque, written: u32, total: u32) !void {

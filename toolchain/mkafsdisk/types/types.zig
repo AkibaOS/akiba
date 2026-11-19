@@ -7,5 +7,6 @@ pub const io = @import("io.zig");
 pub const manifest = @import("manifest.zig");
 pub const output = @import("output.zig");
 pub const progress = @import("progress.zig");
+pub const report = @import("report.zig");
 pub const tree = @import("tree.zig");
 pub const writer = @import("writer.zig");

@@ -5,23 +5,24 @@ const std = @import("std");
 const tool = @import("mkafsdisk");
 
 const Observer = tool.types.progress.Observer;
+const Report = tool.types.report.Report;
 const Writer = tool.types.writer.Writer;
 const disk = tool.constants.disk;
 const names = tool.strings.names;
 
 pub fn createDiskImage(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32) !void {
-    return create(allocator, source_location, output_path, size_megabytes, tool.image.io.native(), null);
+    _ = try createDiskImageReported(allocator, source_location, output_path, size_megabytes, null);
 }
 
-pub fn createDiskImageObserved(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32, observer: Observer) !void {
+pub fn createDiskImageReported(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32, observer: ?Observer) !Report {
     return create(allocator, source_location, output_path, size_megabytes, tool.image.io.native(), observer);
 }
 
 pub fn createDiskImageUsingIO(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32, operations: tool.types.io.Operations) !void {
-    return create(allocator, source_location, output_path, size_megabytes, operations, null);
+    _ = try create(allocator, source_location, output_path, size_megabytes, operations, null);
 }
 
-fn create(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32, operations: tool.types.io.Operations, observer: ?Observer) !void {
+fn create(allocator: std.mem.Allocator, source_location: []const u8, output_path: []const u8, size_megabytes: u32, operations: tool.types.io.Operations, observer: ?Observer) !Report {
     const geometry = try tool.image.geometry.disk(size_megabytes);
     try tool.image.location.validateOutput(allocator, source_location, output_path);
     var filesystem = try tool.catalog.prepare.prepare(allocator, source_location, geometry.PartitionSizeBytes);
@@ -35,12 +36,27 @@ fn create(allocator: std.mem.Allocator, source_location: []const u8, output_path
     const file = output.file();
     try tool.image.mbr.writeProtectiveMbr(file, geometry.TotalSectors);
     try tool.image.gpt.writeGpt(file, geometry.EspStartLBA, geometry.EspEndLBA, geometry.AfsStartLBA, geometry.AfsEndLBA, geometry.TotalSectors);
-    try tool.image.esp.createEspUsingIO(allocator, file, source, esp_start, disk.ESP_SIZE_SECTORS, operations);
+    const esp = try tool.image.esp.createEspUsingIO(allocator, file, source, esp_start, disk.ESP_SIZE_SECTORS, operations);
     var writer = Writer.initialize(file, geometry.PartitionStartByte, geometry.PartitionSizeBytes, allocator);
     writer.IO = operations;
     writer.Progress = observer;
     try writer.writeFilesystem(&filesystem);
     try output.finish();
+    return .{
+        .SizeBytes = geometry.TotalBytes,
+        .EspFirstSector = geometry.EspStartLBA,
+        .EspLastSector = geometry.EspEndLBA,
+        .AfsFirstSector = geometry.AfsStartLBA,
+        .AfsLastSector = geometry.AfsEndLBA,
+        .BootloaderBytes = esp.BootloaderBytes,
+        .EspClusters = esp.Clusters,
+        .BootloaderClusters = esp.BootloaderClusters,
+        .Units = filesystem.Manifest.UnitCount,
+        .Stacks = filesystem.Manifest.StackCount,
+        .CellBytes = writer.CellSize,
+        .TotalCells = filesystem.Volume.TotalCells,
+        .FreeCells = filesystem.Volume.FreeCells,
+    };
 }
 
 fn requireBootloader(allocator: std.mem.Allocator, source: []const u8) !void {
