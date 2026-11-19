@@ -15,19 +15,30 @@ const user = @import("mirai").user;
 const verify = @import("tests").verify;
 
 const VALID = fixture.create();
+const PARAMETERS: [inputs.STARTUP_PARAMETER_BYTES]u8 = @splat(inputs.STARTUP_PARAMETER_MASK);
 
 var threshold: usize = 0;
 var observed: usize = 0;
+var startup_address: ?u64 = null;
+var startup_owner: u64 = 0;
+var saw_startup: bool = false;
 
 pub fn run() !void {
+    const options: bootstrap.types.image.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = inputs.PRESSURE_PAGES };
+    try refuse(options, labels.ROLLBACK);
+    var handoff = options;
+    handoff.Startup = .{ .Identity = labels.STARTUP_IDENTITY, .Parameters = &PARAMETERS };
+    try refuse(handoff, labels.STARTUP_ROLLBACK);
+}
+
+fn refuse(options: bootstrap.types.image.Options, comptime label: []const u8) !void {
     const flags = guard.acquire();
     defer guard.release(flags);
     defer budget.clear();
     const launcher = thread.state.getCurrent().?.Owner;
-    const warm = try bootstrap.image.prepare.prepare(launcher, &VALID, .{
-        .StackBase = inputs.STACK_ADDRESS,
-        .StackPages = inputs.PRESSURE_PAGES,
-    });
+    const warm = try bootstrap.image.prepare.prepare(launcher, &VALID, options);
+    startup_address = if (options.Startup != null) warm.Thread.User.Argument else null;
+    saw_startup = false;
     try bootstrap.image.abort.abort(warm);
     const before = pmm.state.getStatistics();
     const initial = user.state.ledger.count();
@@ -41,19 +52,18 @@ pub fn run() !void {
     threshold = held + inputs.PRESSURE_PAGES;
     observed = held;
     const failed_id = scratch.ID + 1;
+    startup_owner = failed_id;
     budget.armWhen(partial);
     var rejected = false;
-    if (bootstrap.image.prepare.prepare(launcher, &VALID, .{
-        .StackBase = inputs.STACK_ADDRESS,
-        .StackPages = inputs.PRESSURE_PAGES,
-    })) |unexpected| {
+    if (bootstrap.image.prepare.prepare(launcher, &VALID, options)) |unexpected| {
         budget.clear();
         try bootstrap.image.abort.abort(unexpected);
     } else |failure| {
         rejected = failure == error.OutOfMemory;
     }
     budget.clear();
-    const rolled_back = rejected and observed >= threshold and user.state.ledger.count() == held and
+    const observed_partial = if (startup_address != null) saw_startup else observed >= threshold;
+    const rolled_back = rejected and observed_partial and user.state.ledger.count() == held and
         scratch.AddressSpace.?.ResidentPages == inputs.PRESSURE_PAGES and
         std.meta.eql(full, pmm.state.getStatistics()) and kata.state.findByID(failed_id) == null and
         kata.completion.storage.ownerOf(failed_id) == null;
@@ -63,10 +73,16 @@ pub fn run() !void {
     try kata.destroy.destroy(scratch);
     alive = false;
     verify.require(rolled_back and reserved_then_released and user.state.ledger.count() == initial and
-        std.meta.eql(before, pmm.state.getStatistics()), labels.ROLLBACK);
+        std.meta.eql(before, pmm.state.getStatistics()), label);
 }
 
 fn partial() bool {
+    if (startup_address) |address| {
+        const owner = kata.state.findByID(startup_owner) orelse return false;
+        if (user.state.ledger.find(owner, address) == null or user.state.ledger.find(owner, address + inputs.PAGE_BYTES) != null) return false;
+        saw_startup = true;
+        return true;
+    }
     observed = @max(observed, user.state.ledger.count());
     return observed >= threshold;
 }

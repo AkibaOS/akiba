@@ -9,6 +9,7 @@ const guard = @import("asm").interrupts.guard;
 const harness = @import("tests").guest.mirai.postman.harness;
 const inputs = @import("tests").constants.elf;
 const invocations = @import("tests").constants.completion;
+const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const kernel = @import("mirai").memory.allocator.native;
 const labels = @import("tests").strings.elf;
@@ -47,12 +48,22 @@ fn execute(comptime failure: u64) !void {
     try harness.install(&actor, &.{ .{ .Service = .Yield }, completion.operation(&actor, invocations.WAIT), completion.operation(&actor, invocations.OBSERVE), completion.operation(&actor, invocations.COLLECT) });
     try harness.start(&actor);
     try harness.waitStep(&actor, 1);
+    const has_startup = failure != inputs.BAD_ARGUMENT_RESULT;
+    var identity = labels.STARTUP_IDENTITY.*;
+    var parameters: [inputs.STARTUP_PARAMETER_BYTES]u8 = undefined;
+    for (&parameters, 0..) |*byte, index| byte.* = @as(u8, @truncate(index)) ^ @as(u8, @truncate(index >> @bitSizeOf(u8))) ^ inputs.STARTUP_PARAMETER_MASK;
     const image = try bootstrap.image.prepare.prepare(actor.Owner, IMAGE_BYTES, .{
         .StackBase = inputs.STACK_ADDRESS,
         .StackPages = 2,
-        .Argument = if (failure == inputs.BAD_ARGUMENT_RESULT) inputs.ARGUMENT ^ 1 else inputs.ARGUMENT,
+        .Argument = if (has_startup) 0 else inputs.ARGUMENT ^ 1,
+        .Startup = if (has_startup) .{ .Identity = &identity, .Parameters = &parameters } else null,
     });
     defer completion.dispose(image.ID);
+    const identity_byte: *volatile u8 = &identity[0];
+    const following_page: *volatile u8 = &parameters[inputs.PAGE_BYTES];
+    identity_byte.* ^= 1;
+    following_page.* ^= 1;
+    const readonly = !has_startup or startupReadonly(image);
     try inspect(image.Owner);
     if (failure == inputs.BAD_DATA_RESULT) {
         var plan = try shared.validate.image.parse(kernel.get(), IMAGE_BYTES, .{
@@ -76,7 +87,7 @@ fn execute(comptime failure: u64) !void {
     };
     try harness.waitStep(&actor, 2);
     const expected: types.Record = .{ .Kind = invocations.EXITED, .Result = if (failure == 0) inputs.EXIT_RESULT else failure };
-    verify.require(persona and identifier == image.ID and (try completion.response(&actor, 2, invocations.SUCCESS, invocations.RECORD_BYTES)) and
+    verify.require(persona and readonly and identifier == image.ID and (try completion.response(&actor, 2, invocations.SUCCESS, invocations.RECORD_BYTES)) and
         std.meta.eql(expected, try completion.record(&actor)) and kata.state.findByID(image.ID) == null, if (failure == 0) labels.EXECUTION else labels.NEGATIVE);
     for (3..5) |step| {
         try harness.advance(&actor, step - 1);
@@ -85,6 +96,22 @@ fn execute(comptime failure: u64) !void {
             std.meta.eql(expected, try completion.record(&actor)) and (try completion.guarded(&actor)), labels.OUTCOME);
     }
     verify.require(kata.completion.storage.ownerOf(image.ID) == null and !thread.state.owns(image.Thread), labels.ABORT);
+}
+
+fn startupReadonly(image: bootstrap.types.image.Prepared) bool {
+    const base = image.Thread.User.Argument;
+    const length = inputs.STARTUP_HEADER_BYTES + labels.STARTUP_IDENTITY.len + inputs.STARTUP_PARAMETER_BYTES;
+    const pages = std.math.divCeil(usize, length, inputs.PAGE_BYTES) catch unreachable;
+    if (base < inputs.PAGE_BYTES or base > inputs.USER_END + 1 - pages * inputs.PAGE_BYTES or base % inputs.PAGE_BYTES != 0) return false;
+    const root = image.Owner.AddressSpace orelse return false;
+    for (0..pages) |index| {
+        const address = base + index * inputs.PAGE_BYTES;
+        const mapping = kagami.extract.lookup(root, address) orelse return false;
+        const record = user.state.ledger.find(image.Owner, address) orelse return false;
+        const alias = user.state.checks.lookupAlias(record) orelse return false;
+        if (!mapping.UserAccessible or mapping.Writable or mapping.Executable or alias.UserAccessible or alias.Writable or alias.Executable) return false;
+    }
+    return true;
 }
 
 fn inspect(owner: *kata.types.kata.Kata) !void {

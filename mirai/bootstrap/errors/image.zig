@@ -12,6 +12,8 @@ pub const ImageError = shared.ImageError || user.UserError || kata.OwnershipErro
     InvalidStack,
     StackOverlap,
     InvalidImage,
+    InvalidStartup,
+    NoStartupSpace,
     InUse,
 };
 

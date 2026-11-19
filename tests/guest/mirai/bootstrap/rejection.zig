@@ -48,6 +48,12 @@ pub fn run() !void {
     correct = rejects(&VALID, bad, error.StackOverlap) and correct;
     bad.StackBase = inputs.CODE_ADDRESS - 2 * inputs.PAGE_BYTES;
     correct = rejects(&VALID, bad, error.StackOverlap) and correct;
+    bad = options;
+    bad.Startup = .{ .Identity = &.{}, .Parameters = &.{} };
+    correct = rejects(&VALID, bad, error.InvalidStartup) and correct;
+    bad.Startup = .{ .Identity = labels.STARTUP_IDENTITY, .Parameters = &.{} };
+    bad.Argument = inputs.ARGUMENT;
+    correct = rejects(&VALID, bad, error.InvalidStartup) and correct;
     const next = try kata.create.create();
     const unchanged_ids = next.ID == identifier + 1;
     try kata.destroy.destroy(next);

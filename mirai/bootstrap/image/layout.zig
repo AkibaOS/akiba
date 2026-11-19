@@ -24,3 +24,23 @@ pub fn separate(plan: *const Plan, options: types.Options, top: u64) ImageError!
         if (range.Start < upper and lower < range.End) return ImageError.StackOverlap;
     }
 }
+
+pub fn placeStartup(plan: *const Plan, options: types.Options, top: u64, length: u64) ImageError!types.StartupSpan {
+    const lower = options.StackBase - sizes.PAGE_SIZE;
+    const upper = top + sizes.PAGE_SIZE;
+    var cursor = sizes.PAGE_SIZE;
+    // The validated ELF plan supplies sorted, page-aligned intervals.
+    for (plan.Ranges) |range| {
+        if (fit(cursor, range.Start, lower, upper, length)) |start| return .{ .Start = start, .End = start + length };
+        cursor = @max(cursor, range.End);
+    }
+    const start = fit(cursor, address.USER_SPACE_END + 1, lower, upper, length) orelse return ImageError.NoStartupSpace;
+    return .{ .Start = start, .End = start + length };
+}
+
+fn fit(start: u64, end: u64, stack_start: u64, stack_end: u64, length: u64) ?u64 {
+    if (start > end or length > end - start) return null;
+    if (start >= stack_end or start + length <= stack_start) return start;
+    if (stack_end <= end and length <= end - stack_end) return stack_end;
+    return null;
+}

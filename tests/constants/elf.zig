@@ -21,3 +21,6 @@ pub const BAD_ARGUMENT_RESULT: u64 = 1;
 pub const BAD_DATA_RESULT: u64 = 2;
 pub const MAXIMUM_PAGES: u64 = 32;
 pub const USER_END: u64 = 0x7fffffffffff;
+pub const STARTUP_HEADER_BYTES: usize = 24;
+pub const STARTUP_PARAMETER_BYTES: usize = 2 * PAGE_BYTES + 37;
+pub const STARTUP_PARAMETER_MASK: u8 = 0x69;

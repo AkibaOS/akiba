@@ -6,3 +6,4 @@ pub const memory = @import("memory.zig");
 pub const preflight = @import("preflight.zig");
 pub const prepare = @import("prepare.zig");
 pub const start = @import("start.zig");
+pub const startup = @import("startup.zig");
