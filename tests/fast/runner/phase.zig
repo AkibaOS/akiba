@@ -73,7 +73,7 @@ fn writeTail(handle: std.net.Stream.Handle, bytes: []const u8) void {
 pub fn menuOffer() !void {
     const menu = project.phase.menu;
     const epoch = 0x0807060504030201;
-    const expected = [_]u8{ 'A', 'K', 'M', 'S', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6' };
+    const expected = [_]u8{ 'A', 'K', 'M', 'S', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0 };
     const offer: project.phase.types.menu.Offer = .{ .Epoch = epoch, .Passed = 1910, .Date = expected[16..24].* };
     try std.testing.expectEqualSlices(u8, &expected, &menu.encodeOffer(offer).?);
     try std.testing.expectEqual(offer, menu.decodeOffer(&expected).?);
@@ -87,6 +87,29 @@ pub fn menuOffer() !void {
     try std.testing.expect(menu.isArmed(epoch, &armed));
     try std.testing.expect(!menu.isArmed(epoch + 1, &armed));
     try std.testing.expect(!menu.isArmed(epoch, &expected));
+}
+
+pub fn failedMenuOffer() !void {
+    const menu = project.phase.menu;
+    const Offer = project.phase.types.menu.Offer;
+    const wire = [_]u8{ 'A', 'K', 'M', 'S', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1 };
+    const failure: Offer = menu.decodeOffer(&wire).?;
+    try std.testing.expectEqual(@as(u32, 1907), failure.Passed);
+    try std.testing.expectEqual(@as(u8, 1), failure.FailedPhases);
+    try std.testing.expectEqual(@as(u8, 1), failure.InterruptedPhases);
+    try std.testing.expectEqualSlices(u8, &wire, &menu.encodeOffer(failure).?);
+    try std.testing.expectEqual(@as(usize, 4), menu.completedPhases(failure));
+    var refused = failure;
+    refused.InterruptedPhases = 2;
+    try std.testing.expect(menu.encodeOffer(refused) == null);
+    refused = failure;
+    refused.FailedPhases = 6;
+    try std.testing.expect(menu.encodeOffer(refused) == null);
+    refused = failure;
+    refused.FailedPhases = 5;
+    try std.testing.expect(menu.encodeOffer(refused) == null);
+    refused.Passed = 0;
+    try std.testing.expect(menu.encodeOffer(refused) != null);
 }
 
 pub fn earlyFailures() !void {

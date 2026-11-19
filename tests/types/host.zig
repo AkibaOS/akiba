@@ -82,6 +82,7 @@ pub const Session = struct {
     SerialStart: u64 = 0,
     Passed: usize = 0,
     FailedPhases: usize = 0,
+    InterruptedPhases: usize = 0,
 };
 
 pub const Process = struct {

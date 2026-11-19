@@ -38,7 +38,7 @@ fn run(services: *efi.types.services.boot.BootServices) !void {
     const offer = phase.menu.decodeOffer(&bytes) orelse return error.InvalidMenuOffer;
 
     if (input.Reset(input, false) != status.SUCCESS) return error.MenuInputResetFailed;
-    if (!display.show(services, offer.Passed, &offer.Date)) return error.MenuRenderFailed;
+    if (!display.show(services, offer)) return error.MenuRenderFailed;
     const action = try choice.readyAndWait(services, input, offer.Epoch);
     const message = phase.action.encode(offer.Epoch, action) orelse return error.InvalidMenuEpoch;
     if (!serial.send(services, &message)) return error.MenuActionTransmissionFailed;

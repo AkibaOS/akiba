@@ -7,6 +7,8 @@ pub const Offer = struct {
     Epoch: u64,
     Passed: u32,
     Date: [frame.DATE_BYTES]u8,
+    FailedPhases: u8 = 0,
+    InterruptedPhases: u8 = 0,
 };
 
 pub const OfferFrame = [limits.OFFER_BYTES]u8;

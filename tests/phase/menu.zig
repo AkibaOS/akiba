@@ -12,7 +12,9 @@ pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     @memcpy(frame[0..limits.EPOCH_OFFSET], &limits.OFFER);
     std.mem.writeInt(u64, frame[limits.EPOCH_OFFSET..limits.PASSED_OFFSET], offer.Epoch, .little);
     std.mem.writeInt(u32, frame[limits.PASSED_OFFSET..limits.DATE_OFFSET], offer.Passed, .little);
-    @memcpy(frame[limits.DATE_OFFSET..], &offer.Date);
+    @memcpy(frame[limits.DATE_OFFSET..limits.FAILED_OFFSET], &offer.Date);
+    frame[limits.FAILED_OFFSET] = offer.FailedPhases;
+    frame[limits.INTERRUPTED_OFFSET] = offer.InterruptedPhases;
     return frame;
 }
 
@@ -21,7 +23,9 @@ pub fn decodeOffer(frame: []const u8) ?types.Offer {
     const offer: types.Offer = .{
         .Epoch = std.mem.readInt(u64, frame[limits.EPOCH_OFFSET..limits.PASSED_OFFSET], .little),
         .Passed = std.mem.readInt(u32, frame[limits.PASSED_OFFSET..limits.DATE_OFFSET], .little),
-        .Date = frame[limits.DATE_OFFSET..limits.OFFER_BYTES].*,
+        .Date = frame[limits.DATE_OFFSET..limits.FAILED_OFFSET].*,
+        .FailedPhases = frame[limits.FAILED_OFFSET],
+        .InterruptedPhases = frame[limits.INTERRUPTED_OFFSET],
     };
     return if (valid(offer)) offer else null;
 }
@@ -37,6 +41,13 @@ pub fn isArmed(epoch: u64, bytes: []const u8) bool {
     return epoch != 0 and std.mem.eql(u8, bytes, &encodeArmed(epoch));
 }
 
+pub fn completedPhases(offer: types.Offer) usize {
+    return limits.PHASE_COUNT -| offer.InterruptedPhases;
+}
+
 fn valid(offer: types.Offer) bool {
-    return offer.Epoch != 0 and offer.Passed != 0 and date.valid(&offer.Date);
+    const all_failed = offer.FailedPhases == limits.PHASE_COUNT;
+    return offer.Epoch != 0 and (offer.Passed == 0) == all_failed and
+        offer.FailedPhases <= limits.PHASE_COUNT and offer.InterruptedPhases <= offer.FailedPhases and
+        date.valid(&offer.Date);
 }

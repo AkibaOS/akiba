@@ -104,6 +104,10 @@ test "session controls reject stale epochs and actions inappropriate to the acti
     try phase.actions();
 }
 
+test "failed menu summary separates interrupted and failed phases" {
+    try phase.failedMenuOffer();
+}
+
 test "menu requires the current arm acknowledgement and the verified suite summary" {
     try phase.menuOffer();
 }
