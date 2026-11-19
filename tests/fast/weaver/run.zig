@@ -7,6 +7,7 @@ const elf = @import("shared").elf;
 const fixture = @import("tests").fast.shared.elf.fixture;
 const inputs = @import("tests").constants.elf;
 const pages = @import("tests").fast.weaver.pages;
+const startup = @import("tests").fast.weaver.startup;
 const text = @import("tests").strings.elf;
 const weaver = @import("weaver");
 
@@ -201,6 +202,14 @@ fn verifyPlacement(allocator: std.mem.Allocator) !void {
     try std.testing.expectEqual(@as(u64, 0x405100), placement.Libraries[0].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0x605100), placement.Libraries[1].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0), placement.Libraries[0].Image.Entry);
+}
+
+test "Launch startup bytes and page extent preserve the private record" {
+    try startup.preservesWire();
+}
+
+test "Launch startup rejects unknown versions missing identities and overflowing extents" {
+    try startup.rejectsOutOfBounds();
 }
 
 test "Weaver materializes linked file bytes and split relocations before final page permissions" {

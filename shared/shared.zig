@@ -6,6 +6,7 @@ pub const elf = @import("elf/elf.zig");
 pub const fat32 = @import("fat32/fat32.zig");
 pub const font = @import("font/font.zig");
 pub const graphics = @import("graphics/graphics.zig");
+pub const launch = @import("launch/launch.zig");
 pub const raster = @import("raster/raster.zig");
 pub const sfnt = @import("sfnt/sfnt.zig");
 pub const splash = @import("splash/splash.zig");

@@ -1,11 +1,10 @@
 //! Initialize And Seal Child-Owned Startup Data
 
-const std = @import("std");
-
+const codec = @import("shared").launch.startup;
 const common = @import("common");
 const types = @import("mirai").bootstrap.types.image;
 const user = @import("mirai").user;
-const wire = @import("mirai").bootstrap.constants.startup;
+const wire = @import("shared").launch.constants.startup;
 
 const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
 const Kata = @import("mirai").kata.types.kata.Kata;
@@ -13,21 +12,14 @@ const sizes = common.constants.memory.sizes;
 const address = common.constants.memory.layout;
 
 pub fn pageBytes(source: types.Startup) ImageError!u64 {
-    if (source.Identity.len == 0) return ImageError.InvalidStartup;
-    const metadata = std.math.add(u64, wire.HEADER_BYTES, source.Identity.len) catch return ImageError.NoStartupSpace;
-    const length = std.math.add(u64, metadata, source.Parameters.len) catch return ImageError.NoStartupSpace;
-    if (length > address.USER_SPACE_END + 1 - sizes.PAGE_SIZE) return ImageError.NoStartupSpace;
-    return (length + sizes.PAGE_MASK) & ~sizes.PAGE_MASK;
+    return codec.size(source.Identity.len, source.Parameters.len, address.USER_SPACE_END + 1 - sizes.PAGE_SIZE);
 }
 
 pub fn install(owner: *Kata, span: types.StartupSpan, source: types.Startup) ImageError!void {
     var page = span.Start;
     while (page < span.End) : (page += sizes.PAGE_SIZE) try user.memory.allocate.allocate(owner, page);
 
-    var header: [wire.HEADER_BYTES]u8 = undefined;
-    std.mem.writeInt(u64, header[0..wire.IDENTITY_LENGTH], wire.VERSION, .little);
-    std.mem.writeInt(u64, header[wire.IDENTITY_LENGTH..wire.PARAMETER_LENGTH], source.Identity.len, .little);
-    std.mem.writeInt(u64, header[wire.PARAMETER_LENGTH..], source.Parameters.len, .little);
+    const header = codec.encode(source.Identity.len, source.Parameters.len);
     const identity = span.Start + wire.HEADER_BYTES;
     try copy(owner, span.Start, &header);
     try copy(owner, identity, source.Identity);
@@ -42,14 +34,8 @@ pub fn validate(owner: *const Kata, base: u64) ImageError!void {
     if (base < sizes.PAGE_SIZE or base >= limit or base % sizes.PAGE_SIZE != 0) return ImageError.InvalidStartup;
     var header: [wire.HEADER_BYTES]u8 = undefined;
     try user.copy.transfer.read(owner, &header, base);
-    const identity = std.mem.readInt(u64, header[wire.IDENTITY_LENGTH..wire.PARAMETER_LENGTH], .little);
-    const parameters = std.mem.readInt(u64, header[wire.PARAMETER_LENGTH..], .little);
-    if (std.mem.readInt(u64, header[0..wire.IDENTITY_LENGTH], .little) != wire.VERSION or identity == 0)
-        return ImageError.InvalidStartup;
-    const prefix = std.math.add(u64, wire.HEADER_BYTES, identity) catch return ImageError.InvalidStartup;
-    const length = std.math.add(u64, prefix, parameters) catch return ImageError.InvalidStartup;
-    if (length > limit - base) return ImageError.InvalidStartup;
-    const end = (base + length + sizes.PAGE_MASK) & ~sizes.PAGE_MASK;
+    const extent = codec.decode(&header, limit - base) catch return ImageError.InvalidStartup;
+    const end = base + extent;
     var page = base;
     while (page < end) : (page += sizes.PAGE_SIZE) {
         const record = user.state.ledger.find(owner, page) orelse return ImageError.InvalidStartup;

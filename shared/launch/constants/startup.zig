@@ -1,4 +1,4 @@
-//! Private Bootstrap Runtime Handoff Layout
+//! Private Launch Startup Header Layout
 
 pub const VERSION: u64 = 1;
 pub const IDENTITY_LENGTH = @sizeOf(u64);
