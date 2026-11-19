@@ -13,6 +13,7 @@ const screen = @import("tests").screen;
 const splash = @import("shared").splash;
 
 const BootServices = efi.types.services.boot.BootServices;
+const Scenario = @import("tests").types.scenario.Scenario;
 const Surface = graphics.types.surface.Surface;
 const Workspace = splash.types.workspace.Workspace;
 
@@ -27,25 +28,25 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
     var primary: [labels.SUITE_PASSED.len + format.MAX_DECIMAL_DIGITS]u8 = undefined;
     var verified: [labels.VERIFIED_CHECKS.len + format.MAX_DECIMAL_DIGITS]u8 = undefined;
     var failures: [labels.PHASE_FAILURES.len + 2 * format.MAX_DECIMAL_DIGITS]u8 = undefined;
-    var rows: [3]screen.types.model.Row = undefined;
-    const count: usize = if (offer.FailedPhases == 0) success: {
+    var rows: [3 + phase.constants.menu.PHASE_COUNT]screen.types.model.Row = undefined;
+    const count: usize = if (offer.FailedMask == 0) success: {
         const message = std.fmt.bufPrint(&primary, labels.SUITE_PASSED, .{offer.Passed}) catch return false;
         rows[0] = .{ .Kind = .Pass, .Text = message };
         break :success 1;
     } else failed: {
         const checks = std.fmt.bufPrint(&verified, labels.VERIFIED_CHECKS, .{offer.Passed}) catch return false;
-        const phases = std.fmt.bufPrint(&failures, labels.PHASE_FAILURES, .{ offer.FailedPhases, offer.InterruptedPhases }) catch return false;
+        const phases = std.fmt.bufPrint(&failures, labels.PHASE_FAILURES, .{ @popCount(offer.FailedMask), @popCount(offer.InterruptedMask) }) catch return false;
         rows[0] = .{ .Kind = .Fail, .Text = labels.SUITE_FAILED };
         rows[1] = .{ .Kind = .Info, .Text = checks };
         rows[2] = .{ .Kind = .Info, .Text = phases };
-        break :failed rows.len;
+        break :failed 3 + failedRows(rows[3..], offer);
     };
     const snapshot: screen.types.model.Model = .{
         .Rows = rows[0..count],
         .Total = phase.constants.menu.PHASE_COUNT,
         .Count = count,
         .Completed = phase.menu.completedPhases(offer),
-        .Failed = offer.FailedPhases,
+        .Failed = @popCount(offer.FailedMask),
         .Done = true,
         .MenuReady = true,
     };
@@ -59,6 +60,21 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
     const rendered = screen.render.takeover(&target, layout, pixels, .{ .Face = &face, .Renderer = &renderer }, &snapshot, &offer.Date);
     const released = efi.buffer.releasePool(services, &scratch);
     return rendered and released;
+}
+
+fn failedRows(rows: []screen.types.model.Row, offer: phase.types.menu.Offer) usize {
+    comptime std.debug.assert(labels.PHASE_NAMES.len == phase.constants.menu.PHASE_COUNT);
+    var count: usize = 0;
+    for (std.enums.values(Scenario), 0..) |selected, index| {
+        const name = switch (phase.menu.phaseStatus(offer, selected)) {
+            .Passed => continue,
+            .Failed => labels.PHASE_NAMES[index],
+            .Incomplete => labels.INCOMPLETE_NAMES[index],
+        };
+        rows[count] = .{ .Kind = .Fail, .Text = name };
+        count += 1;
+    }
+    return count;
 }
 
 fn locateSurface(services: *BootServices) ?Surface {

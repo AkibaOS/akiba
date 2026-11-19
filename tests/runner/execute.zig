@@ -8,6 +8,7 @@ const image = @import("tests").runner.image;
 const input = @import("tests").runner.input;
 const keyboard = @import("tests").types.input;
 const limits = @import("tests").constants.runner;
+const menubits = @import("tests").phase.menu;
 const paths = @import("tests").runner.paths;
 const phase = @import("tests").runner.phase;
 const process = @import("tests").runner.process;
@@ -77,8 +78,8 @@ pub fn run(unattended: bool) !void {
     if (cleanup_error) |reason| return reason;
     if (failure) |reason| return reason;
     if (session.Cancelled) return error.GuestChecksCancelled;
-    if (session.FailedPhases != 0) {
-        if (unattended) terminal.failedTotal(session.Passed, session.FailedPhases);
+    if (session.FailedMask != 0) {
+        if (unattended) terminal.failedTotal(session.Passed, @popCount(session.FailedMask));
         return error.GuestSuiteFailed;
     }
     if (unattended) terminal.total(session.Passed);
@@ -141,7 +142,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
         std.debug.print(strings.CANCELLED_RESULT, .{session.Passed});
         try bootOrdinary(inputs, session, &log);
     } else if (!unattended) {
-        if (session.FailedPhases == 0) terminal.total(session.Passed) else terminal.failedTotal(session.Passed, session.FailedPhases);
+        if (session.FailedMask == 0) terminal.total(session.Passed) else terminal.failedTotal(session.Passed, @popCount(session.FailedMask));
         try postSuite(inputs, session, &log, endpoints.Menu, seed + menu_slot);
     }
     session.Stage = .Complete;
@@ -173,9 +174,10 @@ fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario,
     const bytes = serial.read(PAGE, evidence) catch null;
     defer if (bytes) |captured| PAGE.free(captured);
     terminal.fail(selected, failed_at, failure, bytes);
-    session.FailedPhases += 1;
+    const bit = menubits.phaseBit(selected);
+    session.FailedMask |= bit;
     if (failed_at != .Checks or failure != error.GuestCheckFailed or
-        std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) == null) session.InterruptedPhases += 1;
+        std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) == null) session.InterruptedMask |= bit;
     try quiesced;
 }
 
@@ -198,15 +200,13 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
         var date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
         _ = buildDate(&date, inputs.Image) orelse return error.InvalidMenuBuildDate;
         const passed = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
-        const failed = std.math.cast(u8, session.FailedPhases) orelse return error.InvalidMenuCount;
-        const interrupted = std.math.cast(u8, session.InterruptedPhases) orelse return error.InvalidMenuCount;
         try protocol.action(PAGE, connection, strings.CONTINUE, null);
         break :choose try phase.choose(stream, &session.Process, &timer, evidence, .{
             .Epoch = epoch,
             .Passed = passed,
             .Date = date,
-            .FailedPhases = failed,
-            .InterruptedPhases = interrupted,
+            .FailedMask = session.FailedMask,
+            .InterruptedMask = session.InterruptedMask,
         });
     };
     try protocol.verifyStatus(PAGE, connection, strings.RUNNING);

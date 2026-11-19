@@ -104,6 +104,10 @@ test "session controls reject stale epochs and actions inappropriate to the acti
     try phase.actions();
 }
 
+test "final menu identifies the incomplete phase rather than guessing from counts" {
+    try phase.namedMenuPhases();
+}
+
 test "failed menu summary separates interrupted and failed phases" {
     try phase.failedMenuOffer();
 }
