@@ -30,13 +30,13 @@ pub fn prepare(owner: *const Kata, virtual_address: u64) UserError!*Entry {
     defer guard.release(previous_flags);
     if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
     const record = ledger.find(owner, virtual_address) orelse return UserError.NotOwned;
-    if (record.Stage != .Loading) return UserError.SealedPage;
+    if (record.Backing.Stage != .Loading) return UserError.SealedPage;
     const resolved = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
     if (!resolved.Writable) return UserError.InvalidPhysmap;
-    try validatePath(layout.PHYSMAP_BASE + record.PA, resolved.Entry);
+    try validatePath(layout.PHYSMAP_BASE + record.Backing.PA, resolved.Entry);
     if (resolved.PageSize == sizes.PAGE_SIZE) return @constCast(resolved.Entry);
     if (resolved.PageSize != sizes.LARGE_PAGE_SIZE and resolved.PageSize != sizes.HUGE_PAGE_SIZE) return UserError.InvalidPhysmap;
-    return split(record.PA, resolved);
+    return split(record.Backing.PA, resolved);
 }
 
 fn validatePath(virtual_address: u64, leaf: *const Entry) UserError!void {

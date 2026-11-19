@@ -72,11 +72,11 @@ fn prepare(owner: *const Kata, address: u64, length: usize, write_access: bool, 
     while (remaining != 0) {
         if (plan.Count == plan.Segments.len) return UserError.CopyTooLarge;
         const record = ledger.find(owner, current_address & ~sizes.PAGE_MASK) orelse return UserError.NotOwned;
-        if (loading_only and record.Stage != .Loading) return UserError.SealedPage;
+        if (loading_only and record.Backing.Stage != .Loading) return UserError.SealedPage;
         try access.validate(record, write_access);
         const length_in_page: usize = @intCast(@min(remaining, sizes.PAGE_SIZE - (current_address & sizes.PAGE_MASK)));
         plan.Segments[plan.Count] = .{
-            .Alias = layout.PHYSMAP_BASE + record.PA + (current_address & sizes.PAGE_MASK),
+            .Alias = layout.PHYSMAP_BASE + record.Backing.PA + (current_address & sizes.PAGE_MASK),
             .Length = length_in_page,
         };
         plan.Count += 1;

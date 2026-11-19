@@ -31,7 +31,7 @@ pub fn run() !void {
     pmm.state.getState().SearchStart = candidate / sizes.PAGE_SIZE;
     try user.memory.allocate.allocate(owner, inputs.USER_ADDRESS);
     const record = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
-    const physical = record.PA;
+    const physical = record.Backing.PA;
     const kernel = kagami.state.getKernelKagami();
     const original = user.state.checks.lookupAlias(record).?;
     verify.require(physical == candidate and original.PageSize > sizes.PAGE_SIZE, labels.ALIAS_FIXTURE);
@@ -47,14 +47,14 @@ pub fn run() !void {
         } else |failure| {
             budget.clear();
             const unchanged = user.state.checks.lookupAlias(record).?;
-            verify.require(failure == error.OutOfMemory and record.Stage == .Loading and kernel.TablePages == tables and
+            verify.require(failure == error.OutOfMemory and record.Backing.Stage == .Loading and kernel.TablePages == tables and
                 unchanged.PageSize == original.PageSize and unchanged.Entry == original.Entry and unchanged.Writable and
                 user.copy.transfer.validate(owner, inputs.USER_ADDRESS, 1, true) and kagami.tables.ownership.reset(kernel) and
                 pmm.state.getState().SearchStart == cursor and std.meta.eql(before, pmm.state.getStatistics()), labels.ALIAS_FAILURE);
         }
     }
     verify.require(failures != 0 and kernel.TablePages > tables and kagami.tables.ownership.reset(kernel) and
-        record.Stage == .ReadOnly and user.state.checks.lookupAlias(record).?.PageSize == sizes.PAGE_SIZE and
+        record.Backing.Stage == .ReadOnly and user.state.checks.lookupAlias(record).?.PageSize == sizes.PAGE_SIZE and
         !user.state.checks.lookupAlias(record).?.Writable, labels.ALIAS_RECOVERY);
     budget.arm(0);
     try user.memory.release.releaseAll(owner);

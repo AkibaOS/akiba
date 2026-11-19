@@ -53,7 +53,7 @@ pub fn validate(owner: *const Kata, base: u64) ImageError!void {
     var page = base;
     while (page < end) : (page += sizes.PAGE_SIZE) {
         const record = user.state.ledger.find(owner, page) orelse return ImageError.InvalidStartup;
-        if (record.Stage != .ReadOnly) return ImageError.InvalidStartup;
+        if (record.Backing.Stage != .ReadOnly) return ImageError.InvalidStartup;
         try user.state.access.validate(record, false);
     }
 }

@@ -41,7 +41,7 @@ pub fn run() !void {
             try user.memory.allocate.allocate(owner, virtual);
             const record = user.state.ledger.find(owner, virtual).?;
             retained[owner_index][index] = record;
-            const bytes: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.PA);
+            const bytes: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.Backing.PA);
             stable = stable and std.mem.allEqual(u8, bytes[0..sizes.PAGE_SIZE], 0);
             @memset(bytes[0..sizes.PAGE_SIZE], marker(owner_index, index));
         }
@@ -53,21 +53,21 @@ pub fn run() !void {
             const record = user.state.ledger.find(owner, virtual);
             stable = stable and record == retained[owner_index][index] and record.?.Owner == owner and
                 record.?.Root == owner.AddressSpace and user.state.ledger.findRoot(owner.AddressSpace.?, virtual) == record and
-                user.state.ledger.findPhysical(record.?.PA) == record;
+                user.state.backing.find(record.?.Backing.PA) == record.?.Backing;
         }
     }
     verify.require(stable, labels.USER_POPULATION);
     const count = user.state.ledger.count();
     const live = pmm.state.getStatistics();
     budget.arm(0);
-    verify.require(reject(first, inputs.USER_ADDRESS, retained[1][0].?.PA) and
-        reject(second, inputs.USER_ADDRESS + inputs.OWNED_POPULATION_PAGES * sizes.PAGE_SIZE, retained[0][0].?.PA) and
+    verify.require(reject(first, inputs.USER_ADDRESS, retained[1][0].?.Backing.PA) and
+        reject(second, inputs.USER_ADDRESS + inputs.OWNED_POPULATION_PAGES * sizes.PAGE_SIZE, retained[0][0].?.Backing.PA) and
         user.state.ledger.count() == count and std.meta.eql(live, pmm.state.getStatistics()), labels.USER_INDEX_UNIQUE);
     try user.memory.release.releaseAll(first);
     for (0..inputs.OWNED_POPULATION_PAGES) |index| {
         const virtual = inputs.USER_ADDRESS + index * sizes.PAGE_SIZE;
         const record = user.state.ledger.find(second, virtual);
-        const bytes: [*]const u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.?.PA);
+        const bytes: [*]const u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.?.Backing.PA);
         stable = stable and user.state.ledger.find(first, virtual) == null and record == retained[1][index] and
             std.mem.allEqual(u8, bytes[0..sizes.PAGE_SIZE], marker(1, index));
     }

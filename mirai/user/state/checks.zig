@@ -1,5 +1,6 @@
 //! Owned User Address And Alias Checks
 
+const backing = @import("mirai").user.state.backing;
 const common = @import("common");
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
@@ -36,9 +37,9 @@ pub fn isPayloadPhysical(physical_address: u64) bool {
 pub fn lookupOwned(record: *const Record) ?Lookup {
     if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record or
         !isValidRange(record.VA, sizes.PAGE_SIZE) or (record.VA & sizes.PAGE_MASK) != 0 or
-        !isPayloadPhysical(record.PA)) return null;
+        !backing.owns(record.Backing) or !isPayloadPhysical(record.Backing.PA)) return null;
     const resolved = kagami.tables.walk.lookup(record.Owner.AddressSpace.?.PML4Physical, record.VA) orelse return null;
-    if (resolved.PageSize != sizes.PAGE_SIZE or resolved.PhysicalAddress != record.PA or
+    if (resolved.PageSize != sizes.PAGE_SIZE or resolved.PhysicalAddress != record.Backing.PA or
         !resolved.UserAccessible or resolved.Entry.Global or resolved.Entry.CacheDisabled or resolved.Entry.WriteThrough or
         resolved.Entry.HugePage) return null;
     const leaf = kagami.tables.walk.walkToOwnedEntry(record.Owner.AddressSpace.?.PML4Physical, record.VA) orelse return null;
@@ -47,11 +48,11 @@ pub fn lookupOwned(record: *const Record) ?Lookup {
 
 pub fn lookupAlias(record: *const Record) ?Lookup {
     if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record or
-        !isPayloadPhysical(record.PA) or !kagami.state.hasOwnedKernel()) return null;
+        !backing.owns(record.Backing) or !isPayloadPhysical(record.Backing.PA) or !kagami.state.hasOwnedKernel()) return null;
     const policy = kagami.state.getPolicy();
     if (policy.PhysmapBase != layout.PHYSMAP_BASE) return null;
-    const resolved = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, policy.PhysmapBase + record.PA) orelse return null;
-    if (resolved.PhysicalAddress != record.PA or resolved.UserAccessible or resolved.Entry.UserAccessible or
+    const resolved = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, policy.PhysmapBase + record.Backing.PA) orelse return null;
+    if (resolved.PhysicalAddress != record.Backing.PA or resolved.UserAccessible or resolved.Entry.UserAccessible or
         resolved.Executable or !resolved.Entry.NoExecute or resolved.Entry.CacheDisabled or resolved.Entry.WriteThrough) return null;
     const pat = if (resolved.PageSize == sizes.PAGE_SIZE) resolved.Entry.HugePage else (resolved.Entry.getPhysicalAddress() & sizes.PAGE_SIZE) != 0;
     return if (!pat) resolved else null;

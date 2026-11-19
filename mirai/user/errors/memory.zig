@@ -11,5 +11,6 @@ pub const UserError = error{
     InvalidOwnedMapping,
     InvalidPhysmap,
     SealedPage,
+    NotShareable,
     OwnerInUse,
 } || common.errors.memory.allocation.AllocationError || common.errors.memory.mapping.MappingError;

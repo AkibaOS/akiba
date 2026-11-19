@@ -22,7 +22,7 @@ pub fn run() !void {
     const root = owner.AddressSpace.?;
     try user.memory.allocate.allocate(owner, inputs.USER_ADDRESS);
     const record = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
-    const bytes: [*]u8 = @ptrFromInt(common.constants.memory.layout.PHYSMAP_BASE + record.PA);
+    const bytes: [*]u8 = @ptrFromInt(common.constants.memory.layout.PHYSMAP_BASE + record.Backing.PA);
     @memset(bytes[0..common.constants.memory.sizes.PAGE_SIZE], inputs.DIRTY_BYTE);
     const upper = &kagami.tables.walk.getPML4(root.PML4Physical).Entries[kagami.constants.tables.KERNEL_PML4_START];
     const saved = upper.*;
@@ -44,7 +44,7 @@ fn refused(owner: *kata.types.kata.Kata) void {
     const root = owner.AddressSpace.?;
     const id = owner.ID;
     const record = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
-    const physical = record.PA;
+    const physical = record.Backing.PA;
     const tables = root.TablePages;
     const frames = root.Frames;
     const residents = root.ResidentPages;

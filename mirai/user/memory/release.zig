@@ -37,13 +37,15 @@ fn validateRelease(record: *const Record) UserError!void {
 
 fn releaseRecord(record: *Record) UserError!void {
     const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
-    const removed = kagami.remove.removeOwned(record.Owner.AddressSpace.?, record.VA, record.PA) orelse return UserError.InvalidOwnedMapping;
-    if (removed != record.PA) return UserError.InvalidOwnedMapping;
-    if (!alias.Writable) {
+    const physical = record.Backing.PA;
+    const last = record.Backing.References == 1;
+    const removed = kagami.remove.removeOwned(record.Owner.AddressSpace.?, record.VA, physical) orelse return UserError.InvalidOwnedMapping;
+    if (removed != physical) return UserError.InvalidOwnedMapping;
+    if (last and !alias.Writable) {
         const leaf: *kagami.types.entry.Entry = @constCast(alias.Entry);
         leaf.Writable = true;
         cpu.control.flushAllTLB();
     }
-    pmm.free.single.freePage(record.PA);
     ledger.unregister(record);
+    if (last) pmm.free.single.freePage(physical);
 }

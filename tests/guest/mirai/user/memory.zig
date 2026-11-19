@@ -48,7 +48,7 @@ pub fn run() !void {
         rejected_finalization = failure == error.SealedPage;
     };
     verify.require(rejected_write and rejected_finalization, labels.MEMORY_REJECTION);
-    const physical = [_]u64{ data.PA, code.PA };
+    const physical = [_]u64{ data.Backing.PA, code.Backing.PA };
     const target = try thread.create.create(owner, finish, null);
     try sensei.control.start(target);
     kata.lifecycle.die(owner, .Completed);

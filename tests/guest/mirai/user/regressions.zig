@@ -113,7 +113,7 @@ fn hole(owner: *Kata) !void {
 
 fn overlap(owner: *Kata) !void {
     const record = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
-    const alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.PA);
+    const alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + record.Backing.PA);
     var expected = inputs.OVERLAP_BYTES;
     std.mem.copyBackwards(u8, expected[inputs.OVERLAP_SHIFT..][0..inputs.OVERLAP_LENGTH], expected[0..inputs.OVERLAP_LENGTH]);
     try user.copy.transfer.write(owner, inputs.USER_ADDRESS, &inputs.OVERLAP_BYTES);
@@ -135,8 +135,8 @@ fn overlap(owner: *Kata) !void {
 fn crossPageOverlap(owner: *Kata) !void {
     const first = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
     const second = user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?;
-    const first_alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + first.PA);
-    const second_alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + second.PA);
+    const first_alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + first.Backing.PA);
+    const second_alias: [*]u8 = @ptrFromInt(layout.PHYSMAP_BASE + second.Backing.PA);
     const source = first_alias[sizes.PAGE_SIZE - inputs.COPY_BYTES.len .. sizes.PAGE_SIZE];
     @memcpy(source, &inputs.COPY_BYTES);
     try user.copy.transfer.write(owner, inputs.CROSS_ADDRESS, source);
@@ -158,17 +158,17 @@ fn ledgerProtection(owner: *Kata, other: *Kata) void {
     const before = pmm.state.getStatistics();
     verify.require(kagami.remove.remove(root, inputs.USER_ADDRESS) == null and
         kagami.remove.removeRange(root, inputs.USER_ADDRESS, 2) == 0 and
-        kagami.remove.removeOwned(root, inputs.USER_ADDRESS, second.PA) == null, labels.USER_LEDGER);
+        kagami.remove.removeOwned(root, inputs.USER_ADDRESS, second.Backing.PA) == null, labels.USER_LEDGER);
     var rejected_replacement = false;
-    kagami.enter.enterReplace(root, inputs.USER_ADDRESS, second.PA, protection.USER_WRITE) catch |failure| {
+    kagami.enter.enterReplace(root, inputs.USER_ADDRESS, second.Backing.PA, protection.USER_WRITE) catch |failure| {
         rejected_replacement = failure == error.PermissionDenied;
     };
     var rejected_alias = false;
-    kagami.enter.enter(root, inputs.USER_NEIGHBOR + sizes.PAGE_SIZE, first.PA, protection.USER_WRITE) catch |failure| {
+    kagami.enter.enter(root, inputs.USER_NEIGHBOR + sizes.PAGE_SIZE, first.Backing.PA, protection.USER_WRITE) catch |failure| {
         rejected_alias = failure == error.PermissionDenied;
     };
     var rejected_owner = false;
-    kagami.enter.enter(other.AddressSpace.?, inputs.USER_ADDRESS, first.PA, protection.USER_WRITE) catch |failure| {
+    kagami.enter.enter(other.AddressSpace.?, inputs.USER_ADDRESS, first.Backing.PA, protection.USER_WRITE) catch |failure| {
         rejected_owner = failure == error.PermissionDenied;
     };
     var rejected_protection = false;
@@ -177,8 +177,8 @@ fn ledgerProtection(owner: *Kata, other: *Kata) void {
     };
     verify.require(rejected_replacement and rejected_alias and rejected_owner and rejected_protection and
         user.state.ledger.find(owner, inputs.USER_ADDRESS) == first and user.state.ledger.find(owner, inputs.USER_NEIGHBOR) == second and
-        kagami.extract.extract(root, inputs.USER_ADDRESS).? == first.PA and
-        kagami.extract.extract(root, inputs.USER_NEIGHBOR).? == second.PA and
+        kagami.extract.extract(root, inputs.USER_ADDRESS).? == first.Backing.PA and
+        kagami.extract.extract(root, inputs.USER_NEIGHBOR).? == second.Backing.PA and
         root.ResidentPages == 2 and root.TablePages == tables and other.AddressSpace.?.ResidentPages == 0 and
         std.meta.eql(before, pmm.state.getStatistics()), labels.USER_LEDGER);
 }
@@ -188,7 +188,7 @@ fn invalidAlias(owner: *Kata) !void {
     const second = user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?;
     const alias = try kagami.tables.physmap.prepare(owner, inputs.USER_NEIGHBOR);
     const original = alias.*;
-    const alias_address = layout.PHYSMAP_BASE + second.PA;
+    const alias_address = layout.PHYSMAP_BASE + second.Backing.PA;
     defer {
         alias.* = original;
         cpu.control.invalidatePage(alias_address);
@@ -260,8 +260,8 @@ fn sealedBoundary(owner: *Kata) !void {
 
 fn release(owner: *Kata, baseline: pmm.types.statistics.Statistics, baseline_kernel_tables: u64) !void {
     const physical = [_]u64{
-        user.state.ledger.find(owner, inputs.USER_ADDRESS).?.PA,
-        user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?.PA,
+        user.state.ledger.find(owner, inputs.USER_ADDRESS).?.Backing.PA,
+        user.state.ledger.find(owner, inputs.USER_NEIGHBOR).?.Backing.PA,
     };
     const root = owner.AddressSpace.?;
     const kernel_tables = kagami.state.getKernelKagami().TablePages;

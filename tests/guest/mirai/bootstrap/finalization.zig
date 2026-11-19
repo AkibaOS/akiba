@@ -68,7 +68,7 @@ fn afterPermissions() bool {
     const code = user.state.ledger.find(owner, inputs.CODE_ADDRESS) orelse return false;
     const rodata = user.state.ledger.find(owner, inputs.CODE_ADDRESS + inputs.PAGE_BYTES) orelse return false;
     const stack = user.state.ledger.find(owner, inputs.STACK_ADDRESS + inputs.PAGE_BYTES) orelse return false;
-    finalized = owner.ThreadCount == 0 and code.Stage == .Executable and rodata.Stage == .ReadOnly and stack.Stage == .Writable;
+    finalized = owner.ThreadCount == 0 and code.Backing.Stage == .Executable and rodata.Backing.Stage == .ReadOnly and stack.Backing.Stage == .Writable;
     return finalized;
 }
 

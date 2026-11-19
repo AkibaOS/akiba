@@ -29,8 +29,8 @@ pub fn permissions(stage: Stage) u8 {
 
 pub fn validate(record: *const Record, write_access: bool) UserError!void {
     const resolved = checks.lookupOwned(record) orelse return UserError.InvalidOwnedMapping;
-    const writable = isWritable(record.Stage);
-    const executable = isExecutable(record.Stage);
+    const writable = isWritable(record.Backing.Stage);
+    const executable = isExecutable(record.Backing.Stage);
     if (write_access and !writable) return UserError.SealedPage;
     if (resolved.Writable != writable or resolved.Entry.Writable != writable or
         resolved.Executable != executable or resolved.Entry.NoExecute == executable) return UserError.InvalidOwnedMapping;

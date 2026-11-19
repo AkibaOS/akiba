@@ -52,7 +52,7 @@ const groups = .{
         guest.mirai.kagami.graph.run,    guest.mirai.kagami.population.run, guest.mirai.kagami.alias.run,
     } },
     .{ memorylabels.GROUP_OWNED, .{ guest.mirai.user.regressions.run, guest.mirai.user.population.run, guest.mirai.user.failure.run } },
-    .{ labels.GROUP_MEMORY, .{guest.mirai.user.memory.run} },
+    .{ labels.GROUP_MEMORY, .{ guest.mirai.user.memory.run, guest.mirai.user.sharing.run } },
     .{ elflabels.GROUP, .{
         guest.mirai.bootstrap.image.run,   guest.mirai.bootstrap.rejection.run,    guest.mirai.bootstrap.pressure.run,
         guest.mirai.bootstrap.growth.run,  guest.mirai.bootstrap.finalization.run, guest.mirai.bootstrap.order.run,

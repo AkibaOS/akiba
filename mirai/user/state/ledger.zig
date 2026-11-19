@@ -1,5 +1,6 @@
 //! Stable Indexed Owned User Page Ledger
 
+const backing = @import("mirai").user.state.backing;
 const checks = @import("mirai").user.state.checks;
 const common = @import("common");
 const fields = @import("mirai").user.strings.fields;
@@ -13,6 +14,7 @@ const types = @import("mirai").user.types;
 const usererrors = @import("mirai").user.errors.memory;
 
 const sizes = common.constants.memory.sizes;
+const Backing = types.backing.Backing;
 const Kagami = kagami.types.kagami.Kagami;
 const Kata = kata.types.kata.Kata;
 const Record = types.record.Record;
@@ -22,7 +24,6 @@ const UserError = usererrors.UserError;
 
 var records: RecordStore = .{};
 var virtuals: Tree = .{};
-var physicals: Tree = .{};
 
 pub fn count() usize {
     const flags = guard.acquire();
@@ -59,34 +60,42 @@ pub fn findRoot(root: *const Kagami, virtual_address: u64) ?*Record {
     return @fieldParentPtr(fields.VIRTUAL_INDEX, node);
 }
 
-pub fn findPhysical(physical_address: u64) ?*Record {
-    const flags = guard.acquire();
-    defer guard.release(flags);
-    const node = tree.lookup.find(&physicals, physical_address) orelse return null;
-    return @fieldParentPtr(fields.PHYSICAL_INDEX, node);
-}
-
 pub fn ownsPhysical(physical_address: u64) bool {
-    return findPhysical(physical_address) != null;
+    return backing.find(physical_address) != null;
 }
 
 pub fn register(owner: *Kata, virtual_address: u64, physical_address: u64) UserError!*Record {
     const flags = guard.acquire();
     defer guard.release(flags);
+    const root = try mappingRoot(owner, virtual_address);
+    const frame = try backing.reserve(physical_address);
+    errdefer backing.detach(frame);
+    return addMapping(owner, root, virtual_address, frame);
+}
+
+pub fn registerShared(owner: *Kata, virtual_address: u64, frame: *Backing) UserError!*Record {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const root = try mappingRoot(owner, virtual_address);
+    try backing.retainSealed(frame);
+    errdefer backing.detach(frame);
+    return addMapping(owner, root, virtual_address, frame);
+}
+
+fn mappingRoot(owner: *Kata, virtual_address: u64) UserError!*Kagami {
     if (!checks.isValidOwner(owner)) return UserError.InvalidOwner;
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     if (!checks.isValidRange(virtual_address, sizes.PAGE_SIZE)) return UserError.InvalidUserRange;
-    if (!checks.isPayloadPhysical(physical_address)) return UserError.InvalidPhysmap;
     const root = owner.AddressSpace.?;
-    if (findRoot(root, virtual_address) != null or ownsPhysical(physical_address)) return UserError.AlreadyOwned;
+    if (findRoot(root, virtual_address) != null) return UserError.AlreadyOwned;
+    if (kagami.tables.walk.lookup(root.PML4Physical, virtual_address) != null) return UserError.AlreadyMapped;
+    return root;
+}
+
+fn addMapping(owner: *Kata, root: *Kagami, virtual_address: u64, frame: *Backing) UserError!*Record {
     const record = try records.reserveNamed(labels.NAME);
-    record.* = .{ .Owner = owner, .Root = root, .VA = virtual_address, .PA = physical_address };
+    record.* = .{ .Owner = owner, .Root = root, .VA = virtual_address, .Backing = frame };
     if (!tree.insert.insert(&virtuals, &record.VirtualIndex, virtualKey(root, virtual_address))) {
-        discard(record);
-        return UserError.AlreadyOwned;
-    }
-    if (!tree.insert.insert(&physicals, &record.PhysicalIndex, physical_address)) {
-        if (!tree.remove.remove(&virtuals, &record.VirtualIndex)) @panic(labels.INVALID_STATE);
         discard(record);
         return UserError.AlreadyOwned;
     }
@@ -102,14 +111,15 @@ pub fn unregister(record: *Record) void {
     defer guard.release(flags);
     if (!records.owns(record)) return;
     const slot = kata.state.data(record.Owner) orelse @panic(labels.INVALID_STATE);
-    if (findRoot(record.Root, record.VA) != record or findPhysical(record.PA) != record or
+    const frame = record.Backing;
+    if (findRoot(record.Root, record.VA) != record or !backing.owns(frame) or
         (if (record.Previous) |previous| previous.Next != record else slot.Pages != record) or
         (if (record.Next) |following| following.Previous != record else false)) @panic(labels.INVALID_STATE);
-    if (!tree.remove.remove(&virtuals, &record.VirtualIndex) or
-        !tree.remove.remove(&physicals, &record.PhysicalIndex)) @panic(labels.INVALID_STATE);
+    if (!tree.remove.remove(&virtuals, &record.VirtualIndex)) @panic(labels.INVALID_STATE);
     if (record.Previous) |previous| previous.Next = record.Next else slot.Pages = record.Next;
     if (record.Next) |following| following.Previous = record.Previous;
     discard(record);
+    backing.detach(frame);
 }
 
 fn virtualKey(root: *const Kagami, virtual_address: u64) u128 {

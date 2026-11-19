@@ -23,7 +23,7 @@ pub fn finalize(owner: *Kata, virtual_address: u64, protection: Protection) User
     if (!checks.isValidOwner(owner) or owner.State == .Dead) return UserError.InvalidOwner;
     if ((virtual_address & sizes.PAGE_MASK) != 0) return UserError.AddressNotAligned;
     const record = ledger.find(owner, virtual_address) orelse return UserError.NotOwned;
-    if (record.Stage != .Loading) return UserError.SealedPage;
+    if (record.Backing.Stage != .Loading) return UserError.SealedPage;
     try access.validate(record, false);
     const stage: Stage = switch (protection) {
         .ReadOnly => .ReadOnly,
@@ -31,15 +31,15 @@ pub fn finalize(owner: *Kata, virtual_address: u64, protection: Protection) User
         .ReadExecute => .Executable,
     };
     if (stage == .Writable) {
-        record.Stage = stage;
+        record.Backing.Stage = stage;
         return;
     }
     const alias = try kagami.tables.physmap.prepare(owner, virtual_address);
     alias.Writable = false;
     cpu.control.flushAllTLB();
-    record.Stage = stage;
+    record.Backing.Stage = stage;
     kagami.protect.protect(owner.AddressSpace.?, virtual_address, access.permissions(stage)) catch |failure| {
-        record.Stage = .Loading;
+        record.Backing.Stage = .Loading;
         alias.Writable = true;
         cpu.control.flushAllTLB();
         return failure;
