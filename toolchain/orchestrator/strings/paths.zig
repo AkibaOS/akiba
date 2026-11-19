@@ -35,3 +35,4 @@ pub const PROVISION_FIXTURE_ROOT = "tests/fixtures/elf/provision.zig";
 pub const PROVISION_FIXTURE_LINKER = "tests/fixtures/elf/provision.linker";
 pub const DYNAMIC_FIXTURE_ROOT = "tests/fixtures/elf/dynamic.zig";
 pub const DYNAMIC_FIXTURE_LIBRARY = "tests/fixtures/elf/library.zig";
+pub const WEAVER_FIXTURE_ROOT = "tests/fixtures/elf/weaver.zig";

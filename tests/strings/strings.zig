@@ -33,3 +33,4 @@ pub const sensei = @import("sensei.zig");
 pub const stack = @import("stack.zig");
 pub const tables = @import("tables.zig");
 pub const utils = @import("utils.zig");
+pub const weaver = @import("weaver.zig");

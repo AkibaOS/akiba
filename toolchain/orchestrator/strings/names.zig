@@ -44,3 +44,5 @@ pub const OBJECT_DYNAMIC_FIXTURE = "fixture-pie";
 pub const OBJECT_DYNAMIC_LIBRARY = "fixture-library";
 pub const OUTPUT_DYNAMIC_FIXTURE = "fixture-pie.elf";
 pub const OUTPUT_DYNAMIC_LIBRARY = "linked.lib";
+pub const EXECUTABLE_WEAVER_FIXTURE = "weaver-fixture";
+pub const IMPORT_WEAVER_FIXTURE = "weaverimage";

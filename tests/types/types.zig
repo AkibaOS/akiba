@@ -24,4 +24,5 @@ pub const sensei = @import("sensei.zig");
 pub const storage = @import("storage.zig");
 pub const tree = @import("tree.zig");
 pub const utils = @import("utils.zig");
+pub const weaver = @import("weaver.zig");
 pub const windows = @import("windows.zig");

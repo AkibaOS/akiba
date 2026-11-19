@@ -7,6 +7,7 @@ const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 
 const Dynamic = @import("../types/fixture.zig").Dynamic;
+const Modules = @import("../types/modules.zig").Modules;
 
 pub fn artifact(builder: *std.Build) *std.Build.Step.Compile {
     return build(builder, paths.ELF_FIXTURE_ROOT, paths.ELF_FIXTURE_LINKER, names.EXECUTABLE_ELF_FIXTURE);
@@ -21,6 +22,7 @@ pub fn dynamic(builder: *std.Build) Dynamic {
     assembly.addImport(names.MODULE_FIXTURE_ASSEMBLY, assembly);
     const program = object(builder, paths.DYNAMIC_FIXTURE_ROOT, names.OBJECT_DYNAMIC_FIXTURE);
     program.root_module.addImport(names.MODULE_FIXTURE_ASSEMBLY, assembly);
+    program.root_module.addImport(names.MODULE_TESTS, checks(builder));
     const library = object(builder, paths.DYNAMIC_FIXTURE_LIBRARY, names.OBJECT_DYNAMIC_LIBRARY);
     const shared = builder.addSystemCommand(&.{ builder.graph.zig_exe, linker.LLD, linker.SHARED, linker.SYSV_HASH, linker.SONAME, names.OUTPUT_DYNAMIC_LIBRARY, linker.LINK_OPTION, linker.EAGER, linker.OUTPUT });
     const library_file = shared.addOutputFileArg(names.OUTPUT_DYNAMIC_LIBRARY);
@@ -30,6 +32,23 @@ pub fn dynamic(builder: *std.Build) Dynamic {
     executable.addFileArg(program.getEmittedBin());
     executable.addFileArg(library_file);
     return .{ .Program = program_file, .Library = library_file };
+}
+
+pub fn weaverRequest(builder: *std.Build, modules: Modules, weaver: *std.Build.Module, artifacts: Dynamic) *std.Build.Step.Compile {
+    const executable = build(builder, paths.WEAVER_FIXTURE_ROOT, paths.ELF_FIXTURE_LINKER, names.EXECUTABLE_WEAVER_FIXTURE);
+    const root = executable.root_module;
+    root.addImport(names.MODULE_TESTS, checks(builder));
+    root.addImport(names.MODULE_SHARED, modules.Shared);
+    root.addImport(names.MODULE_WEAVER, weaver);
+    root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = artifacts.Program });
+    root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = artifacts.Library });
+    return executable;
+}
+
+fn checks(builder: *std.Build) *std.Build.Module {
+    const module = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
+    module.addImport(names.MODULE_TESTS, module);
+    return module;
 }
 
 fn object(builder: *std.Build, source: []const u8, name: []const u8) *std.Build.Step.Compile {

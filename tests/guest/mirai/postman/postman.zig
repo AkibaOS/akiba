@@ -6,6 +6,7 @@ pub const delivery = @import("delivery.zig");
 pub const duplex = @import("duplex.zig");
 pub const growth = @import("growth.zig");
 pub const harness = @import("harness.zig");
+pub const linked = @import("linked.zig");
 pub const program = @import("program.zig");
 pub const provision = @import("provision.zig");
 pub const receive = @import("receive.zig");

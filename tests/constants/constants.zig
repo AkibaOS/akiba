@@ -31,3 +31,4 @@ pub const storage = @import("storage.zig");
 pub const tables = @import("tables.zig");
 pub const tree = @import("tree.zig");
 pub const utils = @import("utils.zig");
+pub const weaver = @import("weaver.zig");

@@ -54,6 +54,7 @@ pub fn artifact(builder: *std.Build, modules: types.modules.Modules, guest_check
         weaver.addImport(names.MODULE_SHARED, modules.Shared);
         weaver.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.MODULE_WEAVER, weaver);
+        checks.addAnonymousImport(names.IMPORT_WEAVER_FIXTURE, .{ .root_source_file = fixture.weaverRequest(builder, modules, weaver, dynamic).getEmittedBin() });
         const probes = builder.createModule(.{
             .root_source_file = builder.path(paths.TEST_ASSEMBLY_ROOT),
             .target = target,
