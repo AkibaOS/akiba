@@ -7,7 +7,7 @@ const copy = @import("mirai").user.copy.transfer;
 const pages = @import("mirai").launch.pages;
 const publish = @import("mirai").launch.publish;
 const request = @import("mirai").launch.request;
-const types = @import("mirai").invocations.types.provision;
+const types = @import("shared").launch.types.provision;
 
 const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Thread = @import("mirai").thread.types.thread.Thread;

@@ -1,5 +1,7 @@
 //! Invocation Register ABI Types
 
+const provision = @import("shared").launch.constants.provision;
+
 pub const Service = enum(u64) {
     Query = 0,
     Yield = 1,
@@ -14,7 +16,7 @@ pub const Service = enum(u64) {
     ObserveCompletion = 10,
     WaitCompletion = 11,
     CollectCompletion = 12,
-    Provision = 13,
+    Provision = provision.SERVICE,
 };
 
 pub const Query = enum(u64) {

@@ -7,6 +7,7 @@ const elf = @import("shared").elf;
 const fixture = @import("tests").fast.shared.elf.fixture;
 const inputs = @import("tests").constants.elf;
 const pages = @import("tests").fast.weaver.pages;
+const request = @import("tests").fast.weaver.request;
 const startup = @import("tests").fast.weaver.startup;
 const text = @import("tests").strings.elf;
 const weaver = @import("weaver");
@@ -202,6 +203,18 @@ fn verifyPlacement(allocator: std.mem.Allocator) !void {
     try std.testing.expectEqual(@as(u64, 0x405100), placement.Libraries[0].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0x605100), placement.Libraries[1].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0), placement.Libraries[0].Image.Entry);
+}
+
+test "Weaver commits a fully staged ELF and multi-page startup record through one ticket" {
+    try request.commits();
+}
+
+test "Weaver does not begin provisioning if libraries or reservations fail planning" {
+    try request.rejectsBeforeBegin();
+}
+
+test "Weaver aborts exactly once on a rejected staged load and reports a rejected abort" {
+    try request.aborts();
 }
 
 test "Launch startup bytes and page extent preserve the private record" {

@@ -1,4 +1,8 @@
-//! Private Provisioner Commands, Not The Public Binary Launch API
+//! Private Request Bound Provision Invocation Fields
+
+const std = @import("std");
+
+const wire = @import("shared").launch.constants.provision;
 
 pub const Operation = enum(u64) {
     Begin = 0,
@@ -27,3 +31,13 @@ pub const Start = extern struct {
     StackLength: u64,
     Startup: u64,
 };
+
+pub const Result = struct {
+    Status: u64 = wire.SUCCESS,
+    Value: u64 = 0,
+};
+
+comptime {
+    std.debug.assert(@sizeOf(Load) == 3 * @sizeOf(u64));
+    std.debug.assert(@sizeOf(Start) == 4 * @sizeOf(u64));
+}
