@@ -36,6 +36,7 @@ pub fn start(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer,
 }
 
 pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, summary: phase.types.menu.Offer) !phase.types.action.Action {
+    comptime std.debug.assert(limits.MENU_NS == @as(u64, phase.constants.menu.COUNTDOWN_SECONDS) * std.time.ns_per_s);
     const offer = phase.menu.encodeOffer(summary) orelse return error.InvalidMenuOffer;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.START_NS };
     try greeting(stream, instance, deadline, evidence, &phase.constants.menu.READY);
@@ -50,7 +51,7 @@ pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer
 
 pub fn menuAction(stream: std.net.Stream, instance: ?*Process, idle: Deadline, evidence: ?Epoch, epoch: u64) !phase.types.action.Action {
     var response: phase.types.action.Frame = undefined;
-    receive(stream, instance, idle, response[0..1], evidence) catch |failure| switch (failure) {
+    receiveMenuStart(stream, instance, idle, response[0..1], evidence, epoch) catch |failure| switch (failure) {
         error.GuestPhaseTimeout => {
             if (evidence) |log| try checkSerial(log);
             return .Timeout;
@@ -88,51 +89,84 @@ fn greeting(stream: std.net.Stream, instance: *Process, deadline: Deadline, evid
     }
 }
 
+fn receiveMenuStart(stream: std.net.Stream, instance: ?*Process, idle: Deadline, first: []u8, evidence: ?Epoch, epoch: u64) !void {
+    var tick: phase.types.menu.CountdownFrame = undefined;
+    var sent: usize = tick.len;
+    var scheduled_seconds = countdownSeconds(idle.Limit);
+    while (true) {
+        const nanoseconds = try remaining(instance, idle);
+        if (try receiveAvailable(stream, first) != 0) return;
+        const seconds = countdownSeconds(nanoseconds);
+        if (seconds != scheduled_seconds and (sent == 0 or sent == tick.len)) {
+            tick = phase.menu.encodeCountdown(epoch, seconds) orelse return error.InvalidMenuCountdown;
+            scheduled_seconds = seconds;
+            sent = 0;
+        }
+        if (sent < tick.len) sent += try sendAvailable(stream, tick[sent..]);
+        const until_tick = (nanoseconds - 1) % std.time.ns_per_s + 1;
+        if (!try poll(stream, instance, idle, std.posix.POLL.IN, @min(until_tick, limits.POLL_NS))) {
+            if (evidence) |log| try checkSerial(log);
+        }
+    }
+}
+
+fn countdownSeconds(nanoseconds: u64) u8 {
+    const rounded = nanoseconds / std.time.ns_per_s + @intFromBool(nanoseconds % std.time.ns_per_s != 0);
+    return @intCast(@min(rounded, phase.constants.menu.COUNTDOWN_SECONDS));
+}
+
 fn receive(stream: std.net.Stream, instance: ?*Process, deadline: Deadline, bytes: []u8, evidence: ?Epoch) !void {
     var received: usize = 0;
     while (received < bytes.len) {
         _ = try remaining(instance, deadline);
-        const count = socket.receive(stream.handle, bytes[received..]) catch |failure| switch (@as(anyerror, failure)) {
-            error.WouldBlock, error.ConnectionTimedOut => {
-                try wait(stream, instance, deadline, std.posix.POLL.IN, evidence);
-                continue;
-            },
-            else => return failure,
-        };
-        if (count == 0) return error.PhaseChannelDisconnected;
+        const count = try receiveAvailable(stream, bytes[received..]);
+        if (count == 0) try wait(stream, instance, deadline, std.posix.POLL.IN, evidence);
         received += count;
     }
+}
+
+fn receiveAvailable(stream: std.net.Stream, bytes: []u8) !usize {
+    const count = socket.receive(stream.handle, bytes) catch |failure| switch (@as(anyerror, failure)) {
+        error.WouldBlock, error.ConnectionTimedOut => return 0,
+        else => return failure,
+    };
+    if (count == 0) return error.PhaseChannelDisconnected;
+    return count;
 }
 
 fn send(stream: std.net.Stream, instance: *Process, deadline: Deadline, bytes: []const u8) !void {
     var sent: usize = 0;
     while (sent < bytes.len) {
         _ = try remaining(instance, deadline);
-        const count = socket.send(stream.handle, bytes[sent..]) catch |failure| switch (@as(anyerror, failure)) {
-            error.WouldBlock, error.ConnectionTimedOut => {
-                try wait(stream, instance, deadline, std.posix.POLL.OUT, null);
-                continue;
-            },
-            else => return failure,
-        };
-        if (count == 0) return error.PhaseChannelDisconnected;
+        const count = try sendAvailable(stream, bytes[sent..]);
+        if (count == 0) try wait(stream, instance, deadline, std.posix.POLL.OUT, null);
         sent += count;
     }
 }
 
+fn sendAvailable(stream: std.net.Stream, bytes: []const u8) !usize {
+    const count = socket.send(stream.handle, bytes) catch |failure| switch (@as(anyerror, failure)) {
+        error.WouldBlock, error.ConnectionTimedOut => return 0,
+        else => return failure,
+    };
+    if (count == 0) return error.PhaseChannelDisconnected;
+    return count;
+}
+
 fn wait(stream: std.net.Stream, instance: ?*Process, deadline: Deadline, events: i16, evidence: ?Epoch) !void {
-    var descriptors = [_]std.posix.pollfd{.{ .fd = stream.handle, .events = events, .revents = 0 }};
-    while (true) {
-        const nanoseconds = @min(try remaining(instance, deadline), limits.POLL_NS);
-        const ready = try std.posix.poll(&descriptors, @intCast(nanoseconds / std.time.ns_per_ms));
-        if (ready != 0) {
-            _ = try remaining(instance, deadline);
-            const observed = descriptors[0].revents;
-            if ((observed & (std.posix.POLL.ERR | std.posix.POLL.NVAL | std.posix.POLL.HUP)) != 0) return error.PhaseChannelDisconnected;
-            if ((observed & events) != 0) return;
-        }
+    while (!try poll(stream, instance, deadline, events, limits.POLL_NS)) {
         if (evidence) |epoch| try checkSerial(epoch);
     }
+}
+
+fn poll(stream: std.net.Stream, instance: ?*Process, deadline: Deadline, events: i16, interval: u64) !bool {
+    var descriptors = [_]std.posix.pollfd{.{ .fd = stream.handle, .events = events, .revents = 0 }};
+    const nanoseconds = @min(try remaining(instance, deadline), interval);
+    if (try std.posix.poll(&descriptors, @intCast(nanoseconds / std.time.ns_per_ms)) == 0) return false;
+    _ = try remaining(instance, deadline);
+    const observed = descriptors[0].revents;
+    if ((observed & (std.posix.POLL.ERR | std.posix.POLL.NVAL | std.posix.POLL.HUP)) != 0) return error.PhaseChannelDisconnected;
+    return (observed & events) != 0;
 }
 
 fn checkSerial(evidence: Epoch) !void {

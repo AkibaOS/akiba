@@ -262,6 +262,10 @@ test "diagnostic screen repaints only the log and progress while retaining strid
     try checks.screen.render.fixedChrome();
 }
 
+test "the final menu countdown is right aligned and repaints only the right footer at 512 pixels" {
+    try checks.screen.render.menuCountdown();
+}
+
 test "failed diagnostic composition leaves the previous frame intact" {
     try checks.screen.render.failedComposition();
 }

@@ -16,3 +16,4 @@ pub const PhaseStatus = enum { Passed, Failed, Incomplete };
 
 pub const OfferFrame = [limits.OFFER_BYTES]u8;
 pub const ArmedFrame = [limits.ARMED_BYTES]u8;
+pub const CountdownFrame = [limits.COUNTDOWN_BYTES]u8;

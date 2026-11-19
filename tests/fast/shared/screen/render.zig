@@ -6,6 +6,7 @@ const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const labels = @import("tests").strings.screen;
 const screen = @import("tests").screen;
+const typeset = @import("shared").typeset;
 
 const Rect = screen.types.geometry.Rect;
 const Surface = graphics.types.surface.Surface;
@@ -105,6 +106,50 @@ pub fn fixedChrome() !void {
         try std.testing.expectEqualSlices(u32, before[0..title_end], pixels[0..title_end]);
         try std.testing.expect(!std.mem.eql(u32, before[title_end..header_end], pixels[title_end..header_end]));
         try expectPadding(&target);
+    }
+}
+
+pub fn menuCountdown() !void {
+    const minimum: u32 = 512;
+    const pitch = minimum + 7;
+    const geometry = screen.layout.plan(minimum, height).?;
+    const controls = geometry.Controls;
+    const right_footer: Rect = .{ .X = minimum - 128, .Y = controls.Y, .Width = controls.X + controls.Width - (minimum - 128), .Height = controls.Height };
+    const pixels = try allocator.alloc(u32, pitch * height);
+    defer allocator.free(pixels);
+    const previous = try allocator.alloc(u32, pixels.len);
+    defer allocator.free(previous);
+    const scratch = try allocator.alloc(u32, minimum * height);
+    defer allocator.free(scratch);
+    @memset(pixels, guard_pixel);
+    var target: Surface = .{ .Base = pixels.ptr, .Width = minimum, .Height = height, .Stride = pitch, .Format = .BGR };
+    const face = try font.face.load(graphics.assets.font.HIKARI);
+    var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
+    defer renderer.deinit();
+    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
+    var rows: [2]screen.types.model.Row = undefined;
+    var progress = screen.model.initialize(&rows, 1);
+    try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &progress, null));
+    try std.testing.expect(peakInk(&target, right_footer) <= 128);
+    try std.testing.expect(screen.model.begin(&progress, labels.FIRST_CASE));
+    try std.testing.expect(screen.model.finish(&progress, .Pass));
+    try std.testing.expect(screen.model.complete(&progress));
+    try std.testing.expect(screen.render.update(&target, geometry, scratch, text, &progress, 0));
+    try std.testing.expect(!hasInk(&target, right_footer));
+    progress.MenuReady = true;
+    try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &progress, null));
+    try expectCountdown(&target, right_footer, scratch, text, "Booting in 30s");
+    try expectCompleteControls(&target, controls, scratch, text);
+    pixels[target.offset(controls.X, controls.Y)] = guard_pixel;
+    @memcpy(previous, pixels);
+    try std.testing.expect(screen.render.updateCountdown(&target, geometry, scratch, text, 9));
+    try expectCountdown(&target, right_footer, scratch, text, "Booting in 9s");
+    for (0..height) |row| {
+        for (0..pitch) |column| {
+            if (inside(right_footer, column, row)) continue;
+            const index = row * pitch + column;
+            try std.testing.expectEqual(previous[index], pixels[index]);
+        }
     }
 }
 
@@ -237,7 +282,28 @@ fn expectCompleteControls(target: *const Surface, controls: Rect, scratch: []u32
     try graphics.text.drawString(text.Renderer, &reference, text.Face, .{ .PixelSize = frame.CAPTION_SIZE, .Tracking = 0 }, 0, @intCast(controls.Height), screen.strings.text.COMPLETED_LEGEND, screen.constants.palette.TITLE_TEXT, null);
     const expected = inkCount(&reference, .{ .X = 0, .Y = 0, .Width = reference.Width, .Height = reference.Height });
     try std.testing.expect(expected > 0);
-    try std.testing.expectEqual(expected, inkCount(target, controls));
+    var legend = controls;
+    legend.Width -= 128;
+    try std.testing.expectEqual(expected, inkCount(target, legend));
+}
+
+fn expectCountdown(target: *const Surface, region: Rect, scratch: []u32, text: screen.types.render.Text, message: []const u8) !void {
+    const frame = screen.constants.frame;
+    const style: typeset.types.style.TextStyle = .{ .PixelSize = frame.CAPTION_SIZE, .Tracking = 0 };
+    var reference: Surface = .{ .Base = scratch.ptr, .Width = region.Width, .Height = region.Height, .Stride = region.Width, .Format = target.Format };
+    graphics.draw.clear(&reference, screen.constants.palette.DESKTOP);
+    const advance = try typeset.measure.advanceWidth(text.Face, style, message);
+    const ascent = try typeset.measure.ascent(text.Face, style.PixelSize);
+    const descent = try text.Face.pixelMetric(-@as(i32, text.Face.Descender), style.PixelSize);
+    const width_pixels: i32 = @intCast(region.Width - frame.INSET);
+    const height_pixels: i32 = @intCast(region.Height);
+    const baseline = @divTrunc(height_pixels + ascent - descent, 2);
+    try graphics.text.drawString(text.Renderer, &reference, text.Face, style, width_pixels - advance, baseline, message, screen.constants.palette.CAPTION, null);
+    try std.testing.expect(hasInk(&reference, .{ .X = 0, .Y = 0, .Width = region.Width, .Height = region.Height }));
+    for (0..region.Height) |row| {
+        const y: u32 = @intCast(row);
+        try std.testing.expectEqualSlices(u32, scratch[row * region.Width ..][0..region.Width], target.Base[target.offset(region.X, region.Y + y)..][0..region.Width]);
+    }
 }
 
 fn inkCount(target: *const Surface, region: Rect) usize {

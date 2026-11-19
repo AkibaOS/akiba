@@ -7,6 +7,7 @@ const graphics = @import("shared").graphics;
 const limits = @import("shared").raster.constants.limits;
 const model = @import("tests").screen.model;
 const palette = @import("tests").screen.constants.palette;
+const phase = @import("tests").phase.constants.menu;
 const planner = @import("tests").screen.layout;
 const strings = @import("tests").screen.strings.text;
 const types = @import("tests").screen.types;
@@ -65,6 +66,16 @@ pub fn updateActive(target: *Surface, layout: Layout, scratch: []u32, text: Text
     return true;
 }
 
+pub fn updateCountdown(target: *Surface, layout: Layout, scratch: []u32, text: Text, seconds: u8) bool {
+    if (seconds == 0 or seconds > phase.COUNTDOWN_SECONDS) return false;
+    var staging = prepare(target, layout, scratch) orelse return false;
+    const region = countdownRegion(layout.Controls);
+    const baseline = captionBaseline(text, region.Height) catch return false;
+    paintCountdown(&staging, region, text, baseline, seconds) catch return false;
+    commit(target, &staging, region);
+    return true;
+}
+
 fn prepare(target: *const Surface, layout: Layout, scratch: []u32) ?Surface {
     const expected = planner.plan(target.Width, target.Height) orelse return null;
     if (!std.meta.eql(expected, layout) or target.Stride < target.Width or
@@ -87,11 +98,8 @@ fn controls(staging: *Surface, rectangle: Rect, text: Text, state: *const types.
     var strip = scoped(staging, rectangle);
     graphics.draw.clear(&strip, palette.DESKTOP);
     var caption = inset(&strip, frame.INSET, 0);
-    const ascent = try typeset.measure.ascent(text.Face, frame.CAPTION_SIZE);
-    const descent = try text.Face.pixelMetric(-@as(i32, text.Face.Descender), frame.CAPTION_SIZE);
-    const height: i32 = @intCast(caption.Height);
-    if (ascent < 0 or descent < 0 or ascent + descent > height) return error.MetricOutOfRange;
-    const baseline: u32 = @intCast(ascent + @divTrunc(height - ascent - descent, 2));
+    const baseline = try captionBaseline(text, caption.Height);
+    if (state.MenuReady) caption.Width -= frame.COUNTDOWN_WIDTH;
     const boot_color = if (state.MenuReady) palette.ACTIVE_CONTROL else palette.INACTIVE;
     const boot_end = try drawFitted(&caption, text, frame.CAPTION_SIZE, 0, baseline, strings.COMPLETED_LEGEND, boot_color);
     if (!state.Done) {
@@ -99,6 +107,31 @@ fn controls(staging: *Surface, rectangle: Rect, text: Text, state: *const types.
         const cancel_color = if (state.CancelReady) palette.ACTIVE_CONTROL else palette.INACTIVE;
         _ = try drawFitted(&caption, text, frame.CAPTION_SIZE, cancel_x, baseline, strings.CANCEL_LEGEND, cancel_color);
     }
+    if (state.MenuReady) try paintCountdown(staging, countdownRegion(rectangle), text, baseline, phase.COUNTDOWN_SECONDS);
+}
+
+fn captionBaseline(text: Text, height_pixels: u32) !u32 {
+    const ascent = try typeset.measure.ascent(text.Face, frame.CAPTION_SIZE);
+    const descent = try text.Face.pixelMetric(-@as(i32, text.Face.Descender), frame.CAPTION_SIZE);
+    const height: i32 = @intCast(height_pixels);
+    if (ascent < 0 or descent < 0 or ascent + descent > height) return error.MetricOutOfRange;
+    return @intCast(ascent + @divTrunc(height - ascent - descent, 2));
+}
+
+fn countdownRegion(footer: Rect) Rect {
+    return .{ .X = footer.X + footer.Width - frame.COUNTDOWN_WIDTH, .Y = footer.Y, .Width = frame.COUNTDOWN_WIDTH, .Height = footer.Height };
+}
+
+fn paintCountdown(staging: *Surface, region: Rect, text: Text, baseline: u32, seconds: u8) !void {
+    var slot = scoped(staging, region);
+    var buffer: [strings.BOOT_COUNTDOWN.len]u8 = undefined;
+    const label = try std.fmt.bufPrint(&buffer, strings.BOOT_COUNTDOWN, .{seconds});
+    const style: typeset.types.style.TextStyle = .{ .PixelSize = frame.CAPTION_SIZE, .Tracking = 0 };
+    const advance = try typeset.measure.advanceWidth(text.Face, style, label);
+    const right: i32 = @intCast(slot.Width - frame.INSET);
+    if (advance <= 0 or advance > right) return error.MetricOutOfRange;
+    graphics.draw.clear(&slot, palette.DESKTOP);
+    try graphics.text.drawString(text.Renderer, &slot, text.Face, style, right - advance, @intCast(baseline), label, palette.CAPTION, null);
 }
 
 fn subtitleRegion(header: Rect) Rect {

@@ -39,6 +39,61 @@ pub fn actions() !void {
     try std.testing.expect(wire.decode(&malformed, epoch, .Menu) == null);
 }
 
+pub fn menuCountdownFrame() !void {
+    const menu = project.phase.menu;
+    const epoch = 0x0807060504030201;
+    const tick = [_]u8{ 'A', 'K', 'M', 'C', 1, 2, 3, 4, 5, 6, 7, 8, 29 };
+    try std.testing.expectEqualSlices(u8, &tick, &menu.encodeCountdown(epoch, 29).?);
+    try std.testing.expectEqual(@as(?u8, 29), menu.decodeCountdown(&tick, epoch, 30));
+    try std.testing.expect(menu.decodeCountdown(&tick, epoch + 1, 30) == null);
+    try std.testing.expect(menu.decodeCountdown(&tick, epoch, 29) == null);
+    try std.testing.expect(menu.decodeCountdown(&tick, epoch, 28) == null);
+    try std.testing.expect(menu.decodeCountdown(tick[0..12], epoch, 30) == null);
+    try std.testing.expect(menu.encodeCountdown(0, 29) == null);
+    for ([_]u8{ 0, 30, 255 }) |seconds| {
+        var invalid = tick;
+        invalid[12] = seconds;
+        try std.testing.expect(menu.decodeCountdown(&invalid, epoch, 30) == null);
+        try std.testing.expect(menu.encodeCountdown(epoch, seconds) == null);
+    }
+    var invalid = tick;
+    invalid[3] = 'A';
+    try std.testing.expect(menu.decodeCountdown(&invalid, epoch, 30) == null);
+    @memset(invalid[4..12], 0);
+    invalid[3] = 'C';
+    try std.testing.expect(menu.decodeCountdown(&invalid, 0, 30) == null);
+    const skipped = tick[0..12].* ++ [_]u8{7};
+    try std.testing.expectEqual(@as(?u8, 7), menu.decodeCountdown(&skipped, epoch, 29));
+}
+
+pub fn menuIdleCountdown() !void {
+    const transport = project.runner.phase;
+    const network = project.runner.socket;
+    const address = try std.net.Address.parseIp4(project.strings.protocol.ADDRESS, 0);
+    var server = try address.listen(.{});
+    defer server.deinit();
+    const peer = idle: {
+        const client = try network.startConnection(server.listen_address.getPort());
+        defer client.close();
+        const accepted = try server.accept();
+        errdefer accepted.stream.close();
+        try network.checkConnection(client);
+        var timer = try std.time.Timer.start();
+        try std.testing.expectEqual(.Timeout, try transport.menuAction(client, null, .{ .Timer = &timer, .Limit = 1200 * std.time.ns_per_ms }, null, 17));
+        break :idle accepted.stream;
+    };
+    defer peer.close();
+    const expected = [_]u8{ 'A', 'K', 'M', 'C', 17, 0, 0, 0, 0, 0, 0, 0, 1 };
+    var bytes: [expected.len + 1]u8 = undefined;
+    var received: usize = 0;
+    while (received < bytes.len) {
+        const count = try network.receive(peer.handle, bytes[received..]);
+        if (count == 0) break;
+        received += count;
+    }
+    try std.testing.expectEqualSlices(u8, &expected, bytes[0..received]);
+}
+
 pub fn menuFramePastCutoff() !void {
     const transport = project.runner.phase;
     const network = project.runner.socket;

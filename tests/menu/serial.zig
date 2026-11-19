@@ -59,16 +59,21 @@ pub fn receive(services: *BootServices, bytes: []u8) bool {
     var offset: usize = 0;
     for (0..limits.SERIAL_RECEIVE_POLLS) |_| {
         if (offset == bytes.len) return true;
-        const line_status = readLineStatus(ports.COM3);
-        if (line_status & inputs.PHASE_RECEIVE_ERRORS != 0) return false;
-        if (line_status & registers.LINE_STATUS_DATA_READY != 0) {
-            bytes[offset] = port.readByte(ports.COM3 + registers.DATA_REGISTER);
-            offset += 1;
-            continue;
-        }
-        if (services.Stall(limits.SERIAL_POLL_MICROSECONDS) != status.SUCCESS) return false;
+        const count = receiveAvailable(bytes[offset..]) catch return false;
+        offset += count;
+        if (count == 0 and services.Stall(limits.SERIAL_POLL_MICROSECONDS) != status.SUCCESS) return false;
     }
     return offset == bytes.len;
+}
+
+pub fn receiveAvailable(bytes: []u8) !usize {
+    for (bytes, 0..) |*byte, offset| {
+        const line_status = readLineStatus(ports.COM3);
+        if (line_status & inputs.PHASE_RECEIVE_ERRORS != 0) return error.MenuUARTReceiveFailed;
+        if (line_status & registers.LINE_STATUS_DATA_READY == 0) return offset;
+        byte.* = port.readByte(ports.COM3 + registers.DATA_REGISTER);
+    }
+    return bytes.len;
 }
 
 fn readLineStatus(base: u16) u8 {

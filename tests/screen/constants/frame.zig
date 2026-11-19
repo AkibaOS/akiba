@@ -7,6 +7,7 @@ pub const GAP: u32 = 4;
 pub const HEADER_HEIGHT: u32 = 56;
 pub const PROGRESS_HEIGHT: u32 = 22;
 pub const CONTROL_HEIGHT: u32 = 22;
+pub const COUNTDOWN_WIDTH: u32 = 120;
 pub const ROW_HEIGHT: u32 = 20;
 pub const ROW_BASELINE: u32 = 15;
 pub const TITLE_BASELINE: u32 = 24;

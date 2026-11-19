@@ -116,6 +116,14 @@ test "menu requires the current arm acknowledgement and the verified suite summa
     try phase.menuOffer();
 }
 
+test "menu countdown rejects stale, malformed and nondecreasing ticks" {
+    try phase.menuCountdownFrame();
+}
+
+test "idle menu sends only changed seconds before timing out without an acknowledgement" {
+    try phase.menuIdleCountdown();
+}
+
 test "menu command that starts before cutoff can finish with bounded grace" {
     try phase.menuFramePastCutoff();
 }

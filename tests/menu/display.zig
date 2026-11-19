@@ -15,10 +15,11 @@ const splash = @import("shared").splash;
 const BootServices = efi.types.services.boot.BootServices;
 const Scenario = @import("tests").types.scenario.Scenario;
 const Surface = graphics.types.surface.Surface;
+const View = @import("menu").types.display.View;
 const Workspace = splash.types.workspace.Workspace;
 
-pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
-    var target = locateSurface(services) orelse return false;
+pub fn show(services: *BootServices, offer: phase.types.menu.Offer, view: *View) bool {
+    const target = locateSurface(services) orelse return false;
     const layout = screen.layout.plan(target.Width, target.Height) orelse return false;
     const pixel_count = std.math.mul(usize, layout.Width, layout.Height) catch return false;
     const pixel_bytes = std.math.mul(usize, pixel_count, @sizeOf(u32)) catch return false;
@@ -51,15 +52,28 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
         .MenuReady = true,
     };
 
-    var scratch: efi.types.buffer.PoolClaim = .{};
-    if (!efi.buffer.allocatePool(services, scratch_bytes, &scratch)) return false;
-    const backing = scratch.Allocation.?;
+    if (!efi.buffer.allocatePool(services, scratch_bytes, &view.Pool)) return false;
+    const backing = view.Pool.Allocation.?;
     const workspace: *Workspace = @ptrCast(backing);
-    const pixels = @as([*]u32, @ptrCast(@alignCast(backing + @sizeOf(Workspace))))[0..pixel_count];
-    var renderer = workspace.bind();
-    const rendered = screen.render.takeover(&target, layout, pixels, .{ .Face = &face, .Renderer = &renderer }, &snapshot, &offer.Date);
-    const released = efi.buffer.releasePool(services, &scratch);
-    return rendered and released;
+    view.Target = target;
+    view.Layout = layout;
+    view.Face = face;
+    view.Renderer = workspace.bind();
+    view.Pixels = @as([*]u32, @ptrCast(@alignCast(backing + @sizeOf(Workspace))))[0..pixel_count];
+    return screen.render.takeover(&view.Target, view.Layout, view.Pixels, textContext(view), &snapshot, &offer.Date);
+}
+
+pub fn updateCountdown(view: *View, seconds: u8) bool {
+    if (view.Pool.Allocation == null) return false;
+    return screen.render.updateCountdown(&view.Target, view.Layout, view.Pixels, textContext(view), seconds);
+}
+
+pub fn release(services: *BootServices, view: *View) bool {
+    return efi.buffer.releasePool(services, &view.Pool);
+}
+
+fn textContext(view: *View) screen.types.render.Text {
+    return .{ .Face = &view.Face, .Renderer = &view.Renderer };
 }
 
 fn failedRows(rows: []screen.types.model.Row, offer: phase.types.menu.Offer) usize {

@@ -46,6 +46,27 @@ pub fn isArmed(epoch: u64, bytes: []const u8) bool {
     return epoch != 0 and std.mem.eql(u8, bytes, &encodeArmed(epoch));
 }
 
+pub fn encodeCountdown(epoch: u64, seconds: u8) ?types.CountdownFrame {
+    if (epoch == 0 or !validCountdown(seconds)) return null;
+    var frame: types.CountdownFrame = undefined;
+    @memcpy(frame[0..limits.EPOCH_OFFSET], &limits.COUNTDOWN);
+    std.mem.writeInt(u64, frame[limits.EPOCH_OFFSET..limits.ARMED_BYTES], epoch, .little);
+    frame[limits.ARMED_BYTES] = seconds;
+    return frame;
+}
+
+pub fn decodeCountdown(frame: []const u8, epoch: u64, previous: u8) ?u8 {
+    if (epoch == 0 or frame.len != limits.COUNTDOWN_BYTES or
+        !std.mem.eql(u8, frame[0..limits.EPOCH_OFFSET], &limits.COUNTDOWN)) return null;
+    if (std.mem.readInt(u64, frame[limits.EPOCH_OFFSET..limits.ARMED_BYTES], .little) != epoch) return null;
+    const seconds = frame[limits.ARMED_BYTES];
+    return if (validCountdown(seconds) and seconds < previous) seconds else null;
+}
+
+fn validCountdown(seconds: u8) bool {
+    return seconds > 0 and seconds < limits.COUNTDOWN_SECONDS;
+}
+
 pub fn phaseBit(selected: Scenario) u8 {
     return @as(u8, 1) << @intCast(@intFromEnum(selected));
 }

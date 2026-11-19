@@ -28,3 +28,4 @@ pub const BOOTSTRAP_ROLLBACK = "Bootstrap allocation rollback";
 pub const CONTROL_SEPARATOR = " | ";
 pub const COMPLETED_LEGEND = "[Enter] Boot Normally" ++ CONTROL_SEPARATOR ++ "[S] Shut Down";
 pub const CANCEL_LEGEND = "[Esc] Cancel Tests";
+pub const BOOT_COUNTDOWN = "Booting in {d}s";
