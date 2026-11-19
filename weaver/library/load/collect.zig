@@ -35,7 +35,7 @@ fn addDependencies(allocator: std.mem.Allocator, source: Source, metadata: Metad
         if (entry.Tag != elf.constants.dynamic.NEEDED) continue;
         const name = try metadata.string(entry.Value);
         if (names.contains(name)) continue;
-        var snapshot = try library.open.open(allocator, source, name);
+        var snapshot = try library.load.open.open(allocator, source, name);
         errdefer snapshot.deinit();
         try libraries.ensureUnusedCapacity(allocator, 1);
         try names.putNoClobber(allocator, snapshot.Identity, libraries.items.len);

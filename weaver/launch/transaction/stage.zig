@@ -39,7 +39,7 @@ pub fn invoke(channel: Channel, operation: wire.Operation, argument: u64, protec
 fn image(channel: Channel, plan: *const Plan) RequestError!void {
     var bytes: [sizes.PAGE_SIZE]u8 = undefined;
     var stream: weaver.stage.types.page.Stream = .{ .Link = plan };
-    while (weaver.stage.next.next(&stream, &bytes)) |page| {
+    while (weaver.stage.page.next.next(&stream, &bytes)) |page| {
         _ = try invoke(channel, .Allocate, page.Address, .ReadOnly);
         try copy(channel, page.Address, &bytes);
         _ = try invoke(channel, .Seal, page.Address, switch (page.Access) {

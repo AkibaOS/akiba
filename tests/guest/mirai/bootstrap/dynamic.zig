@@ -26,12 +26,12 @@ pub fn run() !void {
     const baseline = user.state.ledger.count();
     const missing: Source = .{ .Library = null };
     const invalid: Source = .{ .Library = LIBRARY[0..1] };
-    const missing_refused = if (weaver.library.collect.collect(allocator, stage.access(&missing), PROGRAM)) |graph| unexpected: {
+    const missing_refused = if (weaver.library.load.collect.collect(allocator, stage.access(&missing), PROGRAM)) |graph| unexpected: {
         var unexpected_graph = graph;
         unexpected_graph.deinit();
         break :unexpected false;
     } else |failure| failure == error.LibraryNotFound;
-    const invalid_refused = if (weaver.library.collect.collect(allocator, stage.access(&invalid), PROGRAM)) |graph| unexpected: {
+    const invalid_refused = if (weaver.library.load.collect.collect(allocator, stage.access(&invalid), PROGRAM)) |graph| unexpected: {
         var unexpected_graph = graph;
         unexpected_graph.deinit();
         break :unexpected false;
@@ -39,7 +39,7 @@ pub fn run() !void {
     verify.require(missing_refused and invalid_refused and user.state.ledger.count() == baseline, labels.DYNAMIC_REFUSAL);
 
     const source: Source = .{ .Library = LIBRARY };
-    var graph = try weaver.library.collect.collect(allocator, stage.access(&source), PROGRAM);
+    var graph = try weaver.library.load.collect.collect(allocator, stage.access(&source), PROGRAM);
     defer graph.deinit();
     if (graph.Libraries.len != 1) return error.InvalidFixture;
     const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };

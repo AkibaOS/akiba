@@ -27,7 +27,7 @@ pub fn run() !void {
     const launcher = thread.state.getCurrent().?.Owner;
     const image = try bootstrap.image.prepare.prepare(launcher, IMAGE, .{ .StackBase = inputs.SERVER_STACK, .StackPages = inputs.SERVER_STACK_PAGES });
     defer harness.dispose(image.ID);
-    try harness.check(image.Thread.Mode == .Persona and launch.authority.grant(image.Owner));
+    try harness.check(image.Thread.Mode == .Persona and launch.request.authority.grant(image.Owner));
     _ = try bootstrap.image.start.start(image);
     const server: Actor = .{ .Owner = image.Owner, .ID = image.ID, .Code = 0, .Data = 0, .Stack = inputs.SERVER_STACK, .Target = image.Thread };
     try harness.waitBlocked(&server);

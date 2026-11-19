@@ -24,7 +24,7 @@ pub fn plan(allocator: std.mem.Allocator, placement: *const Placement) LinkError
     defer for (indices[0..indexed]) |*index| index.deinit(allocator);
     for (placement.Libraries) |layout| {
         try link.profile.check(layout.Metadata, .Library);
-        indices[indexed] = try link.exports.index(allocator, layout.Metadata);
+        indices[indexed] = try link.binding.exports.index(allocator, layout.Metadata);
         indexed += 1;
     }
     var executable = try planImage(allocator, placement, &placement.Executable, indices);
@@ -41,7 +41,7 @@ pub fn plan(allocator: std.mem.Allocator, placement: *const Placement) LinkError
 }
 
 fn planImage(allocator: std.mem.Allocator, placement: *const Placement, layout: *const Layout, indices: []const Exports) LinkError!Writes {
-    var direct = try link.exports.direct(allocator, placement.Graph, layout.Metadata);
+    var direct = try link.binding.exports.direct(allocator, placement.Graph, layout.Metadata);
     defer direct.deinit(allocator);
     const bindings = try allocator.alloc(?u64, layout.Metadata.Symbols.len);
     defer allocator.free(bindings);
@@ -54,10 +54,10 @@ fn planImage(allocator: std.mem.Allocator, placement: *const Placement, layout: 
             const number = entry.Info >> @bitSizeOf(u32);
             if (number == 0 or number >= bindings.len) return error.InvalidRelocation;
             const symbol = layout.Metadata.Symbols[@intCast(number)];
-            const kind = try link.symbols.reference(symbol, operation);
+            const kind = try link.binding.symbols.reference(symbol, operation);
             if (bindings[@intCast(number)] != null) continue;
             if (symbol.Section != elf.constants.symbol.SECTION_UNDEFINED) {
-                bindings[@intCast(number)] = try link.symbols.address(layout, symbol, kind, 0);
+                bindings[@intCast(number)] = try link.binding.symbols.address(layout, symbol, kind, 0);
                 continue;
             }
             const name = try layout.Metadata.string(symbol.NameOffset);
@@ -79,5 +79,5 @@ fn resolve(layouts: []const Layout, indices: []const Exports, direct: *const Dir
         provider = index.*;
     }
     const layout = &layouts[provider orelse return error.UnresolvedSymbol];
-    return link.symbols.address(layout, layout.Metadata.Symbols[number], kind, required);
+    return link.binding.symbols.address(layout, layout.Metadata.Symbols[number], kind, required);
 }

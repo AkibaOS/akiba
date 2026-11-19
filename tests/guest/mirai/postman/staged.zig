@@ -38,7 +38,7 @@ pub fn run() !void {
     defer harness.dispose(server.ID);
     var client = try harness.create();
     defer harness.dispose(client.ID);
-    try harness.check(launch.authority.grant(server.Owner));
+    try harness.check(launch.request.authority.grant(server.Owner));
     const source = server.Data + constants.PAGE_BYTES;
     try user.memory.allocate.allocate(server.Owner, source);
     try user.memory.load.load(server.Owner, source, bytes);
@@ -55,7 +55,7 @@ pub fn run() !void {
     try harness.waitStep(&server, 3);
     verify.require(try harness.resultIs(&server, 3, .Success, 0), labels.PROVISION_PAGE);
     const delivery = (try harness.record(&server)).Serving orelse return error.InvalidFixture;
-    const draft = (launch.request.transaction(delivery) orelse return error.InvalidFixture).Child orelse return error.InvalidFixture;
+    const draft = (launch.request.lease.transaction(delivery) orelse return error.InvalidFixture).Child orelse return error.InvalidFixture;
 
     try descriptor(&server, &.{ constants.CODE_BASE, constants.INVALID_ADDRESS, segment.UnitSize });
     try next(&server, 4);

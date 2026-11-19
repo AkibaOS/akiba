@@ -102,7 +102,7 @@ fn requesterGone() !void {
 }
 
 fn grant(actor: *const Actor) void {
-    verify.require(mirai.launch.authority.grant(actor.Owner), labels.PROVISION_GRANT);
+    verify.require(mirai.launch.request.authority.grant(actor.Owner), labels.PROVISION_GRANT);
 }
 
 fn command(actor: *const Actor, opcode: u64, delivered: bool) Operation {
@@ -117,7 +117,7 @@ fn command(actor: *const Actor, opcode: u64, delivered: bool) Operation {
 fn draft(actor: *const Actor) ?*Kata {
     const record = harness.record(actor) catch return null;
     const delivery = record.Serving orelse return null;
-    const transaction = mirai.launch.request.transaction(delivery) orelse return null;
+    const transaction = mirai.launch.request.lease.transaction(delivery) orelse return null;
     return transaction.Child;
 }
 

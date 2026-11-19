@@ -47,7 +47,7 @@ fn launch(mode: types.Mode, ticket: u64) types.Receipt {
     var request: types.Request = .{ .Mode = mode };
     var parameters: [inputs.PARAMETER_COUNT]u8 = @splat(inputs.PARAMETER_BYTE);
     parameters[parameters.len - 1] = inputs.PARAMETER_LAST;
-    const child = weaver.launch.run.run(allocator.allocator(), .{ .Context = &request, .ReadFromOrigin = read }, PROGRAM, .{
+    const child = weaver.launch.transaction.run.run(allocator.allocator(), .{ .Context = &request, .ReadFromOrigin = read }, PROGRAM, .{
         .Biases = .{ .Executable = elf.DYNAMIC_EXECUTABLE_BIAS, .Libraries = &.{elf.DYNAMIC_LIBRARY_BIAS} },
         .Policy = .{ .MinimumAddress = elf.PAGE_BYTES, .MaximumAddress = elf.USER_END, .MaximumPages = elf.MAXIMUM_PAGES },
         .StackBase = elf.STACK_ADDRESS,

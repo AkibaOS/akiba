@@ -107,7 +107,7 @@ fn launch(sink: *Sink, available: bool, startup_address: u64) !u64 {
     fixture.write64(&library, TABLE, 21);
     fixture.write64(&library, TABLE + 8, 0);
     const source: ?[]const u8 = if (available) &library else null;
-    return weaver.launch.run.run(ALLOCATOR, .{ .Context = &source, .ReadFromOrigin = read }, &executable, .{
+    return weaver.launch.transaction.run.run(ALLOCATOR, .{ .Context = &source, .ReadFromOrigin = read }, &executable, .{
         .Biases = .{ .Executable = 0x200000, .Libraries = &.{0x400000} },
         .Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES },
         .StackBase = inputs.STACK_ADDRESS,

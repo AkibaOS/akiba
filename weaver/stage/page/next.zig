@@ -1,6 +1,6 @@
 //! Stream The Checked Native Images With Final Page Rights
 
-const fill = @import("weaver").stage.fill;
+const fill = @import("weaver").stage.page.fill;
 const format = @import("shared").elf.constants.format;
 const sizes = @import("common").constants.memory.sizes;
 const types = @import("weaver").stage.types.page;

@@ -32,7 +32,7 @@ pub fn verify(sparse: bool) !void {
     fixture.write64(&library, TABLE + 8, 0);
     library[2 * inputs.PAGE_BYTES] = CODE_BYTE;
     encodeRelative(&library, 0x53f0);
-    var graph = try weaver.library.collect.collect(ALLOCATOR, .{ .Context = &library, .ReadFromOrigin = read }, &executable);
+    var graph = try weaver.library.load.collect.collect(ALLOCATOR, .{ .Context = &library, .ReadFromOrigin = read }, &executable);
     defer graph.deinit();
     const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
     var placement = try weaver.image.place.place(ALLOCATOR, &graph, .{ .Executable = EXECUTABLE_BIAS, .Libraries = &.{LIBRARY_BIAS} }, policy, &.{});
@@ -41,7 +41,7 @@ pub fn verify(sparse: bool) !void {
     defer linked.deinit();
     var stream: weaver.stage.types.page.Stream = .{ .Link = &linked };
     var bytes: [inputs.PAGE_BYTES]u8 = @splat(0xff);
-    const next = weaver.stage.next.next;
+    const next = weaver.stage.page.next.next;
     const relro = next(&stream, &bytes) orelse return error.MissingPage;
     try std.testing.expectEqual(@as(u64, 0x100205000), relro.Address);
     try std.testing.expectEqual(.ReadOnly, relro.Access);

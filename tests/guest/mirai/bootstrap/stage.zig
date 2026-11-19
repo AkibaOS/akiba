@@ -27,7 +27,7 @@ pub fn prepare(launcher: *const Kata, plan: *const Plan, first: ?*const Kata) !P
     errdefer driver.dispose(owner.ID) catch |failure| verify.failure(failure);
     var buffer: [sizes.PAGE_SIZE]u8 = undefined;
     var stream: weaver.stage.types.page.Stream = .{ .Link = plan };
-    while (weaver.stage.next.next(&stream, &buffer)) |page| {
+    while (weaver.stage.page.next.next(&stream, &buffer)) |page| {
         if (page.ImmutableLibrary) {
             if (first) |source| {
                 try user.memory.share.map(source, page.Address, owner, page.Address);

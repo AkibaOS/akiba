@@ -4,9 +4,9 @@ const std = @import("std");
 
 const abi = @import("mirai").invocations.types.abi;
 const copy = @import("mirai").user.copy.transfer;
-const pages = @import("mirai").launch.pages;
-const publish = @import("mirai").launch.publish;
-const request = @import("mirai").launch.request;
+const pages = @import("mirai").launch.draft.pages;
+const publish = @import("mirai").launch.draft.publish;
+const request = @import("mirai").launch.request.lease;
 const types = @import("shared").launch.types.provision;
 
 const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;

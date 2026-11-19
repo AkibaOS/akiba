@@ -2,7 +2,7 @@
 
 const bootstrap = @import("mirai").bootstrap;
 const messages = @import("mirai").launch.strings.transaction;
-const pages = @import("mirai").launch.pages;
+const pages = @import("mirai").launch.draft.pages;
 const thread = @import("mirai").thread;
 
 const Transaction = @import("mirai").launch.types.transaction.Transaction;
