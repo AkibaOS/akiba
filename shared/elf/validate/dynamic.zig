@@ -61,6 +61,7 @@ pub fn parse(allocator: std.mem.Allocator, data: []const u8, bias: u64, role: Ro
         .Image = try load.plan(allocator, segments, entry, policy.MaximumPages),
         .Metadata = metadata,
         .Bias = bias,
+        .Policy = policy,
         .Relro = seal,
     };
 }

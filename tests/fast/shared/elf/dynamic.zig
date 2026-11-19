@@ -131,7 +131,7 @@ pub fn rejectsUnsafeRelro() !void {
     try std.testing.expectError(error.InvalidRelro, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
 }
 
-fn loadImage() [inputs.DATA_BYTES]u8 {
+pub fn loadImage() [inputs.DATA_BYTES]u8 {
     var bytes = image();
     const file = inputs.DYNAMIC_LAYOUT_FILE;
     @memcpy(bytes[file..][0..inputs.DYNAMIC_FILE_BYTES], bytes[inputs.DYNAMIC_FILE_BASE..][0..inputs.DYNAMIC_FILE_BYTES]);

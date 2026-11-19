@@ -7,6 +7,7 @@ const elf = @import("shared").elf;
 const fixture = @import("tests").fast.shared.elf.fixture;
 const growth = @import("tests").fast.shared.elf.growth;
 const inputs = @import("tests").constants.elf;
+const relocation = @import("tests").fast.shared.elf.relocation;
 
 const ImageError = elf.errors.image.ImageError;
 
@@ -38,6 +39,30 @@ test "dynamic ELF rejects invalid bias entry permissions and unsupported segment
 
 test "dynamic ELF rejects RELRO that would freeze unrelated writable bytes" {
     try dynamic.rejectsUnsafeRelro();
+}
+
+test "ELF plans signed relative and eager import writes without changing the image bytes" {
+    try relocation.plansWrites();
+}
+
+test "ELF rejects unsupported relocation operations and invalid resolved values" {
+    try relocation.rejectsInvalidValues();
+}
+
+test "ELF relocation words stay wholly within writable load bytes" {
+    try relocation.checksTargets();
+}
+
+test "ELF rejects duplicate and overlapping words from separate relocation tables" {
+    try relocation.rejectsOverlap();
+}
+
+test "ELF relocation planning refuses alternate encodings and text relocation declarations" {
+    try relocation.rejectsUnsupportedMetadata();
+}
+
+test "ELF relocation plan propagates allocator refusal" {
+    try relocation.checksAllocation();
 }
 
 test "ELF counts a terabyte of sparse BSS through intervals without visiting its pages" {

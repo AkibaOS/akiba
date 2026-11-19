@@ -4,6 +4,7 @@ const std = @import("std");
 
 const DynamicError = @import("shared").elf.errors.dynamic.DynamicError;
 const Plan = @import("shared").elf.types.image.Plan;
+const Policy = @import("shared").elf.types.image.Policy;
 
 pub const Role = enum { Executable, Library };
 
@@ -16,6 +17,7 @@ pub const Layout = struct {
     Image: Plan,
     Metadata: Metadata,
     Bias: u64,
+    Policy: Policy,
     Relro: ?Relro,
 };
 
