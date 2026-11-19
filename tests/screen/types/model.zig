@@ -21,4 +21,6 @@ pub const Model = struct {
     ActiveVerified: ?usize = null,
     TailIsPassEvidence: bool = false,
     Done: bool = false,
+    MenuReady: bool = false,
+    CancelReady: bool = false,
 };

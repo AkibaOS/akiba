@@ -3,6 +3,7 @@
 const accesslabels = @import("tests").strings.access;
 const acquisitionlabels = @import("tests").strings.acquisition;
 const bootlabels = @import("tests").strings.boot;
+const cancellation = @import("tests").guest.support.cancellation;
 const completionlabels = @import("tests").strings.completion;
 const contextlabels = @import("tests").strings.context;
 const crimsonlabels = @import("tests").strings.crimson;
@@ -84,31 +85,34 @@ pub fn execute() bool {
 }
 
 pub fn beginBootstrap() void {
-    if (startScreen(groups.len + 1)) screen.begin(screentext.BOOTSTRAP_ROLLBACK);
+    if (startScreen(groups.len + 1, cancellation.enable())) screen.begin(screentext.BOOTSTRAP_ROLLBACK);
 }
 
 pub fn finishBootstrap() void {
     screen.finish(.Pass);
 }
 
-fn startScreen(total: usize) bool {
+fn startScreen(total: usize, cancel_ready: bool) bool {
     var date_buffer: [metadata.MAX_VALUE_BYTES]u8 = undefined;
-    return screen.start(total, guest.support.selector.buildDate(&date_buffer));
+    return screen.start(total, guest.support.selector.buildDate(&date_buffer), cancel_ready);
 }
 
 fn standard() bool {
-    const owned = screen.isActive() or startScreen(groups.len);
+    const owned = screen.isActive() or startScreen(groups.len, cancellation.enabled());
     defer screen.release();
     inline for (groups) |group| {
         const title = group[0][runnerlabels.GROUP_PREFIX.len .. group[0].len - 1];
         screen.begin(title);
         serial.printf(group[0], .{});
         inline for (group[1]) |subject| {
+            cancellation.checkpoint();
             check(subject);
+            cancellation.checkpoint();
             screen.checkpoint();
         }
         screen.finish(.Pass);
     }
+    cancellation.finish();
     screen.complete();
     serial.printf(labels.COMPLETE, .{verify.count()});
     return owned;

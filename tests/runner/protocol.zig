@@ -5,9 +5,11 @@ const std = @import("std");
 const limits = @import("tests").constants.runner;
 const paths = @import("tests").runner.paths;
 const process = @import("tests").runner.process;
+const serial = @import("tests").runner.serial;
 const socket = @import("tests").runner.socket;
 const strings = @import("tests").strings.runner;
 const types = @import("tests").types.host;
+const verdict = @import("tests").runner.result;
 
 const Connection = types.Connection;
 const Deadline = types.Deadline;
@@ -71,6 +73,40 @@ pub fn quit(allocator: std.mem.Allocator, connection: *Connection) !void {
         else => return failure,
     };
     response.deinit();
+}
+
+pub fn superviseOrdinary(allocator: std.mem.Allocator, connection: *Connection, evidence: types.Epoch) !void {
+    var pending = [_]std.posix.pollfd{.{ .fd = connection.Stream.handle, .events = std.posix.POLL.IN, .revents = 0 }};
+    while (true) {
+        if (process.cancelled()) return error.Cancelled;
+        try checkOrdinary(allocator, evidence);
+        if (try std.posix.poll(&pending, limits.ORDINARY_POLL_MS) == 0) continue;
+        var timer = try std.time.Timer.start();
+        const line = try readLine(allocator, connection, .{ .Timer = &timer, .Limit = limits.PROTOCOL_NS }, false);
+        defer allocator.free(line);
+        const parsed = try std.json.parseFromSlice(Value, allocator, line, .{});
+        defer parsed.deinit();
+        if (equal(parsed.value, strings.EVENT, strings.SHUTDOWN)) {
+            const data = field(parsed.value, strings.EVENT_DATA) orelse return error.UnexpectedGuestEvent;
+            const host_closed = boolean(data, strings.GUEST_ORIGIN, false) and
+                (equal(data, strings.REASON, strings.HOST_WINDOW_CLOSE) or equal(data, strings.REASON, strings.HOST_QUIT));
+            const guest_shutdown = boolean(data, strings.GUEST_ORIGIN, true) and equal(data, strings.REASON, strings.GUEST_SHUTDOWN);
+            if (host_closed or guest_shutdown) {
+                try checkOrdinary(allocator, evidence);
+                return;
+            }
+        }
+        if (terminalEvent(parsed.value, false)) {
+            std.debug.print(strings.ORDINARY_EVENT, .{line});
+            return error.UnexpectedGuestEvent;
+        }
+    }
+}
+
+fn checkOrdinary(allocator: std.mem.Allocator, evidence: types.Epoch) !void {
+    const bytes = try serial.read(allocator, evidence);
+    defer allocator.free(bytes);
+    if (!try verdict.ordinaryReady(bytes)) return error.OrdinaryEvidenceLost;
 }
 
 pub fn pressKey(allocator: std.mem.Allocator, connection: *Connection, key: []const u8) !void {
@@ -194,12 +230,12 @@ pub fn verifySerial(allocator: std.mem.Allocator, connection: *Connection, path:
         !try paths.same(allocator, path, filename[strings.SERIAL_PREFIX.len..])) return error.WrongGuest;
 }
 
-pub fn verifyPhasePort(allocator: std.mem.Allocator, connection: *Connection, port: u16) !void {
+pub fn verifyControlPort(allocator: std.mem.Allocator, connection: *Connection, label: []const u8, port: u16) !void {
     var buffer: [strings.PHASE_FILENAME.len + 5]u8 = undefined;
     const expected = try std.fmt.bufPrint(&buffer, strings.PHASE_FILENAME, .{port});
     const channels = try command(allocator, connection, strings.QUERY_CHARDEV, null);
     defer channels.deinit();
-    const device = try channel(returned(channels), strings.PHASE_LABEL);
+    const device = try channel(returned(channels), label);
     if (!equal(device, strings.FILENAME, expected)) return error.WrongGuest;
 }
 

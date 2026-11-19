@@ -85,6 +85,41 @@ test "session controls reject stale epochs and actions inappropriate to the acti
     try phase.actions();
 }
 
+test "menu requires the current arm acknowledgement and the verified suite summary" {
+    try phase.menuOffer();
+}
+
+test "menu command that starts before cutoff can finish with bounded grace" {
+    try phase.menuFramePastCutoff();
+}
+
+test "ordinary exit rejects a panic after verified readiness" {
+    try peer.rejects(.OrdinaryPanic, error.NormalBootFailed);
+}
+
+test "ordinary exit accepts an operator close but not a guest reset" {
+    try peer.accepts(.OperatorClosed);
+    try peer.accepts(.OperatorQuit);
+    try peer.rejects(.ResetToShutdown, error.UnexpectedGuestEvent);
+}
+
+test "cancellation preserves partial checks without admitting a completed verdict" {
+    try std.testing.expectEqual(@as(usize, 0), try result.cancelledCount(fixtures.CANCELLED_EMPTY));
+    try std.testing.expectEqual(@as(usize, 1), try result.cancelledCount(fixtures.CANCELLED_ONE));
+    try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_MISMATCH));
+    try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_INCOMPLETE));
+    try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_EMPTY ++ fixtures.CANCELLED_EMPTY));
+    try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_ONE ++ fixtures.VALID));
+}
+
+test "ordinary handoff refuses diagnostic output even with a ready marker" {
+    try std.testing.expect(try result.ordinaryReady(fixtures.MISSING));
+    try std.testing.expect(!try result.ordinaryReady(""));
+    try std.testing.expectError(error.UnexpectedDiagnosticBoot, result.ordinaryReady(fixtures.VALID));
+    try std.testing.expectError(error.UnexpectedDiagnosticBoot, result.ordinaryReady(fixtures.FIRMWARE_VALID));
+    try std.testing.expectError(error.NormalBootFailed, result.ordinaryReady(fixtures.PANIC));
+}
+
 test "phase frames encode four Mirai choices with an explicit nonzero epoch" {
     try phase.frames();
 }

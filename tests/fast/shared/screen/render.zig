@@ -77,7 +77,8 @@ pub fn fixedChrome() !void {
         const shutdown_ink = peakInk(&target, shutdown_hint);
         try std.testing.expect(boot_ink != 0 and boot_ink <= 128);
         try std.testing.expect(shutdown_ink != 0 and shutdown_ink <= 128);
-        try std.testing.expect(peakInk(&target, cancel_hint) > 128);
+        const cancel_ink = peakInk(&target, cancel_hint);
+        try std.testing.expect(cancel_ink != 0 and cancel_ink <= 128);
         try expectPadding(&target);
 
         @memcpy(before, pixels);
@@ -92,6 +93,10 @@ pub fn fixedChrome() !void {
         try std.testing.expectEqual(fill, pixels[target.offset(right - 52, bar_y)]);
         try std.testing.expect(!hasInk(&target, separator));
         try std.testing.expect(!hasInk(&target, cancel_hint));
+        try std.testing.expect(peakInk(&target, boot_hint) <= 128);
+        try std.testing.expect(peakInk(&target, shutdown_hint) <= 128);
+        progress.MenuReady = true;
+        try std.testing.expect(screen.render.update(&target, geometry, scratch, text, &progress, 0));
         try std.testing.expect(peakInk(&target, boot_hint) > 128);
         try std.testing.expect(peakInk(&target, shutdown_hint) > 128);
         try expectCompleteControls(&target, controls, scratch, text);

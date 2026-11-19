@@ -14,6 +14,10 @@ pub const Scenario = enum {
     QuitRefused,
     LateReply,
     Headless,
+    OperatorClosed,
+    OperatorQuit,
+    ResetToShutdown,
+    OrdinaryPanic,
 };
 
 pub const Peer = struct {

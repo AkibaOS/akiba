@@ -14,6 +14,32 @@ pub fn failedBeforeSelection(bytes: []const u8) bool {
         std.mem.indexOf(u8, bytes, labels.COLLAPSE_BANNER) != null;
 }
 
+pub fn cancelledCount(bytes: []const u8) !usize {
+    if (failedBeforeSelection(bytes) or std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null or
+        std.mem.indexOf(u8, bytes, strings.READY) != null) return error.InvalidCancellationEvidence;
+    var count: ?usize = null;
+    var lines = std.mem.splitScalar(u8, bytes, '\n');
+    while (lines.next()) |line| {
+        if (!std.mem.startsWith(u8, line, strings.CHECK_CANCELLED)) continue;
+        if (count != null or lines.index == null) return error.InvalidCancellationEvidence;
+        const text = std.mem.trimEnd(u8, line[strings.CHECK_CANCELLED.len..], strings.CARRIAGE_RETURN);
+        count = std.fmt.parseInt(usize, text, 10) catch return error.InvalidCancellationEvidence;
+    }
+    if (count == null or std.mem.count(u8, bytes, strings.CHECK_PASS) != count.?) return error.InvalidCancellationEvidence;
+    return count.?;
+}
+
+pub fn ordinaryReady(bytes: []const u8) !bool {
+    if (failedBeforeSelection(bytes)) return error.NormalBootFailed;
+    if (std.mem.indexOf(u8, bytes, strings.CHECK_BEGIN) != null or
+        std.mem.indexOf(u8, bytes, firmware.BEGIN) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_CANCELLED) != null or
+        std.mem.indexOf(u8, bytes, firmware.COMPLETE) != null or
+        std.mem.indexOf(u8, bytes, strings.CHECK_PASS) != null) return error.UnexpectedDiagnosticBoot;
+    return try uniqueLine(bytes, strings.READY) != null;
+}
+
 pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     if (std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null) return error.GuestCheckFailed;
     if (scenario == .PulseDeath) return expectedFatal(bytes);

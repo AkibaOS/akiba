@@ -6,7 +6,7 @@ const constants = @import("tests").phase.constants.action;
 const types = @import("tests").phase.types.action;
 
 pub fn encode(epoch: u64, action: types.Action) ?types.Frame {
-    if (epoch == 0) return null;
+    if (epoch == 0 or action == .Timeout) return null;
     var frame: types.Frame = undefined;
     @memcpy(frame[0..constants.EPOCH_OFFSET], &constants.HEADER);
     std.mem.writeInt(u64, frame[constants.EPOCH_OFFSET..constants.ACTION_OFFSET], epoch, .little);
@@ -23,6 +23,6 @@ pub fn decode(frame: []const u8, expected_epoch: u64, mode: types.Mode) ?types.A
     return switch (mode) {
         .Closed => null,
         .Testing => if (action == .Cancel) action else null,
-        .Menu => if (action == .Cancel) null else action,
+        .Menu => if (action == .Boot or action == .Shutdown) action else null,
     };
 }

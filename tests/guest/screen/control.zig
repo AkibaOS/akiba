@@ -31,7 +31,7 @@ pub fn bind(descriptor: Framebuffer) void {
     if (descriptor.isValid()) framebuffer = descriptor;
 }
 
-pub fn start(total: usize, date: ?[]const u8) bool {
+pub fn start(total: usize, date: ?[]const u8, cancel_ready: bool) bool {
     const descriptor = framebuffer orelse return false;
     if (active != null or total == 0) return false;
     const layout = screen.layout.plan(descriptor.Width, descriptor.Height) orelse return false;
@@ -53,7 +53,8 @@ pub fn start(total: usize, date: ?[]const u8) bool {
     const rows = @as([*]Row, @ptrCast(@alignCast(backing + row_offset)))[0..row_count];
 
     var surface = graphics.types.surface.Surface.initialize(descriptor.Base, descriptor.Width, descriptor.Height, descriptor.Stride, descriptor.PixelFormat);
-    const progress = screen.model.initialize(rows[0..layout.VisibleRows], total);
+    var progress = screen.model.initialize(rows[0..layout.VisibleRows], total);
+    progress.CancelReady = cancel_ready;
     renderer = workspace.bind();
     if (!screen.render.takeover(&surface, layout, pixels, .{ .Face = &face, .Renderer = &renderer }, &progress, date)) return false;
     active = .{ .Surface = surface, .Layout = layout, .Face = face, .Physical = physical, .Pages = pages, .Pixels = pixels, .Rows = rows, .Progress = progress };

@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const fixtures = @import("tests").strings.oracle;
+const inputs = @import("tests").constants.protocol;
 const labels = @import("tests").strings.scenario;
 const project = @import("tests");
 const Scenario = @import("tests").types.scenario.Scenario;
@@ -18,7 +19,8 @@ pub fn actions() !void {
     try std.testing.expectEqualSlices(u8, &boot, &wire.encode(epoch, .Boot).?);
     try std.testing.expectEqual(@as(?Action, .Boot), wire.decode(&boot, epoch, .Menu));
     try std.testing.expectEqual(@as(?Action, .Shutdown), wire.decode(&stop, epoch, .Menu));
-    try std.testing.expectEqual(@as(?Action, .Timeout), wire.decode(&timeout, epoch, .Menu));
+    try std.testing.expect(wire.decode(&timeout, epoch, .Menu) == null);
+    try std.testing.expect(wire.encode(epoch, .Timeout) == null);
     try std.testing.expectEqual(@as(?Action, .Cancel), wire.decode(&cancel, epoch, .Testing));
     try std.testing.expect(wire.decode(&boot, epoch, .Testing) == null);
     try std.testing.expect(wire.decode(&stop, epoch, .Testing) == null);
@@ -37,6 +39,56 @@ pub fn actions() !void {
     try std.testing.expect(wire.decode(&malformed, epoch, .Menu) == null);
 }
 
+pub fn menuFramePastCutoff() !void {
+    const transport = project.runner.phase;
+    const network = project.runner.socket;
+    const address = try std.net.Address.parseIp4(project.strings.protocol.ADDRESS, 0);
+    var server = try address.listen(.{});
+    defer server.deinit();
+    const client = try network.startConnection(server.listen_address.getPort());
+    defer client.close();
+    const peer = try server.accept();
+    defer peer.stream.close();
+    try network.checkConnection(client);
+    const epoch = 17;
+    const bytes = project.phase.action.encode(epoch, .Boot).?;
+    try std.testing.expectEqual(@as(usize, 1), try network.send(peer.stream.handle, bytes[0..1]));
+    const worker = try std.Thread.spawn(.{}, writeTail, .{ peer.stream.handle, bytes[1..] });
+    defer worker.join();
+    var timer = try std.time.Timer.start();
+    const action = try transport.menuAction(client, null, .{ .Timer = &timer, .Limit = inputs.ACTION_IDLE_NS }, null, epoch);
+    try std.testing.expectEqual(.Boot, action);
+}
+
+fn writeTail(handle: std.net.Stream.Handle, bytes: []const u8) void {
+    std.Thread.sleep(inputs.ACTION_TAIL_DELAY_NS);
+    var sent: usize = 0;
+    while (sent < bytes.len) {
+        const count = project.runner.socket.send(handle, bytes[sent..]) catch return;
+        if (count == 0) return;
+        sent += count;
+    }
+}
+
+pub fn menuOffer() !void {
+    const menu = project.phase.menu;
+    const epoch = 0x0807060504030201;
+    const expected = [_]u8{ 'A', 'K', 'M', 'S', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6' };
+    const offer: project.phase.types.menu.Offer = .{ .Epoch = epoch, .Passed = 1910, .Date = expected[16..24].* };
+    try std.testing.expectEqualSlices(u8, &expected, &menu.encodeOffer(offer).?);
+    try std.testing.expectEqual(offer, menu.decodeOffer(&expected).?);
+    try std.testing.expect(menu.decodeOffer(expected[0..23]) == null);
+    try std.testing.expect(menu.encodeOffer(.{ .Epoch = epoch, .Passed = 0, .Date = offer.Date }) == null);
+    var invalid = expected;
+    invalid[16] = '9';
+    try std.testing.expect(menu.decodeOffer(&invalid) == null);
+    const armed = [_]u8{ 'A', 'K', 'M', 'E', 1, 2, 3, 4, 5, 6, 7, 8 };
+    try std.testing.expectEqualSlices(u8, &armed, &menu.encodeArmed(epoch));
+    try std.testing.expect(menu.isArmed(epoch, &armed));
+    try std.testing.expect(!menu.isArmed(epoch + 1, &armed));
+    try std.testing.expect(!menu.isArmed(epoch, &expected));
+}
+
 pub fn earlyFailures() !void {
     const result = project.runner.result;
     try std.testing.expect(result.failedBeforeSelection(fixtures.FAIL));
@@ -51,12 +103,12 @@ pub fn greeting() !void {
     const ready = project.phase.constants.wire.READY;
     const prelude = [_]u8{ 0x1b, '[', '2', 'J', 'A', 'K', 'P', 'R', 0x0d, 0x0a };
     var matched: usize = 0;
-    for (prelude) |byte| matched = wire.advanceGreeting(matched, byte);
+    for (prelude) |byte| matched = wire.advanceGreeting(&ready, matched, byte);
     try std.testing.expectEqual(@as(usize, 0), matched);
-    for (ready[0..3]) |byte| matched = wire.advanceGreeting(matched, byte);
+    for (ready[0..3]) |byte| matched = wire.advanceGreeting(&ready, matched, byte);
     try std.testing.expectEqual(@as(usize, 3), matched);
     for (ready, 0..) |byte, index| {
-        matched = wire.advanceGreeting(matched, byte);
+        matched = wire.advanceGreeting(&ready, matched, byte);
         try std.testing.expectEqual(index + 1, matched);
     }
 }

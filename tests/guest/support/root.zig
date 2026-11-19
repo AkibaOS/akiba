@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const allocation = @import("tests").guest.support.allocation;
+const cancellation = @import("tests").guest.support.cancellation;
 const common = @import("common");
 const cpu = @import("asm").cpu;
 const kagami = @import("mirai").kagami;
@@ -43,6 +44,7 @@ pub fn run(info: *const BootInfo) void {
     defer allocation.clear();
     completed = false;
     serial.printf(labels.ROLLBACK_BEGIN, .{});
+    cancellation.earlyCheckpoint();
     mustRefuseRetirement(info);
     const warm = kagami.bootstrap.prepare(info) catch @panic(labels.EARLY_FAILURE);
     allocation.arm(0);
@@ -72,6 +74,7 @@ pub fn run(info: *const BootInfo) void {
             allocation.clear();
             if (failure != error.OutOfMemory or previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
                 !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
+            cancellation.earlyCheckpoint();
             if ((failures + 1) % CHECKPOINT_INTERVAL == 0) screen.bootCheckpoint(failures + 1);
         }
     }

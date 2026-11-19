@@ -5,10 +5,10 @@ const std = @import("std");
 const constants = @import("tests").phase.constants.wire;
 const types = @import("tests").phase.types.ticket;
 
-pub fn advanceGreeting(matched: usize, byte: u8) usize {
-    std.debug.assert(matched < constants.READY.len);
-    if (byte == constants.READY[matched]) return matched + 1;
-    return @intFromBool(byte == constants.READY[0]);
+pub fn advanceGreeting(marker: []const u8, matched: usize, byte: u8) usize {
+    std.debug.assert(matched < marker.len);
+    if (byte == marker[matched]) return matched + 1;
+    return @intFromBool(byte == marker[0]);
 }
 
 pub fn encode(ticket: types.Ticket, role: types.Role) ?types.Frame {

@@ -2,13 +2,14 @@
 
 const std = @import("std");
 
+const bootloader = @import("../bootloader/bootloader.zig");
 const fixture = @import("../tests/fixture.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const types = @import("../types/types.zig");
 
-fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bool) *std.Build.Step.Compile {
+pub fn artifact(builder: *std.Build, modules: types.modules.Modules, guest_checks: bool) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .cpu_model = .{ .explicit = &std.Target.x86.cpu.x86_64 },
@@ -33,12 +34,7 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
     options.addOption(bool, names.OPTION_GUEST_CHECKS, guest_checks);
     module.addOptions(names.MODULE_OPTIONS, options);
     if (guest_checks) {
-        const hikari = builder.createModule(.{ .root_source_file = builder.path(paths.HIKARI_ROOT) });
-        hikari.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
-        hikari.addImport(names.MODULE_COMMON, modules.Common);
-        hikari.addImport(names.MODULE_SHARED, modules.Shared);
-        hikari.addImport(names.MODULE_UTILS, modules.Utils);
-        hikari.addImport(names.EXECUTABLE_HIKARI, hikari);
+        const hikari = bootloader.compile.module(builder, modules, null, false);
         const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
         checks.addImport(names.MODULE_TESTS, checks);
         checks.addImport(names.MODULE_COMMON, modules.Common);
@@ -74,8 +70,7 @@ fn compile(builder: *std.Build, modules: types.modules.Modules, guest_checks: bo
     return executable;
 }
 
-pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step {
-    const executable = compile(builder, modules, false);
+pub fn install(builder: *std.Build, executable: *std.Build.Step.Compile) *std.Build.Step {
     const copy = builder.addInstallFile(executable.getEmittedBin(), paths.MIRAI_OUTPUT);
     const step = builder.step(names.EXECUTABLE_MIRAI, steps.MIRAI_DESCRIPTION);
     step.dependOn(&copy.step);
@@ -83,7 +78,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step 
 }
 
 pub fn addGuest(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step.Compile {
-    const executable = compile(builder, modules, true);
+    const executable = artifact(builder, modules, true);
     const copy = builder.addInstallFile(executable.getEmittedBin(), paths.GUEST_OUTPUT);
     const step = builder.step(names.STEP_GUEST_CHECKS, steps.GUEST_CHECKS_DESCRIPTION);
     step.dependOn(&copy.step);

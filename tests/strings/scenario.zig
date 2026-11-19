@@ -5,6 +5,8 @@ pub const ARGUMENT = "name=" ++ FILE ++ ",string={s}";
 pub const PHASE_FILE = "opt/akiba/test-phase-channel";
 pub const PHASE_VALUE = "1";
 pub const PHASE_ARGUMENT = "name=" ++ PHASE_FILE ++ ",string=" ++ PHASE_VALUE;
+pub const CANCEL_FILE = "opt/akiba/test-cancel";
+pub const CANCEL_ARGUMENT = "name=" ++ CANCEL_FILE ++ ",string=" ++ PHASE_VALUE;
 pub const INVALID_PHASE = "Test phase ticket missing or invalid";
 pub const BUILD_DATE_FILE = "opt/akiba/test-build-date";
 pub const BUILD_DATE_ARGUMENT = "name=" ++ BUILD_DATE_FILE ++ ",string={s}";

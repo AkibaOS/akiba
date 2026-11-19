@@ -20,16 +20,20 @@ var renderer: TextRenderer = undefined;
 var workspace: Workspace = undefined;
 var state: SplashState = SplashState.initialize(limits.BOOT_STEPS);
 var ready: bool = false;
+var quiet: bool = false;
 var fallback: ?*efi.types.protocols.output.SimpleTextOutputProtocol = null;
 
 pub fn initialize(
     framebuffer: boot.types.framebuffer.FramebufferInfo,
     console_output: *efi.types.protocols.output.SimpleTextOutputProtocol,
+    show_art: bool,
 ) bool {
     fallback = console_output;
     ready = false;
+    quiet = !show_art;
     state = SplashState.initialize(limits.BOOT_STEPS);
     if (!framebuffer.isValid()) return false;
+    if (quiet) return true;
 
     const face = font.face.load(graphics.assets.font.HIKARI) catch return false;
     const surface = Surface.initialize(framebuffer.Base, framebuffer.Width, framebuffer.Height, framebuffer.Stride, framebuffer.PixelFormat);
@@ -42,6 +46,7 @@ pub fn initialize(
 }
 
 pub fn report(message: []const u8) void {
+    if (quiet) return;
     if (!ready) {
         reportToFirmware(message);
         return;

@@ -1,9 +1,11 @@
 //! Keyboard IRQ Handler
 
+const cancellation = if (options.GUEST_CHECKS) @import("tests").guest.support.cancellation else null;
 const io = @import("asm").io;
 
 const constants = @import("mirai").drivers.constants;
 const interrupts = @import("mirai").interrupts;
+const options = @import("options");
 const serial = @import("mirai").drivers.serial;
 const strings = @import("mirai").drivers.strings;
 
@@ -15,6 +17,7 @@ var last_scancode: u8 = 0;
 pub fn handler(_: u8) void {
     const scancode = io.port.readByte(ports.DATA);
     last_scancode = scancode;
+    if (options.GUEST_CHECKS) cancellation.observe(scancode);
     serial.write.printf(messages.SCANCODE, .{scancode});
 }
 

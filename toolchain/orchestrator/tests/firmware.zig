@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const bootloader = @import("../bootloader/bootloader.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 const storage = @import("storage.zig");
@@ -9,12 +10,7 @@ const types = @import("../types/types.zig");
 
 pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.Build.Step.Compile) std.Build.LazyPath {
     const target = builder.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .uefi, .abi = .msvc });
-    const hikari = builder.createModule(.{ .root_source_file = builder.path(paths.HIKARI_ROOT), .target = target, .optimize = .ReleaseSafe });
-    hikari.addImport(names.EXECUTABLE_HIKARI, hikari);
-    hikari.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
-    hikari.addImport(names.MODULE_COMMON, modules.Common);
-    hikari.addImport(names.MODULE_SHARED, modules.Shared);
-    hikari.addImport(names.MODULE_UTILS, modules.Utils);
+    const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.EXECUTABLE_HIKARI, hikari);

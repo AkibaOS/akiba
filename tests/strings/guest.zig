@@ -2,6 +2,8 @@
 
 pub const BEGIN = "AKIBA_GUEST_CHECKS_BEGIN\n";
 pub const COMPLETE = "AKIBA_GUEST_CHECKS_COMPLETE %d\n";
+pub const CANCELLED = "AKIBA_GUEST_CHECKS_CANCELLED %d\n";
+pub const CANCELLATION_FAILED = "Could not send the diagnostic cancellation action";
 pub const PASS = "CHECK PASS %s\n";
 pub const GROUP_MEMORY = "CHECK GROUP Memory protections\n";
 pub const GROUP_LIFECYCLE = "CHECK GROUP Kata lifecycle\n";

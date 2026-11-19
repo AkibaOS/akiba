@@ -22,3 +22,6 @@ pub const JOB_REPLY_START = "{\"id\":2,";
 pub const JOB_REPLY_END = "\"return\":[]}\n";
 pub const QUERY_DISPLAY = "query-display-options";
 pub const HEADLESS_REPLY = "{\"id\":2,\"return\":{\"type\":\"none\"}}\n";
+pub const OPERATOR_CLOSED = "{\"event\":\"SHUTDOWN\",\"data\":{\"guest\":false,\"reason\":\"host-ui\"}}\n";
+pub const OPERATOR_QUIT = "{\"event\":\"SHUTDOWN\",\"data\":{\"guest\":false,\"reason\":\"host-qmp-quit\"}}\n";
+pub const RESET_TO_SHUTDOWN = "{\"event\":\"SHUTDOWN\",\"data\":{\"guest\":true,\"reason\":\"guest-reset\"}}\n";

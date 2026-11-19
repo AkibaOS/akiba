@@ -24,7 +24,7 @@ const Allocator = std.mem.Allocator;
 const Scenario = @import("tests").types.scenario.Scenario;
 const PAGE = std.heap.page_allocator;
 
-pub fn run() !void {
+pub fn run(unattended: bool) !void {
     terminal.begin();
     process.installCancellation() catch |failure| {
         terminal.fail(null, .Prepare, failure, null);
@@ -39,7 +39,7 @@ pub fn run() !void {
         return failure;
     };
     var session: types.Session = .{ .Process = process.init(allocator, &.{}) };
-    const bases = [_][]const u8{ inputs.Image, inputs.FirmwareImage, inputs.FirmwareCode, inputs.FirmwareTemplate };
+    const bases = [_][]const u8{ inputs.Image, inputs.FirmwareImage, inputs.MenuImage, inputs.OrdinaryImage, inputs.FirmwareCode, inputs.FirmwareTemplate };
     var fingerprints: [bases.len]types.Fingerprint = undefined;
     var known: usize = 0;
     const outcome = work: {
@@ -47,10 +47,16 @@ pub fn run() !void {
             fingerprint.* = image.fingerprint(path) catch |failure| break :work failure;
             known += 1;
         }
-        break :work execute(allocator, &inputs, &session);
+        break :work execute(allocator, &inputs, &session, unattended);
     };
     var failure: ?anyerror = if (outcome) |_| null else |reason| reason;
     const cleanup = close(&session, failure == null);
+    if (session.OperatorExit and failure == null) {
+        verifyOrdinaryExit(&inputs, session.SerialStart) catch |reason| {
+            failure = reason;
+            session.Stage = .Ordinary;
+        };
+    }
     const diagnostic = if (failure != null) failedEvidence(allocator, &inputs, session.SerialStart) else null;
     if (session.Process.Spawned and !session.Process.Reaped) session.CleanupVerified = false;
     var cleanup_error: ?anyerror = if (cleanup) |_| null else |reason| reason;
@@ -69,14 +75,15 @@ pub fn run() !void {
     terminal.cleanup(session.Process.Spawned, cleanup_error, session.CleanupVerified);
     if (cleanup_error) |reason| return reason;
     if (failure) |reason| return reason;
-    terminal.total(session.Passed);
+    if (session.Cancelled) return error.GuestChecksCancelled;
+    if (unattended) terminal.total(session.Passed);
 }
 
-fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Session) !void {
+fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Session, unattended: bool) !void {
     try image.prepare(allocator, inputs, &session.CleanupVerified);
     const name = try std.fmt.allocPrint(allocator, strings.NAME_FORMAT, .{std.fs.path.basename(inputs.Run)});
     const endpoints = try reserveEndpoints();
-    session.Process = process.init(allocator, try arguments(allocator, inputs, name, endpoints));
+    session.Process = process.init(allocator, try arguments(allocator, inputs, name, endpoints, unattended));
     session.Stage = .Spawn;
     try process.spawn(&session.Process, inputs, allocator);
     session.Stage = .Connect;
@@ -87,10 +94,11 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Owned = true;
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
     try protocol.verifyWindow(PAGE, connection);
-    try graph.verifyAttached(PAGE, connection, inputs, false);
+    try graph.verifyAttached(PAGE, connection, inputs, .Diagnostic);
     try graph.verifyStateStore(PAGE, connection, inputs);
     try protocol.verifySerial(PAGE, connection, inputs.Serial);
-    try protocol.verifyPhasePort(PAGE, connection, endpoints.Phase);
+    try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, endpoints.Phase);
+    try protocol.verifyControlPort(PAGE, connection, strings.MENU_LABEL, endpoints.Menu);
     const log = try std.fs.cwd().openFile(inputs.Serial, .{});
     defer log.close();
     if (try log.getEndPos() != 0) return error.UnexpectedSerialHistory;
@@ -98,39 +106,123 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_SAVE);
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
 
-    const seed = std.crypto.random.uintLessThan(u64, std.math.maxInt(u64) - std.enums.values(Scenario).len);
+    const menu_slot = std.enums.values(Scenario).len + 1;
+    const seed = std.crypto.random.uintLessThan(u64, std.math.maxInt(u64) - menu_slot);
     for (std.enums.values(Scenario), 1..) |selected, index| {
         session.Selected = selected;
         session.SerialStart = try log.getEndPos();
         const firmware = selected == .Firmware;
         if (index != 1) {
             session.Stage = .Restore;
-            try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_LOAD);
-            try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
-            if (try log.getEndPos() != session.SerialStart) return error.UnexpectedSerialHistory;
-            try graph.select(PAGE, connection, firmware);
-            try graph.verifyAttached(PAGE, connection, inputs, firmware);
+            try restoreFor(inputs, session, &log, if (firmware) .Firmware else .Diagnostic);
         }
         const evidence: types.Epoch = .{ .File = &log, .Start = session.SerialStart };
         var timer = try std.time.Timer.start();
+        var control_stream: ?std.net.Stream = null;
+        defer if (control_stream) |stream| stream.close();
+        var cancel_channel: ?types.CancelChannel = null;
         session.Stage = .Select;
         if (firmware) {
             try protocol.action(PAGE, connection, strings.CONTINUE, null);
         } else {
-            try protocol.verifyPhasePort(PAGE, connection, endpoints.Phase);
+            try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, endpoints.Phase);
             const stream = try phase.open(endpoints.Phase, &session.Process, &timer);
-            defer stream.close();
+            control_stream = stream;
+            const epoch = seed + index;
             try protocol.action(PAGE, connection, strings.CONTINUE, null);
-            try phase.select(stream, &session.Process, &timer, evidence, .{ .Epoch = seed + index, .Scenario = selected });
+            try phase.select(stream, &session.Process, &timer, evidence, .{ .Epoch = epoch, .Scenario = selected });
+            if (!unattended and selected == .Standard) cancel_channel = .{ .Stream = stream, .Epoch = epoch };
         }
         session.Stage = .Checks;
-        session.Passed += try completed(session, evidence, selected, &timer);
+        const cancellation = if (cancel_channel) |*channel| channel else null;
+        switch (try completed(session, evidence, selected, &timer, cancellation)) {
+            .Passed => |count| session.Passed += count,
+            .Cancelled => |count| {
+                session.Passed += count;
+                session.Cancelled = true;
+                break;
+            },
+        }
+    }
+    session.Selected = null;
+    if (session.Cancelled) {
+        std.debug.print(strings.CANCELLED_RESULT, .{session.Passed});
+        try bootOrdinary(inputs, session, &log);
+    } else if (!unattended) {
+        terminal.total(session.Passed);
+        try postSuite(inputs, session, &log, endpoints.Menu, seed + menu_slot);
     }
     session.Stage = .Complete;
-    session.Selected = null;
 }
 
-fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario, timer: *std.time.Timer) !usize {
+fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, port: u16, epoch: u64) !void {
+    const connection = &session.Control.?;
+    session.Stage = .Menu;
+    try restoreFor(inputs, session, log, .Menu);
+    var timer = try std.time.Timer.start();
+    const action = choose: {
+        try protocol.verifyControlPort(PAGE, connection, strings.MENU_LABEL, port);
+        const stream = try phase.open(port, &session.Process, &timer);
+        defer stream.close();
+        const evidence: types.Epoch = .{ .File = log, .Start = session.SerialStart };
+        var date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+        _ = buildDate(&date, inputs.Image) orelse return error.InvalidMenuBuildDate;
+        const passed = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
+        try protocol.action(PAGE, connection, strings.CONTINUE, null);
+        break :choose try phase.choose(stream, &session.Process, &timer, evidence, .{ .Epoch = epoch, .Passed = passed, .Date = date });
+    };
+    try protocol.verifyStatus(PAGE, connection, strings.RUNNING);
+    std.debug.print(strings.MENU_ACTION, .{@tagName(action)});
+    switch (action) {
+        .Shutdown => return,
+        .Boot, .Timeout => {
+            try stopRunning(connection);
+            try bootOrdinary(inputs, session, log);
+        },
+        .Cancel => return error.InvalidMenuAction,
+    }
+}
+
+fn restoreFor(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, media: types.Media) !void {
+    const connection = &session.Control.?;
+    session.SerialStart = try log.getEndPos();
+    try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_LOAD);
+    try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
+    if (try log.getEndPos() != session.SerialStart) return error.UnexpectedSerialHistory;
+    try graph.select(PAGE, connection, media);
+    try graph.verifyAttached(PAGE, connection, inputs, media);
+}
+
+fn stopRunning(connection: *types.Connection) !void {
+    try protocol.action(PAGE, connection, strings.STOP, null);
+    try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
+}
+
+fn bootOrdinary(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File) !void {
+    const connection = &session.Control.?;
+    session.Stage = .Ordinary;
+    try restoreFor(inputs, session, log, .Ordinary);
+    const evidence: types.Epoch = .{ .File = log, .Start = session.SerialStart };
+    var timer = try std.time.Timer.start();
+    try protocol.action(PAGE, connection, strings.CONTINUE, null);
+    while (timer.read() < limits.START_NS) {
+        if (process.cancelled()) return error.Cancelled;
+        if (try process.exited(&session.Process)) return error.GuestExited;
+        try protocol.verifyStatus(PAGE, connection, strings.RUNNING);
+        const bytes = try serial.read(PAGE, evidence);
+        defer PAGE.free(bytes);
+        if (try result.ordinaryReady(bytes)) {
+            std.debug.print(strings.ORDINARY_READY, .{});
+            try protocol.superviseOrdinary(PAGE, connection, evidence);
+            session.OperatorExit = true;
+            return;
+        }
+        std.Thread.sleep(limits.POLL_NS);
+    }
+    return error.OrdinaryBootTimeout;
+}
+
+fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario, timer: *std.time.Timer, cancellation: ?*types.CancelChannel) !types.PhaseResult {
     const connection = &session.Control.?;
     const keys = if (selected == .Devices) input.choose() else undefined;
     var challenge: keyboard.Challenge = .{ .Keys = &keys };
@@ -138,6 +230,18 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
         if (process.cancelled()) return error.Cancelled;
         if (try process.exited(&session.Process)) return error.GuestExited;
         try protocol.verifyStatus(PAGE, connection, strings.RUNNING);
+        if (cancellation) |channel| {
+            if (try phase.cancellation(channel)) {
+                if (try protocol.halted(PAGE, connection)) {
+                    try stopRunning(connection);
+                    const frozen = try serial.read(PAGE, evidence);
+                    defer PAGE.free(frozen);
+                    return .{ .Cancelled = try result.cancelledCount(frozen) };
+                }
+                std.Thread.sleep(limits.POLL_NS);
+                continue;
+            }
+        }
         const bytes = try serial.read(PAGE, evidence);
         defer PAGE.free(bytes);
         const passed = try result.evaluate(bytes, selected);
@@ -152,8 +256,8 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
         if (passed) |count| {
             const expected_halt = selected == .Firmware or selected == .PulseDeath or selected == .Collapse;
             if (!expected_halt or try protocol.halted(PAGE, connection)) {
-                try protocol.action(PAGE, connection, strings.STOP, null);
-                try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
+                if (cancellation) |channel| if (channel.Received != 0) return error.InvalidCancellationAction;
+                try stopRunning(connection);
                 const frozen = try serial.read(PAGE, evidence);
                 defer PAGE.free(frozen);
                 if (try result.evaluate(frozen, selected) != count) return error.GuestOutcomeChanged;
@@ -161,7 +265,7 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 if (selected == .Devices and try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
                 if (timer.read() >= limits.CHECK_NS) return error.GuestCheckTimeout;
                 terminal.passed(selected, count, frozen);
-                return count;
+                return .{ .Passed = count };
             }
         }
         std.Thread.sleep(limits.POLL_NS);
@@ -185,7 +289,7 @@ fn connect(instance: *types.Process, port: u16) !types.Connection {
     return error.GuestStartTimeout;
 }
 
-fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8, endpoints: types.Endpoints) ![]const []const u8 {
+fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8, endpoints: types.Endpoints, unattended: bool) ![]const []const u8 {
     var list: std.ArrayList([]const u8) = .empty;
     try list.appendSlice(allocator, &.{
         inputs.Qemu,
@@ -212,9 +316,14 @@ fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8,
         try std.fmt.allocPrint(allocator, strings.PHASE_SOCKET, .{endpoints.Phase}),
         strings.SERIAL_FLAG,
         strings.PHASE_SERIAL,
+        strings.CHARDEV_FLAG,
+        try std.fmt.allocPrint(allocator, strings.MENU_SOCKET, .{endpoints.Menu}),
+        strings.SERIAL_FLAG,
+        strings.MENU_SERIAL,
         scenario.FLAG,
         scenario.PHASE_ARGUMENT,
     });
+    if (!unattended) try list.appendSlice(allocator, &.{ scenario.FLAG, scenario.CANCEL_ARGUMENT });
     if (buildDateArgument(allocator, inputs.Image)) |date| try list.appendSlice(allocator, &.{ scenario.FLAG, date });
     try graph.arguments(allocator, &list, inputs);
     return list.items;
@@ -226,21 +335,27 @@ fn reserveEndpoints() !types.Endpoints {
     defer monitor.deinit();
     var control = try address.listen(.{});
     defer control.deinit();
-    return .{ .Qmp = monitor.listen_address.getPort(), .Phase = control.listen_address.getPort() };
+    var menu = try address.listen(.{});
+    defer menu.deinit();
+    return .{ .Qmp = monitor.listen_address.getPort(), .Phase = control.listen_address.getPort(), .Menu = menu.listen_address.getPort() };
 }
 
 fn buildDateArgument(allocator: Allocator, path: []const u8) ?[]const u8 {
-    const stat = std.fs.cwd().statFile(path) catch return null;
     var buffer: [screen.constants.frame.DATE_BYTES]u8 = undefined;
-    const date = screen.date.format(&buffer, stat.mtime) orelse return null;
+    const date = buildDate(&buffer, path) orelse return null;
     return std.fmt.allocPrint(allocator, scenario.BUILD_DATE_ARGUMENT, .{date}) catch null;
+}
+
+fn buildDate(buffer: *[screen.constants.frame.DATE_BYTES]u8, path: []const u8) ?[]const u8 {
+    const stat = std.fs.cwd().statFile(path) catch return null;
+    return screen.date.format(buffer, stat.mtime);
 }
 
 fn close(session: *types.Session, require_quit_reply: bool) !void {
     var quit_error: ?anyerror = null;
     if (session.Control) |*connection| {
         defer connection.Stream.close();
-        if (session.Owned) protocol.quit(PAGE, connection) catch |failure| {
+        if (session.Owned and !session.OperatorExit) protocol.quit(PAGE, connection) catch |failure| {
             quit_error = failure;
         };
     }
@@ -249,6 +364,14 @@ fn close(session: *types.Session, require_quit_reply: bool) !void {
         return failure;
     };
     if (require_quit_reply) if (quit_error) |failure| return failure;
+}
+
+fn verifyOrdinaryExit(inputs: *const types.Paths, offset: u64) !void {
+    const log = try std.fs.cwd().openFile(inputs.Serial, .{});
+    defer log.close();
+    const bytes = try serial.read(PAGE, .{ .File = &log, .Start = offset });
+    defer PAGE.free(bytes);
+    if (!try result.ordinaryReady(bytes)) return error.OrdinaryEvidenceLost;
 }
 
 fn failedEvidence(allocator: Allocator, inputs: *const types.Paths, offset: u64) ?[]u8 {

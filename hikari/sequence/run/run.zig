@@ -21,6 +21,7 @@ const interrupts = @import("asm").interrupts.flags;
 const loader = @import("hikari").loader;
 const math = @import("utils").math;
 const msr = @import("asm").cpu.msr;
+const options = @import("options");
 const partition = @import("hikari").sequence.partition;
 const processor = @import("asm").cpu.constants;
 const splash = @import("hikari").sequence.splash;
@@ -79,7 +80,7 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
         console.print(console_output, messages.ERROR_DISPLAY);
         return status.UNSUPPORTED;
     }
-    _ = splash.initialize(framebuffer, console_output);
+    _ = splash.initialize(framebuffer, console_output, !options.DIAGNOSTIC_LOADER);
     splash.report(messages.INITIALIZING_DISPLAY);
     splash.report(messages.LOCATING_FILE_SYSTEM);
     claims.Discovery = .{ .Parser = .{ .BootServices = boot_services } };

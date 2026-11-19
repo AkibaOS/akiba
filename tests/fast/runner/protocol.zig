@@ -3,6 +3,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const fixtures = @import("tests").strings.oracle;
 const inputs = @import("tests").constants.protocol;
 const protocol = @import("tests").runner.protocol;
 const socket = @import("tests").runner.socket;
@@ -55,8 +56,19 @@ fn command(connection: *Connection, scenario: types.Scenario) !void {
         .QuitClosed, .QuitRefused => try protocol.quit(std.testing.allocator, connection),
         .LateReply => try protocol.action(std.testing.allocator, connection, strings.QUERY_JOBS, null),
         .Headless => try protocol.verifyWindow(std.testing.allocator, connection),
+        .OperatorClosed, .OperatorQuit, .ResetToShutdown, .OrdinaryPanic => try ordinary(connection, scenario == .OrdinaryPanic),
         else => {},
     }
+}
+
+fn ordinary(connection: *Connection, panic_after_ready: bool) !void {
+    var directory = std.testing.tmpDir(.{});
+    defer directory.cleanup();
+    const file = try directory.dir.createFile(fixtures.SERIAL_FILE, .{ .read = true });
+    defer file.close();
+    try file.writeAll(fixtures.MISSING);
+    if (panic_after_ready) try file.writeAll(fixtures.PANIC);
+    try protocol.superviseOrdinary(std.testing.allocator, connection, .{ .File = &file, .Start = 0 });
 }
 
 fn peer(state: *types.Peer) void {
@@ -127,6 +139,9 @@ fn serve(state: *types.Peer) !void {
             try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_DISPLAY) != null);
             try send(handle, strings.HEADLESS_REPLY);
         },
+        .OperatorClosed, .OrdinaryPanic => try send(handle, strings.REPLY ++ strings.OPERATOR_CLOSED),
+        .OperatorQuit => try send(handle, strings.REPLY ++ strings.OPERATOR_QUIT),
+        .ResetToShutdown => try send(handle, strings.REPLY ++ strings.RESET_TO_SHUTDOWN),
         else => try send(handle, strings.EVENT ++ strings.WRONG_ID ++ strings.REPLY),
     }
 }

@@ -21,7 +21,7 @@ const Text = types.render.Text;
 pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, date: ?[]const u8) bool {
     var staging = prepare(target, layout, scratch) orelse return false;
     graphics.draw.clear(&staging, palette.DESKTOP);
-    chrome(&staging, layout, text, date orelse strings.UNKNOWN_DATE, state.Done) catch return false;
+    chrome(&staging, layout, text, date orelse strings.UNKNOWN_DATE, state) catch return false;
     viewport(&staging, layout, text, state, 0) catch return false;
     progress(&staging, layout.Progress, text, model.percent(state)) catch return false;
     commit(target, &staging, .{ .X = 0, .Y = 0, .Width = layout.Width, .Height = layout.Height });
@@ -33,8 +33,8 @@ pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, stat
     viewport(&staging, layout, text, state, animation_frame) catch return false;
     progress(&staging, layout.Progress, text, model.percent(state)) catch return false;
     if (state.Done) {
-        subtitle(&staging, layout.Header, text, true) catch return false;
-        controls(&staging, layout.Controls, text, true) catch return false;
+        subtitle(&staging, layout.Header, text, state) catch return false;
+        controls(&staging, layout.Controls, text, state) catch return false;
     }
     commit(target, &staging, layout.Log);
     commit(target, &staging, layout.Progress);
@@ -54,16 +54,16 @@ fn prepare(target: *const Surface, layout: Layout, scratch: []u32) ?Surface {
     return .{ .Base = scratch.ptr, .Width = layout.Width, .Height = layout.Height, .Stride = layout.Width, .Format = target.Format };
 }
 
-fn chrome(staging: *Surface, layout: Layout, text: Text, date: []const u8, done: bool) !void {
+fn chrome(staging: *Surface, layout: Layout, text: Text, date: []const u8, state: *const types.model.Model) !void {
     var header = panel(staging, layout.Header, palette.TITLE_BAR);
     var title = inset(&header, frame.INSET, frame.BORDER);
     const date_x = try drawFitted(&title, text, frame.TITLE_SIZE, 0, frame.TITLE_BASELINE, strings.TITLE, palette.TITLE_TEXT);
     _ = try drawFitted(&title, text, frame.TITLE_SIZE, date_x, frame.TITLE_BASELINE, date, palette.TITLE_TEXT);
-    try subtitle(staging, layout.Header, text, done);
-    try controls(staging, layout.Controls, text, done);
+    try subtitle(staging, layout.Header, text, state);
+    try controls(staging, layout.Controls, text, state);
 }
 
-fn controls(staging: *Surface, rectangle: Rect, text: Text, done: bool) !void {
+fn controls(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.Model) !void {
     var strip = scoped(staging, rectangle);
     graphics.draw.clear(&strip, palette.DESKTOP);
     var caption = inset(&strip, frame.INSET, 0);
@@ -72,11 +72,12 @@ fn controls(staging: *Surface, rectangle: Rect, text: Text, done: bool) !void {
     const height: i32 = @intCast(caption.Height);
     if (ascent < 0 or descent < 0 or ascent + descent > height) return error.MetricOutOfRange;
     const baseline: u32 = @intCast(ascent + @divTrunc(height - ascent - descent, 2));
-    const boot_color = if (done) palette.ACTIVE_CONTROL else palette.INACTIVE;
+    const boot_color = if (state.MenuReady) palette.ACTIVE_CONTROL else palette.INACTIVE;
     const boot_end = try drawFitted(&caption, text, frame.CAPTION_SIZE, 0, baseline, strings.COMPLETED_LEGEND, boot_color);
-    if (!done) {
+    if (!state.Done) {
         const cancel_x = try drawFitted(&caption, text, frame.CAPTION_SIZE, boot_end, baseline, strings.CONTROL_SEPARATOR, palette.INACTIVE);
-        _ = try drawFitted(&caption, text, frame.CAPTION_SIZE, cancel_x, baseline, strings.CANCEL_LEGEND, palette.ACTIVE_CONTROL);
+        const cancel_color = if (state.CancelReady) palette.ACTIVE_CONTROL else palette.INACTIVE;
+        _ = try drawFitted(&caption, text, frame.CAPTION_SIZE, cancel_x, baseline, strings.CANCEL_LEGEND, cancel_color);
     }
 }
 
@@ -89,10 +90,10 @@ fn subtitleRegion(header: Rect) Rect {
     };
 }
 
-fn subtitle(staging: *Surface, header: Rect, text: Text, done: bool) !void {
+fn subtitle(staging: *Surface, header: Rect, text: Text, state: *const types.model.Model) !void {
     var area = scoped(staging, subtitleRegion(header));
     graphics.draw.clear(&area, palette.TITLE_BAR);
-    const message = if (done) strings.FINISHED_SUBTITLE else strings.SUBTITLE;
+    const message = if (state.MenuReady) strings.FINISHED_SUBTITLE else if (state.Done) strings.STANDARD_SUBTITLE else strings.SUBTITLE;
     _ = try drawFitted(&area, text, frame.CAPTION_SIZE, 0, frame.SUBTITLE_BASELINE, message, palette.SUBTITLE_TEXT);
 }
 

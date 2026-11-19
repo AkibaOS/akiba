@@ -10,6 +10,17 @@ const Scenario = @import("tests").types.scenario.Scenario;
 const registers = common.constants.serial.registers;
 const ports = common.constants.serial.ports;
 
+var accepted_epoch: ?u64 = null;
+
+pub fn epoch() ?u64 {
+    return accepted_epoch;
+}
+
+pub fn cancel(boot_epoch: u64) bool {
+    const frame = phase.action.encode(boot_epoch, .Cancel) orelse return false;
+    return send(&frame);
+}
+
 pub fn select() ?Scenario {
     initialize();
     if (!send(&phase.constants.wire.READY)) return null;
@@ -18,6 +29,7 @@ pub fn select() ?Scenario {
     const ticket = phase.wire.decode(&frame, .Offer) orelse return null;
     const acknowledgement = phase.wire.encode(ticket, .Acknowledgement) orelse return null;
     if (!send(&acknowledgement)) return null;
+    accepted_epoch = ticket.Epoch;
     return ticket.Scenario;
 }
 
