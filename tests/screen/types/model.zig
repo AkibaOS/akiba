@@ -19,6 +19,7 @@ pub const Model = struct {
     Failed: usize = 0,
     Active: ?[]const u8 = null,
     ActiveVerified: ?usize = null,
+    ActiveTotal: ?usize = null,
     TailIsPassEvidence: bool = false,
     Done: bool = false,
     MenuReady: bool = false,

@@ -108,6 +108,54 @@ pub fn fixedChrome() !void {
     }
 }
 
+pub fn activeBootRow() !void {
+    const layout = screen.layout.plan(width, height).?;
+    const pixels = try allocator.alloc(u32, stride * height);
+    defer allocator.free(pixels);
+    const before = try allocator.alloc(u32, pixels.len);
+    defer allocator.free(before);
+    const scratch = try allocator.alloc(u32, width * height);
+    defer allocator.free(scratch);
+    @memset(pixels, guard_pixel);
+    var target: Surface = .{ .Base = pixels.ptr, .Width = width, .Height = height, .Stride = stride, .Format = .RGB };
+    const face = try font.face.load(graphics.assets.font.HIKARI);
+    var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
+    defer renderer.deinit();
+    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
+    var rows: [4]screen.types.model.Row = undefined;
+    var state = screen.model.initialize(&rows, 2);
+    try std.testing.expect(screen.model.begin(&state, labels.FIRST_CASE));
+    try std.testing.expect(screen.model.beginWork(&state, 4));
+    try std.testing.expect(screen.render.takeover(&target, layout, scratch, text, &state, null));
+    @memcpy(before, pixels);
+    try std.testing.expect(screen.model.checkpoint(&state, 1));
+    try std.testing.expect(screen.render.updateActive(&target, layout, scratch, text, &state, 1, true));
+    const frame = screen.constants.frame;
+    const active: Rect = .{
+        .X = layout.Log.X + frame.INSET,
+        .Y = layout.Log.Y + frame.INSET + frame.ROW_HEIGHT,
+        .Width = layout.Log.Width - 2 * frame.INSET,
+        .Height = frame.ROW_HEIGHT,
+    };
+    var changed_active = false;
+    var changed_progress = false;
+    for (0..height) |row_index| {
+        for (0..stride) |column| {
+            const index = row_index * stride + column;
+            if (before[index] == pixels[index]) continue;
+            if (inside(active, column, row_index)) {
+                changed_active = true;
+            } else if (inside(layout.Progress, column, row_index)) {
+                changed_progress = true;
+            } else {
+                return error.UnrelatedBootPixelsChanged;
+            }
+        }
+    }
+    try std.testing.expect(changed_active and changed_progress);
+    try expectPadding(&target);
+}
+
 pub fn failedComposition() !void {
     const geometry = screen.layout.plan(width, height).?;
     const pixels = try allocator.alloc(u32, stride * height);

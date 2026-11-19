@@ -4,6 +4,13 @@ const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const screen = @import("tests").screen;
 
+pub const Rollback = struct {
+    Timer: ?u16,
+    Clock: screen.types.clock.Clock,
+    Percent: usize = 0,
+    FilledSlots: usize = 0,
+};
+
 pub const Session = struct {
     Surface: graphics.types.surface.Surface,
     Layout: screen.types.geometry.Layout,
@@ -16,4 +23,5 @@ pub const Session = struct {
     Started: u64 = 0,
     LastFrame: usize = 0,
     Rendering: bool = false,
+    RollbackView: ?Rollback = null,
 };

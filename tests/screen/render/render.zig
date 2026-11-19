@@ -23,7 +23,7 @@ pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, st
     graphics.draw.clear(&staging, palette.DESKTOP);
     chrome(&staging, layout, text, date orelse strings.UNKNOWN_DATE, state) catch return false;
     viewport(&staging, layout, text, state, 0) catch return false;
-    progress(&staging, layout.Progress, text, model.percent(state)) catch return false;
+    progress(&staging, layout.Progress, text, state) catch return false;
     commit(target, &staging, .{ .X = 0, .Y = 0, .Width = layout.Width, .Height = layout.Height });
     return true;
 }
@@ -31,7 +31,7 @@ pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, st
 pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, animation_frame: usize) bool {
     var staging = prepare(target, layout, scratch) orelse return false;
     viewport(&staging, layout, text, state, animation_frame) catch return false;
-    progress(&staging, layout.Progress, text, model.percent(state)) catch return false;
+    progress(&staging, layout.Progress, text, state) catch return false;
     if (state.Done) {
         subtitle(&staging, layout.Header, text, state) catch return false;
         controls(&staging, layout.Controls, text, state) catch return false;
@@ -42,6 +42,26 @@ pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, stat
         commit(target, &staging, subtitleRegion(layout.Header));
         commit(target, &staging, layout.Controls);
     }
+    return true;
+}
+
+pub fn updateActive(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, animation_frame: usize, repaint_progress: bool) bool {
+    var staging = prepare(target, layout, scratch) orelse return false;
+    const index = model.activeIndex(state) orelse return false;
+    if (index >= layout.VisibleRows) return false;
+    const entry = model.row(state, index) orelse return false;
+    const rectangle: Rect = .{
+        .X = layout.Log.X + frame.INSET,
+        .Y = layout.Log.Y + frame.INSET + @as(u32, @intCast(index)) * frame.ROW_HEIGHT,
+        .Width = layout.Log.Width - 2 * frame.INSET,
+        .Height = frame.ROW_HEIGHT,
+    };
+    var line = scoped(&staging, rectangle);
+    graphics.draw.clear(&line, palette.TERMINAL);
+    renderRow(&line, text, entry, animation_frame) catch return false;
+    if (repaint_progress) progress(&staging, layout.Progress, text, state) catch return false;
+    commit(target, &staging, rectangle);
+    if (repaint_progress) commit(target, &staging, layout.Progress);
     return true;
 }
 
@@ -141,12 +161,15 @@ fn countedLabel(line: *Surface, text: Text, name: []const u8, pen: i32, comptime
     _ = try drawFitted(line, text, frame.BODY_SIZE, suffix_start, frame.ROW_BASELINE, suffix, palette.INFORMATION);
 }
 
-fn progress(staging: *Surface, rectangle: Rect, text: Text, percentage: usize) !void {
+pub fn progressSlots(width: u32) usize {
+    return (width -| (frame.PERCENT_WIDTH + 2 * frame.BAR_CELL)) / frame.BAR_CELL;
+}
+
+fn progress(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.Model) !void {
     var band = scoped(staging, rectangle);
     graphics.draw.clear(&band, palette.DESKTOP);
     const bar_width = band.Width - frame.PERCENT_WIDTH;
-    const slots = (bar_width - 2 * frame.BAR_CELL) / frame.BAR_CELL;
-    const filled = @as(u64, slots) * percentage / 100;
+    const filled = model.scaled(state, progressSlots(band.Width));
     for (0..filled) |index| {
         const x = (index + 1) * frame.BAR_CELL + (frame.BAR_CELL - frame.BAR_BLOCK_WIDTH) / 2;
         graphics.draw.fillRect(&band, @intCast(x), frame.BAR_TOP, frame.BAR_BLOCK_WIDTH, frame.BAR_BLOCK_HEIGHT, palette.BAR_FILL);
@@ -154,7 +177,7 @@ fn progress(staging: *Surface, rectangle: Rect, text: Text, percentage: usize) !
     _ = try drawFitted(&band, text, frame.BODY_SIZE, 0, frame.ROW_BASELINE, strings.BAR_START, palette.CAPTION);
     _ = try drawFitted(&band, text, frame.BODY_SIZE, @intCast(bar_width - frame.BAR_CELL), frame.ROW_BASELINE, strings.BAR_END, palette.CAPTION);
     var caption: [frame.PERCENT_CELLS]u8 = undefined;
-    const formatted = try std.fmt.bufPrint(&caption, strings.PERCENT, .{percentage});
+    const formatted = try std.fmt.bufPrint(&caption, strings.PERCENT, .{model.percent(state)});
     for (formatted, 0..) |byte, index| {
         if (byte == ' ') continue;
         const x = bar_width + index * frame.BAR_CELL;

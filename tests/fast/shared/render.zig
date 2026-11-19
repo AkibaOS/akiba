@@ -274,6 +274,18 @@ test "boot refusal counts update the running row without completing its check" {
     try checks.screen.model.checkpoints();
 }
 
+test "every measured refusal advances fractional progress without passing the group" {
+    try checks.screen.model.measuredWork();
+}
+
+test "rollback spinner advances on elapsed clock ticks across wrap" {
+    try checks.screen.model.rollbackClock();
+}
+
+test "a rollback checkpoint repaints only its active row and the progress band" {
+    try checks.screen.render.activeBootRow();
+}
+
 test "diagnostic build date uses the cached image timestamp in UTC" {
     try checks.screen.model.metadata();
 }

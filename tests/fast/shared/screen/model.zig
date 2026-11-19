@@ -114,6 +114,49 @@ pub fn checkpoints() !void {
     try std.testing.expectEqual(@as(?usize, null), model.row(&state, 2).?.Verified);
 }
 
+pub fn measuredWork() !void {
+    const model = project.screen.model;
+    var rows: [4]project.screen.types.model.Row = undefined;
+    var state = model.initialize(&rows, 2);
+    try std.testing.expect(!model.beginWork(&state, 4));
+    try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
+    try std.testing.expect(!model.beginWork(&state, 0));
+    try std.testing.expect(model.beginWork(&state, 4));
+    try std.testing.expect(!model.finish(&state, .Pass));
+    try std.testing.expect(!model.checkpoint(&state, 2));
+    const expected_percent = [_]usize{ 12, 25, 37, 49 };
+    const expected_cells = [_]usize{ 3, 6, 9, 11 };
+    for (expected_percent, expected_cells, 1..) |percent, cells, verified| {
+        try std.testing.expect(model.checkpoint(&state, verified));
+        try std.testing.expectEqual(@as(?usize, verified), model.row(&state, 1).?.Verified);
+        try std.testing.expectEqual(percent, model.percent(&state));
+        try std.testing.expectEqual(cells, model.scaled(&state, 24));
+        try std.testing.expectEqual(@as(usize, 0), state.Completed);
+    }
+    try std.testing.expect(!model.checkpoint(&state, 5));
+    try std.testing.expect(model.finish(&state, .Pass));
+    try std.testing.expectEqual(@as(usize, 50), model.percent(&state));
+    try std.testing.expectEqual(@as(?usize, null), state.ActiveTotal);
+}
+
+pub fn rollbackClock() !void {
+    const clock = project.screen.clock;
+    const origin: u32 = 0xfffff0;
+    const period: u32 = 429_545;
+    var state = clock.start(origin);
+    try std.testing.expect(!clock.sample(&state, (origin + period - 1) & 0xffffff));
+    try std.testing.expectEqual(@as(usize, 0), state.Frame);
+    try std.testing.expect(clock.sample(&state, (origin + period) & 0xffffff));
+    try std.testing.expectEqual(@as(usize, 1), state.Frame);
+    try std.testing.expect(clock.sample(&state, (origin + 3 * period + 17) & 0xffffff));
+    try std.testing.expectEqual(@as(usize, 3), state.Frame);
+    try std.testing.expect(!clock.sample(&state, (origin + 4 * period - 1) & 0xffffff));
+    try std.testing.expect(clock.sample(&state, (origin + 4 * period) & 0xffffff));
+    try std.testing.expectEqual(@as(usize, 4), state.Frame);
+    try std.testing.expect(clock.sample(&state, (origin + 8 * period) & 0xffffff));
+    try std.testing.expectEqual(@as(usize, 0), state.Frame);
+}
+
 pub fn metadata() !void {
     const date = project.screen.date;
     var buffer: [project.screen.constants.frame.DATE_BYTES]u8 = undefined;

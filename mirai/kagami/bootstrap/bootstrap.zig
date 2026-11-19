@@ -26,6 +26,14 @@ pub const mapping = @import("mapping.zig");
 var pending: PreparedRoot = .{ .Kagami = .{ .ReferenceCount = 0 } };
 
 pub fn prepare(info: *const sequence.BootInfo) errors.BootError!*PreparedRoot {
+    return prepareWith(info, null);
+}
+
+pub fn prepareObserved(info: *const sequence.BootInfo, comptime observe: *const fn () void) errors.BootError!*PreparedRoot {
+    return prepareWith(info, observe);
+}
+
+fn prepareWith(info: *const sequence.BootInfo, comptime observe: ?*const fn () void) errors.BootError!*PreparedRoot {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (pending.Phase != .Empty or state.hasOwnedKernel()) return errors.BootError.BootstrapBusy;
@@ -60,11 +68,13 @@ pub fn prepare(info: *const sequence.BootInfo) errors.BootError!*PreparedRoot {
         .BootStackBase = stack_base,
         .BootStackTop = stack_base + stacklimits.STACK_SIZE,
     };
-    errdefer abort(&pending);
+    errdefer abortWith(&pending, observe);
     try mapping.initializeUpperHalf(&pending);
-    try mapPhysmap(&pending);
+    if (observe) |pulse| pulse();
+    try mapPhysmap(&pending, observe);
     inline for (.{ manifest.Text, manifest.Rodata, manifest.Data, manifest.DoubleFault, manifest.NonMaskable, manifest.MachineCheck, manifest.Debug }) |region| {
         try mapImageRegion(&pending, region);
+        if (observe) |pulse| pulse();
     }
     while (pending.StackCount < pending.StackFrames.len) {
         const page_index = pending.StackCount;
@@ -106,11 +116,12 @@ fn validateInfo(info: *const sequence.BootInfo, physmap_size: u64) errors.BootEr
     }
 }
 
-fn mapPhysmap(prepared: *PreparedRoot) errors.BootError!void {
+fn mapPhysmap(prepared: *PreparedRoot, comptime observe: ?*const fn () void) errors.BootError!void {
     const policy = &prepared.Policy;
     const text_end = policy.Image.Text.PhysicalStart + (policy.Image.Text.VirtualEnd - policy.Image.Text.VirtualStart);
     const rodata_end = policy.Image.Rodata.PhysicalStart + (policy.Image.Rodata.VirtualEnd - policy.Image.Rodata.VirtualStart);
     var physical_address: u64 = 0;
+    var observed_entries: usize = 0;
     while (physical_address < policy.PhysmapSize) {
         const read_only = (physical_address >= policy.Image.Text.PhysicalStart and physical_address < text_end) or
             (physical_address >= policy.Image.Rodata.PhysicalStart and physical_address < rodata_end);
@@ -132,6 +143,13 @@ fn mapPhysmap(prepared: *PreparedRoot) errors.BootError!void {
         }
         try mapping.map(prepared, policy.PhysmapBase + physical_address, physical_address, page_size, !read_only, false, uncached);
         physical_address += page_size;
+        if (observe) |pulse| {
+            observed_entries += 1;
+            if (observed_entries == limits.OBSERVATION_INTERVAL) {
+                observed_entries = 0;
+                pulse();
+            }
+        }
     }
 }
 
@@ -143,6 +161,10 @@ fn mapImageRegion(prepared: *PreparedRoot, region: Region) errors.BootError!void
 }
 
 pub fn abort(prepared: *PreparedRoot) void {
+    abortWith(prepared, null);
+}
+
+fn abortWith(prepared: *PreparedRoot, comptime observe: ?*const fn () void) void {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     if (prepared != &pending or (prepared.Phase != .Preparing and prepared.Phase != .Prepared) or
@@ -158,6 +180,7 @@ pub fn abort(prepared: *PreparedRoot) void {
     prepared.Kagami = .{};
     prepared.Policy = .{};
     prepared.Phase = .Empty;
+    if (observe) |pulse| pulse();
 }
 
 pub fn finishActivation(prepared: *PreparedRoot) void {

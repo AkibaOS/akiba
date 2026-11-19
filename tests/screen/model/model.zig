@@ -18,14 +18,26 @@ pub fn begin(state: *types.Model, name: []const u8) bool {
     return true;
 }
 
+pub fn beginWork(state: *types.Model, total: usize) bool {
+    if (state.Active == null or state.ActiveVerified != null or total == 0) return false;
+    state.ActiveTotal = total;
+    state.ActiveVerified = 0;
+    return true;
+}
+
 pub fn checkpoint(state: *types.Model, verified: usize) bool {
-    if (state.Active == null or verified <= (state.ActiveVerified orelse 0)) return false;
+    const before = state.ActiveVerified orelse 0;
+    if (state.Active == null or verified <= before) return false;
+    if (state.ActiveTotal) |total| {
+        if (verified > total or verified - before != 1) return false;
+    }
     state.ActiveVerified = verified;
     return true;
 }
 
 pub fn finish(state: *types.Model, outcome: types.Outcome) bool {
     const name = state.Active orelse return false;
+    if (outcome == .Pass and state.ActiveTotal != null and state.ActiveVerified != state.ActiveTotal) return false;
     return closeActive(state, outcome, name);
 }
 
@@ -40,6 +52,7 @@ fn closeActive(state: *types.Model, outcome: types.Outcome, name: []const u8) bo
     if (outcome == .Fail) state.Failed += 1;
     append(state, .{ .Kind = if (outcome == .Pass) .Pass else .Fail, .Text = name, .Verified = state.ActiveVerified });
     state.ActiveVerified = null;
+    state.ActiveTotal = null;
     return true;
 }
 
@@ -72,8 +85,21 @@ pub fn endPhase(state: *types.Model) bool {
 }
 
 pub fn percent(state: *const types.Model) usize {
-    if (state.Total == 0) return 0;
-    return @intCast(@as(u128, state.Completed) * 100 / state.Total);
+    return scaled(state, 100);
+}
+
+pub fn scaled(state: *const types.Model, scale: usize) usize {
+    if (state.Total == 0 or scale == 0) return 0;
+    const partial = if (state.ActiveTotal) |total|
+        @min(scale - 1, @as(u128, state.ActiveVerified orelse 0) * scale / total)
+    else
+        0;
+    return @intCast((@as(u128, state.Completed) * scale + partial) / state.Total);
+}
+
+pub fn activeIndex(state: *const types.Model) ?usize {
+    if (state.Active == null or state.Rows.len == 0) return null;
+    return @min(state.Count, state.Rows.len - 1);
 }
 
 pub fn row(state: *const types.Model, index: usize) ?types.Row {

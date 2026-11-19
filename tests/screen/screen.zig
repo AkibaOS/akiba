@@ -1,5 +1,6 @@
 //! Diagnostic Test Screen Exports
 
+pub const clock = @import("clock.zig");
 pub const constants = @import("constants/constants.zig");
 pub const date = @import("date/date.zig");
 pub const layout = @import("layout/layout.zig");

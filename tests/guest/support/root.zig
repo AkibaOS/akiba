@@ -16,7 +16,6 @@ const serial = @import("mirai").drivers.serial.write;
 const types = @import("mirai").boot.types;
 const zones = @import("mirai").memory.zone.bootstrap;
 
-const CHECKPOINT_INTERVAL = @import("tests").screen.constants.frame.BOOT_CHECKPOINT_INTERVAL;
 const BootInfo = types.sequence.info.BootInfo;
 const Range = pmm.types.storage.Range;
 const sizes = common.constants.memory.sizes;
@@ -44,40 +43,62 @@ pub fn run(info: *const BootInfo) void {
     defer allocation.clear();
     completed = false;
     serial.printf(labels.ROLLBACK_BEGIN, .{});
+    if (screen.bootBegin()) serial.printf(labels.ROLLBACK_CLOCK, .{});
     cancellation.earlyCheckpoint();
     mustRefuseRetirement(info);
-    const warm = kagami.bootstrap.prepare(info) catch @panic(labels.EARLY_FAILURE);
-    allocation.arm(0);
-    kagami.bootstrap.abort(warm);
-    allocation.clear();
+    const warm = prepare(info) catch @panic(labels.EARLY_FAILURE);
+    abortWithoutAllocating(warm);
+
     const before = pmm.state.getStatistics();
     const search = pmm.state.getState().SearchStart;
     const previous = cpu.control.readCR3();
-    var failures: usize = 0;
-    while (true) : (failures += 1) {
-        allocation.arm(failures);
-        if (kagami.bootstrap.prepare(info)) |prepared| {
-            allocation.arm(0);
-            const valid = prepared.TableCount == prepared.Kagami.TablePages and
-                prepared.TableCount != 0 and prepared.StackCount != 0 and kagami.tables.ownership.reset(&prepared.Kagami);
-            kagami.bootstrap.abort(prepared);
-            allocation.clear();
-            if (!valid or failures <= 2 or prepared.Phase != .Empty or prepared.TableCount != 0 or prepared.StackCount != 0 or
-                prepared.Kagami.Frames != null or prepared.Kagami.TablePages != 0 or
-                previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
-                !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
-            completed = true;
-            serial.printf(labels.ROLLBACK_COMPLETE, .{});
-            screen.bootCheckpoint(failures);
-            return;
+    allocation.measure();
+    const sample = prepare(info) catch @panic(labels.EARLY_FAILURE);
+    const expected = allocation.measured() orelse @panic(labels.EARLY_FAILURE);
+    abortWithoutAllocating(sample);
+    if (expected <= 2 or previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
+        !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
+    serial.printf(labels.ROLLBACK_SCHEDULE, .{expected});
+    screen.bootExpected(expected);
+    cancellation.earlyCheckpoint();
+
+    for (0..expected) |budget| {
+        allocation.arm(budget);
+        if (prepare(info)) |prepared| {
+            abortWithoutAllocating(prepared);
+            @panic(labels.EARLY_FAILURE);
         } else |failure| {
             allocation.clear();
             if (failure != error.OutOfMemory or previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
                 !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
+            screen.bootCheckpoint(budget + 1);
             cancellation.earlyCheckpoint();
-            if ((failures + 1) % CHECKPOINT_INTERVAL == 0) screen.bootCheckpoint(failures + 1);
         }
     }
+
+    allocation.arm(expected);
+    const prepared = prepare(info) catch @panic(labels.EARLY_FAILURE);
+    allocation.arm(0);
+    const valid = prepared.TableCount == prepared.Kagami.TablePages and
+        prepared.TableCount != 0 and prepared.StackCount != 0 and kagami.tables.ownership.reset(&prepared.Kagami);
+    abortWithoutAllocating(prepared);
+    if (!valid or prepared.Phase != .Empty or prepared.TableCount != 0 or prepared.StackCount != 0 or
+        prepared.Kagami.Frames != null or prepared.Kagami.TablePages != 0 or
+        previous != cpu.control.readCR3() or search != pmm.state.getState().SearchStart or
+        !std.meta.eql(before, pmm.state.getStatistics())) @panic(labels.EARLY_FAILURE);
+    completed = true;
+    serial.printf(labels.ROLLBACK_VERIFIED, .{expected});
+    serial.printf(labels.ROLLBACK_COMPLETE, .{});
+}
+
+fn prepare(info: *const BootInfo) kagami.errors.bootstrap.BootError!*kagami.types.prepared.PreparedRoot {
+    return kagami.bootstrap.prepareObserved(info, screen.bootPulse);
+}
+
+fn abortWithoutAllocating(prepared: *kagami.types.prepared.PreparedRoot) void {
+    allocation.arm(0);
+    kagami.bootstrap.abort(prepared);
+    allocation.clear();
 }
 
 pub fn retire(info: *const BootInfo) ?u64 {

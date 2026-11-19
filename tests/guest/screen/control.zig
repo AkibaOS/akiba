@@ -14,6 +14,7 @@ const pmm = @import("mirai").pmm;
 const rate = @import("mirai").drivers.constants.pit.limits;
 const screen = @import("tests").screen;
 const splash = @import("shared").splash;
+const timer = @import("tests").guest.screen.timer;
 const types = @import("tests").guest.screen.types.session;
 
 const Framebuffer = boot.types.framebuffer.FramebufferInfo;
@@ -87,16 +88,56 @@ pub fn checkpoint() void {
     refresh(false);
 }
 
+pub fn bootBegin() bool {
+    const session = if (active) |*current| current else return false;
+    const timer_port = timer.locate();
+    session.RollbackView = .{ .Timer = timer_port, .Clock = screen.clock.start(if (timer_port) |port| timer.read(port) else 0) };
+    return timer_port != null;
+}
+
+pub fn bootExpected(total: usize) void {
+    const session = if (active) |*current| current else return;
+    const view = if (session.RollbackView) |*current| current else return;
+    if (screen.model.beginWork(&session.Progress, total)) repaintBoot(session, view);
+}
+
+pub fn bootPulse() void {
+    const session = if (active) |*current| current else return;
+    const view = if (session.RollbackView) |*current| current else return;
+    const timer_port = view.Timer orelse return;
+    if (screen.clock.sample(&view.Clock, timer.read(timer_port))) repaintBoot(session, view);
+}
+
 pub fn bootCheckpoint(verified: usize) void {
-    const flags = guard.acquire();
-    const changed = if (active) |*session| screen.model.checkpoint(&session.Progress, verified) else false;
-    guard.release(flags);
-    if (changed) refreshAt(true, verified / screen.constants.frame.BOOT_CHECKPOINT_INTERVAL);
+    const session = if (active) |*current| current else return;
+    const view = if (session.RollbackView) |*current| current else return;
+    if (!screen.model.checkpoint(&session.Progress, verified)) return;
+    if (view.Timer) |timer_port| {
+        _ = screen.clock.sample(&view.Clock, timer.read(timer_port));
+    } else {
+        view.Clock.Frame = (view.Clock.Frame + 1) % screen.strings.text.SPINNER.len;
+    }
+    repaintBoot(session, view);
+}
+
+fn repaintBoot(session: *Session, view: *types.Rollback) void {
+    const percent = screen.model.percent(&session.Progress);
+    const slots = screen.model.scaled(&session.Progress, screen.render.progressSlots(session.Layout.Progress.Width));
+    const repaint_progress = percent != view.Percent or slots != view.FilledSlots;
+    const text: screen.types.render.Text = .{ .Face = &session.Face, .Renderer = &renderer };
+    if (screen.render.updateActive(&session.Surface, session.Layout, session.Pixels, text, &session.Progress, view.Clock.Frame, repaint_progress)) {
+        view.Percent = percent;
+        view.FilledSlots = slots;
+    }
 }
 
 pub fn finish(outcome: Outcome) void {
     const flags = guard.acquire();
-    const changed = if (active) |*session| screen.model.finish(&session.Progress, outcome) else false;
+    const changed = if (active) |*session| finished: {
+        if (!screen.model.finish(&session.Progress, outcome)) break :finished false;
+        session.RollbackView = null;
+        break :finished true;
+    } else false;
     guard.release(flags);
     if (changed) refresh(true);
 }
@@ -124,17 +165,13 @@ pub fn release() void {
 }
 
 fn refresh(force: bool) void {
-    refreshAt(force, null);
-}
-
-fn refreshAt(force: bool, checkpoint_frame: ?usize) void {
     const flags = guard.acquire();
     const session = if (active) |*value| value else {
         guard.release(flags);
         return;
     };
     const ticks_per_frame = @max(1, screen.constants.frame.ANIMATION_MILLISECONDS * rate.TARGET_FREQUENCY / std.time.ms_per_s);
-    const frame = (checkpoint_frame orelse @as(usize, @intCast((pit.getTicks() -| session.Started) / ticks_per_frame))) % screen.strings.text.SPINNER.len;
+    const frame = @as(usize, @intCast((pit.getTicks() -| session.Started) / ticks_per_frame % screen.strings.text.SPINNER.len));
     if (session.Rendering or (!force and frame == session.LastFrame)) {
         guard.release(flags);
         return;
