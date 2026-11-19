@@ -33,3 +33,5 @@ pub const ELF_FIXTURE_ASSEMBLY = "asm/fixtures/fixtures.zig";
 pub const ELF_FIXTURE_LINKER = "tests/fixtures/elf/layout.linker";
 pub const PROVISION_FIXTURE_ROOT = "tests/fixtures/elf/provision.zig";
 pub const PROVISION_FIXTURE_LINKER = "tests/fixtures/elf/provision.linker";
+pub const DYNAMIC_FIXTURE_ROOT = "tests/fixtures/elf/dynamic.zig";
+pub const DYNAMIC_FIXTURE_LIBRARY = "tests/fixtures/elf/library.zig";

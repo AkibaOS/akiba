@@ -5,6 +5,7 @@ pub const allocation = @import("allocation.zig");
 pub const completion = @import("completion.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");
+pub const elf = @import("elf.zig");
 pub const firmware = @import("firmware.zig");
 pub const hikari = @import("hikari.zig");
 pub const host = @import("host.zig");

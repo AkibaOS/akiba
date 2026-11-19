@@ -45,6 +45,15 @@ pub fn artifact(builder: *std.Build, modules: types.modules.Modules, guest_check
         checks.addImport(names.EXECUTABLE_MIRAI, module);
         checks.addAnonymousImport(names.IMPORT_ELF_IMAGE, .{ .root_source_file = fixture.artifact(builder).getEmittedBin() });
         checks.addAnonymousImport(names.IMPORT_PROVISION_IMAGE, .{ .root_source_file = fixture.provision(builder).getEmittedBin() });
+        const dynamic = fixture.dynamic(builder);
+        checks.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
+        checks.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });
+        const weaver = builder.createModule(.{ .root_source_file = builder.path(paths.WEAVER_ROOT) });
+        weaver.addImport(names.MODULE_WEAVER, weaver);
+        weaver.addImport(names.MODULE_COMMON, modules.Common);
+        weaver.addImport(names.MODULE_SHARED, modules.Shared);
+        weaver.addImport(names.MODULE_UTILS, modules.Utils);
+        checks.addImport(names.MODULE_WEAVER, weaver);
         const probes = builder.createModule(.{
             .root_source_file = builder.path(paths.TEST_ASSEMBLY_ROOT),
             .target = target,

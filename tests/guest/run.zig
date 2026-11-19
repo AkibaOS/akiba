@@ -56,7 +56,7 @@ const groups = .{
     .{ elflabels.GROUP, .{
         guest.mirai.bootstrap.image.run,   guest.mirai.bootstrap.rejection.run,    guest.mirai.bootstrap.pressure.run,
         guest.mirai.bootstrap.growth.run,  guest.mirai.bootstrap.finalization.run, guest.mirai.bootstrap.order.run,
-        guest.mirai.bootstrap.startup.run, guest.mirai.bootstrap.execution.run,
+        guest.mirai.bootstrap.startup.run, guest.mirai.bootstrap.execution.run,    guest.mirai.bootstrap.dynamic.run,
     } },
     .{ senseilabels.GROUP, .{ guest.mirai.sensei.admission.run, guest.mirai.sensei.waiting.run, guest.mirai.sensei.deferral.run, guest.mirai.sensei.population.run, guest.mirai.sensei.width.run } },
     .{ retentionlabels.GROUP, .{ guest.mirai.kata.retention.run, guest.mirai.kata.race.run } },
