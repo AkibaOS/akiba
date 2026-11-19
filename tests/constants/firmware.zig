@@ -1,7 +1,7 @@
 //! Firmware Handoff Regression Inputs
 
 const status = @import("hikari").efi.constants.status;
-const storage = @import("tests").firmware.constants.storage;
+const storage = @import("tests").efi.constants.firmware.storage;
 const types = @import("tests").types.firmware;
 
 pub const ASSERTION_COUNT: usize = 63 + storage.ASSERTION_COUNT;
