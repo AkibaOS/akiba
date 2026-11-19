@@ -30,6 +30,7 @@ fn create(allocator: std.mem.Allocator, source_location: []const u8, output_path
     const source = filesystem.Manifest.Entries[0].Path;
     try requireBootloader(allocator, source);
     const esp_start = std.math.cast(u32, geometry.EspStartLBA) orelse return tool.errors.planning.PlanningError.Overflow;
+    if (observer) |progress| try progress.update(0, filesystem.Manifest.UnitCount);
     var output = try tool.image.output.create(output_path, geometry.TotalBytes);
     defer output.deinit();
     output.IO = operations;

@@ -96,7 +96,7 @@ $(DISK_IMAGE): prepare-filesystem
 	mkdir -p -- "$$(dirname -- "$$image")"; \
 	temporary=$$(mktemp "$$image.tmp.XXXXXXXX"); \
 	printf 'Building temporary disk %s\n' "$$temporary"; \
-	if ! "zig-out/bin/mkafsdisk$(EXE_EXT)" "$(FS_ROOT)" "$$temporary" "$(DISK_SIZE_MB)"; then \
+	if ! "zig-out/bin/mkafsdisk$(EXE_EXT)" "$(FS_ROOT)" "$$temporary" "$(DISK_SIZE_MB)" --image-label "$$image"; then \
 		printf 'Disk build failed; temporary retained at %s\n' "$$temporary" >&2; \
 		exit 1; \
 	fi; \

@@ -4,10 +4,11 @@ const std = @import("std");
 
 const tool = @import("mkafsdisk");
 
-const display = @import("display.zig");
 const messages = tool.strings.messages;
 const ArgumentError = tool.errors.arguments.ArgumentError;
 const Record = tool.types.progress.Record;
+
+pub const display = @import("display.zig");
 
 pub fn run() !void {
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -17,7 +18,8 @@ pub fn run() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     const stream = args.len == 5 and std.mem.eql(u8, args[4], messages.PROGRESS_STREAM);
-    if (args.len != 4 and !stream) {
+    const label: ?[]const u8 = if (args.len == 6 and std.mem.eql(u8, args[4], messages.IMAGE_LABEL) and args[5].len != 0) args[5] else null;
+    if (args.len != 4 and !stream and label == null) {
         std.debug.print(messages.USAGE, .{args[0]});
         return ArgumentError.InvalidArgs;
     }
@@ -33,14 +35,14 @@ pub fn run() !void {
         return std.fs.File.stdout().writeAll(&stats.encode());
     }
 
-    const name = std.fs.path.basename(output_image_path);
+    const name = std.fs.path.basename(label orelse output_image_path);
     var progress = display.Progress.init(name);
     defer progress.end();
     const stats = try tool.image.create.createDiskImageReported(allocator, source_location, output_image_path, size_megabytes, .{
         .Context = &progress,
         .UpdateFn = reportTerminal,
     });
-    display.report(name, stats);
+    display.report(name, output_image_path, source_location, stats);
 }
 
 fn reportTerminal(context: ?*anyopaque, written: u32, total: u32) !void {

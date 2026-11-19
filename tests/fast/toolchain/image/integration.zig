@@ -6,6 +6,7 @@ const checks = @import("tests").fast.toolchain.image;
 const constants = @import("tests").constants.image;
 const mkafsdisk = @import("mkafsdisk");
 const strings = @import("tests").strings.image;
+const PackingProgress = @import("tests").types.image.PackingProgress;
 
 pub fn unitProgress() !void {
     var temporary = std.testing.tmpDir(.{});
@@ -14,19 +15,20 @@ pub fn unitProgress() !void {
     defer paths.deinit();
     try checks.fixture.createSource(temporary.dir, true);
     try checks.fixture.addMutableUnit(temporary.dir);
-    var next: u32 = 0;
-    _ = try mkafsdisk.image.create.createDiskImageReported(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, .{ .Context = &next, .UpdateFn = recordUnit });
-    try std.testing.expectEqual(@as(u32, 3), next);
+    var progress: PackingProgress = .{ .Directory = temporary.dir };
+    _ = try mkafsdisk.image.create.createDiskImageReported(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, .{ .Context = &progress, .UpdateFn = recordUnit });
+    try std.testing.expectEqual(@as(u32, 3), progress.Next);
     const image = try temporary.dir.openFile(strings.IMAGE_NAME, .{});
     defer image.close();
     try std.testing.expectEqual(constants.IMAGE_BYTES, try image.getEndPos());
 }
 
 fn recordUnit(context: ?*anyopaque, done: u32, total: u32) !void {
-    const next: *u32 = @ptrCast(@alignCast(context orelse return error.UnitProgressContextMissing));
+    const progress: *PackingProgress = @ptrCast(@alignCast(context orelse return error.UnitProgressContextMissing));
     try std.testing.expectEqual(@as(u32, 2), total);
-    try std.testing.expectEqual(next.*, done);
-    next.* += 1;
+    try std.testing.expectEqual(progress.Next, done);
+    if (done == 0) try checks.fixture.expectOwnedEntries(progress.Directory, true, false);
+    progress.Next += 1;
 }
 
 pub fn publishedStats() !void {
@@ -56,6 +58,28 @@ pub fn publishedStats() !void {
     try std.testing.expectEqual(header.TotalCells, report.TotalCells);
     try std.testing.expectEqual(header.FreeCells, report.FreeCells);
     try std.testing.expectEqual(report, @TypeOf(report).decode(&report.encode()));
+}
+
+pub fn retainedReport() !void {
+    const stats: mkafsdisk.types.report.Report = .{
+        .SizeBytes = constants.IMAGE_BYTES,
+        .EspFirstSector = constants.ESP_FIRST_LBA,
+        .EspLastSector = constants.ESP_LAST_LBA,
+        .AfsFirstSector = constants.AFS_FIRST_LBA,
+        .AfsLastSector = constants.AFS_LAST_LBA,
+        .BootloaderBytes = constants.BOOTLOADER_BYTES.len,
+        .EspClusters = constants.ESP_CLUSTERS,
+        .BootloaderClusters = constants.BOOTLOADER_CLUSTERS,
+        .Units = constants.UNIT_COUNT,
+        .Stacks = constants.STACK_COUNT,
+        .CellBytes = constants.CELL_BYTES,
+        .TotalCells = constants.AFS_TOTAL_CELLS,
+        .FreeCells = constants.AFS_TOTAL_CELLS - constants.AFS_USED_CELLS,
+    };
+    var buffer: [512]u8 = undefined;
+    var output = std.Io.Writer.fixed(&buffer);
+    try mkafsdisk.command.display.writeReport(&output, strings.IMAGE_NAME, strings.DISK_REPORT_PATH, strings.SOURCE_DIRECTORY, stats);
+    try std.testing.expectEqualStrings(strings.DISK_REPORT, output.buffered());
 }
 
 pub fn createAndReadback() !void {

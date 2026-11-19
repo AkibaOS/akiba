@@ -10,7 +10,11 @@ test "published disk statistics match the actual image and AFS header" {
     try image.integration.publishedStats();
 }
 
-test "disk packing reports real unit progress without a row per file name" {
+test "the final disk report keeps the unit count and full legacy report" {
+    try image.integration.retainedReport();
+}
+
+test "disk packing announces work before output creation and reports each copied unit" {
     try image.integration.unitProgress();
 }
 

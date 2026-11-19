@@ -5,6 +5,11 @@ const std = @import("std");
 const afs = @import("shared").afs;
 const constants = @import("tests").constants.image;
 
+pub const PackingProgress = struct {
+    Directory: std.fs.Dir,
+    Next: u32 = 0,
+};
+
 pub const FileDevice = struct {
     File: std.fs.File,
     PartitionStart: u64,

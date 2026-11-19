@@ -50,7 +50,7 @@ fn make(step: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
     if (published) |result| {
         if (info.size != result.SizeBytes) return step.fail(steps.PACK_STATISTICS, .{output});
         try step.writeManifestAndWatch(&manifest);
-        display.report(pack.ImageName, result);
+        display.report(pack.ImageName, output, source, result);
     }
 }
 

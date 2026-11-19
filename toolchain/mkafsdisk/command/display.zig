@@ -26,8 +26,8 @@ pub const Progress = struct {
     pub fn update(self: *Progress, written: u32, total: u32) void {
         if (!self.Terminal) return;
         const now = if (self.Timer) |*timer| timer.read() else 0;
-        // Give fast real packs a starting, advancing and final frame without a sleep.
-        if (written > 1 and written < total and now - self.LastDraw < limits.REFRESH_NS) return;
+        // Every short-pack update is cheap; only the middle of larger packs is coalesced.
+        if (total > limits.SHORT_PACK_UNITS and written > 1 and written < total and now - self.LastDraw < limits.REFRESH_NS) return;
         var buffer: [limits.PROGRESS_BYTES]u8 = undefined;
         const line = std.fmt.bufPrint(&buffer, messages.LIVE_PACKING, .{ written, total, self.Name }) catch return;
         std.debug.lockStdErr();
@@ -45,19 +45,25 @@ pub const Progress = struct {
     }
 };
 
-pub fn report(name: []const u8, stats: Report) void {
-    var buffer: [limits.REPORT_BYTES]u8 = undefined;
-    const units = if (stats.Units == 1) messages.UNIT else messages.UNITS;
-    const line = std.fmt.bufPrint(&buffer, messages.REPORT, .{
-        name,                     stats.Units,          units,               stats.SizeBytes / limits.MIB_BYTES,
-        stats.EspFirstSector,     stats.EspLastSector,  stats.EspClusters,   stats.BootloaderBytes,
-        stats.BootloaderClusters, stats.AfsFirstSector, stats.AfsLastSector, stats.Stacks,
-        stats.CellBytes,          stats.FreeCells,      stats.TotalCells,
-    }) catch return;
+pub fn report(name: []const u8, destination: []const u8, source: []const u8, stats: Report) void {
     std.debug.lockStdErr();
     defer std.debug.unlockStdErr();
     clear();
-    std.fs.File.stdout().writeAll(line) catch {};
+    var buffer: [limits.REPORT_BUFFER_BYTES]u8 = undefined;
+    var stdout = std.fs.File.stdout().writerStreaming(&buffer);
+    writeReport(&stdout.interface, name, destination, source, stats) catch return;
+    stdout.interface.flush() catch {};
+}
+
+pub fn writeReport(output: *std.Io.Writer, name: []const u8, destination: []const u8, source: []const u8, stats: Report) !void {
+    return output.print(messages.REPORT, .{
+        stats.Units,          stats.Units,           name,
+        destination,          source,                stats.SizeBytes / limits.MIB_BYTES,
+        stats.EspFirstSector, stats.EspLastSector,   stats.AfsFirstSector,
+        stats.AfsLastSector,  stats.BootloaderBytes, stats.BootloaderClusters,
+        stats.EspClusters,    stats.TotalCells,      stats.CellBytes,
+        stats.Units,          stats.Stacks,          stats.FreeCells,
+    });
 }
 
 fn clear() void {

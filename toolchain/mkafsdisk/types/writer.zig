@@ -48,7 +48,6 @@ pub const Writer = struct {
         try self.validatePlan(plan);
         const total = plan.Manifest.UnitCount;
         var written: u32 = 0;
-        if (self.Progress) |observer| try observer.update(written, total);
         for (plan.Manifest.Entries, plan.Spans) |entry, span| {
             if (entry.Kind != .Unit) continue;
             if (written == total) return PlanningError.InvalidGeometry;
