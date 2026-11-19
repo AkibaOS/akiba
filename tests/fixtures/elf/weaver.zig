@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const call = @import("fixtureasm").call;
 const elf = @import("tests").constants.elf;
 const entry = @import("fixtureasm").entry;
 const inputs = @import("tests").constants.weaver;
@@ -27,14 +26,14 @@ export fn akiba_fixture_main(_: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn 
     while (true) {
         var payload: [1]u8 = undefined;
         var header: types.Header = undefined;
-        const received = call.call(inputs.RECEIVE, @intFromPtr(&payload), payload.len, @intFromPtr(&header), 0);
+        const received = invocation.call(inputs.RECEIVE, @intFromPtr(&payload), payload.len, @intFromPtr(&header), 0);
         if (received.Status != provision.SUCCESS or header.ReplyTicket == 0) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
         const mode = if (header.Type == postman.CALL_TYPE and header.Length == payload.len and received.Value == payload.len)
             std.enums.fromInt(types.Mode, payload[0])
         else
             null;
         const receipt = if (mode) |selected| launch(selected, header.ReplyTicket) else types.Receipt{};
-        const sent = call.call(inputs.REPLY, header.ReplyTicket, @intFromPtr(&receipt), @sizeOf(types.Receipt), postman.REPLY_TYPE);
+        const sent = invocation.call(inputs.REPLY, header.ReplyTicket, @intFromPtr(&receipt), @sizeOf(types.Receipt), postman.REPLY_TYPE);
         if (sent.Status != provision.SUCCESS) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
     }
 }
@@ -85,9 +84,9 @@ fn invoke(context: *anyopaque, ticket: u64, operation: wire.Operation, argument:
             const supplied: *const wire.Load = @ptrFromInt(argument);
             var invalid = supplied.*;
             invalid.Source = 0;
-            break :refused call.call(provision.SERVICE, ticket, @intFromEnum(operation), @intFromPtr(&invalid), @intFromEnum(protection));
+            break :refused invocation.call(provision.SERVICE, ticket, @intFromEnum(operation), @intFromPtr(&invalid), @intFromEnum(protection));
         }
-        break :refused call.call(provision.SERVICE, ticket, @intFromEnum(operation), argument, @intFromEnum(protection));
+        break :refused invocation.call(provision.SERVICE, ticket, @intFromEnum(operation), argument, @intFromEnum(protection));
     };
     if (result.Status == provision.SUCCESS) {
         if (operation == .Allocate) request.Receipt.Allocations += 1;

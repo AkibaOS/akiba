@@ -1,6 +1,7 @@
-//! Invoke An Existing Persona Service In A Compiler Fixture
+//! Compiler Fixture Persona Invocations
 
-const instructions = @import("fixtureasm").strings.instructions;
+const constants = @import("fixtureasm").constants.invocation;
+const instructions = @import("fixtureasm").strings.invocation;
 
 const Result = @import("fixtureasm").types.invocation.Result;
 
@@ -17,4 +18,13 @@ pub fn call(service: u64, first: u64, second: u64, third: u64, fourth: u64) Resu
           [fourth] "{r10}" (fourth),
         : .{ .memory = true, .cc = true });
     return .{ .Status = status, .Value = value };
+}
+
+pub fn exit(result: u64) noreturn {
+    asm volatile (instructions.EXIT
+        :
+        : [service] "{rax}" (constants.EXIT),
+          [result] "{rdi}" (result),
+        : .{ .memory = true });
+    unreachable;
 }

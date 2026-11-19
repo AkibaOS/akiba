@@ -1,6 +1,4 @@
-//! Fixture Entry And Exit Instructions
+//! Fixture Entry Instructions
 
 pub const ENTRY = ".extern akiba_fixture_main\ncallq akiba_fixture_main\nud2";
 pub const ENTRY_SECTION = ".text.fixture.entry";
-pub const EXIT = "int $0x80\nud2";
-pub const INVOKE = "int $0x80";

@@ -1,3 +1,3 @@
 //! Fixture Assembly Constant Exports
 
-pub const service = @import("service.zig");
+pub const invocation = @import("invocation.zig");

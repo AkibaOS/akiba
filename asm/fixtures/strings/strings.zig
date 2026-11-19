@@ -1,3 +1,4 @@
 //! Fixture Assembly String Exports
 
-pub const instructions = @import("instructions.zig");
+pub const entry = @import("entry.zig");
+pub const invocation = @import("invocation.zig");
