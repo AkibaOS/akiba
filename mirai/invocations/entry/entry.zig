@@ -6,6 +6,7 @@ const cpu = @import("asm").cpu;
 const ipc = @import("mirai").invocations.postman;
 const lifecycle = @import("mirai").invocations.lifecycle;
 const messages = @import("mirai").thread.strings.shift.messages;
+const provision = @import("mirai").invocations.provision;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
@@ -36,6 +37,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     }
     if (service >= @intFromEnum(types.Service.ObserveCompletion) and service <= @intFromEnum(types.Service.CollectCompletion)) {
         completion.dispatch.dispatch(current, frame, service);
+        return;
+    }
+    if (service == @intFromEnum(types.Service.Provision)) {
+        provision.dispatch(current, frame);
         return;
     }
     frame.RAX = @intFromEnum(types.Status.Success);

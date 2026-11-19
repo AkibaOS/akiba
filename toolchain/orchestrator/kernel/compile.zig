@@ -44,6 +44,7 @@ pub fn artifact(builder: *std.Build, modules: types.modules.Modules, guest_check
         checks.addImport(names.EXECUTABLE_HIKARI, hikari);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
         checks.addAnonymousImport(names.IMPORT_ELF_IMAGE, .{ .root_source_file = fixture.artifact(builder).getEmittedBin() });
+        checks.addAnonymousImport(names.IMPORT_PROVISION_IMAGE, .{ .root_source_file = fixture.provision(builder).getEmittedBin() });
         const probes = builder.createModule(.{
             .root_source_file = builder.path(paths.TEST_ASSEMBLY_ROOT),
             .target = target,

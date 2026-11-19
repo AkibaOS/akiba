@@ -37,6 +37,27 @@ pub fn install(owner: *Kata, span: types.StartupSpan, source: types.Startup) Ima
     while (page < span.End) : (page += sizes.PAGE_SIZE) try user.memory.finalize.finalize(owner, page, .ReadOnly);
 }
 
+pub fn validate(owner: *const Kata, base: u64) ImageError!void {
+    const limit = address.USER_SPACE_END + 1;
+    if (base < sizes.PAGE_SIZE or base >= limit or base % sizes.PAGE_SIZE != 0) return ImageError.InvalidStartup;
+    var header: [wire.HEADER_BYTES]u8 = undefined;
+    try user.copy.transfer.read(owner, &header, base);
+    const identity = std.mem.readInt(u64, header[wire.IDENTITY_LENGTH..wire.PARAMETER_LENGTH], .little);
+    const parameters = std.mem.readInt(u64, header[wire.PARAMETER_LENGTH..], .little);
+    if (std.mem.readInt(u64, header[0..wire.IDENTITY_LENGTH], .little) != wire.VERSION or identity == 0)
+        return ImageError.InvalidStartup;
+    const prefix = std.math.add(u64, wire.HEADER_BYTES, identity) catch return ImageError.InvalidStartup;
+    const length = std.math.add(u64, prefix, parameters) catch return ImageError.InvalidStartup;
+    if (length > limit - base) return ImageError.InvalidStartup;
+    const end = (base + length + sizes.PAGE_MASK) & ~sizes.PAGE_MASK;
+    var page = base;
+    while (page < end) : (page += sizes.PAGE_SIZE) {
+        const record = user.state.ledger.find(owner, page) orelse return ImageError.InvalidStartup;
+        if (record.Stage != .ReadOnly) return ImageError.InvalidStartup;
+        try user.state.access.validate(record, false);
+    }
+}
+
 fn copy(owner: *Kata, base: u64, bytes: []const u8) ImageError!void {
     var offset: usize = 0;
     while (offset < bytes.len) {

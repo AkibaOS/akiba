@@ -11,4 +11,5 @@ pub const Kata = struct {
     RunnableThreadCount: u64 = 0,
     State: State = .Born,
     Permanent: bool = false,
+    CanProvision: bool = false,
 };

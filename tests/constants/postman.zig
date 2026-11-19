@@ -16,6 +16,23 @@ pub const OUTPUT_BYTES: usize = 64;
 pub const GUARD_BYTE: u8 = 0xD7;
 pub const INVALID_ADDRESS: u64 = 0x600000;
 pub const INVALID_PEER: u64 = 0xFFFFFFFFFFFFFFFF;
+pub const PROVISION_SERVICE: u64 = 13;
+pub const PROVISION_BEGIN: u64 = 0;
+pub const PROVISION_ABORT: u64 = 1;
+pub const PROVISION_ALLOCATE: u64 = 2;
+pub const PROVISION_LOAD: u64 = 3;
+pub const PROVISION_SEAL: u64 = 4;
+pub const PROVISION_START: u64 = 5;
+pub const PROVISION_READ: u64 = 0;
+pub const PROVISION_WRITE: u64 = 1;
+pub const PROVISION_EXECUTE: u64 = 2;
+pub const PROVISION_RESULT: u64 = 0x3456fedc789abcde;
+pub const PROVISION_STARTUP = [_]u8{
+    1,    0,    0, 0, 0, 0, 0, 0,
+    1,    0,    0, 0, 0, 0, 0, 0,
+    1,    0,    0, 0, 0, 0, 0, 0,
+    0x57, 0xa5,
+};
 pub const LETTER_TYPE: u64 = 0x4123;
 pub const SECOND_TYPE: u64 = 0x4124;
 pub const CALL_TYPE: u64 = 0x5100;

@@ -86,6 +86,13 @@ pub fn detachSource(envelope: *Envelope) void {
     envelope.SourceNext = null;
 }
 
+/// The caller keeps the interrupt guard while invalidating the delivered call.
+pub fn revokeLease(envelope: *Envelope) void {
+    const lease = envelope.Lease orelse return;
+    envelope.Lease = null;
+    lease.Revoke(lease.Context);
+}
+
 pub fn detachClient(envelope: *Envelope) void {
     if (envelope.Client) |client| {
         if (client.Pending != envelope) @panic(messages.INVALID_RECORD);
@@ -93,6 +100,7 @@ pub fn detachClient(envelope: *Envelope) void {
         envelope.Client = null;
     }
     detachSource(envelope);
+    revokeLease(envelope);
 }
 
 pub fn detachReceiver(envelope: *Envelope) void {
@@ -102,6 +110,7 @@ pub fn detachReceiver(envelope: *Envelope) void {
     }
     envelope.Receiver = null;
     envelope.Ticket = 0;
+    revokeLease(envelope);
 }
 
 pub fn detachDestination(envelope: *Envelope) void {

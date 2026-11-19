@@ -35,3 +35,5 @@ pub const ENTRY_ELF_FIXTURE = "akiba_fixture_start";
 pub const MODULE_FIXTURE = "fixture";
 pub const MODULE_FIXTURE_ASSEMBLY = "fixtureasm";
 pub const IMPORT_ELF_IMAGE = "elfimage";
+pub const EXECUTABLE_PROVISION_FIXTURE = "provision-fixture";
+pub const IMPORT_PROVISION_IMAGE = "provisionimage";

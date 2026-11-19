@@ -1,0 +1,17 @@
+/* Test only staged launch payload */
+OUTPUT_FORMAT(elf64-x86-64)
+OUTPUT_ARCH(i386:x86-64)
+ENTRY(akiba_fixture_start)
+PHDRS
+{
+    code PT_LOAD FLAGS(5);
+}
+SECTIONS
+{
+    .text 0x400000 :
+    {
+        KEEP(*(.text.fixture.entry))
+        *(.text .text.* .rodata .rodata.*)
+    } :code
+    /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
+}

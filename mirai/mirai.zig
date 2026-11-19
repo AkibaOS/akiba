@@ -17,6 +17,7 @@ pub const invocations = @import("invocations/invocations.zig");
 pub const kagami = @import("kagami/kagami.zig");
 pub const kata = @import("kata/kata.zig");
 pub const kernel = @import("kernel/kernel.zig");
+pub const launch = @import("launch/launch.zig");
 pub const memory = @import("memory/memory.zig");
 pub const pmm = @import("pmm/pmm.zig");
 pub const postman = @import("postman/postman.zig");
@@ -34,6 +35,7 @@ comptime {
     force.all(kagami);
     force.all(kata);
     force.all(kernel);
+    force.all(launch);
     force.all(memory);
     force.all(pmm);
     force.all(postman);

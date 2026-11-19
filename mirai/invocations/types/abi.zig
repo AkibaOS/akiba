@@ -14,6 +14,7 @@ pub const Service = enum(u64) {
     ObserveCompletion = 10,
     WaitCompletion = 11,
     CollectCompletion = 12,
+    Provision = 13,
 };
 
 pub const Query = enum(u64) {
