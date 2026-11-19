@@ -10,7 +10,7 @@ const labels = @import("tests").strings.stack;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const values = @import("tests").constants.memory;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const limits = memory.constants.stack.limits;
 const sizes = common.constants.memory.sizes;

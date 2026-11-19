@@ -12,7 +12,7 @@ const probe = @import("testasm").context;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const tss = @import("mirai").boot.tss;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var active: ?*[2]fixtures.Worker = null;
 

@@ -5,7 +5,7 @@ const harness = @import("tests").guest.mirai.postman.harness;
 const labels = @import("tests").strings.postman;
 const postman = @import("mirai").postman;
 const types = @import("tests").types.postman;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const FixtureError = types.FixtureError;
 const Pair = types.Pair;

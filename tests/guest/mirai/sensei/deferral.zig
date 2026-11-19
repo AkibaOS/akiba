@@ -7,7 +7,7 @@ const labels = @import("tests").strings.sensei;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 fn entry(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const completed: *bool = @ptrCast(@alignCast(argument.?));

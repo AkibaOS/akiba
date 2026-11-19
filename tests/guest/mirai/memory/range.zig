@@ -9,7 +9,7 @@ const inputs = @import("tests").constants.range;
 const labels = @import("tests").strings.range;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
 const operations = memory.range;

@@ -8,7 +8,7 @@ const labels = @import("tests").strings.retention;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var target_id: u64 = 0;
 var armed: bool = false;

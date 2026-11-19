@@ -8,7 +8,7 @@ const inputs = @import("tests").constants.memory;
 const labels = @import("tests").strings.memory;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Zone = memory.types.zone.Zone;
 

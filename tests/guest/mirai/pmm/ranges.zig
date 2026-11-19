@@ -8,7 +8,7 @@ const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.memory;
 const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
 

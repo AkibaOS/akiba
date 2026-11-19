@@ -6,7 +6,7 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.guest;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Queue = sensei.types.queue.Queue;
 

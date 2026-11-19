@@ -10,7 +10,7 @@ const inputs = @import("tests").constants.postman;
 const labels = @import("tests").strings.postman;
 const postman = @import("mirai").postman;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var payload: [postman.constants.limits.MAX_PAYLOAD_BYTES]u8 = undefined;
 var received: [postman.constants.limits.MAX_PAYLOAD_BYTES]u8 = undefined;

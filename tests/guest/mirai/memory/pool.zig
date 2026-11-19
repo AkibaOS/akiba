@@ -10,7 +10,7 @@ const labels = @import("tests").strings.pool;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const types = @import("tests").types.pool;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;

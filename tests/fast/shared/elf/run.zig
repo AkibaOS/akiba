@@ -4,7 +4,7 @@ const std = @import("std");
 
 const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const growth = @import("tests").fast.shared.elf.growth;
 const inputs = @import("tests").constants.elf;
 const relocation = @import("tests").fast.shared.elf.relocation;

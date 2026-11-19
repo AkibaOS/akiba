@@ -11,7 +11,7 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.guest;
 const pmm = @import("mirai").pmm;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Kata = kata.types.kata.Kata;
 

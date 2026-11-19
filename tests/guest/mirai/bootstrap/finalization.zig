@@ -4,7 +4,7 @@ const std = @import("std");
 
 const bootstrap = @import("mirai").bootstrap;
 const budget = @import("tests").guest.support.allocation;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.elf;
 const kata = @import("mirai").kata;
@@ -13,7 +13,7 @@ const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const KernelStack = memory.types.stack.kernel.KernelStack;
 const VALID = fixture.create();

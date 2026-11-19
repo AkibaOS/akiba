@@ -6,7 +6,7 @@ const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.drivers;
 const labels = @import("tests").strings.drivers;
 const ports = @import("common").constants.serial.ports;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() void {
     verify.require(drivers.serial.state.isAvailable() and drivers.serial.state.getPort() == ports.COM1, labels.SERIAL);

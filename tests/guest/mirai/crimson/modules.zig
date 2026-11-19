@@ -6,7 +6,7 @@ const crimson = @import("mirai").crimson;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.crimson;
 const labels = @import("tests").strings.crimson;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() void {
     const flags = guard.acquire();

@@ -8,7 +8,7 @@ const labels = @import("tests").strings.heap;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const values = @import("tests").constants.memory;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     const flags = guard.acquire();

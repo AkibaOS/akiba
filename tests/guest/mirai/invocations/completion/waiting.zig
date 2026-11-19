@@ -14,7 +14,7 @@ const support = @import("tests").guest.mirai.invocations.completion.support;
 const thread = @import("mirai").thread;
 const types = @import("tests").types.completion;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     try blocked();

@@ -12,7 +12,7 @@ const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.constants.status;
 const storage = @import("hikari").efi.types.buffer;
 const types = @import("tests").types.hikari;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var pool: types.PoolState = .{};
 

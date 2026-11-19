@@ -29,7 +29,7 @@ const senseilabels = @import("tests").strings.sensei;
 const screenview = @import("tests").screen.live;
 const serial = @import("mirai").drivers.serial.write;
 const tables = @import("tests").strings.tables;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 const LiveOffer = @import("tests").phase.types.live.Offer;
 const Scenario = @import("tests").types.scenario.Scenario;
 

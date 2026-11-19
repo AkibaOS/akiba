@@ -10,7 +10,7 @@ const phase = @import("tests").guest.support.phase;
 const port = @import("asm").io.port;
 const ports = @import("mirai").drivers.constants.keyboard.ports;
 const serial = @import("mirai").drivers.serial.write;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var armed: bool = false;
 var requested: bool = false;

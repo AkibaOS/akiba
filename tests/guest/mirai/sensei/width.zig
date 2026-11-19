@@ -10,7 +10,7 @@ const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Queue = sensei.types.queue.Queue;
 const Record = sensei.types.record.Record;

@@ -8,7 +8,7 @@ const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.retention;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Kata = kata.types.kata.Kata;
 

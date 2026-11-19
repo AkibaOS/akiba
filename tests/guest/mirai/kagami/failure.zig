@@ -9,7 +9,7 @@ const inputs = @import("tests").constants.tables;
 const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.tables;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
 const Kagami = kagami.types.kagami.Kagami;

@@ -12,7 +12,7 @@ const pmm = @import("mirai").pmm;
 const stage = @import("tests").guest.mirai.bootstrap.stage;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 const weaver = @import("weaver");
 
 const Source = @import("tests").types.elf.Source;

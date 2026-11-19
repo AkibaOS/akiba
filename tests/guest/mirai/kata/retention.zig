@@ -14,7 +14,7 @@ const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
 const types = @import("tests").types.retention;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Kata = kata.types.kata.Kata;
 const Outcome = kata.types.outcome.Outcome;

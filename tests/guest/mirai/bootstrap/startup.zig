@@ -3,14 +3,14 @@
 const std = @import("std");
 
 const bootstrap = @import("mirai").bootstrap;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.elf;
 const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.elf;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const IMAGE_BYTES = fixture.create();
 

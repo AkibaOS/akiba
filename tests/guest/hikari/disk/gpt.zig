@@ -5,7 +5,7 @@ const errors = @import("hikari").disk.errors.gpt;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const labels = @import("tests").strings.acquisition;
 const parser = @import("hikari").disk.types.parser;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const ParseError = errors.ParseError;
 const Parser = parser.Parser;

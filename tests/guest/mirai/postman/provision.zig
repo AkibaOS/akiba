@@ -7,7 +7,7 @@ const labels = @import("tests").strings.postman;
 const mirai = @import("mirai");
 const types = @import("tests").types.postman;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Actor = types.Actor;
 const Kata = kata.types.kata.Kata;

@@ -3,7 +3,7 @@
 const crimson = @import("mirai").crimson;
 const inputs = @import("tests").constants.crimson;
 const labels = @import("tests").strings.crimson;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() void {
     for (inputs.VECTORS) |fixture| {

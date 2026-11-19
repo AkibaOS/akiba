@@ -15,7 +15,7 @@ const locations = @import("tests").constants.postman;
 const outcome = @import("tests").constants.completion;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Actor = @import("tests").types.postman.Actor;
 const types = @import("tests").types.weaver;

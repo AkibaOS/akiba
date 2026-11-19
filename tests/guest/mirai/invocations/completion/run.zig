@@ -9,7 +9,7 @@ const outcomes = @import("tests").guest.mirai.invocations.completion.outcomes;
 const ownership = @import("tests").guest.mirai.invocations.completion.ownership;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 const waiting = @import("tests").guest.mirai.invocations.completion.waiting;
 
 var completed: bool = false;

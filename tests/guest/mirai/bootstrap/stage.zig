@@ -11,7 +11,7 @@ const labels = @import("tests").strings.elf;
 const sizes = @import("common").constants.memory.sizes;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 const weaver = @import("weaver");
 
 const Kata = kata.types.kata.Kata;

@@ -12,7 +12,7 @@ const labels = @import("tests").strings.heap;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const values = @import("tests").constants.memory;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;

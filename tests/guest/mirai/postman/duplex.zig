@@ -7,7 +7,7 @@ const copy = @import("mirai").user.copy.transfer;
 const harness = @import("tests").guest.mirai.postman.harness;
 const inputs = @import("tests").constants.postman;
 const labels = @import("tests").strings.postman;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     try nested(false);

@@ -10,7 +10,7 @@ const fixture = @import("tests").guest.hikari.disk.fixture;
 const labels = @import("tests").strings.acquisition;
 const media = @import("hikari").disk.types.media;
 const reader = @import("hikari").fs.types.afs.reader;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const ReadError = errors.ReadError;
 const Reader = reader.Reader;

@@ -6,3 +6,4 @@ pub const drive = @import("drive.zig");
 pub const phase = @import("phase.zig");
 pub const root = @import("root.zig");
 pub const selector = @import("selector.zig");
+pub const verify = @import("verify.zig");

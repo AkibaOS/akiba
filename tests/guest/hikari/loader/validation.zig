@@ -9,7 +9,7 @@ const inputs = @import("tests").constants.hikari;
 const labels = @import("tests").strings.hikari;
 const types = @import("tests").types.hikari;
 const validation = @import("hikari").loader.elf.validation;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     const image = try validation.validateImage(&inputs.VALID_ELF);

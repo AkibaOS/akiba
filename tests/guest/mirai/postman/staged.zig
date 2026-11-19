@@ -15,7 +15,7 @@ const labels = @import("tests").strings.postman;
 const launch = @import("mirai").launch;
 const types = @import("tests").types.postman;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Actor = types.Actor;
 const Operation = types.Operation;

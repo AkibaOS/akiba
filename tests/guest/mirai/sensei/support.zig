@@ -6,7 +6,7 @@ const labels = @import("tests").strings.sensei;
 const limits = @import("tests").constants.guest;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn drain(owner_id: u64) !void {
     var attempts: usize = 0;

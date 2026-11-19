@@ -17,7 +17,7 @@ const thread = @import("mirai").thread;
 const types = @import("tests").types.completion;
 const user = @import("mirai").user;
 const values = @import("tests").types.postman;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const Actor = values.Actor;
 const Entry = thread.types.entry.Entry;

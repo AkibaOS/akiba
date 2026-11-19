@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const dynamic = @import("tests").fast.shared.elf.dynamic;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const inputs = @import("tests").constants.elf;
 const shared = @import("shared");
 const weaver = @import("weaver");

@@ -11,7 +11,7 @@ const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
 const types = @import("tests").types.postman;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 var finished: bool = false;
 

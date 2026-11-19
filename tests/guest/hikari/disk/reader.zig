@@ -10,7 +10,7 @@ const locator = @import("hikari").sequence.partition;
 const media = @import("hikari").disk.types.media;
 const partition = @import("hikari").sequence.types.partition;
 const reader = @import("hikari").fs.types.afs.reader;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() void {
     fixture.reset();

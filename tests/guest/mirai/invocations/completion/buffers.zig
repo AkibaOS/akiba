@@ -10,7 +10,7 @@ const labels = @import("tests").strings.completion;
 const locations = @import("tests").constants.postman;
 const support = @import("tests").guest.mirai.invocations.completion.support;
 const types = @import("tests").types.completion;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     var actor = try harness.create();

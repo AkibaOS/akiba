@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const elf = @import("shared").elf;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const inputs = @import("tests").constants.elf;
 const text = @import("tests").strings.elf;
 

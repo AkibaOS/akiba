@@ -4,7 +4,7 @@ const std = @import("std");
 
 const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const inputs = @import("tests").constants.elf;
 
 const POLICY: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };

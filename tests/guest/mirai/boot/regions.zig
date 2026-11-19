@@ -11,7 +11,7 @@ const inputs = @import("tests").constants.regions;
 const kagami = @import("mirai").kagami;
 const labels = @import("tests").strings.regions;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;

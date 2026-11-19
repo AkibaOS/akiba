@@ -9,7 +9,7 @@ const inputs = @import("tests").constants.crimson;
 const labels = @import("tests").strings.crimson;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const ports = crimson.ports;
 const Port = crimson.types.port.Port;

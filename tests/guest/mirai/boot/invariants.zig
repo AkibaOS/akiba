@@ -16,7 +16,7 @@ const selectors = @import("mirai").boot.constants.gdt.selectors;
 const thread = @import("mirai").thread;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const control = cpu.constants.control;
 const layout = common.constants.memory.layout;

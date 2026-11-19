@@ -3,14 +3,14 @@
 const std = @import("std");
 
 const bootstrap = @import("mirai").bootstrap;
-const fixture = @import("tests").fast.shared.elf.fixture;
+const fixture = @import("tests").fixtures.bytes.elf;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").constants.elf;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.elf;
 const pmm = @import("mirai").pmm;
 const thread = @import("mirai").thread;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const VALID = fixture.create();
 const MALFORMED = blk: {

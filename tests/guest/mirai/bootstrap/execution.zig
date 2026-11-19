@@ -18,7 +18,7 @@ const shared = @import("shared").elf;
 const thread = @import("mirai").thread;
 const types = @import("tests").types.completion;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const IMAGE_BYTES = @embedFile("elfimage");
 var finished: bool = false;

@@ -10,7 +10,7 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     const flags = guard.acquire();

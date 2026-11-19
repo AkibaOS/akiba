@@ -11,7 +11,7 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 const layout = common.constants.memory.layout;
 const protection = kagami.constants.protection;

@@ -9,7 +9,7 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.completion;
 const support = @import("tests").guest.mirai.invocations.completion.support;
 const types = @import("tests").types.completion;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     try live();

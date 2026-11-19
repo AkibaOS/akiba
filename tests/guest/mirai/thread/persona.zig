@@ -8,7 +8,7 @@ const labels = @import("tests").strings.guest;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     const owner = try kata.create.create();

@@ -4,7 +4,7 @@ const abi = @import("mirai").invocations.types.abi;
 const constants = @import("tests").constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
 const labels = @import("tests").strings.postman;
-const verify = @import("tests").verify;
+const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
     try outputFailures();
