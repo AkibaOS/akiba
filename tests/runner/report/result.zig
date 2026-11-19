@@ -2,13 +2,13 @@
 
 const std = @import("std");
 
-const firmware = @import("tests").strings.firmware;
-const labels = @import("tests").strings.scenario;
+const bootstrapwire = @import("tests").phase.strings.bootstrap;
+const firmwarewire = @import("tests").phase.strings.firmware;
+const labels = @import("tests").phase.strings.scenario;
 const markers = @import("tests").phase.strings.serial;
 const progress = @import("tests").phase.constants.live;
 const strings = @import("tests").runner.strings.runner;
-const tables = @import("tests").strings.tables;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
 pub fn failedBeforeSelection(bytes: []const u8) bool {
@@ -19,7 +19,7 @@ pub fn failedBeforeSelection(bytes: []const u8) bool {
 
 pub fn cancelledCount(bytes: []const u8) !usize {
     if (failedBeforeSelection(bytes) or std.mem.indexOf(u8, bytes, markers.COMPLETE) != null or
-        std.mem.indexOf(u8, bytes, firmware.COMPLETE) != null or std.mem.indexOf(u8, bytes, strings.READY) != null) return error.InvalidCancellationEvidence;
+        std.mem.indexOf(u8, bytes, firmwarewire.COMPLETE) != null or std.mem.indexOf(u8, bytes, strings.READY) != null) return error.InvalidCancellationEvidence;
     var count: ?usize = null;
     var lines = std.mem.splitScalar(u8, bytes, '\n');
     while (lines.next()) |line| {
@@ -35,10 +35,10 @@ pub fn cancelledCount(bytes: []const u8) !usize {
 pub fn ordinaryReady(bytes: []const u8) !bool {
     if (failedBeforeSelection(bytes)) return error.NormalBootFailed;
     if (std.mem.indexOf(u8, bytes, markers.BEGIN) != null or
-        std.mem.indexOf(u8, bytes, firmware.BEGIN) != null or
+        std.mem.indexOf(u8, bytes, firmwarewire.BEGIN) != null or
         std.mem.indexOf(u8, bytes, markers.COMPLETE) != null or
         std.mem.indexOf(u8, bytes, markers.CANCELLED) != null or
-        std.mem.indexOf(u8, bytes, firmware.COMPLETE) != null or
+        std.mem.indexOf(u8, bytes, firmwarewire.COMPLETE) != null or
         std.mem.indexOf(u8, bytes, markers.PASS) != null) return error.UnexpectedDiagnosticBoot;
     return try uniqueLine(bytes, strings.READY) != null;
 }
@@ -61,8 +61,8 @@ pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
 }
 
 pub fn verifyBootstrap(bytes: []const u8, scenario: Scenario) !void {
-    const began = uniqueLine(bytes, tables.ROLLBACK_BEGIN) catch return error.InvalidBootstrapEvidence;
-    const ended = uniqueLine(bytes, tables.ROLLBACK_COMPLETE) catch return error.InvalidBootstrapEvidence;
+    const began = uniqueLine(bytes, bootstrapwire.ROLLBACK_BEGIN) catch return error.InvalidBootstrapEvidence;
+    const ended = uniqueLine(bytes, bootstrapwire.ROLLBACK_COMPLETE) catch return error.InvalidBootstrapEvidence;
     if (scenario != .Standard) {
         if (began != null or ended != null) return error.UnexpectedBootstrapSweep;
         return;
@@ -82,17 +82,17 @@ pub fn rollbackWork(bytes: []const u8) !Work {
     while (lines.next()) |raw| {
         if (lines.index == null) break;
         const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
-        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
+        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, bootstrapwire.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
             if (began or checks_started) return error.InvalidBootstrapEvidence;
             began = true;
-        } else if (std.mem.startsWith(u8, line, tables.ROLLBACK_SCHEDULE_PREFIX)) {
+        } else if (std.mem.startsWith(u8, line, bootstrapwire.ROLLBACK_SCHEDULE_PREFIX)) {
             if (!began or tally.Planned != 0 or checks_started) return error.InvalidBootstrapEvidence;
-            tally.Planned = try rollbackCount(line[tables.ROLLBACK_SCHEDULE_PREFIX.len..]);
-        } else if (std.mem.startsWith(u8, line, tables.ROLLBACK_VERIFIED_PREFIX)) {
+            tally.Planned = try rollbackCount(line[bootstrapwire.ROLLBACK_SCHEDULE_PREFIX.len..]);
+        } else if (std.mem.startsWith(u8, line, bootstrapwire.ROLLBACK_VERIFIED_PREFIX)) {
             if (matched or tally.Planned == 0 or checks_started) return error.InvalidBootstrapEvidence;
-            if (try rollbackCount(line[tables.ROLLBACK_VERIFIED_PREFIX.len..]) != tally.Planned) return error.InvalidBootstrapEvidence;
+            if (try rollbackCount(line[bootstrapwire.ROLLBACK_VERIFIED_PREFIX.len..]) != tally.Planned) return error.InvalidBootstrapEvidence;
             matched = true;
-        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
+        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, bootstrapwire.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
             if (!matched or tally.Verified != 0 or checks_started) return error.InvalidBootstrapEvidence;
             tally.Verified = tally.Planned;
         } else if (std.mem.eql(u8, line, markers.BEGIN)) {
@@ -114,7 +114,7 @@ fn rollbackCount(text: []const u8) !u32 {
 pub fn partialChecks(bytes: []const u8, selected: Scenario) u32 {
     const begin = switch (selected) {
         .Standard, .Devices => markers.BEGIN,
-        .Firmware => std.mem.trimEnd(u8, firmware.BEGIN, strings.LINE_SEPARATORS),
+        .Firmware => std.mem.trimEnd(u8, firmwarewire.BEGIN, strings.LINE_SEPARATORS),
         .PulseDeath, .Collapse => return 0,
     };
     var count: u32 = 0;
@@ -124,7 +124,7 @@ pub fn partialChecks(bytes: []const u8, selected: Scenario) u32 {
         if (lines.index == null) break;
         const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
         if (failedBeforeSelection(line) or std.mem.startsWith(u8, line, markers.COMPLETE) or
-            std.mem.startsWith(u8, line, firmware.COMPLETE)) break;
+            std.mem.startsWith(u8, line, firmwarewire.COMPLETE)) break;
         if (std.mem.eql(u8, line, begin)) {
             if (began) return 0;
             began = true;
@@ -150,17 +150,17 @@ pub fn standardProgress(bytes: []const u8) !u16 {
     while (lines.next()) |raw| {
         if (lines.index == null) break;
         const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
-        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
+        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, bootstrapwire.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
             if (rollback_started or checks_started) return error.InvalidBootstrapEvidence;
             rollback_started = true;
-        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
+        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, bootstrapwire.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
             if (!rollback_started or rollback_complete or checks_started) return error.InvalidBootstrapEvidence;
             rollback_complete = true;
         } else if (std.mem.eql(u8, line, markers.BEGIN)) {
             if (!rollback_complete or checks_started) return error.InvalidBootstrapEvidence;
             checks_started = true;
-        } else if (std.mem.startsWith(u8, line, tables.STANDARD_GROUP_PREFIX)) {
-            const number = std.fmt.parseInt(u16, line[tables.STANDARD_GROUP_PREFIX.len..], 10) catch return error.InvalidBootstrapEvidence;
+        } else if (std.mem.startsWith(u8, line, bootstrapwire.STANDARD_GROUP_PREFIX)) {
+            const number = std.fmt.parseInt(u16, line[bootstrapwire.STANDARD_GROUP_PREFIX.len..], 10) catch return error.InvalidBootstrapEvidence;
             if (!checks_started or groups + 1 >= progress.STANDARD_UNITS or number != groups + 1) return error.InvalidBootstrapEvidence;
             groups += 1;
         }
@@ -171,10 +171,10 @@ pub fn standardProgress(bytes: []const u8) !u16 {
 fn firmwareResult(bytes: []const u8) !?usize {
     if (std.mem.indexOf(u8, bytes, strings.READY) != null or
         std.mem.indexOf(u8, bytes, markers.COMPLETE) != null) return error.UnexpectedFirmwareOutcome;
-    const marker = std.mem.indexOf(u8, bytes, firmware.COMPLETE) orelse return null;
-    const begin = try uniqueLine(bytes, firmware.BEGIN) orelse return error.MissingGuestChecks;
-    if (begin >= marker or std.mem.count(u8, bytes, firmware.COMPLETE) != 1) return error.IncompleteGuestChecks;
-    const number = bytes[marker + firmware.COMPLETE.len ..];
+    const marker = std.mem.indexOf(u8, bytes, firmwarewire.COMPLETE) orelse return null;
+    const begin = try uniqueLine(bytes, firmwarewire.BEGIN) orelse return error.MissingGuestChecks;
+    if (begin >= marker or std.mem.count(u8, bytes, firmwarewire.COMPLETE) != 1) return error.IncompleteGuestChecks;
+    const number = bytes[marker + firmwarewire.COMPLETE.len ..];
     const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return null;
     const passed = std.fmt.parseInt(usize, number[0..end], 10) catch return error.InvalidGuestCheckCount;
     if (passed == 0 or std.mem.count(u8, bytes, markers.PASS) != passed) return error.IncompleteGuestChecks;

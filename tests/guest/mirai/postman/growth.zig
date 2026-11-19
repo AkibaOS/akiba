@@ -4,9 +4,9 @@ const std = @import("std");
 
 const budget = @import("tests").guest.support.allocation;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.postman;
+const inputs = @import("tests").guest.constants.postman;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const postman = @import("mirai").postman;

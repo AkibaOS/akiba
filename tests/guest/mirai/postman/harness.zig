@@ -4,15 +4,16 @@ const std = @import("std");
 
 const abi = @import("mirai").invocations.types.abi;
 const arguments = @import("mirai").invocations.types.postman;
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
 const limits = @import("tests").guest.constants.guest;
 const postman = @import("mirai").postman;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const program = @import("tests").guest.mirai.postman.program;
 const sensei = @import("mirai").sensei;
-const strings = @import("tests").strings.postman;
+const strings = @import("tests").guest.strings.postman;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
 const types = @import("tests").guest.types.postman;
@@ -133,7 +134,7 @@ pub fn input(actor: *const Actor, bytes: []const u8) !void {
 pub fn descriptor(actor: *const Actor, destination: u64, capacity: u64) !void {
     const value: arguments.Call = .{
         .Destination = destination,
-        .Type = constants.CALL_TYPE,
+        .Type = postmanwire.CALL_TYPE,
         .Request = actor.Data + constants.INPUT_OFFSET,
         .RequestLength = constants.REQUEST.len,
         .Reply = actor.Data + constants.OUTPUT_OFFSET,
@@ -180,7 +181,7 @@ pub fn reply(actor: *const Actor) Operation {
         .First = .{ .Indirect = actor.Data + constants.HEADER_OFFSET + 3 * @sizeOf(u64) },
         .Second = actor.Data + constants.INPUT_OFFSET,
         .Third = constants.REPLY.len,
-        .LetterType = constants.REPLY_TYPE,
+        .LetterType = postmanwire.REPLY_TYPE,
     };
 }
 

@@ -1,7 +1,7 @@
 //! Firmware Menu Handshake Layout
 
 const frame = @import("tests").screen.constants.frame;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
 pub const READY = [_]u8{ 0xa7, 0xb1, 'A', 'K', 'M', 'R' };

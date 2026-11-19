@@ -1,12 +1,12 @@
 //! Test Only COM2 Phase Selection
 
 const common = @import("common");
-const inputs = @import("tests").constants.scenario;
+const inputs = @import("tests").machine.constants.serial;
 const phase = @import("tests").phase;
 const poll = @import("mirai").drivers.serial.poll;
 const port = @import("asm").io.port;
 
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const registers = common.constants.serial.registers;
 const ports = common.constants.serial.ports;
 

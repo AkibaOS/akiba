@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const inputs = @import("tests").constants.elf;
+const inputs = @import("tests").fixtures.constants.elf;
 
 pub fn create() [inputs.DATA_BYTES]u8 {
     var bytes = [_]u8{0} ** inputs.DATA_BYTES;

@@ -1,7 +1,7 @@
 //! Persona Invocation State Probe Inputs
 
 const floating = @import("tests").guest.constants.context;
-const locations = @import("tests").constants.postman;
+const locations = @import("tests").guest.constants.postman;
 const types = @import("tests").guest.types.persona;
 
 pub const DATA_ADDRESS: u64 = locations.DATA_BASE;

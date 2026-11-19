@@ -1,8 +1,8 @@
 //! Persona Send Copy FIFO And Queue Capacity Regressions
 
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const postman = @import("mirai").postman;
 const types = @import("tests").guest.types.postman;
 const verify = @import("tests").guest.support.verify;

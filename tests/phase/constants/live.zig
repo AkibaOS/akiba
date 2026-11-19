@@ -2,7 +2,7 @@
 
 const frame = @import("tests").screen.constants.frame;
 const menu = @import("tests").phase.constants.menu;
-const schedule = @import("tests").screen.strings.schedule;
+const schedule = @import("tests").phase.strings.schedule;
 const Work = @import("tests").phase.types.work.Work;
 
 pub const READY = [_]u8{ 0xa7, 0xb1, 'A', 'K', 'L', 'R' };

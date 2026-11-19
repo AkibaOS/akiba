@@ -1,7 +1,7 @@
 //! Guest Check Assertions
 
 const guard = @import("asm").interrupts.guard;
-const labels = @import("tests").strings.guest;
+const labels = @import("tests").guest.strings.guest;
 const markers = @import("tests").phase.strings.serial;
 const screen = @import("tests").guest.screen.control;
 const serial = @import("mirai").drivers.serial.write;

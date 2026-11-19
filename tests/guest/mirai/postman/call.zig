@@ -1,8 +1,9 @@
 //! Persona Call Reply Ticket And Collection Regressions
 
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {
@@ -38,7 +39,7 @@ pub fn run() !void {
     const pending = client_record.Pending orelse return error.InvalidFixture;
     verify.require((try harness.resultIs(&server, 1, .Success, constants.REQUEST.len)) and
         (try harness.payloadIs(&server, &constants.REQUEST)) and request.Sender == client.ID and
-        request.Type == constants.CALL_TYPE and request.Length == constants.REQUEST.len and request.ReplyTicket != 0 and
+        request.Type == postmanwire.CALL_TYPE and request.Length == constants.REQUEST.len and request.ReplyTicket != 0 and
         pending.Status == .Delivered and pending.Ticket == request.ReplyTicket and server_record.Serving == pending and
         source.Outgoing == 1 and destination.Held == 1 and destination.Queued == 0, labels.CALL_DELIVERY);
     var sibling = try harness.sibling(&server, 1);
@@ -83,7 +84,7 @@ pub fn run() !void {
     const response = try harness.header(&client);
     const collected = (try harness.resultIs(&client, 5, .Success, constants.REPLY.len)) and
         (try harness.payloadIs(&client, &constants.REPLY)) and response.Sender == server.ID and
-        response.Type == constants.REPLY_TYPE and response.Length == constants.REPLY.len and response.ReplyTicket == 0;
+        response.Type == postmanwire.REPLY_TYPE and response.Length == constants.REPLY.len and response.ReplyTicket == 0;
     try harness.advance(&client, 5);
     try harness.waitStep(&client, 6);
     verify.require(retained and collected and (try harness.resultIs(&client, 6, .InvalidState, 0)) and

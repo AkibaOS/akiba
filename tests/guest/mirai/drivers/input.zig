@@ -1,10 +1,12 @@
 //! Actual PIT And Injected Keyboard IRQ Checks
 
+const challenge = @import("tests").phase.constants.input;
 const cpu = @import("asm").cpu;
 const drivers = @import("mirai").drivers;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.drivers;
-const labels = @import("tests").strings.drivers;
+const inputs = @import("tests").guest.constants.drivers;
+const inputwire = @import("tests").phase.strings.input;
+const labels = @import("tests").guest.strings.drivers;
 const ports = @import("common").constants.serial.ports;
 const verify = @import("tests").guest.support.verify;
 
@@ -24,17 +26,17 @@ pub fn run() void {
     verify.require(ticks >= before and ticks - before >= inputs.REQUIRED_TICKS, labels.TIMER);
     flags = guard.acquire();
     const initial = drivers.keyboard.handler.getLastScancode();
-    drivers.serial.write.printf(labels.READY_LINE, .{});
+    drivers.serial.write.printf(inputwire.READY_LINE, .{});
     const started = drivers.pit.handler.getTicks();
     guard.release(flags);
-    var armed = initial != inputs.BREAK_CODE;
+    var armed = initial != challenge.BREAK_CODE;
     while (true) {
         flags = guard.acquire();
         const scancode = drivers.keyboard.handler.getLastScancode();
         ticks = drivers.pit.handler.getTicks();
         guard.release(flags);
-        if (scancode != inputs.BREAK_CODE) armed = true;
-        if (armed and scancode == inputs.BREAK_CODE) {
+        if (scancode != challenge.BREAK_CODE) armed = true;
+        if (armed and scancode == challenge.BREAK_CODE) {
             verify.require(true, labels.KEYBOARD);
             return;
         }

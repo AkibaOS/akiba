@@ -7,7 +7,7 @@ const limits = @import("tests").phase.constants.menu;
 const live = @import("tests").phase.live;
 const progress = @import("tests").phase.constants.live;
 const types = @import("tests").phase.types.menu;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
 pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {

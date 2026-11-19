@@ -7,18 +7,19 @@ const bootstrap = @import("mirai").bootstrap;
 const completion = @import("tests").guest.mirai.invocations.completion.support;
 const copy = @import("mirai").user.copy.transfer;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.weaver;
+const inputs = @import("tests").fixtures.constants.weaver;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.weaver;
+const labels = @import("tests").fixtures.strings.weaver;
 const launch = @import("mirai").launch;
-const locations = @import("tests").constants.postman;
+const locations = @import("tests").guest.constants.postman;
 const outcome = @import("tests").guest.constants.completion;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 
 const Actor = @import("tests").guest.types.postman.Actor;
-const types = @import("tests").types.weaver;
+const types = @import("tests").fixtures.types.weaver;
 
 const IMAGE = @embedFile("weaverimage");
 
@@ -76,7 +77,7 @@ fn install(client: *Actor, server: u64, mode: types.Mode) !void {
     try harness.input(client, &.{@intFromEnum(mode)});
     const descriptor: abi.Call = .{
         .Destination = server,
-        .Type = locations.CALL_TYPE,
+        .Type = postmanwire.CALL_TYPE,
         .Request = client.Data + locations.INPUT_OFFSET,
         .RequestLength = 1,
         .Reply = client.Data + locations.TICKET_OFFSET,

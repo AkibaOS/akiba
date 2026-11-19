@@ -4,7 +4,7 @@ const std = @import("std");
 
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").machine.constants.config;
-const labels = @import("tests").strings.scenario;
+const labels = @import("tests").phase.strings.scenario;
 const port = @import("asm").io.port;
 
 pub fn liveEnabled() bool {

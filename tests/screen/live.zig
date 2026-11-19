@@ -7,11 +7,11 @@ const limits = @import("tests").phase.constants.live;
 const menu = @import("tests").phase.menu;
 const markers = @import("tests").phase.strings.serial;
 const model = @import("tests").screen.model;
-const schedule = @import("tests").screen.strings.schedule;
+const schedule = @import("tests").phase.strings.schedule;
 const text = @import("tests").screen.strings.text;
 const types = @import("tests").screen.types.model;
 const Offer = @import("tests").phase.types.live.Offer;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 comptime {
     std.debug.assert(text.PHASE_NAMES.len == std.enums.values(Scenario).len);

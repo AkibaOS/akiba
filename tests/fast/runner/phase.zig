@@ -4,9 +4,9 @@ const std = @import("std");
 
 const fixtures = @import("tests").fast.runner.strings.oracle;
 const inputs = @import("tests").fast.runner.constants.protocol;
-const labels = @import("tests").strings.scenario;
+const labels = @import("tests").phase.strings.scenario;
 const project = @import("tests");
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 pub fn actions() !void {
     const wire = project.phase.action;

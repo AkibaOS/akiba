@@ -4,7 +4,7 @@ const std = @import("std");
 
 const harness = @import("tests").guest.mirai.postman.harness;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const postman = @import("mirai").postman;
 const scenarios = @import("tests").guest.mirai.postman;
 const sensei = @import("mirai").sensei;

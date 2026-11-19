@@ -17,7 +17,7 @@ const process = @import("tests").runner.process.lifetime;
 const protocol = @import("tests").runner.transport.protocol;
 const recovery = @import("tests").runner.session.recovery;
 const result = @import("tests").runner.report.result;
-const scenario = @import("tests").strings.scenario;
+const scenario = @import("tests").phase.strings.scenario;
 const screen = @import("tests").screen;
 const serial = @import("tests").runner.transport.serial;
 const strings = @import("tests").runner.strings.runner;
@@ -27,7 +27,7 @@ const work = @import("tests").runner.work;
 
 const Allocator = std.mem.Allocator;
 const BootSelection = @import("tests").phase.types.boot.Selection;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const PAGE = std.heap.page_allocator;
 
 pub fn run(unattended: bool) !void {

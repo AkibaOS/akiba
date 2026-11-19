@@ -4,17 +4,17 @@ const std = @import("std");
 
 const elf = @import("shared").elf;
 const fixture = @import("tests").fixtures.bytes.elf;
-const inputs = @import("tests").constants.elf;
-const text = @import("tests").strings.elf;
+const fixturetext = @import("tests").fixtures.strings.elf;
+const inputs = @import("tests").fixtures.constants.elf;
 
 pub fn readsTables() !void {
     var bytes = image();
     const metadata = try elf.read.dynamic.read(&bytes);
     try std.testing.expectEqual(inputs.DYNAMIC_WORDS - 1, metadata.Entries.len);
-    try std.testing.expectEqualStrings(text.DYNAMIC_LIBRARY, try metadata.string(metadata.Entries[0].Value));
-    try std.testing.expectEqualStrings(text.DYNAMIC_LIBRARY, try metadata.string(metadata.Entries[1].Value));
+    try std.testing.expectEqualStrings(fixturetext.DYNAMIC_LIBRARY, try metadata.string(metadata.Entries[0].Value));
+    try std.testing.expectEqualStrings(fixturetext.DYNAMIC_LIBRARY, try metadata.string(metadata.Entries[1].Value));
     try std.testing.expectEqual(@as(usize, 2), metadata.Symbols.len);
-    try std.testing.expectEqualStrings(text.DYNAMIC_EXPORT, try metadata.string(metadata.Symbols[1].NameOffset));
+    try std.testing.expectEqualStrings(fixturetext.DYNAMIC_EXPORT, try metadata.string(metadata.Symbols[1].NameOffset));
     try std.testing.expectEqual(@as(usize, 1), metadata.Relocations.len);
     try std.testing.expectEqual(@as(u64, 8), metadata.Relocations[0].Info);
     try std.testing.expectEqual(@as(i64, 19), metadata.Relocations[0].Addend);
@@ -43,13 +43,13 @@ pub fn checksBacking() !void {
 pub fn checksNames() !void {
     const source = image();
     var bytes = source;
-    word(&bytes, 0, 1, text.DYNAMIC_STRINGS.len);
+    word(&bytes, 0, 1, fixturetext.DYNAMIC_STRINGS.len);
     try std.testing.expectError(error.InvalidDynamicString, elf.read.dynamic.read(&bytes));
     bytes = source;
-    bytes[inputs.DYNAMIC_FILE_BASE + text.DYNAMIC_STRINGS.len - 1] = 'x';
+    bytes[inputs.DYNAMIC_FILE_BASE + fixturetext.DYNAMIC_STRINGS.len - 1] = 'x';
     try std.testing.expectError(error.InvalidDynamicString, elf.read.dynamic.read(&bytes));
     bytes = source;
-    fixture.write32(&bytes, inputs.DYNAMIC_SYMBOLS + inputs.DYNAMIC_SYMBOL_BYTES, text.DYNAMIC_STRINGS.len);
+    fixture.write32(&bytes, inputs.DYNAMIC_SYMBOLS + inputs.DYNAMIC_SYMBOL_BYTES, fixturetext.DYNAMIC_STRINGS.len);
     try std.testing.expectError(error.InvalidDynamicString, elf.read.dynamic.read(&bytes));
     bytes = source;
     word(&bytes, 1, 5, inputs.DYNAMIC_BASE);
@@ -170,7 +170,7 @@ fn image() [inputs.DATA_BYTES]u8 {
     program(&bytes, 0, 1, inputs.DYNAMIC_FILE_BASE, inputs.DYNAMIC_FILE_BYTES, inputs.DYNAMIC_MEMORY_BYTES);
     const table_bytes = inputs.DYNAMIC_WORD_BYTES * inputs.DYNAMIC_WORDS;
     program(&bytes, 1, 2, inputs.DYNAMIC_TABLE, table_bytes, table_bytes);
-    @memcpy(bytes[inputs.DYNAMIC_FILE_BASE..][0..text.DYNAMIC_STRINGS.len], text.DYNAMIC_STRINGS);
+    @memcpy(bytes[inputs.DYNAMIC_FILE_BASE..][0..fixturetext.DYNAMIC_STRINGS.len], fixturetext.DYNAMIC_STRINGS);
     fixture.write32(&bytes, inputs.DYNAMIC_SYMBOLS + inputs.DYNAMIC_SYMBOL_BYTES, 11);
     bytes[inputs.DYNAMIC_SYMBOLS + inputs.DYNAMIC_SYMBOL_BYTES + 4] = 0x12;
     fixture.write32(&bytes, inputs.DYNAMIC_HASH, 1);
@@ -184,7 +184,7 @@ fn image() [inputs.DATA_BYTES]u8 {
     word(&bytes, 0, 1, 1);
     word(&bytes, 1, 14, 1);
     word(&bytes, 2, 5, inputs.DYNAMIC_BASE);
-    word(&bytes, 3, 10, text.DYNAMIC_STRINGS.len);
+    word(&bytes, 3, 10, fixturetext.DYNAMIC_STRINGS.len);
     word(&bytes, 4, 6, address(inputs.DYNAMIC_SYMBOLS));
     word(&bytes, 5, 11, inputs.DYNAMIC_SYMBOL_BYTES);
     word(&bytes, 6, 4, address(inputs.DYNAMIC_HASH));

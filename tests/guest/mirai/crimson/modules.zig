@@ -5,7 +5,7 @@ const std = @import("std");
 const crimson = @import("mirai").crimson;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.crimson;
-const labels = @import("tests").strings.crimson;
+const labels = @import("tests").guest.strings.crimson;
 const verify = @import("tests").guest.support.verify;
 
 pub fn run() void {

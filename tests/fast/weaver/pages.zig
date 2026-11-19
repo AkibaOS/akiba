@@ -5,8 +5,8 @@ const std = @import("std");
 const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
 const fixture = @import("tests").fixtures.bytes.elf;
-const inputs = @import("tests").constants.elf;
-const text = @import("tests").strings.elf;
+const fixturetext = @import("tests").fixtures.strings.elf;
+const inputs = @import("tests").fixtures.constants.elf;
 const weaver = @import("weaver");
 
 const ALLOCATOR = std.testing.allocator;
@@ -102,6 +102,6 @@ fn encodeRelative(bytes: []u8, address: u64) void {
 
 fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) weaver.library.errors.library.ReadError!?[]u8 {
     const library: *const [inputs.DATA_BYTES]u8 = @ptrCast(@alignCast(context));
-    if (parent.len != 2 or !std.mem.eql(u8, parent[0], "system") or !std.mem.eql(u8, parent[1], "libraries") or !std.mem.eql(u8, name, text.DYNAMIC_LIBRARY)) return null;
+    if (parent.len != 2 or !std.mem.eql(u8, parent[0], "system") or !std.mem.eql(u8, parent[1], "libraries") or !std.mem.eql(u8, name, fixturetext.DYNAMIC_LIBRARY)) return null;
     return try allocator.dupe(u8, library);
 }

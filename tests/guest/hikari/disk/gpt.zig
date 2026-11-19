@@ -3,7 +3,7 @@
 const constants = @import("tests").guest.constants.acquisition;
 const errors = @import("hikari").disk.errors.gpt;
 const fixture = @import("tests").guest.hikari.disk.fixture;
-const labels = @import("tests").strings.acquisition;
+const labels = @import("tests").guest.strings.acquisition;
 const parser = @import("hikari").disk.types.parser;
 const verify = @import("tests").guest.support.verify;
 

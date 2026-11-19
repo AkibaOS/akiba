@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const firmware = @import("tests").constants.firmware;
+const firmwarecount = @import("tests").phase.constants.firmware;
 const limits = @import("tests").runner.constants.work;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
 pub fn reference() u32 {
@@ -27,7 +27,7 @@ pub fn retain(tally: *Work, selected: Scenario, count: u32) void {
 fn budget(selected: Scenario) u32 {
     return switch (selected) {
         .Standard => limits.STANDARD_ESTIMATE,
-        .Firmware => firmware.ASSERTION_COUNT,
+        .Firmware => firmwarecount.ASSERTION_COUNT,
         .Devices => limits.DEVICE_CHECKS,
         .PulseDeath, .Collapse => limits.TERMINAL_CHECKS,
     };

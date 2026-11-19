@@ -5,8 +5,8 @@ const std = @import("std");
 const budget = @import("tests").guest.support.allocation;
 const copy = @import("mirai").user.copy.transfer;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.postman;
-const labels = @import("tests").strings.postman;
+const inputs = @import("tests").guest.constants.postman;
+const labels = @import("tests").guest.strings.postman;
 const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {

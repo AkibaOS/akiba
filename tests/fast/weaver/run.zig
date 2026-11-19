@@ -5,11 +5,11 @@ const std = @import("std");
 const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
 const fixture = @import("tests").fixtures.bytes.elf;
-const inputs = @import("tests").constants.elf;
+const fixturetext = @import("tests").fixtures.strings.elf;
+const inputs = @import("tests").fixtures.constants.elf;
 const pages = @import("tests").fast.weaver.pages;
 const request = @import("tests").fast.weaver.request;
 const startup = @import("tests").fast.weaver.startup;
-const text = @import("tests").strings.elf;
 const weaver = @import("weaver");
 
 const ALLOCATOR = std.testing.allocator;
@@ -54,23 +54,23 @@ const Catalog = struct {
 test "Weaver selects the exact system unit and retains an owned byte snapshot" {
     var stored = dynamic.loadImage();
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &INSTALLED, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &.{} },
-        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &stored },
+        .{ .Parent = &INSTALLED, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &.{} },
+        .{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &stored },
     } };
-    var library = try weaver.library.open.open(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, text.DYNAMIC_LIBRARY);
+    var library = try weaver.library.open.open(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, fixturetext.DYNAMIC_LIBRARY);
     defer library.deinit();
     @memset(&stored, 0);
     try std.testing.expectEqualSlices(u8, &.{ 0x7f, 'E', 'L', 'F' }, library.Bytes[0..4]);
-    try std.testing.expectEqualStrings(text.DYNAMIC_LIBRARY, try library.Metadata.string(library.Metadata.Entries[1].Value));
+    try std.testing.expectEqualStrings(fixturetext.DYNAMIC_LIBRARY, try library.Metadata.string(library.Metadata.Entries[1].Value));
 }
 
 test "Weaver never falls back to installed libraries or case-folds a unit identity" {
     const stored = dynamic.loadImage();
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &INSTALLED, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &stored },
+        .{ .Parent = &INSTALLED, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &stored },
         .{ .Parent = &SYSTEM, .Identity = OTHER_CASE, .Bytes = &stored },
     } };
-    try std.testing.expectError(error.LibraryNotFound, weaver.library.open.open(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, text.DYNAMIC_LIBRARY));
+    try std.testing.expectError(error.LibraryNotFound, weaver.library.open.open(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, fixturetext.DYNAMIC_LIBRARY));
 }
 
 test "Weaver rejects path-like and non-library dependence names before selection" {
@@ -90,19 +90,19 @@ test "Weaver refuses a wrong missing or unreadable ELF identity without leaking 
     var missing = stored;
     fixture.write64(&missing, STORAGE_WORD + inputs.DYNAMIC_WORD_BYTES, 1);
     const wrong: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = ALIAS, .Bytes = &stored }} };
-    const no_soname: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &missing }} };
-    const truncated: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = stored[0..1] }} };
+    const no_soname: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &missing }} };
+    const truncated: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = stored[0..1] }} };
     const open = weaver.library.open.open;
     try std.testing.expectError(error.LibraryNameMismatch, open(ALLOCATOR, .{ .Context = &wrong, .ReadFromOrigin = Catalog.read }, ALIAS));
-    try std.testing.expectError(error.LibraryNameMismatch, open(ALLOCATOR, .{ .Context = &no_soname, .ReadFromOrigin = Catalog.read }, text.DYNAMIC_LIBRARY));
-    try std.testing.expectError(error.InvalidHeader, open(ALLOCATOR, .{ .Context = &truncated, .ReadFromOrigin = Catalog.read }, text.DYNAMIC_LIBRARY));
+    try std.testing.expectError(error.LibraryNameMismatch, open(ALLOCATOR, .{ .Context = &no_soname, .ReadFromOrigin = Catalog.read }, fixturetext.DYNAMIC_LIBRARY));
+    try std.testing.expectError(error.InvalidHeader, open(ALLOCATOR, .{ .Context = &truncated, .ReadFromOrigin = Catalog.read }, fixturetext.DYNAMIC_LIBRARY));
 }
 
 test "Weaver propagates refusal to allocate the system library snapshot" {
     const stored = dynamic.loadImage();
-    const catalog: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &stored }} };
+    const catalog: Catalog = .{ .Units = &.{.{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &stored }} };
     var failing = std.testing.FailingAllocator.init(ALLOCATOR, .{ .fail_index = 0 });
-    try std.testing.expectError(error.OutOfMemory, weaver.library.open.open(failing.allocator(), .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, text.DYNAMIC_LIBRARY));
+    try std.testing.expectError(error.OutOfMemory, weaver.library.open.open(failing.allocator(), .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, fixturetext.DYNAMIC_LIBRARY));
 }
 
 test "Weaver follows transitive needs and reads each shared or cyclic identity once" {
@@ -115,7 +115,7 @@ test "Weaver discards a partial graph when a transitive system library is missin
     const bridge = encodeGraph(LEAF_INDEX, null, BRIDGE_INDEX);
     const leaf = encodeGraph(0, null, LEAF_INDEX);
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe },
+        .{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &probe },
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
         .{ .Parent = &INSTALLED, .Identity = LEAF, .Bytes = &leaf },
     } };
@@ -133,7 +133,7 @@ fn verifyGraph(allocator: std.mem.Allocator) !void {
     const leaf = encodeGraph(PROBE_INDEX, null, LEAF_INDEX);
     var reads: [3]usize = @splat(0);
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe, .Reads = &reads[0] },
+        .{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &probe, .Reads = &reads[0] },
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge, .Reads = &reads[1] },
         .{ .Parent = &SYSTEM, .Identity = LEAF, .Bytes = &leaf, .Reads = &reads[2] },
     } };
@@ -141,7 +141,7 @@ fn verifyGraph(allocator: std.mem.Allocator) !void {
     defer graph.deinit();
     try std.testing.expectEqual(@as(usize, 3), graph.Libraries.len);
     try std.testing.expectEqualSlices(usize, &.{ 1, 1, 1 }, &reads);
-    try std.testing.expectEqualSlices(u8, &probe, graph.get(text.DYNAMIC_LIBRARY).?.Bytes);
+    try std.testing.expectEqualSlices(u8, &probe, graph.get(fixturetext.DYNAMIC_LIBRARY).?.Bytes);
     try std.testing.expectEqualSlices(u8, &bridge, graph.get(BRIDGE).?.Bytes);
     try std.testing.expectEqualSlices(u8, &leaf, graph.get(LEAF).?.Bytes);
     try std.testing.expect(graph.get(ALIAS) == null);
@@ -182,7 +182,7 @@ fn layoutGraph(allocator: std.mem.Allocator) !weaver.library.types.graph.Graph {
     const probe = encodeGraph(BRIDGE_INDEX, null, PROBE_INDEX);
     const bridge = encodeGraph(0, null, BRIDGE_INDEX);
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe },
+        .{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &probe },
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
     } };
     const graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable);
@@ -308,7 +308,7 @@ fn verifyLink(allocator: std.mem.Allocator, scenario: LinkCase) !void {
         },
     };
     const catalog: Catalog = .{ .Units = &.{
-        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe },
+        .{ .Parent = &SYSTEM, .Identity = fixturetext.DYNAMIC_LIBRARY, .Bytes = &probe },
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
     } };
     var graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable);

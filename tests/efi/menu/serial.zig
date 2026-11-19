@@ -1,7 +1,7 @@
 //! Bounded EFI Diagnostic UART Transport
 
 const efi = @import("hikari").efi;
-const inputs = @import("tests").constants.scenario;
+const inputs = @import("tests").machine.constants.serial;
 const labels = @import("tests").efi.strings.menu.summary;
 const limits = @import("tests").efi.constants.menu.limits;
 const port = @import("asm").io.port;

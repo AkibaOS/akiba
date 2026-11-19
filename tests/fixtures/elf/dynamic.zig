@@ -1,10 +1,10 @@
 //! Compiler PIE For Persona Shared Library Execution
 
-const elf = @import("tests").constants.elf;
+const elf = @import("tests").fixtures.constants.elf;
 const entry = @import("fixtureasm").entry;
-const inputs = @import("tests").constants.weaver;
+const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;
-const labels = @import("tests").strings.weaver;
+const labels = @import("tests").fixtures.strings.weaver;
 
 extern var linked_counter: u64;
 extern fn linked_step() callconv(.c) u64;

@@ -4,13 +4,13 @@ const std = @import("std");
 
 const fixtures = @import("tests").fast.runner.strings.oracle;
 const input = @import("tests").runner.types.input;
-const labels = @import("tests").strings.scenario;
+const labels = @import("tests").phase.strings.scenario;
 const phase = @import("tests").fast.runner.phase;
 const peer = @import("tests").fast.runner.protocol;
 const result = @import("tests").runner.report.result;
 const runner = @import("tests").runner;
 const Epoch = @import("tests").runner.types.host.Epoch;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 test "a boot selector acknowledgement binds the exact role and epoch" {
     const protocol = @import("tests").phase;

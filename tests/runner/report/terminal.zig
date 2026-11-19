@@ -2,11 +2,11 @@
 
 const std = @import("std");
 
-const labels = @import("tests").strings.scenario;
+const labels = @import("tests").phase.strings.scenario;
 const limits = @import("tests").runner.constants.limits;
 const markers = @import("tests").phase.strings.serial;
 const strings = @import("tests").runner.strings.runner;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Stage = @import("tests").runner.types.host.Stage;
 
 pub fn begin() void {

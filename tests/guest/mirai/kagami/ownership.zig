@@ -8,7 +8,7 @@ const decompose = @import("utils").address.decompose;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.memory;
 const kagami = @import("mirai").kagami;
-const labels = @import("tests").strings.memory;
+const labels = @import("tests").guest.strings.memory;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 

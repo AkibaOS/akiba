@@ -5,9 +5,9 @@ const std = @import("std");
 const bootstrap = @import("mirai").bootstrap;
 const driver = @import("tests").guest.mirai.sensei.support;
 const elf = @import("shared").elf;
-const inputs = @import("tests").constants.elf;
+const fixturetext = @import("tests").fixtures.strings.elf;
+const inputs = @import("tests").fixtures.constants.elf;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.elf;
 const sizes = @import("common").constants.memory.sizes;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
@@ -58,7 +58,7 @@ pub fn access(source: *const Source) weaver.library.types.source.Source {
 fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) ReadError!?[]u8 {
     const source: *const Source = @ptrCast(@alignCast(context));
     const expected = weaver.library.strings.location.SYSTEM_LIBRARIES;
-    if (!std.mem.eql(u8, name, labels.DYNAMIC_SOURCE) or parent.len != expected.len) return null;
+    if (!std.mem.eql(u8, name, fixturetext.DYNAMIC_SOURCE) or parent.len != expected.len) return null;
     for (parent, expected) |actual, component| if (!std.mem.eql(u8, actual, component)) return null;
     return try allocator.dupe(u8, source.Library orelse return null);
 }
@@ -75,7 +75,7 @@ pub fn codeAddress(layout: *const Layout) !u64 {
 
 pub fn counterAddress(layout: *const Layout) !u64 {
     for (layout.Metadata.Symbols) |symbol| {
-        if (std.mem.eql(u8, try layout.Metadata.string(symbol.NameOffset), labels.DYNAMIC_COUNTER)) {
+        if (std.mem.eql(u8, try layout.Metadata.string(symbol.NameOffset), fixturetext.DYNAMIC_COUNTER)) {
             return std.math.add(u64, layout.Bias, symbol.Value) catch return error.InvalidFixture;
         }
     }

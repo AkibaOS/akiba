@@ -1,6 +1,6 @@
 //! Test Only Per Boot Phase Identity
 
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const wire = @import("tests").phase.constants.wire;
 
 pub const Ticket = struct {

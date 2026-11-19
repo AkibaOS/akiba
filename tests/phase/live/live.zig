@@ -6,7 +6,7 @@ const date = @import("tests").screen.date;
 const limits = @import("tests").phase.constants.live;
 const menu = @import("tests").phase.menu;
 const types = @import("tests").phase.types.live;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Ticket = @import("tests").phase.types.ticket.Ticket;
 const Work = @import("tests").phase.types.work.Work;
 

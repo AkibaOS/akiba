@@ -6,10 +6,12 @@ const assembly = @import("hikari").assembly;
 const bounds = @import("common").constants.serial.format;
 const display = @import("tests").efi.firmware.display;
 const efi = @import("hikari").efi;
-const inputs = @import("tests").constants.firmware;
+const firmwarecount = @import("tests").phase.constants.firmware;
+const firmwarewire = @import("tests").phase.strings.firmware;
+const inputs = @import("tests").efi.constants.firmware.handoff;
 const io = @import("asm").io;
 const kernel = @import("tests").efi.firmware.kernel;
-const labels = @import("tests").strings.firmware;
+const labels = @import("tests").efi.strings.firmware.handoff;
 const live = @import("tests").efi.firmware.live;
 const loader = @import("tests").efi.firmware.loader;
 const loadinglabels = @import("tests").efi.strings.firmware.loading;
@@ -19,7 +21,7 @@ const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
 const status = @import("tests").efi.firmware.status;
 const storage = @import("tests").efi.firmware.storage;
-const storagelabels = @import("tests").efi.strings.firmware.storage;
+const storagelabels = @import("tests").fixtures.strings.storage;
 const suite = @import("tests").efi.firmware.handoff;
 
 var passed: usize = 0;
@@ -30,7 +32,7 @@ pub fn main() void {
     const system_table: *efi.types.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
     live.start(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
-    writeText(labels.BEGIN);
+    writeText(firmwarewire.BEGIN);
     writeText(labels.GROUP);
     checkpoint(system_table.BootServices);
     status.run(system_table);
@@ -45,10 +47,10 @@ pub fn main() void {
     checkpoint(system_table.BootServices);
     writeText(labels.PAGING_GROUP);
     paging.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
-    if (passed != inputs.ASSERTION_COUNT) failAtEdge(labels.COUNT_MISMATCH);
+    if (passed != firmwarecount.ASSERTION_COUNT) failAtEdge(labels.COUNT_MISMATCH);
     checkpoint(system_table.BootServices);
     if (!display.release()) fail(@errorName(error.FirmwareViewportReleaseFailed));
-    writeText(labels.COMPLETE);
+    writeText(firmwarewire.COMPLETE);
     var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
     writeText(std.fmt.bufPrint(&digits, labels.COUNT, .{passed}) catch fail(labels.FORMAT_FAILED));
     writeText(labels.NEWLINE);
@@ -74,7 +76,7 @@ fn cancel(services: *efi.types.services.boot.BootServices) noreturn {
 pub fn require(condition: bool, comptime name: []const u8) void {
     if (!condition) fail(name);
     passed += 1;
-    writeText(labels.PASS);
+    writeText(firmwarewire.PASS);
     writeText(name);
     writeText(labels.NEWLINE);
     display.record(name);
@@ -102,7 +104,7 @@ fn failAtEdge(reason: []const u8) noreturn {
 fn terminateFailure(reason: []const u8, paint: bool) noreturn {
     if (!failing) {
         failing = true;
-        writeText(labels.FAIL);
+        writeText(firmwarewire.FAIL);
         writeText(reason);
         writeText(labels.NEWLINE);
         if (paint) display.showFailure(reason);

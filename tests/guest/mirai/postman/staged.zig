@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const completion = @import("tests").guest.mirai.invocations.completion.support;
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const copy = @import("mirai").user.copy.transfer;
 const elf = @import("shared").elf;
 const harness = @import("tests").guest.mirai.postman.harness;
@@ -11,8 +11,9 @@ const inputs = @import("tests").guest.constants.completion;
 const invocation = @import("mirai").invocations.types.postman;
 const kata = @import("mirai").kata;
 const kernel = @import("mirai").memory.allocator.native;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const launch = @import("mirai").launch;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const types = @import("tests").guest.types.postman;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
@@ -24,7 +25,7 @@ const IMAGE = @embedFile("provisionimage");
 pub fn run() !void {
     var plan = try elf.validate.image.parse(kernel.get(), IMAGE, .{
         .MinimumAddress = constants.PAGE_BYTES,
-        .MaximumAddress = @import("tests").constants.elf.USER_END,
+        .MaximumAddress = @import("tests").fixtures.constants.elf.USER_END,
         .MaximumPages = 1,
     });
     defer plan.deinit();
@@ -96,7 +97,7 @@ pub fn run() !void {
 fn installClient(client: *Actor, destination: u64) !void {
     const call: invocation.Call = .{
         .Destination = destination,
-        .Type = constants.CALL_TYPE,
+        .Type = postmanwire.CALL_TYPE,
         .Request = client.Data + constants.INPUT_OFFSET,
         .RequestLength = constants.REQUEST.len,
         .Reply = client.Data + constants.TICKET_OFFSET,

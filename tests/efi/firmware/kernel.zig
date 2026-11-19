@@ -4,7 +4,7 @@ const std = @import("std");
 
 const elf = @import("shared").elf.types.format;
 const efi = @import("hikari").efi;
-const fixtures = @import("tests").constants.hikari;
+const fixtures = @import("tests").fixtures.constants.hikari;
 const inputs = @import("tests").efi.constants.firmware.loading;
 const labels = @import("tests").efi.strings.firmware.loading;
 const loader = @import("hikari").loader.elf.loader;

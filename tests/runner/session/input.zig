@@ -2,20 +2,20 @@
 
 const std = @import("std");
 
-const inputs = @import("tests").constants.drivers;
-const labels = @import("tests").strings.drivers;
+const inputwire = @import("tests").phase.strings.input;
+const keycodes = @import("tests").phase.constants.input;
 const markers = @import("tests").phase.strings.serial;
 const strings = @import("tests").runner.strings.runner;
 const types = @import("tests").runner.types.input;
 
 pub fn choose() types.Keys {
-    comptime std.debug.assert(labels.KEY_NAMES.len == inputs.MAKE_CODES.len);
+    comptime std.debug.assert(inputwire.KEY_NAMES.len == keycodes.MAKE_CODES.len);
     var keys: types.Keys = undefined;
-    for (keys[0..inputs.CHALLENGE_TAPS]) |*key| {
-        const index = std.crypto.random.uintLessThan(usize, labels.KEY_NAMES.len);
-        key.* = .{ .Name = labels.KEY_NAMES[index], .Make = inputs.MAKE_CODES[index] };
+    for (keys[0..keycodes.CHALLENGE_TAPS]) |*key| {
+        const index = std.crypto.random.uintLessThan(usize, inputwire.KEY_NAMES.len);
+        key.* = .{ .Name = inputwire.KEY_NAMES[index], .Make = keycodes.MAKE_CODES[index] };
     }
-    keys[inputs.CHALLENGE_TAPS] = .{ .Name = labels.TERMINATOR_NAME, .Make = inputs.TERMINATOR_MAKE };
+    keys[keycodes.CHALLENGE_TAPS] = .{ .Name = inputwire.TERMINATOR_NAME, .Make = keycodes.TERMINATOR_MAKE };
     return keys;
 }
 
@@ -29,11 +29,11 @@ pub fn observe(challenge: *types.Challenge, bytes: []const u8) !types.Action {
     while (std.mem.indexOfScalarPos(u8, bytes, challenge.Offset, '\n')) |end| {
         const line = std.mem.trimEnd(u8, bytes[challenge.Offset..end], strings.CARRIAGE_RETURN);
         challenge.Offset = end + 1;
-        if (std.mem.eql(u8, line, labels.READY)) {
+        if (std.mem.eql(u8, line, inputwire.READY)) {
             if (challenge.State != .Ready) return error.UnexpectedKeyboardInput;
             challenge.State = .Send;
-        } else if (challenge.State != .Ready and std.mem.startsWith(u8, line, labels.SCANCODE_PREFIX)) {
-            try scancode(challenge, line[labels.SCANCODE_PREFIX.len..]);
+        } else if (challenge.State != .Ready and std.mem.startsWith(u8, line, inputwire.SCANCODE_PREFIX)) {
+            try scancode(challenge, line[inputwire.SCANCODE_PREFIX.len..]);
         } else if (challenge.State != .Done and std.mem.startsWith(u8, line, markers.COMPLETE)) {
             return error.MissingInjectedInput;
         }
@@ -46,8 +46,8 @@ pub fn observe(challenge: *types.Challenge, bytes: []const u8) !types.Action {
 }
 
 fn partialScancode(tail: []const u8) bool {
-    return tail.len != 0 and (std.mem.startsWith(u8, tail, labels.SCANCODE_PREFIX) or
-        std.mem.startsWith(u8, labels.SCANCODE_PREFIX, tail));
+    return tail.len != 0 and (std.mem.startsWith(u8, tail, inputwire.SCANCODE_PREFIX) or
+        std.mem.startsWith(u8, inputwire.SCANCODE_PREFIX, tail));
 }
 
 fn scancode(challenge: *types.Challenge, text: []const u8) !void {
@@ -58,7 +58,7 @@ fn scancode(challenge: *types.Challenge, text: []const u8) !void {
             challenge.State = .Break;
         },
         .Break => {
-            if (byte != (challenge.Keys[challenge.Index].Make | inputs.BREAK_MASK)) return error.UnexpectedKeyboardInput;
+            if (byte != (challenge.Keys[challenge.Index].Make | keycodes.BREAK_MASK)) return error.UnexpectedKeyboardInput;
             challenge.Index += 1;
             challenge.State = if (challenge.Index == challenge.Keys.len) .Done else .Send;
         },

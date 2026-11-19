@@ -2,15 +2,15 @@
 
 const std = @import("std");
 
-const elf = @import("tests").constants.elf;
+const elf = @import("tests").fixtures.constants.elf;
 const entry = @import("fixtureasm").entry;
-const inputs = @import("tests").constants.weaver;
+const fixturetext = @import("tests").fixtures.strings.elf;
+const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;
-const labels = @import("tests").strings.weaver;
-const library = @import("tests").strings.elf;
-const postman = @import("tests").constants.postman;
+const labels = @import("tests").fixtures.strings.weaver;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const provision = @import("shared").launch.constants.provision;
-const types = @import("tests").types.weaver;
+const types = @import("tests").fixtures.types.weaver;
 const weaver = @import("weaver");
 const wire = @import("shared").launch.types.provision;
 
@@ -28,12 +28,12 @@ export fn akiba_fixture_main(_: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn 
         var header: types.Header = undefined;
         const received = invocation.call(inputs.RECEIVE, @intFromPtr(&payload), payload.len, @intFromPtr(&header), 0);
         if (received.Status != provision.SUCCESS or header.ReplyTicket == 0) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
-        const mode = if (header.Type == postman.CALL_TYPE and header.Length == payload.len and received.Value == payload.len)
+        const mode = if (header.Type == postmanwire.CALL_TYPE and header.Length == payload.len and received.Value == payload.len)
             std.enums.fromInt(types.Mode, payload[0])
         else
             null;
         const receipt = if (mode) |selected| launch(selected, header.ReplyTicket) else types.Receipt{};
-        const sent = invocation.call(inputs.REPLY, header.ReplyTicket, @intFromPtr(&receipt), @sizeOf(types.Receipt), postman.REPLY_TYPE);
+        const sent = invocation.call(inputs.REPLY, header.ReplyTicket, @intFromPtr(&receipt), @sizeOf(types.Receipt), postmanwire.REPLY_TYPE);
         if (sent.Status != provision.SUCCESS) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
     }
 }
@@ -71,7 +71,7 @@ fn launch(mode: types.Mode, ticket: u64) types.Receipt {
 fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) weaver.library.errors.library.ReadError!?[]u8 {
     const request: *const types.Request = @ptrCast(@alignCast(context));
     const expected = weaver.library.strings.location.SYSTEM_LIBRARIES;
-    if (request.Mode == .Missing or parent.len != expected.len or !std.mem.eql(u8, name, library.DYNAMIC_SOURCE)) return null;
+    if (request.Mode == .Missing or parent.len != expected.len or !std.mem.eql(u8, name, fixturetext.DYNAMIC_SOURCE)) return null;
     for (parent, expected) |actual, component| if (!std.mem.eql(u8, actual, component)) return null;
     return try allocator.dupe(u8, LIBRARY);
 }

@@ -7,7 +7,7 @@ const efi = @import("hikari").efi;
 const fat = @import("hikari").fs.types.fat32.reader;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const format = @import("shared").fat32;
-const labels = @import("tests").strings.acquisition;
+const labels = @import("tests").guest.strings.acquisition;
 const verify = @import("tests").guest.support.verify;
 
 const BootSector = format.types.boot.BootSector;

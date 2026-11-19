@@ -1,7 +1,7 @@
 //! Bounded Guest Scheduling
 
 const guard = @import("asm").interrupts.guard;
-const labels = @import("tests").strings.guest;
+const labels = @import("tests").guest.strings.guest;
 const limits = @import("tests").guest.constants.guest;
 const sensei = @import("mirai").sensei;
 

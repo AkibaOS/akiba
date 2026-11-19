@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const abi = @import("mirai").invocations.types.abi;
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const types = @import("tests").guest.types.postman;
 
 const Actor = types.Actor;

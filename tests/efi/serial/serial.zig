@@ -5,7 +5,7 @@ const limits = @import("tests").efi.constants.serial;
 const port = @import("asm").io.port;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
-const scenario = @import("tests").constants.scenario;
+const scenario = @import("tests").machine.constants.serial;
 
 const BootServices = efi.types.services.boot.BootServices;
 const status = efi.constants.status;

@@ -6,9 +6,10 @@ const arguments = @import("mirai").invocations.types.postman;
 const budget = @import("tests").guest.support.allocation;
 const copy = @import("mirai").user.copy.transfer;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.postman;
-const labels = @import("tests").strings.postman;
+const inputs = @import("tests").guest.constants.postman;
+const labels = @import("tests").guest.strings.postman;
 const postman = @import("mirai").postman;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 
@@ -29,7 +30,7 @@ pub fn run() !void {
     try copy.write(server.Owner, server.Data + inputs.PAGE_BYTES, &payload);
     const descriptor: arguments.Call = .{
         .Destination = server.ID,
-        .Type = inputs.CALL_TYPE,
+        .Type = postmanwire.CALL_TYPE,
         .Request = client.Data + inputs.INPUT_OFFSET,
         .RequestLength = inputs.REQUEST.len,
         .Reply = client.Data + inputs.PAGE_BYTES,

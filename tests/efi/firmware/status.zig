@@ -4,7 +4,7 @@ const std = @import("std");
 
 const efi = @import("hikari").efi;
 const hikari = @import("hikari");
-const labels = @import("tests").strings.firmware;
+const labels = @import("tests").efi.strings.firmware.handoff;
 const output = @import("tests").efi.firmware.run;
 
 const base = efi.types.base;

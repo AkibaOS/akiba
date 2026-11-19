@@ -1,7 +1,7 @@
 //! Explicitly Selected Crimson Collapse Probe
 
 const crimson = @import("mirai").crimson;
-const labels = @import("tests").strings.scenario;
+const labels = @import("tests").phase.strings.scenario;
 const serial = @import("mirai").drivers.serial.write;
 
 pub fn run() noreturn {

@@ -13,7 +13,7 @@ const screen = @import("tests").screen;
 const splash = @import("shared").splash;
 
 const BootServices = efi.types.services.boot.BootServices;
-const Scenario = @import("tests").types.scenario.Scenario;
+const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Surface = graphics.types.surface.Surface;
 const View = @import("tests").efi.types.menu.display.View;
 const Workspace = splash.types.workspace.Workspace;

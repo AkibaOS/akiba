@@ -6,7 +6,7 @@ const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.pool;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.retention;
+const labels = @import("tests").guest.strings.retention;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 

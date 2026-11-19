@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const constants = @import("tests").guest.constants.context;
-const strings = @import("tests").strings.context;
+const strings = @import("tests").guest.strings.context;
 const types = @import("tests").guest.types.context;
 
 pub fn cooperative(state: *types.Cooperative, callback: types.Yield, argument: ?*anyopaque) void {

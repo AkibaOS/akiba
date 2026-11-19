@@ -1,9 +1,10 @@
 //! Persona Postman Peer And Caller Shutdown Regressions
 
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const postman = @import("mirai").postman;
+const postmanwire = @import("tests").fixtures.constants.postman;
 const types = @import("tests").guest.types.postman;
 const verify = @import("tests").guest.support.verify;
 
@@ -95,7 +96,7 @@ fn peerReplied() !void {
     const header = try harness.header(&pair.Client);
     verify.require((try harness.resultIs(&pair.Client, 2, .Success, constants.REPLY.len)) and
         (try harness.payloadIs(&pair.Client, &constants.REPLY)) and header.Sender == pair.Peer.ID and
-        header.Type == constants.REPLY_TYPE and header.ReplyTicket == 0 and record.Pending == null and
+        header.Type == postmanwire.REPLY_TYPE and header.ReplyTicket == 0 and record.Pending == null and
         source.Outgoing == 0, labels.PEER_REPLIED);
 }
 

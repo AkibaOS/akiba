@@ -2,7 +2,7 @@
 
 const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.sensei;
+const labels = @import("tests").guest.strings.sensei;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;

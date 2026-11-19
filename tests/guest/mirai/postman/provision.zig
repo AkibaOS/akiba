@@ -1,9 +1,9 @@
 //! Real Persona Request Ownership For Unpublished Launches
 
-const constants = @import("tests").constants.postman;
+const constants = @import("tests").guest.constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
 const kata = @import("mirai").kata;
-const labels = @import("tests").strings.postman;
+const labels = @import("tests").guest.strings.postman;
 const mirai = @import("mirai");
 const types = @import("tests").guest.types.postman;
 const user = @import("mirai").user;

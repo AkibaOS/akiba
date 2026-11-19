@@ -1,6 +1,5 @@
 //! Explicit Regression Check Exports
 
-pub const constants = @import("constants/constants.zig");
 pub const efi = @import("efi/efi.zig");
 pub const fast = @import("fast/fast.zig");
 pub const fixtures = @import("fixtures/fixtures.zig");
@@ -9,5 +8,3 @@ pub const machine = @import("machine/machine.zig");
 pub const phase = @import("phase/phase.zig");
 pub const runner = @import("runner/runner.zig");
 pub const screen = @import("screen/screen.zig");
-pub const strings = @import("strings/strings.zig");
-pub const types = @import("types/types.zig");

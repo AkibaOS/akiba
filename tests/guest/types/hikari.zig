@@ -1,6 +1,6 @@
 //! Hikari Guest Regression Types
 
-const constants = @import("tests").constants.hikari;
+const constants = @import("tests").fixtures.constants.hikari;
 const memory = @import("hikari").efi.types.memory;
 
 pub const ELFBytes = [constants.ELF_BYTES]u8;

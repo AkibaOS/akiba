@@ -7,7 +7,7 @@ const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.tables;
 const kagami = @import("mirai").kagami;
-const labels = @import("tests").strings.tables;
+const labels = @import("tests").guest.strings.tables;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 

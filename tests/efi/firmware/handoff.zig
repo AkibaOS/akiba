@@ -10,13 +10,13 @@ const efi = @import("hikari").efi;
 const errors = @import("hikari").sequence.errors.handoff;
 const handoff = @import("hikari").sequence.handoff;
 const handofftypes = @import("hikari").sequence.types.handoff;
-const inputs = @import("tests").constants.firmware;
-const labels = @import("tests").strings.firmware;
+const inputs = @import("tests").efi.constants.firmware.handoff;
+const labels = @import("tests").efi.strings.firmware.handoff;
 const memory = @import("hikari").efi.types.memory;
 const output = @import("tests").efi.firmware.run;
 const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.status;
-const types = @import("tests").types.firmware;
+const types = @import("tests").efi.types.firmware.handoff;
 
 var fixture: types.Fixture = undefined;
 var active: bool = false;
