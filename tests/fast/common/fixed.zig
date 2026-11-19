@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.utils;
+const constants = @import("tests").fast.constants.utils;
 const fixed = @import("common").datatypes.fixed;
 
 pub fn fixed26Construction() !void {

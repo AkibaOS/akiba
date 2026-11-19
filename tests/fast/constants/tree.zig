@@ -1,6 +1,6 @@
 //! Ordered Index Regression Inputs
 
-const Bound = @import("tests").types.tree.Bound;
+const Bound = @import("tests").fast.types.tree.Bound;
 
 pub const BOUND_KEYS = [_]u128{ 4, 8, 12, 16 };
 pub const BOUND_CASES = [_]Bound{

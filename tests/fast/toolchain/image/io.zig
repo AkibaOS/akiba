@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const types = @import("tests").types.image;
+const types = @import("tests").fast.types.image;
 
 const AFSImage = types.AFSImage;
 const BlockError = afs.errors.block.BlockError;

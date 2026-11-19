@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 const fat32 = @import("shared").fat32;
 const io = @import("tests").fast.toolchain.image.io;
-const strings = @import("tests").strings.image;
+const strings = @import("tests").fast.strings.image;
 
 const BootSector = fat32.types.boot.BootSector;
 const FsInfo = fat32.types.boot.FsInfo;

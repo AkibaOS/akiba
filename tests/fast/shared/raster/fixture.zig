@@ -2,7 +2,7 @@
 
 const font = @import("shared").font;
 const raster = @import("shared").raster;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const CoverageCapture = types.CoverageCapture;
 const Outline = font.types.outline.Outline;

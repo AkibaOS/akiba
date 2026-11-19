@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.utils;
+const constants = @import("tests").fast.constants.utils;
 const integer = @import("utils").math.integer;
 
 pub fn ceilingDivisionBoundaries() !void {

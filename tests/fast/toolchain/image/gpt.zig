@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 const io = @import("tests").fast.toolchain.image.io;
-const strings = @import("tests").strings.image;
+const strings = @import("tests").fast.strings.image;
 
 pub fn reciprocalHeaders(file: std.fs.File) !void {
     var primary: [constants.SECTOR_BYTES]u8 = undefined;

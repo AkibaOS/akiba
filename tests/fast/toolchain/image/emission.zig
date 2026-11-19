@@ -6,13 +6,13 @@ const afs = @import("shared").afs;
 const capacity = @import("tests").fast.toolchain.image.constants.capacity;
 const constants = @import("tests").fast.toolchain.image.constants.emission;
 const fixture = @import("tests").fast.toolchain.image.fixture;
-const inputs = @import("tests").constants.image;
+const inputs = @import("tests").fast.constants.image;
 const io = @import("tests").fast.toolchain.image.io;
 const lookup = @import("tests").fast.toolchain.image.lookup;
-const names = @import("tests").strings.image;
+const names = @import("tests").fast.strings.image;
 const strings = @import("tests").fast.toolchain.image.strings.emission;
 const tool = @import("mkafsdisk");
-const types = @import("tests").types.image;
+const types = @import("tests").fast.types.image;
 
 pub fn moderateCatalogIsReadThroughProductionSearch() !void {
     var temporary = std.testing.tmpDir(.{});

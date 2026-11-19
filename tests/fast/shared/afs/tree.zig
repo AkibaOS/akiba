@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const node = @import("shared").afs.btree.node;
 const search = @import("shared").afs.btree.search;
 const types = @import("shared").afs.types.btree;

@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const catalog = @import("shared").afs.types.catalog;
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const device = @import("tests").fast.shared.afs.device;
 const errors = @import("shared").afs.errors.read;
 const operations = @import("shared").afs.read.unit;

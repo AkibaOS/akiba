@@ -2,11 +2,11 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const font = @import("shared").font;
 const graphics = @import("shared").graphics;
 const splash = @import("shared").splash;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const Canvas = splash.types.canvas.Canvas;
 const Face = font.types.face.Face;

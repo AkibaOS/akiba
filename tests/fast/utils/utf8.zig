@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.utils;
-const fixtures = @import("tests").types.utils;
+const constants = @import("tests").fast.constants.utils;
+const fixtures = @import("tests").fast.types.utils;
 const utf8 = @import("utils").text.utf8;
 
 pub fn emptyInput() !void {

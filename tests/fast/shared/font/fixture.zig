@@ -1,9 +1,9 @@
 //! Independent Minimal TrueType Fixtures
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const encoding = @import("tests").fast.shared.sfnt.fixture;
 const font = @import("shared").font;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const Face = font.types.face.Face;
 const GlyphFixture = types.GlyphFixture;

@@ -3,10 +3,10 @@
 const std = @import("std");
 
 const checks = @import("tests").fast.toolchain.image;
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 const mkafsdisk = @import("mkafsdisk");
-const strings = @import("tests").strings.image;
-const PackingProgress = @import("tests").types.image.PackingProgress;
+const strings = @import("tests").fast.strings.image;
+const PackingProgress = @import("tests").fast.types.image.PackingProgress;
 
 pub fn unitProgress() !void {
     var temporary = std.testing.tmpDir(.{});

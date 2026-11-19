@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const operations = @import("shared").fat32.write.boot;
 
 pub fn initializedTableBytes() !void {

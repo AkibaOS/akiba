@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const records = @import("shared").afs.write.stack;
 const unit = @import("shared").afs.write.unit;
 const volume = @import("shared").afs.types.volume;

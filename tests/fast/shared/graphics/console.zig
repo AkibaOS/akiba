@@ -6,8 +6,8 @@ const fixture = @import("tests").fast.shared.graphics.fixture;
 const font = @import("shared").font;
 const fonts = @import("tests").fast.shared.font.fixture;
 const graphics = @import("shared").graphics;
-const strings = @import("tests").strings.render;
-const types = @import("tests").types.render;
+const strings = @import("tests").fast.strings.render;
+const types = @import("tests").fast.types.render;
 
 const Color = graphics.types.color.Color;
 const Console = graphics.types.console.Console;

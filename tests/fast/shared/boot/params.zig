@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const params = @import("shared").boot.types.params;
 
 pub fn initializedHandoff() !void {

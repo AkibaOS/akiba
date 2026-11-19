@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const sfnt = @import("shared").sfnt;
 
 const Reader = sfnt.types.reader.Reader;

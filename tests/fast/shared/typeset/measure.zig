@@ -2,11 +2,11 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const fixture = @import("tests").fast.shared.font.fixture;
 const font = @import("shared").font;
 const raster = @import("shared").raster;
-const strings = @import("tests").strings.render;
+const strings = @import("tests").fast.strings.render;
 const typeset = @import("shared").typeset;
 
 const Cursor = typeset.types.cursor.Cursor;

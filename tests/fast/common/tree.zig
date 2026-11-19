@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const inputs = @import("tests").constants.tree;
+const inputs = @import("tests").fast.constants.tree;
 const tree = @import("common").datatypes.tree;
-const types = @import("tests").types.tree;
+const types = @import("tests").fast.types.tree;
 
 const Node = tree.types.node.Node;
 const Tree = tree.types.index.Tree;

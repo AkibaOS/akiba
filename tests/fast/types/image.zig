@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 
 pub const PackingProgress = struct {
     Directory: std.fs.Dir,

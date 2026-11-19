@@ -3,9 +3,9 @@
 const std = @import("std");
 
 const block = @import("shared").afs.types.block;
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const errors = @import("shared").afs.errors.block;
-const fixtures = @import("tests").types.storage;
+const fixtures = @import("tests").fast.types.storage;
 
 pub fn create() fixtures.ByteDevice {
     var device = fixtures.ByteDevice{};

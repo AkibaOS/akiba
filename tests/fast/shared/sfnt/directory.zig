@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const fixture = @import("tests").fast.shared.sfnt.fixture;
 const sfnt = @import("shared").sfnt;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const Directory = sfnt.types.directory.Directory;
 const TableFixture = types.TableFixture;

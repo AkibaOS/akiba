@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const labels = @import("tests").strings.screen;
+const labels = @import("tests").fast.strings.screen;
 const project = @import("tests");
 
 pub fn lifecycle() !void {

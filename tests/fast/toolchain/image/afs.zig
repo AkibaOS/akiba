@@ -3,10 +3,10 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 const io = @import("tests").fast.toolchain.image.io;
-const strings = @import("tests").strings.image;
-const types = @import("tests").types.image;
+const strings = @import("tests").fast.strings.image;
+const types = @import("tests").fast.types.image;
 
 const AFSImage = types.AFSImage;
 const NodeDescriptor = afs.types.btree.NodeDescriptor;

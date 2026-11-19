@@ -1,7 +1,7 @@
 //! Independent SFNT Fixture Encoding
 
-const constants = @import("tests").constants.render;
-const types = @import("tests").types.render;
+const constants = @import("tests").fast.constants.render;
+const types = @import("tests").fast.types.render;
 
 const SFNTFixture = types.SFNTFixture;
 const TableFixture = types.TableFixture;

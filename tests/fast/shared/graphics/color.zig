@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const graphics = @import("shared").graphics;
 
 const Color = graphics.types.color.Color;

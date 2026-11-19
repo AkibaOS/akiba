@@ -1,6 +1,6 @@
 //! Rendering Regression Types
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 
 pub const TableFixture = struct {
     Tag: u32,

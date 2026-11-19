@@ -4,7 +4,7 @@ const std = @import("std");
 
 const font = @import("shared").font;
 const graphics = @import("shared").graphics;
-const labels = @import("tests").strings.screen;
+const labels = @import("tests").fast.strings.screen;
 const screen = @import("tests").screen;
 const typeset = @import("shared").typeset;
 

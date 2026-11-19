@@ -6,7 +6,7 @@ const afs = @import("shared").afs;
 const capacity = @import("tests").fast.toolchain.image.constants.capacity;
 const io = @import("tests").fast.toolchain.image.io;
 const strings = @import("tests").fast.toolchain.image.strings.emission;
-const types = @import("tests").types.image;
+const types = @import("tests").fast.types.image;
 
 pub fn openImage(file: std.fs.File) !types.AFSImage {
     var bytes: [@sizeOf(afs.types.volume.VolumeHeader)]u8 = undefined;

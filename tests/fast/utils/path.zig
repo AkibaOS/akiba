@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const iterator = @import("utils").path.types.iterator;
-const strings = @import("tests").strings.utils;
+const strings = @import("tests").fast.strings.utils;
 
 pub fn emptyPaths() !void {
     for (strings.PATH_EMPTY_LOCATIONS) |location| {

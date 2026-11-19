@@ -5,9 +5,9 @@ const std = @import("std");
 const capacity = @import("tests").fast.toolchain.image.constants.capacity;
 const constants = @import("tests").fast.toolchain.image.constants.emission;
 const fixture = @import("tests").fast.toolchain.image.fixture;
-const inputs = @import("tests").constants.image;
+const inputs = @import("tests").fast.constants.image;
 const io = @import("tests").fast.toolchain.image.io;
-const names = @import("tests").strings.image;
+const names = @import("tests").fast.strings.image;
 const tool = @import("mkafsdisk");
 
 pub fn bootloaderCannotConsumeTheNextPartitionSector() !void {

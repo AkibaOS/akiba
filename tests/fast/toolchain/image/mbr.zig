@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.image;
+const constants = @import("tests").fast.constants.image;
 const io = @import("tests").fast.toolchain.image.io;
 
 pub fn protectivePartition(file: std.fs.File) !void {

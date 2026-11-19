@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const encoding = @import("tests").fast.shared.sfnt.fixture;
 const fixture = @import("tests").fast.shared.font.fixture;
 const font = @import("shared").font;

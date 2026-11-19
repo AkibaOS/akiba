@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const fixture = @import("tests").fast.shared.graphics.fixture;
 const graphics = @import("shared").graphics;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const Color = graphics.types.color.Color;
 const GuardedPixels = types.GuardedPixels;

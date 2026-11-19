@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const graphics = @import("shared").graphics;
-const types = @import("tests").types.render;
+const types = @import("tests").fast.types.render;
 
 const GuardedFrame = types.GuardedFrame;
 const GuardedPixels = types.GuardedPixels;

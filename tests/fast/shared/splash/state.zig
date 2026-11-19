@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const splash = @import("shared").splash;
-const strings = @import("tests").strings.render;
+const strings = @import("tests").fast.strings.render;
 
 const SplashState = splash.types.state.SplashState;
 

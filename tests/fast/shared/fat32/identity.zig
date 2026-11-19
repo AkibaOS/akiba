@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 const entries = @import("shared").fat32.constants.entries;
 const operations = @import("shared").fat32.write.entry;
 const sizes = @import("shared").fat32.constants.sizes;

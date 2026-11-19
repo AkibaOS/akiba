@@ -1,6 +1,6 @@
 //! Storage Regression Types
 
-const constants = @import("tests").constants.storage;
+const constants = @import("tests").fast.constants.storage;
 
 pub const Transfer = struct {
     Cell: u64,

@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const common = @import("common");
-const constants = @import("tests").constants.render;
+const constants = @import("tests").fast.constants.render;
 const fixture = @import("tests").fast.shared.raster.fixture;
 const font = @import("shared").font;
 const raster = @import("shared").raster;
