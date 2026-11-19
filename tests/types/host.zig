@@ -81,6 +81,7 @@ pub const Session = struct {
     Selected: ?Scenario = null,
     SerialStart: u64 = 0,
     Passed: usize = 0,
+    StandardCompleted: u16 = 0,
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,
 };

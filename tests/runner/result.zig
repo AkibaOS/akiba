@@ -3,7 +3,9 @@
 const std = @import("std");
 
 const firmware = @import("tests").strings.firmware;
+const guest = @import("tests").strings.guest;
 const labels = @import("tests").strings.scenario;
+const progress = @import("tests").phase.constants.live;
 const strings = @import("tests").strings.runner;
 const tables = @import("tests").strings.tables;
 const Scenario = @import("tests").types.scenario.Scenario;
@@ -68,6 +70,39 @@ pub fn verifyBootstrap(bytes: []const u8, scenario: Scenario) !void {
     const complete = ended orelse return error.InvalidBootstrapEvidence;
     const checks = (uniqueLine(bytes, strings.CHECK_BEGIN) catch return error.InvalidBootstrapEvidence) orelse return error.InvalidBootstrapEvidence;
     if (begin >= complete or complete >= checks) return error.InvalidBootstrapEvidence;
+}
+
+pub fn verifyDisplay(bytes: []const u8) !void {
+    const displayed = (uniqueLine(bytes, guest.DISPLAY_READY) catch return error.InvalidDiagnosticDisplay) orelse return error.InvalidDiagnosticDisplay;
+    const begun = (uniqueLine(bytes, strings.CHECK_BEGIN) catch return error.InvalidDiagnosticDisplay) orelse return error.InvalidDiagnosticDisplay;
+    if (displayed >= begun) return error.InvalidDiagnosticDisplay;
+}
+
+pub fn standardProgress(bytes: []const u8) !u16 {
+    var rollback_started = false;
+    var rollback_complete = false;
+    var checks_started = false;
+    var groups: u16 = 0;
+    var lines = std.mem.splitScalar(u8, bytes, '\n');
+    while (lines.next()) |raw| {
+        if (lines.index == null) break;
+        const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
+        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
+            if (rollback_started or checks_started) return error.InvalidBootstrapEvidence;
+            rollback_started = true;
+        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
+            if (!rollback_started or rollback_complete or checks_started) return error.InvalidBootstrapEvidence;
+            rollback_complete = true;
+        } else if (std.mem.eql(u8, line, strings.CHECK_BEGIN)) {
+            if (!rollback_complete or checks_started) return error.InvalidBootstrapEvidence;
+            checks_started = true;
+        } else if (std.mem.startsWith(u8, line, tables.STANDARD_GROUP_PREFIX)) {
+            const number = std.fmt.parseInt(u16, line[tables.STANDARD_GROUP_PREFIX.len..], 10) catch return error.InvalidBootstrapEvidence;
+            if (!checks_started or groups + 1 >= progress.STANDARD_UNITS or number != groups + 1) return error.InvalidBootstrapEvidence;
+            groups += 1;
+        }
+    }
+    return groups + @intFromBool(rollback_complete);
 }
 
 fn firmwareResult(bytes: []const u8) !?usize {

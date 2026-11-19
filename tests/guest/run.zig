@@ -1,5 +1,7 @@
 //! Explicit Guest Regression Execution
 
+const std = @import("std");
+
 const accesslabels = @import("tests").strings.access;
 const acquisitionlabels = @import("tests").strings.acquisition;
 const bootlabels = @import("tests").strings.boot;
@@ -13,17 +15,23 @@ const guest = @import("tests").guest;
 const hikarilabels = @import("tests").strings.hikari;
 const invocationlabels = @import("tests").strings.invocations;
 const labels = @import("tests").strings.guest;
+const live = @import("tests").phase.constants.live;
 const memorylabels = @import("tests").strings.memory;
 const metadata = @import("tests").constants.scenario;
 const postmanlabels = @import("tests").strings.postman;
 const retentionlabels = @import("tests").strings.retention;
 const runnerlabels = @import("tests").strings.runner;
 const scenariolabels = @import("tests").strings.scenario;
+const schedule = @import("tests").screen.strings.schedule;
 const screen = @import("tests").guest.screen.control;
 const screentext = @import("tests").screen.strings.text;
 const senseilabels = @import("tests").strings.sensei;
+const screenview = @import("tests").screen.live;
 const serial = @import("mirai").drivers.serial.write;
+const tables = @import("tests").strings.tables;
 const verify = @import("tests").verify;
+const LiveOffer = @import("tests").phase.types.live.Offer;
+const Scenario = @import("tests").types.scenario.Scenario;
 
 const groups = .{
     .{ acquisitionlabels.GROUP, .{ guest.hikari.disk.gpt.run, guest.hikari.disk.fat.run, guest.hikari.disk.reader.run, guest.hikari.disk.unit.run } },
@@ -65,6 +73,13 @@ const groups = .{
     .{ crimsonlabels.GROUP, .{ guest.mirai.crimson.codec.run, guest.mirai.crimson.ports.run, guest.mirai.crimson.corpse.run, guest.mirai.crimson.modules.run } },
 };
 
+comptime {
+    if (groups.len + 1 != live.STANDARD_UNITS) @compileError(labels.SCHEDULE_MISMATCH);
+    for (groups, 0..) |group, index| {
+        if (!std.mem.eql(u8, group[0], schedule.GROUPS[index])) @compileError(labels.SCHEDULE_MISMATCH);
+    }
+}
+
 pub fn execute() bool {
     serial.printf(labels.BEGIN, .{});
     switch (guest.support.selector.selected()) {
@@ -72,10 +87,13 @@ pub fn execute() bool {
         .Collapse => @call(.never_inline, guest.mirai.crimson.fatal.run, .{}),
         .Firmware => @panic(scenariolabels.INVALID),
         .Devices => {
+            const owned = screen.isActive();
+            defer screen.release();
             serial.printf(driverlabels.GROUP, .{});
             @call(.never_inline, guest.mirai.drivers.input.run, .{});
+            screen.checkpoint();
             serial.printf(labels.COMPLETE, .{verify.count()});
-            return false;
+            return owned;
         },
         .PulseDeath => {
             check(guest.mirai.kata.fatal.run);
@@ -84,23 +102,32 @@ pub fn execute() bool {
     }
 }
 
-pub fn beginBootstrap() void {
-    if (startScreen(groups.len + 1, cancellation.enable())) screen.begin(screentext.BOOTSTRAP_ROLLBACK);
+pub fn beginPhase(selected: Scenario) void {
+    const prior = guest.support.phase.context();
+    if (selected != .Standard and prior == null) return;
+    const cancel_ready = selected == .Standard and cancellation.enable();
+    if (startScreen(groups.len + 1, cancel_ready, prior)) {
+        screen.begin(if (selected == .Standard) screentext.BOOTSTRAP_ROLLBACK else screenview.name(selected));
+        if (prior != null) serial.printf(labels.DISPLAY_READY, .{});
+    } else if (prior != null) {
+        @panic(labels.DISPLAY_FAILED);
+    }
 }
 
 pub fn finishBootstrap() void {
     screen.finish(.Pass);
 }
 
-fn startScreen(total: usize, cancel_ready: bool) bool {
+fn startScreen(total: usize, cancel_ready: bool, prior: ?LiveOffer) bool {
+    if (prior) |context| return screen.start(total, &context.Date, cancel_ready, context);
     var date_buffer: [metadata.MAX_VALUE_BYTES]u8 = undefined;
-    return screen.start(total, guest.support.selector.buildDate(&date_buffer), cancel_ready);
+    return screen.start(total, guest.support.selector.buildDate(&date_buffer), cancel_ready, null);
 }
 
 fn standard() bool {
-    const owned = screen.isActive() or startScreen(groups.len, cancellation.enabled());
+    const owned = screen.isActive() or startScreen(groups.len, cancellation.enabled(), null);
     defer screen.release();
-    inline for (groups) |group| {
+    inline for (groups, 1..) |group, ordinal| {
         const title = group[0][runnerlabels.GROUP_PREFIX.len .. group[0].len - 1];
         screen.begin(title);
         serial.printf(group[0], .{});
@@ -111,6 +138,7 @@ fn standard() bool {
             screen.checkpoint();
         }
         screen.finish(.Pass);
+        serial.printf(tables.STANDARD_GROUP_COMPLETE, .{@as(usize, ordinal)});
     }
     cancellation.finish();
     screen.complete();

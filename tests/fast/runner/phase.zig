@@ -73,12 +73,12 @@ fn writeTail(handle: std.net.Stream.Handle, bytes: []const u8) void {
 pub fn menuOffer() !void {
     const menu = project.phase.menu;
     const epoch = 0x0807060504030201;
-    const expected = [_]u8{ 'A', 'K', 'M', 'V', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0 };
-    const offer: project.phase.types.menu.Offer = .{ .Epoch = epoch, .Passed = 1910, .Date = expected[16..24].* };
+    const expected = [_]u8{ 'A', 'K', 'M', 'V', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0, 24, 0 };
+    const offer: project.phase.types.menu.Offer = .{ .Epoch = epoch, .Passed = 1910, .Date = expected[16..24].*, .StandardCompleted = 24 };
     try std.testing.expectEqualSlices(u8, &expected, &menu.encodeOffer(offer).?);
     try std.testing.expectEqual(offer, menu.decodeOffer(&expected).?);
     try std.testing.expect(menu.decodeOffer(expected[0..23]) == null);
-    try std.testing.expect(menu.encodeOffer(.{ .Epoch = epoch, .Passed = 0, .Date = offer.Date }) == null);
+    try std.testing.expect(menu.encodeOffer(.{ .Epoch = epoch, .Passed = 0, .Date = offer.Date, .StandardCompleted = 24 }) == null);
     var invalid = expected;
     invalid[16] = '9';
     try std.testing.expect(menu.decodeOffer(&invalid) == null);
@@ -92,13 +92,13 @@ pub fn menuOffer() !void {
 pub fn failedMenuOffer() !void {
     const menu = project.phase.menu;
     const Offer = project.phase.types.menu.Offer;
-    const wire = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1 };
+    const wire = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1, 0, 0 };
     const failure: Offer = menu.decodeOffer(&wire).?;
     try std.testing.expectEqual(@as(u32, 1907), failure.Passed);
     try std.testing.expectEqual(@as(u8, 1), failure.FailedMask);
     try std.testing.expectEqual(@as(u8, 1), failure.InterruptedMask);
     try std.testing.expectEqualSlices(u8, &wire, &menu.encodeOffer(failure).?);
-    try std.testing.expectEqual(@as(usize, 4), menu.completedPhases(failure));
+    try std.testing.expectEqual(@as(usize, 4), menu.completedUnits(failure));
     var refused = failure;
     refused.InterruptedMask = 2;
     try std.testing.expect(menu.encodeOffer(refused) == null);
@@ -114,7 +114,7 @@ pub fn failedMenuOffer() !void {
 
 pub fn namedMenuPhases() !void {
     const menu = project.phase.menu;
-    const device = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 8, 8 };
+    const device = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 8, 8, 24, 0 };
     var offer = menu.decodeOffer(&device) orelse return error.NamedMenuPhaseUnavailable;
     try std.testing.expectEqual(@as(u32, 1907), offer.Passed);
     try std.testing.expectEqual(.Incomplete, menu.phaseStatus(offer, .Devices));
@@ -122,9 +122,57 @@ pub fn namedMenuPhases() !void {
     try std.testing.expectEqual(.Passed, menu.phaseStatus(offer, .Collapse));
     offer.InterruptedMask = 0;
     try std.testing.expectEqual(.Failed, menu.phaseStatus(offer, .Devices));
-    try std.testing.expectEqual(@as(usize, 5), menu.completedPhases(offer));
+    try std.testing.expectEqual(@as(usize, 28), menu.completedUnits(offer));
     offer.InterruptedMask = 4;
     try std.testing.expect(menu.encodeOffer(offer) == null);
+}
+
+pub fn liveHistory() !void {
+    const live = project.phase.live;
+    const view = project.screen.live;
+    const model = project.screen.model;
+    const packet = [_]u8{ 'A', 'K', 'L', 'P', 17, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 24, 0, 113, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6' };
+    const offer = live.decodeOffer(&packet).?;
+    try std.testing.expectEqual(.Devices, offer.Ticket.Scenario);
+    try std.testing.expectEqualSlices(u8, &packet, &live.encodeOffer(offer).?);
+    const acknowledgement = [_]u8{ 'A', 'K', 'L', 'A', 17, 0, 0, 0, 0, 0, 0, 0, 3 };
+    try std.testing.expectEqualSlices(u8, &acknowledgement, &live.encodeAcknowledgement(offer.Ticket));
+    try std.testing.expect(!live.acknowledges(.{ .Epoch = 16, .Scenario = .Devices }, &acknowledgement));
+    var forged = offer;
+    forged.FailedMask = 8;
+    try std.testing.expect(live.encodeOffer(forged) == null);
+    forged = offer;
+    forged.StandardCompleted = 23;
+    try std.testing.expect(live.encodeOffer(forged) == null);
+    var rows: [32]project.screen.types.model.Row = undefined;
+    var state = view.initialize(&rows, offer);
+    try std.testing.expectEqual(@as(usize, 28), state.Total);
+    try std.testing.expectEqual(@as(usize, 25), state.Completed);
+    try std.testing.expectEqual(.Pass, model.row(&state, 1).?.Kind);
+    try std.testing.expectEqualStrings(fixtures.RESTORED_BOOTSTRAP, model.row(&state, 1).?.Text);
+    try std.testing.expectEqualStrings(fixtures.RESTORED_CRIMSON, model.row(&state, 24).?.Text);
+    try std.testing.expectEqual(.Fail, model.row(&state, 26).?.Kind);
+    try std.testing.expectEqualStrings(fixtures.INCOMPLETE_PULSE, model.row(&state, 26).?.Text);
+    try std.testing.expectEqual(.Pass, model.row(&state, 27).?.Kind);
+    try std.testing.expect(model.begin(&state, view.name(.Devices)));
+    try std.testing.expectEqual(.Running, model.row(&state, state.Count).?.Kind);
+    try std.testing.expectEqual(@as(usize, 89), model.percent(&state));
+    try std.testing.expect(model.finish(&state, .Pass));
+    try std.testing.expect(model.endPhase(&state));
+    try std.testing.expectEqual(@as(usize, 26), state.Completed);
+
+    var partial = offer;
+    partial.FailedMask = 3;
+    partial.InterruptedMask = 3;
+    partial.StandardCompleted = 3;
+    partial.VerifiedChecks = 75;
+    try std.testing.expect(live.encodeOffer(partial) != null);
+    state = view.initialize(&rows, partial);
+    try std.testing.expectEqual(@as(usize, 4), state.Completed);
+    try std.testing.expectEqual(.Pass, model.row(&state, 3).?.Kind);
+    try std.testing.expectEqualStrings(fixtures.INCOMPLETE_STANDARD, model.row(&state, 4).?.Text);
+    try std.testing.expectEqual(.Fail, model.row(&state, 4).?.Kind);
+    try std.testing.expect(model.row(&state, 7) == null);
 }
 
 pub fn earlyFailures() !void {

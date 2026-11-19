@@ -5,9 +5,15 @@ pub const UNKNOWN_DATE = "(date unknown)";
 pub const BUILD_DATE_FORMAT = "{d:0>2}{d:0>2}{d:0>4}";
 pub const SUBTITLE = "Running Test Suite...";
 pub const FINISHED_SUBTITLE = "Test Suite Completed.";
-pub const STANDARD_SUBTITLE = "Standard checks complete. Continuing...";
+pub const PHASE_SUBTITLE = "Phase completed. Continuing...";
 pub const STARTING = "Starting test suite...";
-pub const COMPLETED = "Standard checks completed. Continuing with the other phases...";
+pub const COMPLETED = "Test phase completed. Continuing with the other phases...";
+pub const PHASE_NAMES = [_][]const u8{ "Standard", "Pulse termination", "EFI firmware", "Hardware devices", "Crimson collapse" };
+pub const INCOMPLETE_PHASES = names: {
+    var labels: [PHASE_NAMES.len][]const u8 = undefined;
+    for (PHASE_NAMES, 0..) |name, index| labels[index] = name ++ " (incomplete)";
+    break :names labels;
+};
 pub const INFO_PREFIX = "[INFO] ";
 pub const PASS_PREFIX = "[PASS]";
 pub const FAIL_PREFIX = "[FAIL]";

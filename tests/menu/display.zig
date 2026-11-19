@@ -43,9 +43,9 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
     };
     const snapshot: screen.types.model.Model = .{
         .Rows = rows[0..count],
-        .Total = phase.constants.menu.PHASE_COUNT,
+        .Total = phase.constants.live.TOTAL_UNITS,
         .Count = count,
-        .Completed = phase.menu.completedPhases(offer),
+        .Completed = phase.menu.completedUnits(offer),
         .Failed = @popCount(offer.FailedMask),
         .Done = true,
         .MenuReady = true,
@@ -63,13 +63,12 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer) bool {
 }
 
 fn failedRows(rows: []screen.types.model.Row, offer: phase.types.menu.Offer) usize {
-    comptime std.debug.assert(labels.PHASE_NAMES.len == phase.constants.menu.PHASE_COUNT);
     var count: usize = 0;
-    for (std.enums.values(Scenario), 0..) |selected, index| {
+    for (std.enums.values(Scenario)) |selected| {
         const name = switch (phase.menu.phaseStatus(offer, selected)) {
             .Passed => continue,
-            .Failed => labels.PHASE_NAMES[index],
-            .Incomplete => labels.INCOMPLETE_NAMES[index],
+            .Failed => screen.live.name(selected),
+            .Incomplete => screen.live.incompleteName(selected),
         };
         rows[count] = .{ .Kind = .Fail, .Text = name };
         count += 1;

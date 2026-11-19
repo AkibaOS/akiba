@@ -4,6 +4,8 @@ const std = @import("std");
 
 const date = @import("tests").screen.date;
 const limits = @import("tests").phase.constants.menu;
+const live = @import("tests").phase.live;
+const progress = @import("tests").phase.constants.live;
 const types = @import("tests").phase.types.menu;
 const Scenario = @import("tests").types.scenario.Scenario;
 
@@ -16,6 +18,7 @@ pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     @memcpy(frame[limits.DATE_OFFSET..limits.FAILED_OFFSET], &offer.Date);
     frame[limits.FAILED_OFFSET] = offer.FailedMask;
     frame[limits.INTERRUPTED_OFFSET] = offer.InterruptedMask;
+    std.mem.writeInt(u16, frame[limits.STANDARD_OFFSET..], offer.StandardCompleted, .little);
     return frame;
 }
 
@@ -27,6 +30,7 @@ pub fn decodeOffer(frame: []const u8) ?types.Offer {
         .Date = frame[limits.DATE_OFFSET..limits.FAILED_OFFSET].*,
         .FailedMask = frame[limits.FAILED_OFFSET],
         .InterruptedMask = frame[limits.INTERRUPTED_OFFSET],
+        .StandardCompleted = std.mem.readInt(u16, frame[limits.STANDARD_OFFSET..limits.OFFER_BYTES], .little),
     };
     return if (valid(offer)) offer else null;
 }
@@ -53,13 +57,15 @@ pub fn phaseStatus(offer: types.Offer, selected: Scenario) types.PhaseStatus {
     return .Passed;
 }
 
-pub fn completedPhases(offer: types.Offer) usize {
-    return limits.PHASE_COUNT -| @popCount(offer.InterruptedMask);
+pub fn completedUnits(offer: types.Offer) usize {
+    return live.completed(limits.PHASE_MASK, offer.StandardCompleted, offer.InterruptedMask);
 }
 
 fn valid(offer: types.Offer) bool {
     const all_failed = offer.FailedMask == limits.PHASE_MASK;
     return offer.Epoch != 0 and (offer.Passed == 0) == all_failed and
         offer.FailedMask & ~limits.PHASE_MASK == 0 and offer.InterruptedMask & ~offer.FailedMask == 0 and
+        offer.StandardCompleted <= progress.STANDARD_UNITS and
+        (offer.FailedMask & phaseBit(.Standard) != 0 or offer.StandardCompleted == progress.STANDARD_UNITS) and
         date.valid(&offer.Date);
 }

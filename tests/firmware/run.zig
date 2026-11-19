@@ -4,11 +4,13 @@ const std = @import("std");
 
 const assembly = @import("hikari").assembly;
 const bounds = @import("common").constants.serial.format;
+const display = @import("tests").firmware.display;
 const efi = @import("hikari").efi;
 const inputs = @import("tests").constants.firmware;
 const io = @import("asm").io;
 const kernel = @import("tests").firmware.kernel;
 const labels = @import("tests").strings.firmware;
+const live = @import("tests").firmware.live;
 const loader = @import("tests").firmware.loader;
 const loadinglabels = @import("tests").strings.loading;
 const paging = @import("tests").firmware.paging;
@@ -20,23 +22,30 @@ const storagelabels = @import("tests").firmware.strings.storage;
 const suite = @import("tests").firmware.handoff;
 
 var passed: usize = 0;
+var failing: bool = false;
 
 pub fn main() void {
     initializeSerial();
-    writeText(labels.BEGIN);
-    writeText(labels.GROUP);
     const system_table: *efi.types.services.system.SystemTable = @ptrCast(std.os.uefi.system_table);
     const image_handle: efi.types.base.Handle = @ptrCast(std.os.uefi.handle);
+    live.start(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
+    writeText(labels.BEGIN);
+    writeText(labels.GROUP);
     status.run(system_table);
-    suite.run(system_table.BootServices, image_handle) catch |failure| fail(@errorName(failure));
+    suite.run(system_table.BootServices, image_handle) catch |failure| failAtEdge(@errorName(failure));
+    display.refresh();
     writeText(loadinglabels.GROUP);
-    loader.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
-    kernel.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
+    loader.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
+    kernel.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
+    display.refresh();
     writeText(storagelabels.GROUP);
-    storage.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
+    storage.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
+    display.refresh();
     writeText(labels.PAGING_GROUP);
-    paging.run(system_table.BootServices) catch |failure| fail(@errorName(failure));
-    if (passed != inputs.ASSERTION_COUNT) fail(labels.COUNT_MISMATCH);
+    paging.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
+    if (passed != inputs.ASSERTION_COUNT) failAtEdge(labels.COUNT_MISMATCH);
+    display.refresh();
+    if (!display.release()) fail(@errorName(error.FirmwareViewportReleaseFailed));
     writeText(labels.COMPLETE);
     var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
     writeText(std.fmt.bufPrint(&digits, labels.COUNT, .{passed}) catch fail(labels.FORMAT_FAILED));
@@ -50,22 +59,42 @@ pub fn require(condition: bool, comptime name: []const u8) void {
     writeText(labels.PASS);
     writeText(name);
     writeText(labels.NEWLINE);
+    display.record(name);
 }
 
 pub fn fail(reason: []const u8) noreturn {
-    writeText(labels.FAIL);
-    writeText(reason);
-    writeText(labels.NEWLINE);
-    assembly.halt.haltLoop();
+    terminateFailure(reason, false);
 }
 
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, return_address: ?usize) noreturn {
     _ = stack_trace;
     _ = return_address;
-    _ = storage.cleanup();
-    _ = loader.cleanup();
-    _ = suite.cleanup();
+    if (!failing) {
+        _ = storage.cleanup();
+        _ = loader.cleanup();
+        _ = suite.cleanup();
+    }
     fail(message);
+}
+
+fn failAtEdge(reason: []const u8) noreturn {
+    terminateFailure(reason, true);
+}
+
+fn terminateFailure(reason: []const u8, paint: bool) noreturn {
+    if (!failing) {
+        failing = true;
+        writeText(labels.FAIL);
+        writeText(reason);
+        writeText(labels.NEWLINE);
+        if (paint) display.showFailure(reason);
+    }
+    haltAfterFailure();
+}
+
+fn haltAfterFailure() noreturn {
+    _ = display.release();
+    assembly.halt.haltLoop();
 }
 
 fn initializeSerial() void {
@@ -93,5 +122,6 @@ fn writeByte(byte: u8) void {
             return;
         }
     }
-    assembly.halt.haltLoop();
+    failing = true;
+    haltAfterFailure();
 }

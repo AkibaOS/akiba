@@ -9,6 +9,7 @@ pub const Offer = struct {
     Date: [frame.DATE_BYTES]u8,
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,
+    StandardCompleted: u16,
 };
 
 pub const PhaseStatus = enum { Passed, Failed, Incomplete };

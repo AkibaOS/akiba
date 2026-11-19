@@ -24,15 +24,15 @@ pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stre
     return stream;
 }
 
-pub fn select(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, ticket: phase.types.ticket.Ticket) !void {
-    const offer = phase.wire.encode(ticket, .Offer) orelse return error.InvalidPhaseOffer;
+pub fn start(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, context: phase.types.live.Offer) !void {
+    const offer = phase.live.encodeOffer(context) orelse return error.InvalidPhaseOffer;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.CHECK_NS };
-    try greeting(stream, instance, deadline, evidence, &phase.constants.wire.READY);
+    try greeting(stream, instance, deadline, evidence, &phase.constants.live.READY);
     try send(stream, instance, deadline, &offer);
-    var acknowledgement: phase.types.ticket.Frame = undefined;
-    try receive(stream, instance, deadline, &acknowledgement, null);
+    var acknowledgement: phase.types.live.Acknowledgement = undefined;
+    try receive(stream, instance, deadline, &acknowledgement, evidence);
     _ = try remaining(instance, deadline);
-    if (!phase.wire.acknowledges(ticket, &acknowledgement)) return error.InvalidPhaseAcknowledgement;
+    if (!phase.live.acknowledges(context.Ticket, &acknowledgement)) return error.InvalidPhaseAcknowledgement;
 }
 
 pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, summary: phase.types.menu.Offer) !phase.types.action.Action {

@@ -56,8 +56,16 @@ pub fn evidence(state: *types.Model, outcome: types.Outcome, name: []const u8) v
     state.TailIsPassEvidence = outcome == .Pass;
 }
 
+pub fn recall(state: *types.Model, entry: types.Row) void {
+    if (!state.Done and state.Active == null and entry.Kind != .Running) append(state, entry);
+}
+
 pub fn complete(state: *types.Model) bool {
-    if (state.Done or state.Active != null or state.Total == 0 or state.Completed != state.Total) return false;
+    return state.Total != 0 and state.Completed == state.Total and endPhase(state);
+}
+
+pub fn endPhase(state: *types.Model) bool {
+    if (state.Done or state.Active != null) return false;
     state.Done = true;
     append(state, .{ .Kind = .Info, .Text = text.COMPLETED });
     return true;

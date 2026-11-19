@@ -93,7 +93,7 @@ fn subtitleRegion(header: Rect) Rect {
 fn subtitle(staging: *Surface, header: Rect, text: Text, state: *const types.model.Model) !void {
     var area = scoped(staging, subtitleRegion(header));
     graphics.draw.clear(&area, palette.TITLE_BAR);
-    const message = if (state.MenuReady) strings.FINISHED_SUBTITLE else if (state.Done) strings.STANDARD_SUBTITLE else strings.SUBTITLE;
+    const message = if (state.MenuReady) strings.FINISHED_SUBTITLE else if (state.Done) strings.PHASE_SUBTITLE else strings.SUBTITLE;
     _ = try drawFitted(&area, text, frame.CAPTION_SIZE, 0, frame.SUBTITLE_BASELINE, message, palette.SUBTITLE_TEXT);
 }
 

@@ -11,6 +11,25 @@ const registers = common.constants.serial.registers;
 const ports = common.constants.serial.ports;
 
 var accepted_epoch: ?u64 = null;
+var live_offer: ?phase.types.live.Offer = null;
+
+pub fn context() ?phase.types.live.Offer {
+    return live_offer;
+}
+
+pub fn selectLive() ?Scenario {
+    initialize();
+    if (!send(&phase.constants.live.READY)) return null;
+    var frame: phase.types.live.OfferFrame = undefined;
+    if (!receive(&frame)) return null;
+    const offer = phase.live.decodeOffer(&frame) orelse return null;
+    if (offer.Ticket.Scenario == .Firmware) return null;
+    const acknowledgement = phase.live.encodeAcknowledgement(offer.Ticket);
+    if (!send(&acknowledgement)) return null;
+    live_offer = offer;
+    accepted_epoch = offer.Ticket.Epoch;
+    return offer.Ticket.Scenario;
+}
 
 pub fn epoch() ?u64 {
     return accepted_epoch;
@@ -53,7 +72,7 @@ fn send(bytes: []const u8) bool {
     return true;
 }
 
-fn receive(frame: *phase.types.ticket.Frame) bool {
+fn receive(frame: []u8) bool {
     var offset: usize = 0;
     for (0..inputs.PHASE_POLL_LIMIT) |_| {
         const status = port.readByte(inputs.PHASE_PORT + registers.LINE_STATUS_REGISTER);

@@ -201,6 +201,19 @@ test "unexpected Crimson collapse fails normal and other fatal scenarios" {
     try std.testing.expectError(error.UnexpectedFatalOutcome, result.evaluate(fixtures.COLLAPSE_VALID, .PulseDeath));
 }
 
+test "a fresh diagnostic boot restores only preceding verified phase results" {
+    try phase.liveHistory();
+}
+
+test "standard progress preserves only ordered completed group records" {
+    const start = fixtures.BOOT_ROLLBACK_BEGIN ++ fixtures.BOOT_ROLLBACK_END ++ fixtures.BEGIN;
+    try std.testing.expectEqual(@as(u16, 3), try result.standardProgress(start ++ fixtures.STANDARD_GROUP_ONE ++ fixtures.STANDARD_GROUP_TWO));
+    try std.testing.expectEqual(@as(u16, 2), try result.standardProgress(start ++ fixtures.STANDARD_GROUP_ONE ++ fixtures.STANDARD_GROUP_TWO[0 .. fixtures.STANDARD_GROUP_TWO.len - 1]));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.standardProgress(start ++ fixtures.STANDARD_GROUP_TWO));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.standardProgress(fixtures.STANDARD_GROUP_ONE));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.standardProgress(start ++ fixtures.STANDARD_GROUP_ONE ++ fixtures.STANDARD_GROUP_ONE));
+}
+
 test "firmware oracle accepts its own nonempty completion without kernel ready" {
     try std.testing.expectEqual(@as(?usize, 8), try result.evaluate(fixtures.FIRMWARE_VALID, .Firmware));
 }

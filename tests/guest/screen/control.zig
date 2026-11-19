@@ -17,6 +17,7 @@ const splash = @import("shared").splash;
 const types = @import("tests").guest.screen.types.session;
 
 const Framebuffer = boot.types.framebuffer.FramebufferInfo;
+const LiveOffer = @import("tests").phase.types.live.Offer;
 const Outcome = screen.types.model.Outcome;
 const Row = screen.types.model.Row;
 const Session = types.Session;
@@ -31,7 +32,7 @@ pub fn bind(descriptor: Framebuffer) void {
     if (descriptor.isValid()) framebuffer = descriptor;
 }
 
-pub fn start(total: usize, date: ?[]const u8, cancel_ready: bool) bool {
+pub fn start(total: usize, date: ?[]const u8, cancel_ready: bool, prior: ?LiveOffer) bool {
     const descriptor = framebuffer orelse return false;
     if (active != null or total == 0) return false;
     const layout = screen.layout.plan(descriptor.Width, descriptor.Height) orelse return false;
@@ -53,7 +54,8 @@ pub fn start(total: usize, date: ?[]const u8, cancel_ready: bool) bool {
     const rows = @as([*]Row, @ptrCast(@alignCast(backing + row_offset)))[0..row_count];
 
     var surface = graphics.types.surface.Surface.initialize(descriptor.Base, descriptor.Width, descriptor.Height, descriptor.Stride, descriptor.PixelFormat);
-    var progress = screen.model.initialize(rows[0..layout.VisibleRows], total);
+    const visible = rows[0..layout.VisibleRows];
+    var progress = if (prior) |context| screen.live.initialize(visible, context) else screen.model.initialize(visible, total);
     progress.CancelReady = cancel_ready;
     renderer = workspace.bind();
     if (!screen.render.takeover(&surface, layout, pixels, .{ .Face = &face, .Renderer = &renderer }, &progress, date)) return false;
@@ -108,7 +110,7 @@ pub fn fail(name: []const u8) void {
 
 pub fn complete() void {
     const flags = guard.acquire();
-    const changed = if (active) |*session| screen.model.complete(&session.Progress) else false;
+    const changed = if (active) |*session| screen.model.endPhase(&session.Progress) else false;
     guard.release(flags);
     if (changed) refresh(true);
 }

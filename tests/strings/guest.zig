@@ -1,6 +1,9 @@
 //! Guest Regression Labels
 
 pub const BEGIN = "AKIBA_GUEST_CHECKS_BEGIN\n";
+pub const DISPLAY_READY = "CHECK DIAGNOSTIC DISPLAY READY\n";
+pub const DISPLAY_FAILED = "Diagnostic display could not be initialized";
+pub const SCHEDULE_MISMATCH = "Standard diagnostic schedule and progress units disagree";
 pub const COMPLETE = "AKIBA_GUEST_CHECKS_COMPLETE %d\n";
 pub const CANCELLED = "AKIBA_GUEST_CHECKS_CANCELLED %d\n";
 pub const CANCELLATION_FAILED = "Could not send the diagnostic cancellation action";

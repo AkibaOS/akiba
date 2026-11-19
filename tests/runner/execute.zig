@@ -8,6 +8,7 @@ const image = @import("tests").runner.image;
 const input = @import("tests").runner.input;
 const keyboard = @import("tests").types.input;
 const limits = @import("tests").constants.runner;
+const live = @import("tests").phase.constants.live;
 const menubits = @import("tests").phase.menu;
 const paths = @import("tests").runner.paths;
 const phase = @import("tests").runner.phase;
@@ -112,6 +113,8 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_SAVE);
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
 
+    var build_date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+    _ = buildDate(&build_date, inputs.Image) orelse return error.InvalidMenuBuildDate;
     const menu_slot = std.enums.values(Scenario).len + 1;
     const seed = std.crypto.random.uintLessThan(u64, std.math.maxInt(u64) - menu_slot);
     for (std.enums.values(Scenario), 1..) |selected, index| {
@@ -123,13 +126,16 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
             try restoreFor(inputs, session, &log, if (firmware) .Firmware else .Diagnostic);
         }
         const evidence: types.Epoch = .{ .File = &log, .Start = session.SerialStart };
-        const outcome = runPhase(session, evidence, selected, endpoints.Phase, seed + index, !unattended) catch |failure| {
+        const outcome = runPhase(session, evidence, selected, endpoints, seed + index, build_date, !unattended) catch |failure| {
             if (!recovery.local(session.Stage, failure)) return failure;
             try failPhase(session, evidence, selected, failure);
             continue;
         };
         switch (outcome) {
-            .Passed => |count| session.Passed += count,
+            .Passed => |count| {
+                session.Passed += count;
+                if (selected == .Standard) session.StandardCompleted = live.STANDARD_UNITS;
+            },
             .Cancelled => |count| {
                 session.Passed += count;
                 session.Cancelled = true;
@@ -148,20 +154,25 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Stage = .Complete;
 }
 
-fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, port: u16, epoch: u64, interactive: bool) !types.PhaseResult {
+fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, endpoints: types.Endpoints, epoch: u64, build_date: [screen.constants.frame.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
     const connection = &session.Control.?;
     var timer = try std.time.Timer.start();
     session.Stage = .Select;
-    if (selected == .Firmware) {
-        try protocol.action(PAGE, connection, strings.CONTINUE, null);
-        session.Stage = .Checks;
-        return completed(session, evidence, selected, &timer, null);
-    }
-    try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, port);
+    const firmware = selected == .Firmware;
+    const port = if (firmware) endpoints.Menu else endpoints.Phase;
+    try protocol.verifyControlPort(PAGE, connection, if (firmware) strings.MENU_LABEL else strings.PHASE_LABEL, port);
     const stream = try phase.open(port, &session.Process, &timer);
     defer stream.close();
+    const verified_checks = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
     try protocol.action(PAGE, connection, strings.CONTINUE, null);
-    try phase.select(stream, &session.Process, &timer, evidence, .{ .Epoch = epoch, .Scenario = selected });
+    try phase.start(stream, &session.Process, &timer, evidence, .{
+        .Ticket = .{ .Epoch = epoch, .Scenario = selected },
+        .Date = build_date,
+        .FailedMask = session.FailedMask,
+        .InterruptedMask = session.InterruptedMask,
+        .StandardCompleted = session.StandardCompleted,
+        .VerifiedChecks = verified_checks,
+    });
     var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
     session.Stage = .Checks;
     return completed(session, evidence, selected, &timer, if (interactive and selected == .Standard) &channel else null);
@@ -176,8 +187,14 @@ fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario,
     terminal.fail(selected, failed_at, failure, bytes);
     const bit = menubits.phaseBit(selected);
     session.FailedMask |= bit;
-    if (failed_at != .Checks or failure != error.GuestCheckFailed or
-        std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) == null) session.InterruptedMask |= bit;
+    const completed_failure = failed_at == .Checks and failure == error.GuestCheckFailed and
+        std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) != null;
+    if (!completed_failure) session.InterruptedMask |= bit;
+    if (selected == .Standard and failed_at == .Checks) {
+        if (result.standardProgress(bytes orelse &.{})) |finished| {
+            session.StandardCompleted = @min(live.STANDARD_UNITS, finished + @intFromBool(completed_failure));
+        } else |_| {}
+    }
     try quiesced;
 }
 
@@ -207,6 +224,7 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
             .Date = date,
             .FailedMask = session.FailedMask,
             .InterruptedMask = session.InterruptedMask,
+            .StandardCompleted = session.StandardCompleted,
         });
     };
     try protocol.verifyStatus(PAGE, connection, strings.RUNNING);
@@ -300,6 +318,8 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 defer PAGE.free(frozen);
                 if (try result.evaluate(frozen, selected) != count) return error.GuestOutcomeChanged;
                 try result.verifyBootstrap(frozen, selected);
+                if (selected != .Firmware) try result.verifyDisplay(frozen);
+                if (selected == .Standard and try result.standardProgress(frozen) != live.STANDARD_UNITS) return error.InvalidBootstrapEvidence;
                 if (selected == .Devices and try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
                 if (timer.read() >= limits.CHECK_NS) return error.GuestCheckTimeout;
                 terminal.passed(selected, count, frozen);
@@ -360,6 +380,8 @@ fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8,
         strings.MENU_SERIAL,
         scenario.FLAG,
         scenario.PHASE_ARGUMENT,
+        scenario.FLAG,
+        scenario.LIVE_ARGUMENT,
     });
     if (!unattended) try list.appendSlice(allocator, &.{ scenario.FLAG, scenario.CANCEL_ARGUMENT });
     if (buildDateArgument(allocator, inputs.Image)) |date| try list.appendSlice(allocator, &.{ scenario.FLAG, date });
