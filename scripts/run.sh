@@ -1,31 +1,28 @@
 #!/bin/bash
 
-DISK_IMAGE="${1:-iso/akiba.img}"
+SCRIPT_DIR=$(dirname -- "${BASH_SOURCE[0]}") || exit 1
+source "$SCRIPT_DIR/strings/paths.sh" || exit 1
+source "$SCRIPT_DIR/strings/messages.sh" || exit 1
+
+DISK_IMAGE="${1:-$DEFAULT_DISK_IMAGE}"
 if [ "$#" -gt 0 ]; then
     shift
 fi
 
-UEFI_FW="/opt/homebrew/share/qemu/edk2-x86_64-code.fd"
-if [ ! -f "$UEFI_FW" ]; then
-    UEFI_FW="/usr/share/edk2/x64/OVMF_CODE.4m.fd"
-fi
-if [ ! -f "$UEFI_FW" ]; then
-    UEFI_FW="/usr/share/edk2/x64/OVMF_CODE.fd"
-fi
-if [ ! -f "$UEFI_FW" ]; then
-    UEFI_FW="/usr/share/OVMF/OVMF_CODE.fd"
-fi
-if [ ! -f "$UEFI_FW" ]; then
-    UEFI_FW="/usr/share/qemu/OVMF.fd"
-fi
+UEFI_FW=
+for candidate in "${UEFI_CODE_CANDIDATES[@]}"; do
+    if [ -f "$candidate" ]; then
+        UEFI_FW=$candidate
+        break
+    fi
+done
 
-if [ ! -f "$UEFI_FW" ]; then
-    echo "Error: UEFI firmware not found"
-    echo "Please install OVMF/EDK2"
+if [ -z "$UEFI_FW" ]; then
+    printf '%s\n' "$MISSING_UEFI" "$INSTALL_UEFI"
     exit 1
 fi
 
-qemu-system-x86_64 \
+"$QEMU_EXECUTABLE" \
     -M q35 \
     -drive if=pflash,format=raw,readonly=on,file="$UEFI_FW" \
     -drive "file=$DISK_IMAGE,format=raw" \
