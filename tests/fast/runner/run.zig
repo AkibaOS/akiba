@@ -64,6 +64,25 @@ test "snapshot job must conclude successfully and belong to this session" {
     try std.testing.expectError(error.SnapshotJobFailed, runner.checkpoint.concluded(failed.value, fixtures.SNAPSHOT_ID));
 }
 
+test "only failures local to a test phase can proceed to cold recovery" {
+    try std.testing.expect(runner.recovery.local(.Select, error.GuestPhaseTimeout));
+    try std.testing.expect(runner.recovery.local(.Checks, error.GuestCheckTimeout));
+    try std.testing.expect(runner.recovery.local(.Checks, error.UnexpectedKeyboardInput));
+    try std.testing.expect(runner.recovery.local(.Checks, error.UnexpectedFatalOutcome));
+    try std.testing.expect(!runner.recovery.local(.Restore, error.GuestPhaseTimeout));
+    try std.testing.expect(!runner.recovery.local(.Menu, error.GuestCheckFailed));
+    try std.testing.expect(!runner.recovery.local(.Select, error.InvalidPhaseAcknowledgement));
+    try std.testing.expect(!runner.recovery.local(.Checks, error.UnexpectedGuestEvent));
+    try std.testing.expect(!runner.recovery.local(.Checks, error.GuestExited));
+    try std.testing.expect(!runner.recovery.local(.Checks, error.Cancelled));
+}
+
+test "QMP recovery requires a verified pause and rejects a reset" {
+    try peer.accepts(.RecoverRunning);
+    try peer.accepts(.RecoverPaused);
+    try peer.rejects(.RecoverReset, error.UnexpectedGuestEvent);
+}
+
 test "QMP loopback refuses a guest reset before accepting a command reply" {
     try peer.rejects(.Reset, error.UnexpectedGuestEvent);
 }
@@ -218,7 +237,7 @@ test "serial oracle rejects readiness without test begin or completion" {
 test "serial oracle rejects zero mismatched and malformed assertion counts" {
     try std.testing.expectError(error.IncompleteGuestChecks, result.evaluate(fixtures.ZERO, .Standard));
     try std.testing.expectError(error.IncompleteGuestChecks, result.evaluate(fixtures.MISMATCH, .Standard));
-    try std.testing.expectError(error.InvalidCharacter, result.evaluate(fixtures.BAD_COUNT, .Standard));
+    try std.testing.expectError(error.InvalidGuestCheckCount, result.evaluate(fixtures.BAD_COUNT, .Standard));
 }
 
 test "serial oracle rejects failed assertions and unexpected panics" {

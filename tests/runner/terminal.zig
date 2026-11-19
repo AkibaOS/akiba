@@ -69,6 +69,10 @@ pub fn cleanup(started: bool, failure: ?anyerror, verified: bool) void {
     }
 }
 
+pub fn failedTotal(check_count: usize, phase_count: usize) void {
+    std.debug.print(strings.FAILED_TOTAL, .{ check_count, phase_count });
+}
+
 pub fn total(count: usize) void {
     std.debug.print(strings.TOTAL_RESULT, .{count});
 }

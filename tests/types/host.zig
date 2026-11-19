@@ -37,6 +37,7 @@ pub const Stage = enum {
     Restore,
     Select,
     Checks,
+    Recovery,
     Menu,
     Ordinary,
     Complete,
@@ -80,6 +81,7 @@ pub const Session = struct {
     Selected: ?Scenario = null,
     SerialStart: u64 = 0,
     Passed: usize = 0,
+    FailedPhases: usize = 0,
 };
 
 pub const Process = struct {

@@ -6,6 +6,7 @@ const std = @import("std");
 const fixtures = @import("tests").strings.oracle;
 const inputs = @import("tests").constants.protocol;
 const protocol = @import("tests").runner.protocol;
+const runner = @import("tests").runner;
 const socket = @import("tests").runner.socket;
 const strings = @import("tests").strings.protocol;
 const types = @import("tests").types.protocol;
@@ -57,6 +58,7 @@ fn command(connection: *Connection, scenario: types.Scenario) !void {
         .LateReply => try protocol.action(std.testing.allocator, connection, strings.QUERY_JOBS, null),
         .Headless => try protocol.verifyWindow(std.testing.allocator, connection),
         .OperatorClosed, .OperatorQuit, .ResetToShutdown, .OrdinaryPanic => try ordinary(connection, scenario == .OrdinaryPanic),
+        .RecoverRunning, .RecoverPaused, .RecoverReset => try runner.recovery.quiesce(std.testing.allocator, connection),
         else => {},
     }
 }
@@ -142,8 +144,27 @@ fn serve(state: *types.Peer) !void {
         .OperatorClosed, .OrdinaryPanic => try send(handle, strings.REPLY ++ strings.OPERATOR_CLOSED),
         .OperatorQuit => try send(handle, strings.REPLY ++ strings.OPERATOR_QUIT),
         .ResetToShutdown => try send(handle, strings.REPLY ++ strings.RESET_TO_SHUTDOWN),
+        .RecoverRunning, .RecoverPaused, .RecoverReset => try recoveryPeer(handle, state.Scenario, &request),
         else => try send(handle, strings.EVENT ++ strings.WRONG_ID ++ strings.REPLY),
     }
+}
+
+fn recoveryPeer(handle: std.net.Stream.Handle, scenario: types.Scenario, request: []u8) !void {
+    try send(handle, strings.REPLY);
+    const query_length = line(handle, request) catch |failure| switch (failure) {
+        error.DisconnectedPeer => return,
+        else => return failure,
+    };
+    try std.testing.expect(std.mem.indexOf(u8, request[0..query_length], strings.QUERY_STATUS) != null);
+    if (scenario == .RecoverReset) return send(handle, strings.TERMINAL_EVENT ++ strings.RECOVERY_RUNNING);
+    if (scenario == .RecoverPaused) return send(handle, strings.RECOVERY_ALREADY_PAUSED);
+    try send(handle, strings.RECOVERY_RUNNING);
+    const stop_length = try line(handle, request);
+    try std.testing.expect(std.mem.indexOf(u8, request[0..stop_length], strings.STOP) != null);
+    try send(handle, strings.RECOVERY_STOPPED);
+    const paused_length = try line(handle, request);
+    try std.testing.expect(std.mem.indexOf(u8, request[0..paused_length], strings.QUERY_STATUS) != null);
+    try send(handle, strings.RECOVERY_PAUSED);
 }
 
 fn send(handle: std.net.Stream.Handle, bytes: []const u8) !void {

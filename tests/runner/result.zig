@@ -52,7 +52,7 @@ pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {
     const marker = std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) orelse return error.IncompleteGuestChecks;
     const number = bytes[marker + strings.CHECK_COMPLETE.len ..];
     const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return error.IncompleteGuestChecks;
-    const passed = try std.fmt.parseInt(usize, number[0..end], 10);
+    const passed = std.fmt.parseInt(usize, number[0..end], 10) catch return error.InvalidGuestCheckCount;
     if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
     return passed;
 }
@@ -78,7 +78,7 @@ fn firmwareResult(bytes: []const u8) !?usize {
     if (begin >= marker or std.mem.count(u8, bytes, firmware.COMPLETE) != 1) return error.IncompleteGuestChecks;
     const number = bytes[marker + firmware.COMPLETE.len ..];
     const end = std.mem.indexOfAny(u8, number, strings.LINE_SEPARATORS) orelse return null;
-    const passed = try std.fmt.parseInt(usize, number[0..end], 10);
+    const passed = std.fmt.parseInt(usize, number[0..end], 10) catch return error.InvalidGuestCheckCount;
     if (passed == 0 or std.mem.count(u8, bytes, strings.CHECK_PASS) != passed) return error.IncompleteGuestChecks;
     return passed;
 }

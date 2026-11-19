@@ -10,6 +10,7 @@ pub const phase = @import("phase.zig");
 pub const posix = @import("posix.zig");
 pub const process = @import("process.zig");
 pub const protocol = @import("protocol.zig");
+pub const recovery = @import("recovery.zig");
 pub const result = @import("result.zig");
 pub const serial = @import("serial.zig");
 pub const socket = @import("socket.zig");

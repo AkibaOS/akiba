@@ -18,6 +18,9 @@ pub const Scenario = enum {
     OperatorQuit,
     ResetToShutdown,
     OrdinaryPanic,
+    RecoverRunning,
+    RecoverPaused,
+    RecoverReset,
 };
 
 pub const Peer = struct {

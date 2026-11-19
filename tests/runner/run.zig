@@ -7,7 +7,7 @@ const strings = @import("tests").strings.runner;
 
 pub fn main() void {
     launch() catch |failure| {
-        if (failure != error.GuestChecksCancelled) std.debug.print(strings.RESULT_FAIL, .{@errorName(failure)});
+        if (failure != error.GuestChecksCancelled and failure != error.GuestSuiteFailed) std.debug.print(strings.RESULT_FAIL, .{@errorName(failure)});
         std.process.exit(1);
     };
 }

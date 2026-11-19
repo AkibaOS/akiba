@@ -140,5 +140,6 @@ pub const FAILURE_RESULT = "  FAIL  {s}: {s}\n";
 pub const PHASE_FAILURE = "  FAIL  {s} ({s}): {s}\n";
 pub const FAILURE_DETAIL = "        {s}\n";
 pub const TOTAL_RESULT = "\n{d} guest checks passed.\n";
+pub const FAILED_TOTAL = "\nGuest suite failed: {d} verified checks from successful phases; failed phases: {d}.\n";
 pub const LINE_SEPARATORS = "\r\n";
 pub const CARRIAGE_RETURN = "\r";

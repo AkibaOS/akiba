@@ -12,6 +12,7 @@ const paths = @import("tests").runner.paths;
 const phase = @import("tests").runner.phase;
 const process = @import("tests").runner.process;
 const protocol = @import("tests").runner.protocol;
+const recovery = @import("tests").runner.recovery;
 const result = @import("tests").runner.result;
 const scenario = @import("tests").strings.scenario;
 const screen = @import("tests").screen;
@@ -76,6 +77,10 @@ pub fn run(unattended: bool) !void {
     if (cleanup_error) |reason| return reason;
     if (failure) |reason| return reason;
     if (session.Cancelled) return error.GuestChecksCancelled;
+    if (session.FailedPhases != 0) {
+        terminal.failedTotal(session.Passed, session.FailedPhases);
+        return error.GuestSuiteFailed;
+    }
     if (unattended) terminal.total(session.Passed);
 }
 
@@ -117,25 +122,12 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
             try restoreFor(inputs, session, &log, if (firmware) .Firmware else .Diagnostic);
         }
         const evidence: types.Epoch = .{ .File = &log, .Start = session.SerialStart };
-        var timer = try std.time.Timer.start();
-        var control_stream: ?std.net.Stream = null;
-        defer if (control_stream) |stream| stream.close();
-        var cancel_channel: ?types.CancelChannel = null;
-        session.Stage = .Select;
-        if (firmware) {
-            try protocol.action(PAGE, connection, strings.CONTINUE, null);
-        } else {
-            try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, endpoints.Phase);
-            const stream = try phase.open(endpoints.Phase, &session.Process, &timer);
-            control_stream = stream;
-            const epoch = seed + index;
-            try protocol.action(PAGE, connection, strings.CONTINUE, null);
-            try phase.select(stream, &session.Process, &timer, evidence, .{ .Epoch = epoch, .Scenario = selected });
-            if (!unattended and selected == .Standard) cancel_channel = .{ .Stream = stream, .Epoch = epoch };
-        }
-        session.Stage = .Checks;
-        const cancellation = if (cancel_channel) |*channel| channel else null;
-        switch (try completed(session, evidence, selected, &timer, cancellation)) {
+        const outcome = runPhase(session, evidence, selected, endpoints.Phase, seed + index, !unattended) catch |failure| {
+            if (!recovery.local(session.Stage, failure)) return failure;
+            try failPhase(session, evidence, selected, failure);
+            continue;
+        };
+        switch (outcome) {
             .Passed => |count| session.Passed += count,
             .Cancelled => |count| {
                 session.Passed += count;
@@ -148,11 +140,47 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     if (session.Cancelled) {
         std.debug.print(strings.CANCELLED_RESULT, .{session.Passed});
         try bootOrdinary(inputs, session, &log);
-    } else if (!unattended) {
+    } else if (!unattended and session.FailedPhases == 0) {
         terminal.total(session.Passed);
         try postSuite(inputs, session, &log, endpoints.Menu, seed + menu_slot);
     }
     session.Stage = .Complete;
+}
+
+fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, port: u16, epoch: u64, interactive: bool) !types.PhaseResult {
+    const connection = &session.Control.?;
+    var timer = try std.time.Timer.start();
+    session.Stage = .Select;
+    if (selected == .Firmware) {
+        try protocol.action(PAGE, connection, strings.CONTINUE, null);
+        session.Stage = .Checks;
+        return completed(session, evidence, selected, &timer, null);
+    }
+    try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, port);
+    const stream = try phase.open(port, &session.Process, &timer);
+    defer stream.close();
+    try protocol.action(PAGE, connection, strings.CONTINUE, null);
+    try phase.select(stream, &session.Process, &timer, evidence, .{ .Epoch = epoch, .Scenario = selected });
+    var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
+    session.Stage = .Checks;
+    return completed(session, evidence, selected, &timer, if (interactive and selected == .Standard) &channel else null);
+}
+
+fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, failure: anyerror) !void {
+    const failed_at = session.Stage;
+    session.Stage = .Recovery;
+    const quiesced = prepareRecovery(session);
+    const bytes = serial.read(PAGE, evidence) catch null;
+    defer if (bytes) |captured| PAGE.free(captured);
+    terminal.fail(selected, failed_at, failure, bytes);
+    session.FailedPhases += 1;
+    try quiesced;
+}
+
+fn prepareRecovery(session: *types.Session) !void {
+    if (process.cancelled()) return error.Cancelled;
+    if (!session.Owned or try process.exited(&session.Process)) return error.GuestExited;
+    try recovery.quiesce(PAGE, &session.Control.?);
 }
 
 fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, port: u16, epoch: u64) !void {
