@@ -114,8 +114,8 @@ run: all
 	@$(RUN_SCRIPT)
 
 test:
-	@$(MAKE) test-fast
-	@$(MAKE) test-guest
+	@$(MAKE) --no-print-directory test-fast
+	@$(MAKE) --no-print-directory test-guest
 
 test-fast:
 	@"$(ZIG)" build test-fast --summary all

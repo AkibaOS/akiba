@@ -16,4 +16,7 @@ pub const PACK_EXECUTION = "Unable to start disk packer: {s}";
 pub const PACK_PROGRESS = "Invalid disk packer progress: {s}";
 pub const PACK_INCOMPLETE = "Disk packer did not report all units copied";
 pub const PACK_EXIT = "Disk packer did not finish successfully: {any}";
+pub const PACK_COMPLETE = "Created {s} ({d} {s})\n";
+pub const PACK_UNIT = "unit";
+pub const PACK_UNITS = "units";
 pub const PACK_IMAGE_MISSING = "Packed disk image is missing or invalid: {s}";

@@ -39,16 +39,28 @@ fn make(step: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
     const directory = builder.pathJoin(&.{ paths.CACHE_OBJECT_DIRECTORY, &digest });
     const output = try builder.cache_root.join(builder.allocator, &.{ directory, pack.ImageName });
     pack.Output.path = output;
-    if (!hit) {
+    const published = if (hit) null else fresh: {
         try builder.cache_root.handle.makePath(directory);
-        try emit(step, options, executable, source, output);
-    }
+        break :fresh try emit(step, options, executable, source, output);
+    };
     const info = std.fs.cwd().statFile(output) catch return step.fail(steps.PACK_IMAGE_MISSING, .{output});
     if (info.kind != .file) return step.fail(steps.PACK_IMAGE_MISSING, .{output});
-    if (!hit) try step.writeManifestAndWatch(&manifest);
+    if (published) |result| {
+        try step.writeManifestAndWatch(&manifest);
+        reportImage(pack.ImageName, result.Total);
+    }
 }
 
-fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, executable: []const u8, source: []const u8, output: []const u8) !void {
+fn reportImage(name: []const u8, units: u32) void {
+    var buffer: [256]u8 = undefined;
+    const label = if (units == 1) steps.PACK_UNIT else steps.PACK_UNITS;
+    const line = std.fmt.bufPrint(&buffer, steps.PACK_COMPLETE, .{ name, units, label }) catch return;
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+    std.fs.File.stdout().writeAll(line) catch {};
+}
+
+fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, executable: []const u8, source: []const u8, output: []const u8) !Record {
     const arguments = &.{ executable, source, output, paths.GUEST_IMAGE_MB, messages.PROGRESS_STREAM };
     var child = std.process.Child.init(arguments, options.gpa);
     child.stdin_behavior = .Ignore;
@@ -64,6 +76,7 @@ fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, executable: 
     reaped = true;
     if (result != .Exited or result.Exited != 0) return step.fail(steps.PACK_EXIT, .{result});
     if (last == null or last.?.Written != last.?.Total) return step.fail(steps.PACK_INCOMPLETE, .{});
+    return last.?;
 }
 
 fn observe(pipe: std.fs.File, node: std.Progress.Node) !?Record {
