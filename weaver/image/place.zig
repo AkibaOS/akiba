@@ -43,6 +43,7 @@ pub fn place(allocator: std.mem.Allocator, graph: *const Graph, biases: Biases, 
     return .{
         .Allocator = allocator,
         .Executable = executable,
+        .Graph = graph,
         .Libraries = libraries,
         .Pages = policy.MaximumPages - remaining,
     };

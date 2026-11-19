@@ -202,6 +202,128 @@ fn verifyPlacement(allocator: std.mem.Allocator) !void {
     try std.testing.expectEqual(@as(u64, 0), placement.Libraries[0].Image.Entry);
 }
 
+test "Weaver plans checked function data and same-image bindings" {
+    for ([_]LinkCase{ .Function, .Data, .Defined }) |scenario| try verifyLink(ALLOCATOR, scenario);
+}
+
+test "Weaver refuses missing transitive and conflicting directly declared symbols" {
+    for ([_]LinkCase{ .Missing, .Transitive, .Ambiguous }) |scenario| try verifyLink(ALLOCATOR, scenario);
+}
+
+test "Weaver checks resolved symbol kind and extent and refuses weak or versioned imports" {
+    for ([_]LinkCase{ .WrongKind, .InvalidExtent, .WrongSegment, .Weak, .Versioned }) |scenario| try verifyLink(ALLOCATOR, scenario);
+}
+
+test "Weaver releases all relocation planning allocations after injected refusal" {
+    try std.testing.checkAllAllocationFailures(ALLOCATOR, verifyLink, .{LinkCase.Function});
+}
+
+const LinkCase = enum { Function, Data, Defined, Missing, Transitive, Ambiguous, WrongKind, InvalidExtent, WrongSegment, Weak, Versioned };
+const LINK_SYMBOL = inputs.PAGE_BYTES + inputs.DYNAMIC_SYMBOLS + inputs.DYNAMIC_SYMBOL_BYTES;
+const LINK_GENERAL = inputs.PAGE_BYTES + inputs.DYNAMIC_RELA;
+const LINK_PROCEDURE = inputs.PAGE_BYTES + inputs.DYNAMIC_PLT;
+
+fn verifyLink(allocator: std.mem.Allocator, scenario: LinkCase) !void {
+    const direct: u64 = if (scenario == .Defined) 0 else PROBE_INDEX;
+    const second: ?u64 = if (scenario == .Ambiguous) BRIDGE_INDEX else if (scenario == .Function) PROBE_INDEX else null;
+    var executable = encodeGraph(direct, second, null);
+    var probe = encodeGraph(if (scenario == .Transitive) BRIDGE_INDEX else 0, null, PROBE_INDEX);
+    var bridge = encodeGraph(0, null, BRIDGE_INDEX);
+    prepareRelative(&probe);
+    prepareRelative(&bridge);
+    prepareRelative(&executable);
+    fixture.write64(&executable, STORAGE_WORD + 11 * inputs.DYNAMIC_WORD_BYTES + @sizeOf(u64), inputs.DYNAMIC_RELA_BYTES);
+    fixture.write64(&executable, LINK_PROCEDURE, 0x53f8);
+    putDefinition(&probe, 0x12, 6, 0x6000, 32);
+    putDefinition(&bridge, 0x12, 6, 0x6000, 32);
+    const failure: ?anyerror = switch (scenario) {
+        .Function => null,
+        .Data => data: {
+            prepareRelative(&executable);
+            fixture.write64(&executable, LINK_GENERAL + 8, 0x100000006);
+            fixture.write64(&executable, LINK_GENERAL + 16, 0);
+            putDefinition(&executable, 0x11, 0, 0, 8);
+            putDefinition(&probe, 0x11, 4, 0x5ff8, 8);
+            break :data null;
+        },
+        .Defined => defined: {
+            putDefinition(&executable, 0x12, 6, 0x6000, 32);
+            break :defined null;
+        },
+        .Missing, .Transitive => missing: {
+            putDefinition(&probe, 0x12, 0, 0, 0);
+            break :missing error.UnresolvedSymbol;
+        },
+        .Ambiguous => error.AmbiguousSymbol,
+        .WrongKind => wrong: {
+            putDefinition(&probe, 0x11, 4, 0x5400, 8);
+            break :wrong error.SymbolKindMismatch;
+        },
+        .InvalidExtent => extent: {
+            putDefinition(&probe, 0x12, 6, 0x6000, 33);
+            break :extent error.InvalidDefinition;
+        },
+        .WrongSegment => segment: {
+            putDefinition(&probe, 0x12, 4, 0x5400, 8);
+            break :segment error.InvalidDefinition;
+        },
+        .Weak => weak: {
+            putDefinition(&executable, 0x22, 0, 0, 0);
+            break :weak error.UnsupportedSymbol;
+        },
+        .Versioned => versioned: {
+            fixture.write64(&executable, STORAGE_WORD + inputs.DYNAMIC_WORD_BYTES, 0x6ffffff0);
+            break :versioned error.UnsupportedLinkMetadata;
+        },
+    };
+    const catalog: Catalog = .{ .Units = &.{
+        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe },
+        .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
+    } };
+    var graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    const biases = [_]u64{ 0x400000, 0x600000 };
+    var placement = try weaver.image.place.place(allocator, &graph, .{ .Executable = 0x200000, .Libraries = biases[0..graph.Libraries.len] }, policy, &.{});
+    defer placement.deinit();
+    const linked = weaver.link.plan.plan(allocator, &placement);
+    if (failure) |expected| {
+        try std.testing.expectError(expected, linked);
+        return;
+    }
+    var plan = try linked;
+    defer plan.deinit();
+    const writes = plan.Executable.Writes;
+    if (scenario == .Data) {
+        try std.testing.expectEqual(@as(usize, 1), writes.len);
+        try std.testing.expectEqual(@as(u64, 0x2053f0), writes[0].Address);
+        try std.testing.expectEqual(@as(u64, 0x405ff8), writes[0].Value);
+    } else {
+        try std.testing.expectEqual(@as(usize, 2), writes.len);
+        try std.testing.expectEqual(@as(u64, 0x205400), writes[0].Value);
+        try std.testing.expectEqual(@as(u64, 0x2053f8), writes[1].Address);
+        try std.testing.expectEqual(@as(u64, if (scenario == .Defined) 0x206000 else 0x406000), writes[1].Value);
+    }
+    try std.testing.expectEqual(graph.Libraries.len, plan.Libraries.len);
+    if (scenario != .Defined) {
+        try std.testing.expectEqual(@as(usize, 1), plan.Libraries[0].Writes.len);
+        try std.testing.expectEqual(@as(u64, 0x405400), plan.Libraries[0].Writes[0].Value);
+    }
+}
+
+fn prepareRelative(bytes: []u8) void {
+    fixture.write64(bytes, STORAGE_WORD + 11 * inputs.DYNAMIC_WORD_BYTES + @sizeOf(u64), 0);
+    fixture.write64(bytes, LINK_GENERAL, 0x53f0);
+    fixture.write64(bytes, LINK_GENERAL + 16, 0x5400);
+}
+
+fn putDefinition(bytes: []u8, info: u8, section: u16, value: u64, size: u64) void {
+    bytes[LINK_SYMBOL + 4] = info;
+    fixture.write16(bytes, LINK_SYMBOL + 6, section);
+    fixture.write64(bytes, LINK_SYMBOL + 8, value);
+    fixture.write64(bytes, LINK_SYMBOL + 16, size);
+}
+
 fn encodeGraph(need: u64, second: ?u64, identity: ?u64) [inputs.DATA_BYTES]u8 {
     var bytes = dynamic.loadImage();
     @memcpy(bytes[inputs.DYNAMIC_LAYOUT_FILE..][0..GRAPH_STRINGS.len], GRAPH_STRINGS);
@@ -217,6 +339,7 @@ fn encodeGraph(need: u64, second: ?u64, identity: ?u64) [inputs.DATA_BYTES]u8 {
         fixture.write64(&bytes, slot + @sizeOf(u64), value);
     } else {
         fixture.write64(&bytes, slot, 21);
+        fixture.write64(&bytes, slot + @sizeOf(u64), 0);
     }
     return bytes;
 }

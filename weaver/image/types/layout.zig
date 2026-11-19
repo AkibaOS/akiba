@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const Graph = @import("weaver").library.types.graph.Graph;
 const Layout = @import("shared").elf.types.dynamic.Layout;
 
 pub const Biases = struct {
@@ -17,6 +18,7 @@ pub const Interval = struct {
 pub const Placement = struct {
     Allocator: std.mem.Allocator,
     Executable: Layout,
+    Graph: *const Graph,
     Libraries: []Layout,
     Pages: u64,
 
