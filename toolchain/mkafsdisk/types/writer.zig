@@ -11,8 +11,6 @@ const PlanningError = tool.errors.planning.PlanningError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 const VolumeHeader = afs.types.volume.VolumeHeader;
 
-const messages = tool.strings.messages;
-
 pub const Writer = struct {
     File: std.fs.File,
     PartitionStartByte: u64,
@@ -22,6 +20,7 @@ pub const Writer = struct {
     TotalCells: u32 = 0,
     ImageSizeBytes: u64 = 0,
     IO: ?tool.types.io.Operations = null,
+    Progress: ?tool.types.progress.Observer = null,
 
     const Self = @This();
 
@@ -47,19 +46,20 @@ pub const Writer = struct {
 
     pub fn writeFilesystem(self: *Self, plan: *const FilesystemPlan) !void {
         try self.validatePlan(plan);
-        std.debug.print(messages.AFS_CREATING, .{});
-        std.debug.print(messages.AFS_TOTAL_CELLS, .{self.TotalCells});
-        std.debug.print(messages.AFS_CELL_SIZE, .{self.CellSize});
+        const total = plan.Manifest.UnitCount;
+        var written: u32 = 0;
+        if (self.Progress) |observer| try observer.update(written, total);
         for (plan.Manifest.Entries, plan.Spans) |entry, span| {
             if (entry.Kind != .Unit) continue;
+            if (written == total) return PlanningError.InvalidGeometry;
             try self.copyUnit(entry, span);
-            std.debug.print(messages.AFS_ADDED_UNIT, .{entry.Identity});
+            written += 1;
+            if (self.Progress) |observer| try observer.update(written, total);
         }
+        if (written != total) return PlanningError.InvalidGeometry;
         try self.writeIndex(plan);
         try self.writeAllocationMap(plan);
         try self.writeVolumeHeaders(plan);
-        std.debug.print(messages.AFS_COUNTS, .{ plan.Manifest.UnitCount, plan.Manifest.StackCount });
-        std.debug.print(messages.AFS_FREE_CELLS, .{plan.Volume.FreeCells});
     }
 
     fn validatePlan(self: *Self, plan: *const FilesystemPlan) !void {

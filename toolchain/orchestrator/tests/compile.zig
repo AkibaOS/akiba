@@ -7,6 +7,7 @@ const firmware = @import("firmware.zig");
 const kernel = @import("../kernel/kernel.zig");
 const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
+const progress = @import("pack.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
 const suites = @import("../strings/suites.zig");
@@ -46,10 +47,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
     _ = stage.addCopyFile(guest_loader.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.MIRAI_OUTPUT);
-    const pack = builder.addRunArtifact(packer);
-    pack.addDirectoryArg(stage.getDirectory());
-    const image = pack.addOutputFileArg(paths.GUEST_IMAGE_NAME);
-    pack.addArg(paths.GUEST_IMAGE_MB);
+    const image = progress.image(builder, stage, packer, paths.GUEST_IMAGE_NAME);
     const runner_options = builder.addOptions();
     runner_options.addOptionPath(names.OPTION_GUEST_IMAGE, image);
     runner_options.addOptionPath(names.OPTION_FIRMWARE_IMAGE, firmware.image(builder, modules, packer));
@@ -76,9 +74,5 @@ fn ordinaryImage(builder: *std.Build, bootloader: *std.Build.Step.Compile, ordin
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
     _ = stage.addCopyFile(bootloader.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
-    const pack = builder.addRunArtifact(packer);
-    pack.addDirectoryArg(stage.getDirectory());
-    const output = pack.addOutputFileArg(paths.ORDINARY_IMAGE_NAME);
-    pack.addArg(paths.GUEST_IMAGE_MB);
-    return output;
+    return progress.image(builder, stage, packer, paths.ORDINARY_IMAGE_NAME);
 }

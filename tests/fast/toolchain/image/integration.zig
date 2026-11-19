@@ -7,6 +7,28 @@ const constants = @import("tests").constants.image;
 const mkafsdisk = @import("mkafsdisk");
 const strings = @import("tests").strings.image;
 
+pub fn unitProgress() !void {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    var paths = try checks.fixture.paths(std.testing.allocator, temporary.dir);
+    defer paths.deinit();
+    try checks.fixture.createSource(temporary.dir, true);
+    try checks.fixture.addMutableUnit(temporary.dir);
+    var next: u32 = 0;
+    try mkafsdisk.image.create.createDiskImageObserved(std.testing.allocator, paths.Source, paths.Output, constants.IMAGE_MEGABYTES, .{ .Context = &next, .UpdateFn = recordUnit });
+    try std.testing.expectEqual(@as(u32, 3), next);
+    const image = try temporary.dir.openFile(strings.IMAGE_NAME, .{});
+    defer image.close();
+    try std.testing.expectEqual(constants.IMAGE_BYTES, try image.getEndPos());
+}
+
+fn recordUnit(context: ?*anyopaque, done: u32, total: u32) !void {
+    const next: *u32 = @ptrCast(@alignCast(context orelse return error.UnitProgressContextMissing));
+    try std.testing.expectEqual(@as(u32, 2), total);
+    try std.testing.expectEqual(next.*, done);
+    next.* += 1;
+}
+
 pub fn createAndReadback() !void {
     var temporary = std.testing.tmpDir(.{});
     defer temporary.cleanup();

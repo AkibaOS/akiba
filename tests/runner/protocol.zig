@@ -1,5 +1,6 @@
 //! Bounded Owned Guest QMP Protocol
 
+const builtin = @import("builtin");
 const std = @import("std");
 
 const limits = @import("tests").constants.runner;
@@ -97,7 +98,7 @@ pub fn superviseOrdinary(allocator: std.mem.Allocator, connection: *Connection, 
             }
         }
         if (terminalEvent(parsed.value, false)) {
-            std.debug.print(strings.ORDINARY_EVENT, .{line});
+            if (!builtin.is_test) std.debug.print(strings.ORDINARY_EVENT, .{line});
             return error.UnexpectedGuestEvent;
         }
     }
@@ -199,7 +200,7 @@ pub fn verifyWindow(allocator: std.mem.Allocator, connection: *Connection) !void
     defer response.deinit();
     const backend = text(returned(response), strings.DISPLAY_TYPE) orelse return error.MissingQemuWindow;
     for (strings.WINDOW_BACKENDS) |name| if (std.mem.eql(u8, backend, name)) return;
-    std.debug.print(strings.WINDOW_REQUIRED, .{backend});
+    if (!builtin.is_test) std.debug.print(strings.WINDOW_REQUIRED, .{backend});
     return error.MissingQemuWindow;
 }
 

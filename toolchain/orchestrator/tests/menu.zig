@@ -5,6 +5,7 @@ const std = @import("std");
 const bootloader = @import("../bootloader/bootloader.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
+const progress = @import("pack.zig");
 const types = @import("../types/types.zig");
 
 pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.Build.Step.Compile) std.Build.LazyPath {
@@ -27,9 +28,5 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
     const executable = builder.addExecutable(.{ .name = names.MODULE_MENU, .root_module = root });
     const stage = builder.addWriteFiles();
     _ = stage.addCopyFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
-    const pack = builder.addRunArtifact(packer);
-    pack.addDirectoryArg(stage.getDirectory());
-    const output = pack.addOutputFileArg(paths.MENU_IMAGE_NAME);
-    pack.addArg(paths.GUEST_IMAGE_MB);
-    return output;
+    return progress.image(builder, stage, packer, paths.MENU_IMAGE_NAME);
 }

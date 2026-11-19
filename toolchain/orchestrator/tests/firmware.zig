@@ -5,6 +5,7 @@ const std = @import("std");
 const bootloader = @import("../bootloader/bootloader.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
+const progress = @import("pack.zig");
 const storage = @import("storage.zig");
 const types = @import("../types/types.zig");
 
@@ -29,9 +30,5 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
     _ = stage.addCopyFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
     storage.add(builder, stage);
-    const pack = builder.addRunArtifact(packer);
-    pack.addDirectoryArg(stage.getDirectory());
-    const result = pack.addOutputFileArg(paths.FIRMWARE_IMAGE_NAME);
-    pack.addArg(paths.GUEST_IMAGE_MB);
-    return result;
+    return progress.image(builder, stage, packer, paths.FIRMWARE_IMAGE_NAME);
 }

@@ -12,7 +12,6 @@ const types = @import("mkafsdisk").types;
 
 const disk = constants.disk;
 const esp = constants.esp;
-const messages = strings.messages;
 const names = strings.names;
 
 const BootSector = fat32.types.boot.BootSector;
@@ -37,8 +36,6 @@ pub fn createEspUsingIO(
     esp_sector_count: u32,
     operations: types.io.Operations,
 ) !void {
-    std.debug.print(messages.ESP_CREATING, .{});
-
     const esp_start_byte: u64 = @as(u64, esp_start_sector) * disk.SECTOR_SIZE;
 
     if (esp_sector_count <= esp.RESERVED_SECTORS) return ImageError.EspTooSmall;
@@ -151,8 +148,6 @@ pub fn createEspUsingIO(
     writeEntry(&boot_stack, 0, fat32.write.entry.createDotEntry(boot_cluster));
     writeEntry(&boot_stack, 1, fat32.write.entry.createDotDotEntry(efi_cluster));
 
-    std.debug.print(messages.BOOTLOADER_ADDING, .{ bootloader_size, bootloader_clusters });
-
     const bootloader_start_cluster = current_cluster;
     writeEntry(&boot_stack, 2, fat32.write.entry.createUnitEntry(
         names.ENTRY_BOOTLOADER_NAME,
@@ -191,8 +186,6 @@ pub fn createEspUsingIO(
     try file.writeAll(fat_table);
     try file.seekTo(fat2_offset);
     try file.writeAll(fat_table);
-
-    std.debug.print(messages.ESP_CREATED, .{total_clusters});
 }
 
 fn writeEntry(sector: []u8, slot: usize, entry: StackEntry) void {

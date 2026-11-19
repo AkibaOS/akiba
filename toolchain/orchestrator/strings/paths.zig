@@ -14,6 +14,7 @@ pub const HIKARI_OUTPUT = "EFI/BOOT/BOOTX64.EFI";
 pub const MIRAI_OUTPUT = "system/akiba/mirai.kernel";
 pub const OUTPUT_DIRECTORY = "zig-out";
 pub const CACHE_DIRECTORY = ".zig-cache";
+pub const CACHE_OBJECT_DIRECTORY = "o";
 pub const TESTS_ROOT = "tests/tests.zig";
 pub const TEST_ASSEMBLY_ROOT = "asm/tests/tests.zig";
 pub const GUEST_OUTPUT = "tests/system/akiba/mirai.kernel";
