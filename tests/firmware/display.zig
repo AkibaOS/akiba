@@ -19,7 +19,7 @@ var active: ?types.Session = null;
 var pool: efi.types.buffer.PoolClaim = .{};
 var pool_services: ?*BootServices = null;
 
-pub fn start(services: *BootServices, offer: phase.types.live.Offer) !void {
+pub fn start(services: *BootServices, offer: phase.types.live.Offer, cancel_ready: bool) !void {
     var surface = locateSurface(services) orelse return error.FirmwareViewportUnavailable;
     const layout = screen.layout.plan(surface.Width, surface.Height) orelse return error.FirmwareViewportUnavailable;
     const face = try font.face.load(graphics.assets.font.HIKARI);
@@ -40,7 +40,7 @@ pub fn start(services: *BootServices, offer: phase.types.live.Offer) !void {
 
     var progress = screen.live.initialize(rows, offer);
     if (!screen.model.begin(&progress, screen.live.name(.Firmware))) return error.FirmwareViewportProgressInvalid;
-    progress.CancelReady = false;
+    progress.CancelReady = cancel_ready;
     if (!screen.render.takeover(&surface, layout, pixels, .{ .Face = &face, .Renderer = &scratch.Renderer }, &progress, &offer.Date)) return error.FirmwareViewportRenderFailed;
     active = .{ .Surface = surface, .Layout = layout, .Face = face, .Scratch = scratch, .Pixels = pixels, .Progress = progress };
 }

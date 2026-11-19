@@ -14,6 +14,12 @@ pub fn liveEnabled() bool {
     return true;
 }
 
+pub fn cancellationEnabled() bool {
+    var buffer: [inputs.MAX_VALUE_BYTES]u8 = undefined;
+    const flag = readValue(labels.CANCEL_FILE, &buffer, false) orelse return false;
+    return std.mem.eql(u8, flag, labels.PHASE_VALUE);
+}
+
 pub fn readValue(file: []const u8, destination: []u8, comptime required_valid: bool) ?[]const u8 {
     const flags = guard.acquire();
     defer guard.release(flags);

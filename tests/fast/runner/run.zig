@@ -133,6 +133,8 @@ test "ordinary exit accepts an operator close but not a guest reset" {
 test "cancellation preserves partial checks without admitting a completed verdict" {
     try std.testing.expectEqual(@as(usize, 0), try result.cancelledCount(fixtures.CANCELLED_EMPTY));
     try std.testing.expectEqual(@as(usize, 1), try result.cancelledCount(fixtures.CANCELLED_ONE));
+    try std.testing.expectEqual(@as(usize, 1), try result.cancelledCount(fixtures.FIRMWARE_CANCELLED_ONE));
+    try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.FIRMWARE_VALID ++ fixtures.CANCELLED_EIGHT));
     try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_MISMATCH));
     try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_INCOMPLETE));
     try std.testing.expectError(error.InvalidCancellationEvidence, result.cancelledCount(fixtures.CANCELLED_EMPTY ++ fixtures.CANCELLED_EMPTY));

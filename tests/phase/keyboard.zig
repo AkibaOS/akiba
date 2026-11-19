@@ -3,11 +3,11 @@
 const std = @import("std");
 
 const efi = @import("hikari").efi;
-const limits = @import("menu").constants.limits;
+const limits = @import("tests").phase.constants.keyboard;
 
 const BootServices = efi.types.services.boot.BootServices;
 const Handle = efi.types.base.Handle;
-const Input = efi.types.protocols.input.SimpleTextInputProtocol;
+pub const Input = efi.types.protocols.input.SimpleTextInputProtocol;
 const guids = efi.constants.guids;
 const status = efi.constants.status;
 
@@ -22,6 +22,15 @@ pub fn locate(services: *BootServices) !*Input {
     const input = find(services, handles.?[0..count]);
     if (!efi.buffer.releasePool(services, &pool)) return error.MenuInputHandlesReleaseFailed;
     return input;
+}
+
+pub fn pressedEscape(input: *Input) !bool {
+    var key: efi.types.input.InputKey = undefined;
+    return switch (input.ReadKeyStroke(input, &key)) {
+        status.SUCCESS => key.ScanCode == limits.ESCAPE_SCAN and key.UnicodeChar == 0,
+        status.NOT_READY => false,
+        else => error.FirmwareInputReadFailed,
+    };
 }
 
 fn find(services: *BootServices, handles: []const Handle) !*Input {

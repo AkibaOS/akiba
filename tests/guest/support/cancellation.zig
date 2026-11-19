@@ -1,5 +1,6 @@
 //! Diagnostic Escape Cancellation At Quiescent Checkpoints
 
+const config = @import("tests").phase.config;
 const guard = @import("asm").interrupts.guard;
 const halt = @import("asm").cpu.halt;
 const inputs = @import("tests").constants.drivers;
@@ -7,7 +8,6 @@ const labels = @import("tests").strings.guest;
 const phase = @import("tests").guest.support.phase;
 const port = @import("asm").io.port;
 const ports = @import("mirai").drivers.constants.keyboard.ports;
-const selector = @import("tests").guest.support.selector;
 const serial = @import("mirai").drivers.serial.write;
 const verify = @import("tests").verify;
 
@@ -15,7 +15,7 @@ var armed: bool = false;
 var requested: bool = false;
 
 pub fn enable() bool {
-    armed = phase.epoch() != null and selector.allowCancellation();
+    armed = phase.epoch() != null and config.cancellationEnabled();
     return armed;
 }
 

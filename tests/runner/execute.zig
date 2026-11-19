@@ -175,7 +175,7 @@ fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, 
     });
     var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
     session.Stage = .Checks;
-    return completed(session, evidence, selected, &timer, if (interactive and selected == .Standard) &channel else null);
+    return completed(session, evidence, selected, &timer, if (interactive and (selected == .Standard or firmware)) &channel else null);
 }
 
 fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, failure: anyerror) !void {

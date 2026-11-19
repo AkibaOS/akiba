@@ -9,7 +9,6 @@ const phase = @import("tests").phase;
 pub const choice = @import("choice.zig");
 pub const constants = @import("constants/constants.zig");
 pub const display = @import("display.zig");
-pub const keyboard = @import("keyboard.zig");
 pub const serial = @import("serial.zig");
 pub const strings = @import("strings/strings.zig");
 
@@ -31,7 +30,7 @@ fn haltOnPanic(_: []const u8, _: ?usize) noreturn {
 }
 
 fn run(services: *efi.types.services.boot.BootServices) !void {
-    const input = try keyboard.locate(services);
+    const input = try phase.keyboard.locate(services);
     if (!serial.attach() or !serial.send(services, &phase.constants.menu.READY)) return error.MenuGreetingFailed;
     var bytes: [phase.constants.menu.OFFER_BYTES]u8 = undefined;
     if (!serial.receive(services, &bytes)) return error.MenuOfferMissing;

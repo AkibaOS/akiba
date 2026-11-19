@@ -18,7 +18,7 @@ pub fn failedBeforeSelection(bytes: []const u8) bool {
 
 pub fn cancelledCount(bytes: []const u8) !usize {
     if (failedBeforeSelection(bytes) or std.mem.indexOf(u8, bytes, strings.CHECK_COMPLETE) != null or
-        std.mem.indexOf(u8, bytes, strings.READY) != null) return error.InvalidCancellationEvidence;
+        std.mem.indexOf(u8, bytes, firmware.COMPLETE) != null or std.mem.indexOf(u8, bytes, strings.READY) != null) return error.InvalidCancellationEvidence;
     var count: ?usize = null;
     var lines = std.mem.splitScalar(u8, bytes, '\n');
     while (lines.next()) |line| {

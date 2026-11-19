@@ -12,6 +12,7 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
     const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
+    checks.addImport(names.EXECUTABLE_HIKARI, hikari);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_UTILS, modules.Utils);

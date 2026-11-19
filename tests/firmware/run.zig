@@ -16,6 +16,7 @@ const loadinglabels = @import("tests").strings.loading;
 const paging = @import("tests").firmware.paging;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
+const runner = @import("tests").strings.runner;
 const status = @import("tests").firmware.status;
 const storage = @import("tests").firmware.storage;
 const storagelabels = @import("tests").firmware.strings.storage;
@@ -31,25 +32,42 @@ pub fn main() void {
     live.start(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
     writeText(labels.BEGIN);
     writeText(labels.GROUP);
+    checkpoint(system_table.BootServices);
     status.run(system_table);
     suite.run(system_table.BootServices, image_handle) catch |failure| failAtEdge(@errorName(failure));
-    display.refresh();
+    checkpoint(system_table.BootServices);
     writeText(loadinglabels.GROUP);
     loader.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
     kernel.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
-    display.refresh();
+    checkpoint(system_table.BootServices);
     writeText(storagelabels.GROUP);
     storage.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
-    display.refresh();
+    checkpoint(system_table.BootServices);
     writeText(labels.PAGING_GROUP);
     paging.run(system_table.BootServices) catch |failure| failAtEdge(@errorName(failure));
     if (passed != inputs.ASSERTION_COUNT) failAtEdge(labels.COUNT_MISMATCH);
-    display.refresh();
+    checkpoint(system_table.BootServices);
     if (!display.release()) fail(@errorName(error.FirmwareViewportReleaseFailed));
     writeText(labels.COMPLETE);
     var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
     writeText(std.fmt.bufPrint(&digits, labels.COUNT, .{passed}) catch fail(labels.FORMAT_FAILED));
     writeText(labels.NEWLINE);
+    assembly.halt.haltLoop();
+}
+
+fn checkpoint(services: *efi.types.services.boot.BootServices) void {
+    if (live.pendingCancellation() catch |failure| failAtEdge(@errorName(failure))) cancel(services);
+    display.refresh();
+}
+
+fn cancel(services: *efi.types.services.boot.BootServices) noreturn {
+    if (!display.release()) fail(@errorName(error.FirmwareViewportReleaseFailed));
+    var digits: [bounds.MAX_DECIMAL_DIGITS]u8 = undefined;
+    const count = std.fmt.bufPrint(&digits, labels.COUNT, .{passed}) catch fail(labels.FORMAT_FAILED);
+    writeText(runner.CHECK_CANCELLED);
+    writeText(count);
+    writeText(labels.NEWLINE);
+    if (!live.sendCancellation(services)) fail(@errorName(error.FirmwareCancelTransmissionFailed));
     assembly.halt.haltLoop();
 }
 

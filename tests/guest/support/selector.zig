@@ -32,12 +32,6 @@ fn choose() Scenario {
     return std.meta.stringToEnum(Scenario, text) orelse @panic(labels.INVALID);
 }
 
-pub fn allowCancellation() bool {
-    var value: [inputs.MAX_VALUE_BYTES]u8 = undefined;
-    const flag = config.readValue(labels.CANCEL_FILE, &value, false) orelse return false;
-    return std.mem.eql(u8, flag, labels.PHASE_VALUE);
-}
-
 pub fn buildDate(destination: []u8) ?[]const u8 {
     const value = config.readValue(labels.BUILD_DATE_FILE, destination, false) orelse return null;
     return if (date.valid(value)) value else null;

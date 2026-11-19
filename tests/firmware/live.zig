@@ -5,6 +5,9 @@ const efi = @import("hikari").efi;
 const phase = @import("tests").phase;
 const serial = @import("tests").firmware.serial;
 
+var keyboard: ?*phase.keyboard.Input = null;
+var boot_epoch: ?u64 = null;
+
 pub fn start(services: *efi.types.services.boot.BootServices) !void {
     if (!phase.config.liveEnabled()) return;
     if (!serial.attach() or !serial.send(services, &phase.constants.live.READY)) return error.FirmwareLiveGreetingFailed;
@@ -12,7 +15,30 @@ pub fn start(services: *efi.types.services.boot.BootServices) !void {
     if (!serial.receive(services, &bytes)) return error.FirmwareLiveOfferMissing;
     const offer = phase.live.decodeOffer(&bytes) orelse return error.InvalidFirmwareLiveOffer;
     if (offer.Ticket.Scenario != .Firmware) return error.InvalidFirmwareLiveScenario;
-    try display.start(services, offer);
+    keyboard = try prepareKeyboard(services);
+    try display.start(services, offer, keyboard != null);
     const acknowledgement = phase.live.encodeAcknowledgement(offer.Ticket);
     if (!serial.send(services, &acknowledgement)) return error.FirmwareLiveAcknowledgementFailed;
+    boot_epoch = offer.Ticket.Epoch;
+}
+
+fn prepareKeyboard(services: *efi.types.services.boot.BootServices) !?*phase.keyboard.Input {
+    if (!phase.config.cancellationEnabled()) return null;
+    const input = phase.keyboard.locate(services) catch |failure| switch (failure) {
+        error.MenuInputMissing, error.MenuKeyboardMissing => return null,
+        else => return failure,
+    };
+    if (input.Reset(input, false) != efi.constants.status.SUCCESS) return error.FirmwareKeyboardResetFailed;
+    return input;
+}
+
+pub fn pendingCancellation() !bool {
+    if (boot_epoch == null) return false;
+    return phase.keyboard.pressedEscape(keyboard orelse return false);
+}
+
+pub fn sendCancellation(services: *efi.types.services.boot.BootServices) bool {
+    const epoch = boot_epoch orelse return false;
+    const bytes = phase.action.encode(epoch, .Cancel) orelse return false;
+    return serial.send(services, &bytes);
 }
