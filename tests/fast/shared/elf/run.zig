@@ -28,6 +28,18 @@ test "dynamic ELF rejects malformed tables and a foreign interpreter" {
     try dynamic.checksTableExtents();
 }
 
+test "dynamic ELF applies a checked bias and does not infer a library entry" {
+    try dynamic.placesImage();
+}
+
+test "dynamic ELF rejects invalid bias entry permissions and unsupported segments" {
+    try dynamic.rejectsInvalidLayout();
+}
+
+test "dynamic ELF rejects RELRO that would freeze unrelated writable bytes" {
+    try dynamic.rejectsUnsafeRelro();
+}
+
 test "ELF counts a terabyte of sparse BSS through intervals without visiting its pages" {
     try growth.sparse();
 }

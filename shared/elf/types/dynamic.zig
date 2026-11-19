@@ -3,6 +3,21 @@
 const std = @import("std");
 
 const DynamicError = @import("shared").elf.errors.dynamic.DynamicError;
+const Plan = @import("shared").elf.types.image.Plan;
+
+pub const Role = enum { Executable, Library };
+
+pub const Relro = struct {
+    Start: u64,
+    End: u64,
+};
+
+pub const Layout = struct {
+    Image: Plan,
+    Metadata: Metadata,
+    Bias: u64,
+    Relro: ?Relro,
+};
 
 pub const Entry = extern struct {
     Tag: i64 align(1),

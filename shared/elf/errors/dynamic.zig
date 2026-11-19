@@ -7,5 +7,6 @@ pub const DynamicError = ImageError || error{
     InvalidDynamic,
     InvalidDynamicAddress,
     InvalidDynamicString,
+    InvalidRelro,
     UnsupportedDynamic,
 };

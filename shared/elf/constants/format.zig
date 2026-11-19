@@ -18,6 +18,7 @@ pub const SEGMENT_NOTE: u32 = 4;
 pub const SEGMENT_PHDR: u32 = 6;
 pub const SEGMENT_TLS: u32 = 7;
 pub const SEGMENT_STACK: u32 = 0x6474e551;
+pub const SEGMENT_RELRO: u32 = 0x6474e552;
 pub const SEGMENT_FLAG_EXECUTE: u32 = 1;
 pub const SEGMENT_FLAG_WRITE: u32 = 2;
 pub const SEGMENT_FLAG_READ: u32 = 4;

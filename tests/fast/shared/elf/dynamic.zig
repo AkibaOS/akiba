@@ -79,6 +79,88 @@ pub fn checksTableExtents() !void {
     try std.testing.expectError(error.UnsupportedDynamic, elf.read.dynamic.read(&bytes));
 }
 
+const POLICY: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+
+pub fn placesImage() !void {
+    const bytes = loadImage();
+    var executable = try elf.validate.dynamic.parse(std.testing.allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY);
+    defer executable.Image.deinit();
+    try std.testing.expectEqual(inputs.DYNAMIC_BIAS + inputs.DYNAMIC_LAYOUT_CODE + 1, executable.Image.Entry);
+    try std.testing.expectEqual(@as(u64, 2), executable.Image.Pages);
+    try std.testing.expectEqual(inputs.DYNAMIC_LAYOUT_FILE, executable.Image.Segments[0].Offset);
+    try std.testing.expectEqual(inputs.DYNAMIC_BIAS + inputs.DYNAMIC_LAYOUT_DATA, executable.Image.Segments[0].VirtualAddress);
+    try std.testing.expectEqual(@as(u32, 6), executable.Image.Ranges[0].Flags);
+    try std.testing.expectEqual(inputs.DYNAMIC_BIAS + inputs.DYNAMIC_BASE, executable.Relro.?.Start);
+    try std.testing.expectEqual(inputs.DYNAMIC_BIAS + inputs.DYNAMIC_LAYOUT_CODE, executable.Relro.?.End);
+    var library = try elf.validate.dynamic.parse(std.testing.allocator, &bytes, inputs.DYNAMIC_BIAS, .Library, POLICY);
+    defer library.Image.deinit();
+    try std.testing.expectEqual(@as(u64, 0), library.Image.Entry);
+}
+
+pub fn rejectsInvalidLayout() !void {
+    const source = loadImage();
+    const parse = elf.validate.dynamic.parse;
+    const allocator = std.testing.allocator;
+    try std.testing.expectError(error.InvalidPolicy, parse(allocator, &source, inputs.DYNAMIC_BIAS + 8, .Executable, POLICY));
+    var bytes = source;
+    fixture.write64(&bytes, 24, inputs.DYNAMIC_LAYOUT_CODE + inputs.DYNAMIC_LAYOUT_CODE_BYTES);
+    try std.testing.expectError(error.InvalidEntryPoint, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
+    bytes = source;
+    fixture.write32(&bytes, fixture.program(2) + 4, 7);
+    try std.testing.expectError(error.InvalidSegment, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
+    bytes = source;
+    fixture.write16(&bytes, 56, 5);
+    fixture.write32(&bytes, fixture.program(4), 7);
+    try std.testing.expectError(error.UnsupportedSegment, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
+}
+
+pub fn rejectsUnsafeRelro() !void {
+    const source = loadImage();
+    const parse = elf.validate.dynamic.parse;
+    const allocator = std.testing.allocator;
+    const relro = fixture.program(3);
+    const extent = inputs.DYNAMIC_LAYOUT_CODE - inputs.DYNAMIC_LAYOUT_DATA;
+    var bytes = source;
+    fixture.write64(&bytes, relro + 40, extent - 1);
+    try std.testing.expectError(error.InvalidRelro, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
+    bytes = source;
+    fixture.write64(&bytes, relro + 8, inputs.DYNAMIC_LAYOUT_FILE + 8);
+    fixture.write64(&bytes, relro + 16, inputs.DYNAMIC_LAYOUT_DATA + 8);
+    fixture.write64(&bytes, relro + 32, inputs.DYNAMIC_FILE_BYTES - 8);
+    fixture.write64(&bytes, relro + 40, extent - 8);
+    try std.testing.expectError(error.InvalidRelro, parse(allocator, &bytes, inputs.DYNAMIC_BIAS, .Executable, POLICY));
+}
+
+fn loadImage() [inputs.DATA_BYTES]u8 {
+    var bytes = image();
+    const file = inputs.DYNAMIC_LAYOUT_FILE;
+    @memcpy(bytes[file..][0..inputs.DYNAMIC_FILE_BYTES], bytes[inputs.DYNAMIC_FILE_BASE..][0..inputs.DYNAMIC_FILE_BYTES]);
+    fixture.write16(&bytes, 56, 4);
+    fixture.write64(&bytes, 24, inputs.DYNAMIC_LAYOUT_CODE + 1);
+    const extent = inputs.DYNAMIC_LAYOUT_CODE - inputs.DYNAMIC_LAYOUT_DATA;
+    program(&bytes, 0, 1, file, inputs.DYNAMIC_FILE_BYTES, extent);
+    fixture.write64(&bytes, fixture.program(0) + 16, inputs.DYNAMIC_LAYOUT_DATA);
+    fixture.write64(&bytes, fixture.program(0) + 48, inputs.PAGE_BYTES);
+    const table_offset = inputs.DYNAMIC_TABLE - inputs.DYNAMIC_FILE_BASE;
+    const table_size = inputs.DYNAMIC_WORD_BYTES * inputs.DYNAMIC_WORDS;
+    program(&bytes, 1, 2, file + table_offset, table_size, table_size);
+    fixture.write64(&bytes, fixture.program(1) + 16, inputs.DYNAMIC_LAYOUT_DATA + table_offset);
+    program(&bytes, 2, 1, 2 * inputs.PAGE_BYTES, inputs.DYNAMIC_LAYOUT_CODE_BYTES, inputs.DYNAMIC_LAYOUT_CODE_BYTES);
+    fixture.write32(&bytes, fixture.program(2) + 4, 5);
+    fixture.write64(&bytes, fixture.program(2) + 16, inputs.DYNAMIC_LAYOUT_CODE);
+    fixture.write64(&bytes, fixture.program(2) + 48, inputs.PAGE_BYTES);
+    program(&bytes, 3, 0x6474e552, file, inputs.DYNAMIC_FILE_BYTES, extent);
+    fixture.write32(&bytes, fixture.program(3) + 4, 4);
+    fixture.write64(&bytes, fixture.program(3) + 16, inputs.DYNAMIC_LAYOUT_DATA);
+    fixture.write64(&bytes, fixture.program(3) + 48, 1);
+    for ([_]usize{ 2, 4, 6, 7, 10 }) |index| {
+        const offset = file + table_offset + index * inputs.DYNAMIC_WORD_BYTES + @sizeOf(u64);
+        const value = std.mem.readInt(u64, bytes[offset..][0..@sizeOf(u64)], .little);
+        fixture.write64(&bytes, offset, value + inputs.DYNAMIC_FILE_BASE);
+    }
+    return bytes;
+}
+
 fn image() [inputs.DATA_BYTES]u8 {
     var bytes = fixture.create();
     @memset(bytes[inputs.DYNAMIC_FILE_BASE .. inputs.DYNAMIC_FILE_BASE + inputs.DYNAMIC_MEMORY_BYTES], 0);
