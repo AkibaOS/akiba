@@ -4,6 +4,7 @@ const std = @import("std");
 
 const inputs = @import("tests").constants.drivers;
 const labels = @import("tests").strings.drivers;
+const markers = @import("tests").phase.strings.serial;
 const strings = @import("tests").strings.runner;
 const types = @import("tests").types.input;
 
@@ -33,7 +34,7 @@ pub fn observe(challenge: *types.Challenge, bytes: []const u8) !types.Action {
             challenge.State = .Send;
         } else if (challenge.State != .Ready and std.mem.startsWith(u8, line, labels.SCANCODE_PREFIX)) {
             try scancode(challenge, line[labels.SCANCODE_PREFIX.len..]);
-        } else if (challenge.State != .Done and std.mem.startsWith(u8, line, strings.CHECK_COMPLETE)) {
+        } else if (challenge.State != .Done and std.mem.startsWith(u8, line, markers.COMPLETE)) {
             return error.MissingInjectedInput;
         }
     }

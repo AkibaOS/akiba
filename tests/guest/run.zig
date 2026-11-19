@@ -16,11 +16,11 @@ const hikarilabels = @import("tests").strings.hikari;
 const invocationlabels = @import("tests").strings.invocations;
 const labels = @import("tests").strings.guest;
 const live = @import("tests").phase.constants.live;
+const markers = @import("tests").phase.strings.serial;
 const memorylabels = @import("tests").strings.memory;
-const metadata = @import("tests").constants.scenario;
+const metadata = @import("tests").machine.constants.config;
 const postmanlabels = @import("tests").strings.postman;
 const retentionlabels = @import("tests").strings.retention;
-const runnerlabels = @import("tests").strings.runner;
 const scenariolabels = @import("tests").strings.scenario;
 const schedule = @import("tests").screen.strings.schedule;
 const screen = @import("tests").guest.screen.control;
@@ -81,7 +81,7 @@ comptime {
 }
 
 pub fn execute() bool {
-    serial.printf(labels.BEGIN, .{});
+    serial.printf(markers.BEGIN_LINE, .{});
     switch (guest.support.selector.selected()) {
         .Standard => return standard(),
         .Collapse => @call(.never_inline, guest.mirai.crimson.fatal.run, .{}),
@@ -92,7 +92,7 @@ pub fn execute() bool {
             serial.printf(driverlabels.GROUP, .{});
             @call(.never_inline, guest.mirai.drivers.input.run, .{});
             screen.checkpoint();
-            serial.printf(labels.COMPLETE, .{verify.count()});
+            serial.printf(markers.COMPLETE_FORMAT, .{verify.count()});
             return owned;
         },
         .PulseDeath => {
@@ -108,7 +108,7 @@ pub fn beginPhase(selected: Scenario) void {
     const cancel_ready = selected == .Standard and cancellation.enable();
     if (startScreen(groups.len + 1, cancel_ready, prior)) {
         screen.begin(if (selected == .Standard) screentext.BOOTSTRAP_ROLLBACK else screenview.name(selected));
-        if (prior != null) serial.printf(labels.DISPLAY_READY, .{});
+        if (prior != null) serial.printf(markers.DISPLAY_READY, .{});
     } else if (prior != null) {
         @panic(labels.DISPLAY_FAILED);
     }
@@ -128,7 +128,7 @@ fn standard() bool {
     const owned = screen.isActive() or startScreen(groups.len, cancellation.enabled(), null);
     defer screen.release();
     inline for (groups, 1..) |group, ordinal| {
-        const title = group[0][runnerlabels.GROUP_PREFIX.len .. group[0].len - 1];
+        const title = group[0][markers.GROUP.len .. group[0].len - 1];
         screen.begin(title);
         serial.printf(group[0], .{});
         inline for (group[1]) |subject| {
@@ -142,7 +142,7 @@ fn standard() bool {
     }
     cancellation.finish();
     screen.complete();
-    serial.printf(labels.COMPLETE, .{verify.count()});
+    serial.printf(markers.COMPLETE_FORMAT, .{verify.count()});
     return owned;
 }
 

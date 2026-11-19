@@ -1,10 +1,11 @@
 //! Diagnostic Escape Cancellation At Quiescent Checkpoints
 
-const config = @import("tests").phase.config;
+const config = @import("tests").machine.config;
 const guard = @import("asm").interrupts.guard;
 const halt = @import("asm").cpu.halt;
 const inputs = @import("tests").constants.drivers;
 const labels = @import("tests").strings.guest;
+const markers = @import("tests").phase.strings.serial;
 const phase = @import("tests").guest.support.phase;
 const port = @import("asm").io.port;
 const ports = @import("mirai").drivers.constants.keyboard.ports;
@@ -50,7 +51,7 @@ pub fn finish() void {
 fn cancel() noreturn {
     armed = false;
     const epoch = phase.epoch() orelse @panic(labels.CANCELLATION_FAILED);
-    serial.printf(labels.CANCELLED, .{verify.count()});
+    serial.printf(markers.CANCELLED_FORMAT, .{verify.count()});
     if (!phase.cancel(epoch)) @panic(labels.CANCELLATION_FAILED);
     halt.haltLoop();
 }

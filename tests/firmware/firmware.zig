@@ -3,6 +3,7 @@
 pub const constants = @import("constants/constants.zig");
 pub const display = @import("display.zig");
 pub const handoff = @import("handoff.zig");
+pub const keyboard = @import("keyboard/keyboard.zig");
 pub const kernel = @import("kernel.zig");
 pub const live = @import("live.zig");
 pub const loader = @import("loader.zig");

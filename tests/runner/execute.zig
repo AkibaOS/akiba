@@ -9,6 +9,7 @@ const input = @import("tests").runner.input;
 const keyboard = @import("tests").types.input;
 const limits = @import("tests").constants.runner;
 const live = @import("tests").phase.constants.live;
+const markers = @import("tests").phase.strings.serial;
 const menubits = @import("tests").phase.menu;
 const paths = @import("tests").runner.paths;
 const phase = @import("tests").runner.phase;
@@ -22,7 +23,7 @@ const serial = @import("tests").runner.serial;
 const strings = @import("tests").strings.runner;
 const terminal = @import("tests").runner.terminal;
 const types = @import("tests").types.host;
-const work = @import("tests").phase.work;
+const work = @import("tests").runner.work;
 
 const Allocator = std.mem.Allocator;
 const BootSelection = @import("tests").phase.types.boot.Selection;
@@ -201,7 +202,7 @@ fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario,
     const bit = menubits.phaseBit(selected);
     session.FailedMask |= bit;
     const completed_failure = failed_at == .Checks and failure == error.GuestCheckFailed and
-        std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) != null;
+        std.mem.indexOf(u8, bytes orelse &.{}, markers.FAIL) != null;
     if (!completed_failure) session.InterruptedMask |= bit;
     try quiesced;
     if (failed_at != .Checks) return;

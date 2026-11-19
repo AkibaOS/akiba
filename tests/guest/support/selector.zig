@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const config = @import("tests").phase.config;
+const config = @import("tests").machine.config;
 const date = @import("tests").screen.date;
-const inputs = @import("tests").constants.scenario;
+const inputs = @import("tests").machine.constants.config;
 const labels = @import("tests").strings.scenario;
 const phase = @import("tests").guest.support.phase;
 const Scenario = @import("tests").types.scenario.Scenario;

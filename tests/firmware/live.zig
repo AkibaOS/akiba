@@ -1,16 +1,18 @@
 //! Opt In To A Hosted Firmware Diagnostic Viewport
 
+const config = @import("tests").machine.config;
 const display = @import("tests").firmware.display;
 const efi = @import("hikari").efi;
+const keys = @import("tests").firmware.keyboard;
 const phase = @import("tests").phase;
 const ports = @import("common").constants.serial.ports;
 const serial = @import("tests").firmware.serial;
 
-var keyboard: ?*phase.keyboard.Input = null;
+var keyboard: ?*keys.Input = null;
 var boot_epoch: ?u64 = null;
 
 pub fn start(services: *efi.types.services.boot.BootServices) !void {
-    if (!phase.config.liveEnabled()) return;
+    if (!config.liveEnabled()) return;
     if (!serial.attach(ports.COM3) or !serial.send(services, ports.COM3, &phase.constants.live.READY)) return error.FirmwareLiveGreetingFailed;
     var bytes: [phase.constants.live.OFFER_BYTES]u8 = undefined;
     if (!serial.receive(services, ports.COM3, &bytes)) return error.FirmwareLiveOfferMissing;
@@ -23,9 +25,9 @@ pub fn start(services: *efi.types.services.boot.BootServices) !void {
     boot_epoch = offer.Ticket.Epoch;
 }
 
-fn prepareKeyboard(services: *efi.types.services.boot.BootServices) !?*phase.keyboard.Input {
-    if (!phase.config.cancellationEnabled()) return null;
-    const input = phase.keyboard.locate(services) catch |failure| switch (failure) {
+fn prepareKeyboard(services: *efi.types.services.boot.BootServices) !?*keys.Input {
+    if (!config.cancellationEnabled()) return null;
+    const input = keys.locate(services) catch |failure| switch (failure) {
         error.MenuInputMissing, error.MenuKeyboardMissing => return null,
         else => return failure,
     };
@@ -35,7 +37,7 @@ fn prepareKeyboard(services: *efi.types.services.boot.BootServices) !?*phase.key
 
 pub fn pendingCancellation() !bool {
     if (boot_epoch == null) return false;
-    return phase.keyboard.pressedEscape(keyboard orelse return false);
+    return keys.pressedEscape(keyboard orelse return false);
 }
 
 pub fn sendCancellation(services: *efi.types.services.boot.BootServices) bool {

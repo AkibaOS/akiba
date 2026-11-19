@@ -4,6 +4,7 @@ const std = @import("std");
 
 const labels = @import("tests").strings.scenario;
 const limits = @import("tests").constants.runner;
+const markers = @import("tests").phase.strings.serial;
 const strings = @import("tests").strings.runner;
 const Scenario = @import("tests").types.scenario.Scenario;
 const Stage = @import("tests").types.host.Stage;
@@ -22,11 +23,11 @@ pub fn passed(scenario: Scenario, count: usize, bytes: []const u8) void {
     var checks: usize = 0;
     var lines = std.mem.tokenizeAny(u8, bytes, strings.LINE_SEPARATORS);
     while (lines.next()) |line| {
-        if (std.mem.startsWith(u8, line, strings.GROUP_PREFIX)) {
+        if (std.mem.startsWith(u8, line, markers.GROUP)) {
             if (group) |name| std.debug.print(strings.GROUP_RESULT, .{ name, checks });
-            group = line[strings.GROUP_PREFIX.len..];
+            group = line[markers.GROUP.len..];
             checks = 0;
-        } else if (std.mem.startsWith(u8, line, strings.CHECK_PASS)) {
+        } else if (std.mem.startsWith(u8, line, markers.PASS)) {
             checks += 1;
         }
     }
@@ -43,7 +44,7 @@ pub fn fail(scenario: ?Scenario, stage: Stage, reason: anyerror, evidence: ?[]co
     var lines = std.mem.tokenizeAny(u8, bytes, strings.LINE_SEPARATORS);
     var detailed = false;
     while (lines.next()) |line| {
-        if (std.mem.startsWith(u8, line, strings.CHECK_FAIL) or std.mem.startsWith(u8, line, strings.KERNEL_PANIC)) {
+        if (std.mem.startsWith(u8, line, markers.FAIL) or std.mem.startsWith(u8, line, strings.KERNEL_PANIC)) {
             std.debug.print(strings.FAILURE_DETAIL, .{line});
             detailed = true;
         }

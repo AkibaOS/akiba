@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const efi = @import("hikari").efi;
-const limits = @import("tests").phase.constants.keyboard;
+const limits = @import("tests").firmware.constants.keyboard;
 
 const BootServices = efi.types.services.boot.BootServices;
 const Handle = efi.types.base.Handle;

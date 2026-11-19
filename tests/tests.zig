@@ -4,6 +4,7 @@ pub const constants = @import("constants/constants.zig");
 pub const fast = @import("fast/fast.zig");
 pub const firmware = @import("firmware/firmware.zig");
 pub const guest = @import("guest/guest.zig");
+pub const machine = @import("machine/machine.zig");
 pub const phase = @import("phase/phase.zig");
 pub const runner = @import("runner/runner.zig");
 pub const screen = @import("screen/screen.zig");

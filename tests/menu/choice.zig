@@ -8,7 +8,7 @@ const serial = @import("menu").serial;
 
 const Action = phase.types.action.Action;
 const BootServices = efi.types.services.boot.BootServices;
-const Input = phase.keyboard.Input;
+const Input = @import("tests").firmware.keyboard.Input;
 const View = @import("menu").types.display.View;
 const status = efi.constants.status;
 

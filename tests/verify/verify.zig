@@ -2,6 +2,7 @@
 
 const guard = @import("asm").interrupts.guard;
 const labels = @import("tests").strings.guest;
+const markers = @import("tests").phase.strings.serial;
 const screen = @import("tests").guest.screen.control;
 const serial = @import("mirai").drivers.serial.write;
 
@@ -12,20 +13,20 @@ pub fn require(condition: bool, comptime name: []const u8) void {
         screen.fail(name);
         const flags = guard.acquire();
         defer guard.release(flags);
-        serial.printf(labels.FAIL, .{name});
+        serial.printf(markers.FAIL_FORMAT, .{name});
         @panic(labels.FAILURE);
     }
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     passed += 1;
     screen.record(.Pass, name);
-    serial.printf(labels.PASS, .{name});
+    serial.printf(markers.PASS_FORMAT, .{name});
 }
 
 pub fn failure(reason: anyerror) noreturn {
     const detail = @errorName(reason);
     screen.fail(detail);
-    serial.printf(labels.OPERATION_FAILED, .{detail});
+    serial.printf(markers.FAIL_FORMAT, .{detail});
     @panic(labels.FAILURE);
 }
 

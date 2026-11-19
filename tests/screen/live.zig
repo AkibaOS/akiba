@@ -5,8 +5,8 @@ const std = @import("std");
 const live = @import("tests").phase.live;
 const limits = @import("tests").phase.constants.live;
 const menu = @import("tests").phase.menu;
+const markers = @import("tests").phase.strings.serial;
 const model = @import("tests").screen.model;
-const runner = @import("tests").strings.runner;
 const schedule = @import("tests").screen.strings.schedule;
 const text = @import("tests").screen.strings.text;
 const types = @import("tests").screen.types.model;
@@ -56,5 +56,5 @@ fn recallStandard(state: *types.Model, offer: Offer, bit: u8) void {
 
 fn standardName(index: usize) []const u8 {
     const group = schedule.GROUPS[index];
-    return std.mem.trimEnd(u8, group[runner.GROUP_PREFIX.len..], runner.LINE_SEPARATORS);
+    return std.mem.trimEnd(u8, group[markers.GROUP.len..], markers.LINE_SEPARATORS);
 }

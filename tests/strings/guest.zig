@@ -1,21 +1,14 @@
 //! Guest Regression Labels
 
-pub const BEGIN = "AKIBA_GUEST_CHECKS_BEGIN\n";
-pub const DISPLAY_READY = "CHECK DIAGNOSTIC DISPLAY READY\n";
 pub const DISPLAY_FAILED = "Diagnostic display could not be initialized";
 pub const SCHEDULE_MISMATCH = "Standard diagnostic schedule and progress units disagree";
-pub const COMPLETE = "AKIBA_GUEST_CHECKS_COMPLETE %d\n";
-pub const CANCELLED = "AKIBA_GUEST_CHECKS_CANCELLED %d\n";
 pub const CANCELLATION_FAILED = "Could not send the diagnostic cancellation action";
-pub const PASS = "CHECK PASS %s\n";
 pub const GROUP_MEMORY = "CHECK GROUP Memory protections\n";
 pub const GROUP_LIFECYCLE = "CHECK GROUP Kata lifecycle\n";
 pub const GROUP_COMPLETION = "CHECK GROUP Completion ownership\n";
 pub const GROUP_PERSONA = "CHECK GROUP Persona Mode\n";
 pub const GROUP_TERMINATION = "CHECK GROUP Persona completion\n";
-pub const FAIL = "CHECK FAIL %s\n";
 pub const FAILURE = "Guest check failed";
-pub const OPERATION_FAILED = "CHECK FAIL %s\n";
 pub const INVALID_STATE = "Invalid guest check state";
 pub const MEMORY_PERMISSIONS = "owned read-only and executable permissions";
 pub const MEMORY_READ = "protected bytes remain readable";

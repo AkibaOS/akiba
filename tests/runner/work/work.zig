@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const firmware = @import("tests").constants.firmware;
-const limits = @import("tests").phase.constants.work;
+const limits = @import("tests").runner.constants.work;
 const Scenario = @import("tests").types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
