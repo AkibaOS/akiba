@@ -21,6 +21,10 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
     checks.addImport(names.MODULE_UTILS, modules.Utils);
+    const weaver = builder.createModule(.{ .root_source_file = builder.path(paths.WEAVER_ROOT) });
+    weaver.addImport(names.MODULE_WEAVER, weaver);
+    weaver.addImport(names.MODULE_SHARED, modules.Shared);
+    weaver.addImport(names.MODULE_UTILS, modules.Utils);
     const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });
     tool.addImport(names.EXECUTABLE_MKAFSDISK, tool);
     tool.addImport(names.MODULE_SHARED, modules.Shared);
@@ -37,6 +41,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
         root.addImport(names.MODULE_COMMON, modules.Common);
         root.addImport(names.MODULE_SHARED, modules.Shared);
         root.addImport(names.MODULE_UTILS, modules.Utils);
+        root.addImport(names.MODULE_WEAVER, weaver);
         const executable_name = builder.fmt(suites.EXECUTABLE, .{suite.Name});
         const tests = builder.addTest(.{ .name = executable_name, .root_module = root, .use_llvm = true });
         const run = builder.addRunArtifact(tests);
