@@ -181,8 +181,8 @@ pub fn rollbackClock() !void {
 }
 
 pub fn metadata() !void {
-    const date = project.screen.date;
-    var buffer: [project.screen.constants.frame.DATE_BYTES]u8 = undefined;
+    const date = project.phase.date;
+    var buffer: [project.phase.constants.date.DATE_BYTES]u8 = undefined;
     const leap_day_seconds: i128 = 1_709_164_800;
     const formatted = date.format(&buffer, leap_day_seconds * std.time.ns_per_s).?;
     try std.testing.expectEqualStrings(labels.LEAP_BUILD_DATE, formatted);

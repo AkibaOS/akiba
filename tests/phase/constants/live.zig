@@ -1,6 +1,6 @@
 //! Live Diagnostic Boot Context And Scheduled Progress Units
 
-const frame = @import("tests").screen.constants.frame;
+const date = @import("tests").phase.constants.date;
 const menu = @import("tests").phase.constants.menu;
 const schedule = @import("tests").phase.strings.schedule;
 const Work = @import("tests").phase.types.work.Work;
@@ -16,7 +16,7 @@ pub const INTERRUPTED_OFFSET = FAILED_OFFSET + @sizeOf(u8);
 pub const STANDARD_OFFSET = INTERRUPTED_OFFSET + @sizeOf(u8);
 pub const CHECKS_OFFSET = STANDARD_OFFSET + @sizeOf(u16);
 pub const DATE_OFFSET = CHECKS_OFFSET + @sizeOf(u32);
-pub const WORK_OFFSET = DATE_OFFSET + frame.DATE_BYTES;
+pub const WORK_OFFSET = DATE_OFFSET + date.DATE_BYTES;
 pub const OFFER_BYTES = WORK_OFFSET + Work.BYTES;
 
 pub const STANDARD_UNITS: u16 = schedule.GROUPS.len + 1;

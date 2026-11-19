@@ -1,13 +1,13 @@
 //! Verified Diagnostic Menu Summary
 
-const frame = @import("tests").screen.constants.frame;
+const date = @import("tests").phase.constants.date;
 const limits = @import("tests").phase.constants.menu;
 const Tally = @import("tests").phase.types.work.Work;
 
 pub const Offer = struct {
     Epoch: u64,
     Passed: u32,
-    Date: [frame.DATE_BYTES]u8,
+    Date: [date.DATE_BYTES]u8,
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,
     StandardCompleted: u16,

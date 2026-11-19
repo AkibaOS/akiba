@@ -1,13 +1,13 @@
 //! Typed Live Diagnostic View State
 
-const frame = @import("tests").screen.constants.frame;
+const date = @import("tests").phase.constants.date;
 const wire = @import("tests").phase.constants.live;
 const Ticket = @import("tests").phase.types.ticket.Ticket;
 const Tally = @import("tests").phase.types.work.Work;
 
 pub const Offer = struct {
     Ticket: Ticket,
-    Date: [frame.DATE_BYTES]u8,
+    Date: [date.DATE_BYTES]u8,
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,
     StandardCompleted: u16 = 0,

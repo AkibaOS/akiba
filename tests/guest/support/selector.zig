@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const config = @import("tests").machine.config;
-const date = @import("tests").screen.date;
+const date = @import("tests").phase.date;
 const inputs = @import("tests").machine.constants.config;
 const labels = @import("tests").phase.strings.scenario;
 const phase = @import("tests").guest.support.phase;

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const date = @import("tests").screen.date;
+const date = @import("tests").phase.date;
 const limits = @import("tests").phase.constants.live;
 const menu = @import("tests").phase.menu;
 const types = @import("tests").phase.types.live;

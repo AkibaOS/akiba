@@ -23,6 +23,4 @@ pub const TITLE_SIZE: i32 = 22;
 pub const BODY_SIZE: i32 = 16;
 pub const CAPTION_SIZE: i32 = 14;
 pub const MINIMUM_WIDTH: u32 = 512;
-pub const DATE_BYTES: usize = 8;
-pub const LAST_FOUR_DIGIT_YEAR_SECOND: i128 = 253_402_300_799;
 pub const ANIMATION_MILLISECONDS: u64 = 120;

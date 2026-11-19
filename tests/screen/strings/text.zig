@@ -2,7 +2,6 @@
 
 pub const TITLE = "Akiba OS | Build ";
 pub const UNKNOWN_DATE = "(date unknown)";
-pub const BUILD_DATE_FORMAT = "{d:0>2}{d:0>2}{d:0>4}";
 pub const SUBTITLE = "Running Test Suite...";
 pub const FINISHED_SUBTITLE = "Test Suite Completed.";
 pub const PHASE_SUBTITLE = "Phase completed. Continuing...";

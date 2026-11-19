@@ -3,6 +3,8 @@
 const std = @import("std");
 
 const checkpoint = @import("tests").runner.machine.checkpoint;
+const datefields = @import("tests").phase.constants.date;
+const datecode = @import("tests").phase.date;
 const graph = @import("tests").runner.machine.graph;
 const image = @import("tests").runner.machine.image;
 const input = @import("tests").runner.session.input;
@@ -18,7 +20,6 @@ const protocol = @import("tests").runner.transport.protocol;
 const recovery = @import("tests").runner.session.recovery;
 const result = @import("tests").runner.report.result;
 const scenario = @import("tests").phase.strings.scenario;
-const screen = @import("tests").screen;
 const serial = @import("tests").runner.transport.serial;
 const strings = @import("tests").runner.strings.runner;
 const terminal = @import("tests").runner.report.terminal;
@@ -117,7 +118,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_SAVE);
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
 
-    var build_date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+    var build_date: [datefields.DATE_BYTES]u8 = undefined;
     _ = buildDate(&build_date, inputs.Image) orelse return error.InvalidMenuBuildDate;
     var selector_timer = try std.time.Timer.start();
     session.Stage = .Connect;
@@ -162,7 +163,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Stage = .Complete;
 }
 
-fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, selector: std.net.Stream, endpoints: types.Endpoints, epoch: u64, build_date: [screen.constants.frame.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
+fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, selector: std.net.Stream, endpoints: types.Endpoints, epoch: u64, build_date: [datefields.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
     const connection = &session.Control.?;
     var timer = try std.time.Timer.start();
     session.Stage = .Select;
@@ -235,7 +236,7 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
         const stream = try phase.open(port, &session.Process, &timer);
         defer stream.close();
         const evidence: types.Epoch = .{ .File = log, .Start = session.SerialStart };
-        var date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+        var date: [datefields.DATE_BYTES]u8 = undefined;
         _ = buildDate(&date, inputs.Image) orelse return error.InvalidMenuBuildDate;
         const passed = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
         try beginRole(session, selector, evidence, &timer, .{ .Epoch = epoch, .Role = .Menu });
@@ -441,14 +442,14 @@ fn reserveEndpoints() !types.Endpoints {
 }
 
 fn buildDateArgument(allocator: Allocator, path: []const u8) ?[]const u8 {
-    var buffer: [screen.constants.frame.DATE_BYTES]u8 = undefined;
+    var buffer: [datefields.DATE_BYTES]u8 = undefined;
     const date = buildDate(&buffer, path) orelse return null;
     return std.fmt.allocPrint(allocator, scenario.BUILD_DATE_ARGUMENT, .{date}) catch null;
 }
 
-fn buildDate(buffer: *[screen.constants.frame.DATE_BYTES]u8, path: []const u8) ?[]const u8 {
+fn buildDate(buffer: *[datefields.DATE_BYTES]u8, path: []const u8) ?[]const u8 {
     const stat = std.fs.cwd().statFile(path) catch return null;
-    return screen.date.format(buffer, stat.mtime);
+    return datecode.format(buffer, stat.mtime);
 }
 
 fn close(session: *types.Session, require_quit_reply: bool) !void {
