@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const inputs = @import("../../../tests/firmware/constants/storage.zig");
-const strings = @import("../../../tests/firmware/strings/storage.zig");
+const inputs = @import("../../../tests/efi/constants/firmware/storage.zig");
+const strings = @import("../../../tests/efi/strings/firmware/storage.zig");
 
 pub fn add(builder: *std.Build, stage: *std.Build.Step.WriteFile) void {
     for (0..inputs.UNIT_COUNT) |index| {

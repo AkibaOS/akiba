@@ -12,12 +12,12 @@ pub fn artifact(builder: *std.Build, modules: types.modules.Modules) *std.Build.
     const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
+    checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
     checks.addImport(names.EXECUTABLE_HIKARI, hikari);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_UTILS, modules.Utils);
     const root = builder.createModule(.{ .root_source_file = builder.path(paths.MENU_ROOT), .target = target, .optimize = .ReleaseSafe });
-    root.addImport(names.MODULE_MENU, root);
     root.addImport(names.MODULE_TESTS, checks);
     root.addImport(names.EXECUTABLE_HIKARI, hikari);
     root.addImport(names.MODULE_ASSEMBLY, modules.Assembly);

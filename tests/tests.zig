@@ -1,8 +1,8 @@
 //! Explicit Regression Check Exports
 
 pub const constants = @import("constants/constants.zig");
+pub const efi = @import("efi/efi.zig");
 pub const fast = @import("fast/fast.zig");
-pub const firmware = @import("firmware/firmware.zig");
 pub const fixtures = @import("fixtures/fixtures.zig");
 pub const guest = @import("guest/guest.zig");
 pub const machine = @import("machine/machine.zig");
