@@ -1,6 +1,7 @@
 //! Test Only Phase Tickets
 
 pub const action = @import("action.zig");
+pub const boot = @import("boot.zig");
 pub const config = @import("config.zig");
 pub const constants = @import("constants/constants.zig");
 pub const keyboard = @import("keyboard.zig");

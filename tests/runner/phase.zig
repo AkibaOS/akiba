@@ -24,6 +24,17 @@ pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stre
     return stream;
 }
 
+pub fn selectBoot(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, selection: phase.types.boot.Selection) !void {
+    const offer = phase.boot.encode(selection, .Offer) orelse return error.InvalidBootSelection;
+    const deadline: Deadline = .{ .Timer = timer, .Limit = limits.START_NS };
+    try greeting(stream, instance, deadline, evidence, &phase.constants.boot.READY);
+    try send(stream, instance, deadline, &offer);
+    var acknowledgement: phase.types.boot.Frame = undefined;
+    try receive(stream, instance, deadline, &acknowledgement, evidence);
+    _ = try remaining(instance, deadline);
+    if (!phase.boot.acknowledges(selection, &acknowledgement)) return error.InvalidBootAcknowledgement;
+}
+
 pub fn start(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, context: phase.types.live.Offer) !void {
     const offer = phase.live.encodeOffer(context) orelse return error.InvalidPhaseOffer;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.CHECK_NS };

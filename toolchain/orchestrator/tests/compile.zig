@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const boot = @import("boot.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
 const firmware = @import("firmware.zig");
 const kernel = @import("../kernel/kernel.zig");
@@ -10,6 +11,7 @@ const names = @import("../strings/names.zig");
 const progress = @import("pack.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps.zig");
+const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
@@ -42,17 +44,21 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
         step.dependOn(&run.step);
     }
     const guest = kernel.compile.addGuest(builder, modules);
-    const guest_loader = diagnostics.compile.artifact(builder, modules, true);
+    const selector = boot.artifact(builder, modules, .{
+        .Diagnostic = diagnostics.compile.artifact(builder, modules, true),
+        .Firmware = firmware.artifact(builder, modules),
+        .Menu = menu.artifact(builder, modules),
+        .Ordinary = bootloader,
+    });
     const stage = builder.addWriteFiles();
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
-    _ = stage.addCopyFile(guest_loader.getEmittedBin(), paths.HIKARI_OUTPUT);
-    _ = stage.addCopyFile(guest.getEmittedBin(), paths.MIRAI_OUTPUT);
+    _ = stage.addCopyFile(selector.getEmittedBin(), paths.HIKARI_OUTPUT);
+    _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
+    _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
+    storage.add(builder, stage);
     const image = progress.image(builder, stage, packer, paths.GUEST_IMAGE_NAME);
     const runner_options = builder.addOptions();
     runner_options.addOptionPath(names.OPTION_GUEST_IMAGE, image);
-    runner_options.addOptionPath(names.OPTION_FIRMWARE_IMAGE, firmware.image(builder, modules, packer));
-    runner_options.addOptionPath(names.OPTION_MENU_IMAGE, menu.image(builder, modules, packer));
-    runner_options.addOptionPath(names.OPTION_ORDINARY_IMAGE, ordinaryImage(builder, bootloader, ordinary, packer));
     const runner_checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     runner_checks.addImport(names.MODULE_TESTS, runner_checks);
     runner_checks.addOptions(names.MODULE_RUNNER_OPTIONS, runner_options);
@@ -67,12 +73,4 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     const install = builder.addInstallArtifact(runner, .{});
     const runner_step = builder.step(names.STEP_GUEST_RUNNER, steps.GUEST_RUNNER_DESCRIPTION);
     runner_step.dependOn(&install.step);
-}
-
-fn ordinaryImage(builder: *std.Build, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile) std.Build.LazyPath {
-    const stage = builder.addWriteFiles();
-    _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
-    _ = stage.addCopyFile(bootloader.getEmittedBin(), paths.HIKARI_OUTPUT);
-    _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
-    return progress.image(builder, stage, packer, paths.ORDINARY_IMAGE_NAME);
 }

@@ -12,6 +12,26 @@ const runner = @import("tests").runner;
 const Epoch = @import("tests").types.host.Epoch;
 const Scenario = @import("tests").types.scenario.Scenario;
 
+test "a boot selector acknowledgement binds the exact role and epoch" {
+    const protocol = @import("tests").phase;
+    const selection: protocol.types.boot.Selection = .{ .Epoch = 0x0807060504030201, .Role = .Menu };
+    const encoded = [_]u8{ 'A', 'K', 'B', 'O', 1, 2, 3, 4, 5, 6, 7, 8, 2 };
+    try std.testing.expectEqualSlices(u8, &encoded, &protocol.boot.encode(selection, .Offer).?);
+    try std.testing.expectEqual(selection, protocol.boot.decode(&encoded, .Offer).?);
+    try std.testing.expect(protocol.boot.decode(encoded[0..12], .Offer) == null);
+    try std.testing.expect(protocol.boot.decode(&encoded, .Acknowledgement) == null);
+    var corrupt = encoded;
+    corrupt[12] = 4;
+    try std.testing.expect(protocol.boot.decode(&corrupt, .Offer) == null);
+    @memset(corrupt[4..12], 0);
+    corrupt[12] = 2;
+    try std.testing.expect(protocol.boot.decode(&corrupt, .Offer) == null);
+    const acknowledged = protocol.boot.encode(selection, .Acknowledgement).?;
+    try std.testing.expect(protocol.boot.acknowledges(selection, &acknowledged));
+    try std.testing.expect(!protocol.boot.acknowledges(.{ .Epoch = selection.Epoch + 1, .Role = .Menu }, &acknowledged));
+    try std.testing.expect(!protocol.boot.acknowledges(.{ .Epoch = selection.Epoch, .Role = .Ordinary }, &acknowledged));
+}
+
 test "serial evidence starts at the new boot boundary and rejects truncation" {
     var directory = std.testing.tmpDir(.{});
     defer directory.cleanup();

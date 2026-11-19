@@ -10,9 +10,6 @@ const Work = @import("tests").phase.types.work.Work;
 pub const Paths = struct {
     Run: []const u8,
     Image: []const u8,
-    FirmwareImage: []const u8,
-    MenuImage: []const u8,
-    OrdinaryImage: []const u8,
     Serial: []const u8,
     Variables: []const u8,
     State: []const u8,
@@ -21,8 +18,6 @@ pub const Paths = struct {
     Qemu: []const u8,
     QemuImage: []const u8,
 };
-
-pub const Media = enum { Diagnostic, Firmware, Menu, Ordinary };
 
 pub const Connection = struct {
     Stream: std.net.Stream,
@@ -44,7 +39,7 @@ pub const Stage = enum {
     Complete,
 };
 
-pub const Endpoints = struct { Qmp: u16, Phase: u16, Menu: u16 };
+pub const Endpoints = struct { Qmp: u16, Phase: u16, Menu: u16, Selector: u16 };
 
 pub const Deadline = struct {
     Timer: *std.time.Timer,

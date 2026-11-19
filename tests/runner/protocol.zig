@@ -237,7 +237,10 @@ pub fn verifyControlPort(allocator: std.mem.Allocator, connection: *Connection, 
     const channels = try command(allocator, connection, strings.QUERY_CHARDEV, null);
     defer channels.deinit();
     const device = try channel(returned(channels), label);
-    if (!equal(device, strings.FILENAME, expected)) return error.WrongGuest;
+    if (!equal(device, strings.FILENAME, expected)) {
+        std.log.err(strings.CONTROL_ENDPOINT_MISMATCH, .{ label, text(device, strings.FILENAME) orelse strings.CONTROL_ENDPOINT_MISSING, expected });
+        return error.WrongGuest;
+    }
 }
 
 fn channel(devices: Value, label: []const u8) !Value {

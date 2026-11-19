@@ -18,12 +18,6 @@ pub fn prepare(allocator: std.mem.Allocator) !host.Paths {
     errdefer allocator.free(qemu_image);
     const image = try checkImage(allocator, options.GUEST_IMAGE);
     errdefer allocator.free(image);
-    const firmware_image = try checkImage(allocator, options.FIRMWARE_IMAGE);
-    errdefer allocator.free(firmware_image);
-    const menu_image = try checkImage(allocator, options.MENU_IMAGE);
-    errdefer allocator.free(menu_image);
-    const ordinary_image = try checkImage(allocator, options.ORDINARY_IMAGE);
-    errdefer allocator.free(ordinary_image);
     const firmware = try findFirmware(allocator, qemu);
     errdefer for (firmware) |path| allocator.free(path);
     const run = try createRun(allocator, repo);
@@ -38,9 +32,6 @@ pub fn prepare(allocator: std.mem.Allocator) !host.Paths {
     return .{
         .Run = run,
         .Image = image,
-        .FirmwareImage = firmware_image,
-        .MenuImage = menu_image,
-        .OrdinaryImage = ordinary_image,
         .Serial = serial,
         .Variables = variables,
         .State = try std.fs.path.join(allocator, &.{ run, strings.STATE_FILE }),

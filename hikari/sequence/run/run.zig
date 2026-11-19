@@ -101,7 +101,8 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
         return status.DEVICE_ERROR;
     };
     splash.report(messages.LOADING_KERNEL);
-    const kernel_unit = afs_reader.openLocation(paths.KERNEL_LOCATION) catch {
+    const kernel_location = if (options.DIAGNOSTIC_LOADER) paths.DIAGNOSTIC_KERNEL_LOCATION else paths.KERNEL_LOCATION;
+    const kernel_unit = afs_reader.openLocation(kernel_location) catch {
         splash.fail(messages.ERROR_KERNEL_NOT_FOUND);
         return status.NOT_FOUND;
     };

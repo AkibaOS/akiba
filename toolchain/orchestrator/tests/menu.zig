@@ -1,14 +1,13 @@
-//! Cached Post-Test Firmware Menu Image
+//! Independent EFI Diagnostic Menu Application
 
 const std = @import("std");
 
 const bootloader = @import("../bootloader/bootloader.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
-const progress = @import("pack.zig");
 const types = @import("../types/types.zig");
 
-pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.Build.Step.Compile) std.Build.LazyPath {
+pub fn artifact(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .uefi, .abi = .msvc });
     const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
@@ -25,8 +24,5 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
     root.addImport(names.MODULE_SHARED, modules.Shared);
     root.addImport(names.MODULE_COMMON, modules.Common);
     root.addImport(names.MODULE_UTILS, modules.Utils);
-    const executable = builder.addExecutable(.{ .name = names.MODULE_MENU, .root_module = root });
-    const stage = builder.addWriteFiles();
-    _ = stage.addCopyFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
-    return progress.image(builder, stage, packer, paths.MENU_IMAGE_NAME);
+    return builder.addExecutable(.{ .name = names.MODULE_MENU, .root_module = root });
 }

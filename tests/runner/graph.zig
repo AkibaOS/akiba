@@ -13,10 +13,7 @@ pub fn arguments(allocator: std.mem.Allocator, list: *std.ArrayList([]const u8),
     try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.FLASH_CODE, .@"read-only" = true, .file = file(inputs.FirmwareCode) });
     try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.FLASH_VARS, .file = file(inputs.Variables) });
     try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.STATE, .file = file(inputs.State) });
-    for (std.enums.values(types.Media)) |media| {
-        try block(allocator, list, .{ .driver = strings.FILE_DRIVER, .@"node-name" = nodeName(media), .filename = mediaPath(inputs, media), .@"read-only" = true });
-    }
-    try block(allocator, list, disk(strings.MIRAI_MEDIA));
+    try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = file(inputs.Image) });
     try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.BOOT_DEVICE });
 }
 
@@ -24,41 +21,12 @@ fn file(filename: []const u8) struct { driver: []const u8, filename: []const u8 
     return .{ .driver = strings.FILE_DRIVER, .filename = filename };
 }
 
-fn disk(node: []const u8) struct { driver: []const u8, @"node-name": []const u8, @"read-only": bool, file: []const u8 } {
-    return .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = node };
-}
-
 fn block(allocator: std.mem.Allocator, list: *std.ArrayList([]const u8), value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(allocator, value, .{});
     try list.appendSlice(allocator, &.{ strings.BLOCKDEV_FLAG, json });
 }
 
-fn nodeName(media: types.Media) []const u8 {
-    return switch (media) {
-        .Diagnostic => strings.MIRAI_MEDIA,
-        .Firmware => strings.FIRMWARE_MEDIA,
-        .Menu => strings.MENU_MEDIA,
-        .Ordinary => strings.ORDINARY_MEDIA,
-    };
-}
-
-fn mediaPath(inputs: *const types.Paths, media: types.Media) []const u8 {
-    return switch (media) {
-        .Diagnostic => inputs.Image,
-        .Firmware => inputs.FirmwareImage,
-        .Menu => inputs.MenuImage,
-        .Ordinary => inputs.OrdinaryImage,
-    };
-}
-
-pub fn select(allocator: std.mem.Allocator, connection: *types.Connection, media: types.Media) !void {
-    const node = nodeName(media);
-    const json = try std.json.Stringify.valueAlloc(allocator, .{ .options = .{disk(node)} }, .{});
-    defer allocator.free(json);
-    try protocol.action(allocator, connection, strings.REOPEN, json);
-}
-
-pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connection, inputs: *const types.Paths, media: types.Media) !void {
+pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connection, inputs: *const types.Paths) !void {
     const reply = try protocol.command(allocator, connection, strings.QUERY_BLOCK, null);
     defer reply.deinit();
     const devices = protocol.returned(reply);
@@ -76,8 +44,7 @@ pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connectio
             if (variables or !try matches(allocator, node, inputs.Variables, strings.QCOW2, false, inputs.FirmwareTemplate)) return error.WrongGuest;
             variables = true;
         } else if (std.mem.eql(u8, name, strings.DISK)) {
-            const path = mediaPath(inputs, media);
-            if (boot or !try matches(allocator, node, path, strings.RAW, true, null)) return error.WrongGuest;
+            if (boot or !try matches(allocator, node, inputs.Image, strings.RAW, true, null)) return error.WrongGuest;
             boot = true;
         } else return error.WrongGuest;
     }

@@ -1,15 +1,13 @@
-//! Cached Identity Mapped Firmware Test Image
+//! Identity Mapped Firmware Test Application
 
 const std = @import("std");
 
 const bootloader = @import("../bootloader/bootloader.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
-const progress = @import("pack.zig");
-const storage = @import("storage.zig");
 const types = @import("../types/types.zig");
 
-pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.Build.Step.Compile) std.Build.LazyPath {
+pub fn artifact(builder: *std.Build, modules: types.modules.Modules) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .uefi, .abi = .msvc });
     const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
@@ -25,10 +23,5 @@ pub fn image(builder: *std.Build, modules: types.modules.Modules, packer: *std.B
         .optimize = .ReleaseSafe,
     });
     root.addImport(names.MODULE_TESTS, checks);
-    const executable = builder.addExecutable(.{ .name = names.EXECUTABLE_FIRMWARE_TESTS, .root_module = root });
-    const stage = builder.addWriteFiles();
-    _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
-    _ = stage.addCopyFile(executable.getEmittedBin(), paths.HIKARI_OUTPUT);
-    storage.add(builder, stage);
-    return progress.image(builder, stage, packer, paths.FIRMWARE_IMAGE_NAME);
+    return builder.addExecutable(.{ .name = names.EXECUTABLE_FIRMWARE_TESTS, .root_module = root });
 }

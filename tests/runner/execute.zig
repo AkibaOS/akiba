@@ -25,6 +25,7 @@ const types = @import("tests").types.host;
 const work = @import("tests").phase.work;
 
 const Allocator = std.mem.Allocator;
+const BootSelection = @import("tests").phase.types.boot.Selection;
 const Scenario = @import("tests").types.scenario.Scenario;
 const PAGE = std.heap.page_allocator;
 
@@ -43,7 +44,7 @@ pub fn run(unattended: bool) !void {
         return failure;
     };
     var session: types.Session = .{ .Process = process.init(allocator, &.{}), .Work = .{ .Planned = work.reference() } };
-    const bases = [_][]const u8{ inputs.Image, inputs.FirmwareImage, inputs.MenuImage, inputs.OrdinaryImage, inputs.FirmwareCode, inputs.FirmwareTemplate };
+    const bases = [_][]const u8{ inputs.Image, inputs.FirmwareCode, inputs.FirmwareTemplate };
     var fingerprints: [bases.len]types.Fingerprint = undefined;
     var known: usize = 0;
     const outcome = work: {
@@ -102,11 +103,12 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Owned = true;
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
     try protocol.verifyWindow(PAGE, connection);
-    try graph.verifyAttached(PAGE, connection, inputs, .Diagnostic);
+    try graph.verifyAttached(PAGE, connection, inputs);
     try graph.verifyStateStore(PAGE, connection, inputs);
     try protocol.verifySerial(PAGE, connection, inputs.Serial);
     try protocol.verifyControlPort(PAGE, connection, strings.PHASE_LABEL, endpoints.Phase);
     try protocol.verifyControlPort(PAGE, connection, strings.MENU_LABEL, endpoints.Menu);
+    try protocol.verifyControlPort(PAGE, connection, strings.SELECTOR_LABEL, endpoints.Selector);
     const log = try std.fs.cwd().openFile(inputs.Serial, .{});
     defer log.close();
     if (try log.getEndPos() != 0) return error.UnexpectedSerialHistory;
@@ -116,18 +118,22 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
 
     var build_date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
     _ = buildDate(&build_date, inputs.Image) orelse return error.InvalidMenuBuildDate;
+    var selector_timer = try std.time.Timer.start();
+    session.Stage = .Connect;
+    const selector = try phase.open(endpoints.Selector, &session.Process, &selector_timer);
+    defer selector.close();
+
     const menu_slot = std.enums.values(Scenario).len + 1;
-    const seed = std.crypto.random.uintLessThan(u64, std.math.maxInt(u64) - menu_slot);
+    const seed = std.crypto.random.uintLessThan(u64, std.math.maxInt(u64) - menu_slot - 1);
     for (std.enums.values(Scenario), 1..) |selected, index| {
         session.Selected = selected;
         session.SerialStart = try log.getEndPos();
-        const firmware = selected == .Firmware;
         if (index != 1) {
             session.Stage = .Restore;
-            try restoreFor(inputs, session, &log, if (firmware) .Firmware else .Diagnostic);
+            try restore(inputs, session, &log);
         }
         const evidence: types.Epoch = .{ .File = &log, .Start = session.SerialStart };
-        const outcome = runPhase(session, evidence, selected, endpoints, seed + index, build_date, !unattended) catch |failure| {
+        const outcome = runPhase(session, evidence, selected, selector, endpoints, seed + index, build_date, !unattended) catch |failure| {
             if (!recovery.local(session.Stage, failure)) return failure;
             try failPhase(session, evidence, selected, failure);
             continue;
@@ -147,15 +153,15 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Selected = null;
     if (session.Cancelled) {
         std.debug.print(strings.CANCELLED_RESULT, .{session.Passed});
-        try bootOrdinary(inputs, session, &log);
+        try bootOrdinary(inputs, session, &log, selector, seed + menu_slot + 1);
     } else if (!unattended) {
         if (session.FailedMask == 0) terminal.total(session.Passed) else terminal.failedTotal(session.Passed, @popCount(session.FailedMask));
-        try postSuite(inputs, session, &log, endpoints.Menu, seed + menu_slot);
+        try postSuite(inputs, session, &log, selector, endpoints.Menu, seed + menu_slot);
     }
     session.Stage = .Complete;
 }
 
-fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, endpoints: types.Endpoints, epoch: u64, build_date: [screen.constants.frame.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
+fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, selector: std.net.Stream, endpoints: types.Endpoints, epoch: u64, build_date: [screen.constants.frame.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
     const connection = &session.Control.?;
     var timer = try std.time.Timer.start();
     session.Stage = .Select;
@@ -164,8 +170,8 @@ fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, 
     try protocol.verifyControlPort(PAGE, connection, if (firmware) strings.MENU_LABEL else strings.PHASE_LABEL, port);
     const stream = try phase.open(port, &session.Process, &timer);
     defer stream.close();
+    try beginRole(session, selector, evidence, &timer, .{ .Epoch = epoch, .Role = if (firmware) .Firmware else .Diagnostic });
     const verified_checks = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
-    try protocol.action(PAGE, connection, strings.CONTINUE, null);
     try phase.start(stream, &session.Process, &timer, evidence, .{
         .Ticket = .{ .Epoch = epoch, .Scenario = selected },
         .Date = build_date,
@@ -178,6 +184,11 @@ fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, 
     var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
     session.Stage = .Checks;
     return completed(session, evidence, selected, &timer, if (interactive and (selected == .Standard or firmware)) &channel else null);
+}
+
+fn beginRole(session: *types.Session, selector: std.net.Stream, evidence: types.Epoch, timer: *std.time.Timer, selection: BootSelection) !void {
+    try protocol.action(PAGE, &session.Control.?, strings.CONTINUE, null);
+    try phase.selectBoot(selector, &session.Process, timer, evidence, selection);
 }
 
 fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, failure: anyerror) !void {
@@ -213,10 +224,10 @@ fn prepareRecovery(session: *types.Session) !void {
     try recovery.quiesce(PAGE, &session.Control.?);
 }
 
-fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, port: u16, epoch: u64) !void {
+fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, selector: std.net.Stream, port: u16, epoch: u64) !void {
     const connection = &session.Control.?;
     session.Stage = .Menu;
-    try restoreFor(inputs, session, log, .Menu);
+    try restore(inputs, session, log);
     var timer = try std.time.Timer.start();
     const action = choose: {
         try protocol.verifyControlPort(PAGE, connection, strings.MENU_LABEL, port);
@@ -226,7 +237,7 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
         var date: [screen.constants.frame.DATE_BYTES]u8 = undefined;
         _ = buildDate(&date, inputs.Image) orelse return error.InvalidMenuBuildDate;
         const passed = std.math.cast(u32, session.Passed) orelse return error.InvalidMenuCount;
-        try protocol.action(PAGE, connection, strings.CONTINUE, null);
+        try beginRole(session, selector, evidence, &timer, .{ .Epoch = epoch, .Role = .Menu });
         break :choose try phase.choose(stream, &session.Process, &timer, evidence, .{
             .Epoch = epoch,
             .Passed = passed,
@@ -243,20 +254,19 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
         .Shutdown => return,
         .Boot, .Timeout => {
             try stopRunning(connection);
-            try bootOrdinary(inputs, session, log);
+            try bootOrdinary(inputs, session, log, selector, epoch + 1);
         },
         .Cancel => return error.InvalidMenuAction,
     }
 }
 
-fn restoreFor(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, media: types.Media) !void {
+fn restore(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File) !void {
     const connection = &session.Control.?;
     session.SerialStart = try log.getEndPos();
     try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_LOAD);
     try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
     if (try log.getEndPos() != session.SerialStart) return error.UnexpectedSerialHistory;
-    try graph.select(PAGE, connection, media);
-    try graph.verifyAttached(PAGE, connection, inputs, media);
+    try graph.verifyAttached(PAGE, connection, inputs);
 }
 
 fn stopRunning(connection: *types.Connection) !void {
@@ -264,13 +274,13 @@ fn stopRunning(connection: *types.Connection) !void {
     try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
 }
 
-fn bootOrdinary(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File) !void {
+fn bootOrdinary(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File, selector: std.net.Stream, epoch: u64) !void {
     const connection = &session.Control.?;
     session.Stage = .Ordinary;
-    try restoreFor(inputs, session, log, .Ordinary);
+    try restore(inputs, session, log);
     const evidence: types.Epoch = .{ .File = log, .Start = session.SerialStart };
     var timer = try std.time.Timer.start();
-    try protocol.action(PAGE, connection, strings.CONTINUE, null);
+    try beginRole(session, selector, evidence, &timer, .{ .Epoch = epoch, .Role = .Ordinary });
     while (timer.read() < limits.START_NS) {
         if (process.cancelled()) return error.Cancelled;
         if (try process.exited(&session.Process)) return error.GuestExited;
@@ -396,6 +406,10 @@ fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8,
         try std.fmt.allocPrint(allocator, strings.MENU_SOCKET, .{endpoints.Menu}),
         strings.SERIAL_FLAG,
         strings.MENU_SERIAL,
+        strings.CHARDEV_FLAG,
+        try std.fmt.allocPrint(allocator, strings.SELECTOR_SOCKET, .{endpoints.Selector}),
+        strings.SERIAL_FLAG,
+        strings.SELECTOR_SERIAL,
         scenario.FLAG,
         scenario.PHASE_ARGUMENT,
         scenario.FLAG,
@@ -415,7 +429,14 @@ fn reserveEndpoints() !types.Endpoints {
     defer control.deinit();
     var menu = try address.listen(.{});
     defer menu.deinit();
-    return .{ .Qmp = monitor.listen_address.getPort(), .Phase = control.listen_address.getPort(), .Menu = menu.listen_address.getPort() };
+    var selector = try address.listen(.{});
+    defer selector.deinit();
+    return .{
+        .Qmp = monitor.listen_address.getPort(),
+        .Phase = control.listen_address.getPort(),
+        .Menu = menu.listen_address.getPort(),
+        .Selector = selector.listen_address.getPort(),
+    };
 }
 
 fn buildDateArgument(allocator: Allocator, path: []const u8) ?[]const u8 {
