@@ -128,12 +128,23 @@ fn writeTail(handle: std.net.Stream.Handle, bytes: []const u8) void {
 pub fn menuOffer() !void {
     const menu = project.phase.menu;
     const epoch = 0x0807060504030201;
-    const expected = [_]u8{ 'A', 'K', 'M', 'V', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0, 24, 0 };
-    const offer: project.phase.types.menu.Offer = .{ .Epoch = epoch, .Passed = 1910, .Date = expected[16..24].*, .StandardCompleted = 24 };
+    const expected = [_]u8{ 'A', 'K', 'M', 'V', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0, 24, 0, 170, 10, 0, 0, 170, 10, 0, 0 };
+    const offer: project.phase.types.menu.Offer = .{
+        .Epoch = epoch,
+        .Passed = 1910,
+        .Date = expected[16..24].*,
+        .StandardCompleted = 24,
+        .Work = .{ .Planned = 2730, .Verified = 2730 },
+    };
     try std.testing.expectEqualSlices(u8, &expected, &menu.encodeOffer(offer).?);
     try std.testing.expectEqual(offer, menu.decodeOffer(&expected).?);
-    try std.testing.expect(menu.decodeOffer(expected[0..23]) == null);
-    try std.testing.expect(menu.encodeOffer(.{ .Epoch = epoch, .Passed = 0, .Date = offer.Date, .StandardCompleted = 24 }) == null);
+    try std.testing.expect(menu.decodeOffer(expected[0..28]) == null);
+    var unfinished = offer;
+    unfinished.Work.Verified -= 1;
+    try std.testing.expect(menu.encodeOffer(unfinished) == null);
+    var empty = offer;
+    empty.Passed = 0;
+    try std.testing.expect(menu.encodeOffer(empty) == null);
     var invalid = expected;
     invalid[16] = '9';
     try std.testing.expect(menu.decodeOffer(&invalid) == null);
@@ -147,9 +158,9 @@ pub fn menuOffer() !void {
 pub fn failedMenuOffer() !void {
     const menu = project.phase.menu;
     const Offer = project.phase.types.menu.Offer;
-    const wire = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1, 0, 0 };
+    const wire = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1, 0, 0, 118, 7, 0, 0, 80, 0, 0, 0 };
     const failure: Offer = menu.decodeOffer(&wire).?;
-    try std.testing.expectEqual(@as(u32, 1907), failure.Passed);
+    try std.testing.expectEqual(@as(u32, 80), failure.Passed);
     try std.testing.expectEqual(@as(u8, 1), failure.FailedMask);
     try std.testing.expectEqual(@as(u8, 1), failure.InterruptedMask);
     try std.testing.expectEqualSlices(u8, &wire, &menu.encodeOffer(failure).?);
@@ -169,7 +180,7 @@ pub fn failedMenuOffer() !void {
 
 pub fn namedMenuPhases() !void {
     const menu = project.phase.menu;
-    const device = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 8, 8, 24, 0 };
+    const device = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 115, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 8, 8, 24, 0, 170, 10, 0, 0, 167, 10, 0, 0 };
     var offer = menu.decodeOffer(&device) orelse return error.NamedMenuPhaseUnavailable;
     try std.testing.expectEqual(@as(u32, 1907), offer.Passed);
     try std.testing.expectEqual(.Incomplete, menu.phaseStatus(offer, .Devices));
@@ -186,7 +197,8 @@ pub fn liveHistory() !void {
     const live = project.phase.live;
     const view = project.screen.live;
     const model = project.screen.model;
-    const packet = [_]u8{ 'A', 'K', 'L', 'P', 17, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 24, 0, 113, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6' };
+    const packet = [_]u8{ 'A', 'K', 'L', 'P', 17, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 24, 0, 113, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 170, 10, 0, 0, 165, 10, 0, 0 };
+    try std.testing.expect(live.decodeOffer(packet[0..29]) == null);
     const offer = live.decodeOffer(&packet).?;
     try std.testing.expectEqual(.Devices, offer.Ticket.Scenario);
     try std.testing.expectEqualSlices(u8, &packet, &live.encodeOffer(offer).?);
@@ -198,6 +210,11 @@ pub fn liveHistory() !void {
     try std.testing.expect(live.encodeOffer(forged) == null);
     forged = offer;
     forged.StandardCompleted = 23;
+    try std.testing.expect(live.encodeOffer(forged) == null);
+    forged = offer;
+    forged.Work.Verified = forged.VerifiedChecks - 1;
+    try std.testing.expect(live.encodeOffer(forged) == null);
+    forged.Work.Verified = forged.Work.Planned + 1;
     try std.testing.expect(live.encodeOffer(forged) == null);
     var rows: [32]project.screen.types.model.Row = undefined;
     var state = view.initialize(&rows, offer);
@@ -211,7 +228,7 @@ pub fn liveHistory() !void {
     try std.testing.expectEqual(.Pass, model.row(&state, 27).?.Kind);
     try std.testing.expect(model.begin(&state, view.name(.Devices)));
     try std.testing.expectEqual(.Running, model.row(&state, state.Count).?.Kind);
-    try std.testing.expectEqual(@as(usize, 89), model.percent(&state));
+    try std.testing.expectEqual(@as(usize, 99), model.percent(&state));
     try std.testing.expect(model.finish(&state, .Pass));
     try std.testing.expect(model.endPhase(&state));
     try std.testing.expectEqual(@as(usize, 26), state.Completed);
@@ -221,6 +238,7 @@ pub fn liveHistory() !void {
     partial.InterruptedMask = 3;
     partial.StandardCompleted = 3;
     partial.VerifiedChecks = 75;
+    partial.Work.Verified = partial.VerifiedChecks + 820;
     try std.testing.expect(live.encodeOffer(partial) != null);
     state = view.initialize(&rows, partial);
     try std.testing.expectEqual(@as(usize, 4), state.Completed);

@@ -5,6 +5,7 @@ const std = @import("std");
 
 const ActionFrame = @import("tests").phase.types.action.Frame;
 const Scenario = @import("tests").types.scenario.Scenario;
+const Work = @import("tests").phase.types.work.Work;
 
 pub const Paths = struct {
     Run: []const u8,
@@ -81,6 +82,7 @@ pub const Session = struct {
     Selected: ?Scenario = null,
     SerialStart: u64 = 0,
     Passed: usize = 0,
+    Work: Work,
     StandardCompleted: u16 = 0,
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,

@@ -2,6 +2,7 @@
 
 const frame = @import("tests").screen.constants.frame;
 const limits = @import("tests").phase.constants.menu;
+const Tally = @import("tests").phase.types.work.Work;
 
 pub const Offer = struct {
     Epoch: u64,
@@ -10,6 +11,7 @@ pub const Offer = struct {
     FailedMask: u8 = 0,
     InterruptedMask: u8 = 0,
     StandardCompleted: u16,
+    Work: Tally,
 };
 
 pub const PhaseStatus = enum { Passed, Failed, Incomplete };

@@ -8,6 +8,7 @@ const menu = @import("tests").phase.menu;
 const types = @import("tests").phase.types.live;
 const Scenario = @import("tests").types.scenario.Scenario;
 const Ticket = @import("tests").phase.types.ticket.Ticket;
+const Work = @import("tests").phase.types.work.Work;
 
 pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     if (!valid(offer)) return null;
@@ -19,7 +20,8 @@ pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     frame[limits.INTERRUPTED_OFFSET] = offer.InterruptedMask;
     std.mem.writeInt(u16, frame[limits.STANDARD_OFFSET..limits.CHECKS_OFFSET], offer.StandardCompleted, .little);
     std.mem.writeInt(u32, frame[limits.CHECKS_OFFSET..limits.DATE_OFFSET], offer.VerifiedChecks, .little);
-    @memcpy(frame[limits.DATE_OFFSET..], &offer.Date);
+    @memcpy(frame[limits.DATE_OFFSET..limits.WORK_OFFSET], &offer.Date);
+    frame[limits.WORK_OFFSET..].* = offer.Work.encode();
     return frame;
 }
 
@@ -28,7 +30,8 @@ pub fn decodeOffer(frame: []const u8) ?types.Offer {
     const selected = std.enums.fromInt(Scenario, frame[limits.SCENARIO_OFFSET]) orelse return null;
     const offer: types.Offer = .{
         .Ticket = .{ .Epoch = std.mem.readInt(u64, frame[limits.EPOCH_OFFSET..limits.SCENARIO_OFFSET], .little), .Scenario = selected },
-        .Date = frame[limits.DATE_OFFSET..limits.OFFER_BYTES].*,
+        .Date = frame[limits.DATE_OFFSET..limits.WORK_OFFSET].*,
+        .Work = Work.decode(frame[limits.WORK_OFFSET..limits.OFFER_BYTES]),
         .FailedMask = frame[limits.FAILED_OFFSET],
         .InterruptedMask = frame[limits.INTERRUPTED_OFFSET],
         .StandardCompleted = std.mem.readInt(u16, frame[limits.STANDARD_OFFSET..limits.CHECKS_OFFSET], .little),
@@ -64,6 +67,7 @@ fn valid(offer: types.Offer) bool {
     const previous = preceding(offer.Ticket.Scenario);
     if (offer.FailedMask & ~previous != 0 or offer.InterruptedMask & ~offer.FailedMask != 0 or
         (offer.VerifiedChecks == 0) != (previous == offer.FailedMask)) return false;
-    if (previous == 0) return offer.StandardCompleted == 0;
+    if (!offer.Work.valid() or offer.Work.Verified < offer.VerifiedChecks or offer.Work.Verified == offer.Work.Planned) return false;
+    if (previous == 0) return offer.StandardCompleted == 0 and offer.Work.Verified == 0;
     return offer.FailedMask & menu.phaseBit(.Standard) != 0 or offer.StandardCompleted == limits.STANDARD_UNITS;
 }

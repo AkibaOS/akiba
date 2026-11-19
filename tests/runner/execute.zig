@@ -22,6 +22,7 @@ const serial = @import("tests").runner.serial;
 const strings = @import("tests").strings.runner;
 const terminal = @import("tests").runner.terminal;
 const types = @import("tests").types.host;
+const work = @import("tests").phase.work;
 
 const Allocator = std.mem.Allocator;
 const Scenario = @import("tests").types.scenario.Scenario;
@@ -41,7 +42,7 @@ pub fn run(unattended: bool) !void {
         terminal.fail(null, .Prepare, failure, null);
         return failure;
     };
-    var session: types.Session = .{ .Process = process.init(allocator, &.{}) };
+    var session: types.Session = .{ .Process = process.init(allocator, &.{}), .Work = .{ .Planned = work.reference() } };
     const bases = [_][]const u8{ inputs.Image, inputs.FirmwareImage, inputs.MenuImage, inputs.OrdinaryImage, inputs.FirmwareCode, inputs.FirmwareTemplate };
     var fingerprints: [bases.len]types.Fingerprint = undefined;
     var known: usize = 0;
@@ -172,6 +173,7 @@ fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, 
         .InterruptedMask = session.InterruptedMask,
         .StandardCompleted = session.StandardCompleted,
         .VerifiedChecks = verified_checks,
+        .Work = session.Work,
     });
     var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
     session.Stage = .Checks;
@@ -190,12 +192,19 @@ fn failPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario,
     const completed_failure = failed_at == .Checks and failure == error.GuestCheckFailed and
         std.mem.indexOf(u8, bytes orelse &.{}, strings.CHECK_FAIL) != null;
     if (!completed_failure) session.InterruptedMask |= bit;
-    if (selected == .Standard and failed_at == .Checks) {
-        if (result.standardProgress(bytes orelse &.{})) |finished| {
+    try quiesced;
+    if (failed_at != .Checks) return;
+    const captured = bytes orelse return;
+    work.retain(&session.Work, selected, result.partialChecks(captured, selected));
+    if (selected == .Standard) {
+        if (result.rollbackWork(captured)) |rollback| {
+            session.Work.addPlan(rollback.Planned);
+            session.Work.credit(rollback.Verified);
+        } else |_| {}
+        if (result.standardProgress(captured)) |finished| {
             session.StandardCompleted = @min(live.STANDARD_UNITS, finished + @intFromBool(completed_failure));
         } else |_| {}
     }
-    try quiesced;
 }
 
 fn prepareRecovery(session: *types.Session) !void {
@@ -225,6 +234,7 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
             .FailedMask = session.FailedMask,
             .InterruptedMask = session.InterruptedMask,
             .StandardCompleted = session.StandardCompleted,
+            .Work = session.Work,
         });
     };
     try protocol.verifyStatus(PAGE, connection, strings.RUNNING);
@@ -321,7 +331,15 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 if (selected != .Firmware) try result.verifyDisplay(frozen);
                 if (selected == .Standard and try result.standardProgress(frozen) != live.STANDARD_UNITS) return error.InvalidBootstrapEvidence;
                 if (selected == .Devices and try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
+                const assertions = std.math.cast(u32, count) orelse return error.InvalidGuestCheckCount;
+                const rollback = if (selected == .Standard) try result.rollbackWork(frozen) else null;
+                if (rollback) |sweep| if (sweep.Verified == 0) return error.InvalidBootstrapEvidence;
                 if (timer.read() >= limits.CHECK_NS) return error.GuestCheckTimeout;
+                if (rollback) |sweep| {
+                    session.Work.addPlan(sweep.Planned);
+                    session.Work.credit(sweep.Verified);
+                }
+                work.settle(&session.Work, selected, assertions);
                 terminal.passed(selected, count, frozen);
                 return .{ .Passed = count };
             }

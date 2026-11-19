@@ -290,6 +290,10 @@ test "a rollback checkpoint repaints only its active row and the progress band" 
     try checks.screen.render.activeBootRow();
 }
 
+test "the suite bar weights measured rollbacks and verified assertions equally" {
+    try checks.screen.model.verificationWeight();
+}
+
 test "diagnostic build date uses the cached image timestamp in UTC" {
     try checks.screen.model.metadata();
 }

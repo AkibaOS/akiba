@@ -8,6 +8,7 @@ const live = @import("tests").phase.live;
 const progress = @import("tests").phase.constants.live;
 const types = @import("tests").phase.types.menu;
 const Scenario = @import("tests").types.scenario.Scenario;
+const Work = @import("tests").phase.types.work.Work;
 
 pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     if (!valid(offer)) return null;
@@ -18,7 +19,8 @@ pub fn encodeOffer(offer: types.Offer) ?types.OfferFrame {
     @memcpy(frame[limits.DATE_OFFSET..limits.FAILED_OFFSET], &offer.Date);
     frame[limits.FAILED_OFFSET] = offer.FailedMask;
     frame[limits.INTERRUPTED_OFFSET] = offer.InterruptedMask;
-    std.mem.writeInt(u16, frame[limits.STANDARD_OFFSET..], offer.StandardCompleted, .little);
+    std.mem.writeInt(u16, frame[limits.STANDARD_OFFSET..limits.WORK_OFFSET], offer.StandardCompleted, .little);
+    frame[limits.WORK_OFFSET..].* = offer.Work.encode();
     return frame;
 }
 
@@ -30,7 +32,8 @@ pub fn decodeOffer(frame: []const u8) ?types.Offer {
         .Date = frame[limits.DATE_OFFSET..limits.FAILED_OFFSET].*,
         .FailedMask = frame[limits.FAILED_OFFSET],
         .InterruptedMask = frame[limits.INTERRUPTED_OFFSET],
-        .StandardCompleted = std.mem.readInt(u16, frame[limits.STANDARD_OFFSET..limits.OFFER_BYTES], .little),
+        .StandardCompleted = std.mem.readInt(u16, frame[limits.STANDARD_OFFSET..limits.WORK_OFFSET], .little),
+        .Work = Work.decode(frame[limits.WORK_OFFSET..limits.OFFER_BYTES]),
     };
     return if (valid(offer)) offer else null;
 }
@@ -85,6 +88,8 @@ pub fn completedUnits(offer: types.Offer) usize {
 fn valid(offer: types.Offer) bool {
     const all_failed = offer.FailedMask == limits.PHASE_MASK;
     return offer.Epoch != 0 and (offer.Passed == 0) == all_failed and
+        offer.Work.valid() and offer.Work.Verified >= offer.Passed and
+        (offer.Work.Verified == offer.Work.Planned) == (offer.FailedMask == 0) and
         offer.FailedMask & ~limits.PHASE_MASK == 0 and offer.InterruptedMask & ~offer.FailedMask == 0 and
         offer.StandardCompleted <= progress.STANDARD_UNITS and
         (offer.FailedMask & phaseBit(.Standard) != 0 or offer.StandardCompleted == progress.STANDARD_UNITS) and

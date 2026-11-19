@@ -215,6 +215,17 @@ test "a fresh diagnostic boot restores only preceding verified phase results" {
     try phase.liveHistory();
 }
 
+test "rollback progress is credited only when the measured schedule is verified" {
+    const plan = fixtures.BOOT_ROLLBACK_BEGIN ++ fixtures.ROLLBACK_PLANNED_820;
+    const pending = try result.rollbackWork(plan);
+    try std.testing.expectEqual(@as(u32, 820), pending.Planned);
+    try std.testing.expectEqual(@as(u32, 0), pending.Verified);
+    const complete = try result.rollbackWork(plan ++ fixtures.ROLLBACK_VERIFIED_820 ++ fixtures.BOOT_ROLLBACK_END);
+    try std.testing.expectEqual(@as(u32, 820), complete.Verified);
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.rollbackWork(plan ++ fixtures.ROLLBACK_VERIFIED_819 ++ fixtures.BOOT_ROLLBACK_END));
+    try std.testing.expectError(error.InvalidBootstrapEvidence, result.rollbackWork(fixtures.ROLLBACK_VERIFIED_820));
+}
+
 test "standard progress preserves only ordered completed group records" {
     const start = fixtures.BOOT_ROLLBACK_BEGIN ++ fixtures.BOOT_ROLLBACK_END ++ fixtures.BEGIN;
     try std.testing.expectEqual(@as(u16, 3), try result.standardProgress(start ++ fixtures.STANDARD_GROUP_ONE ++ fixtures.STANDARD_GROUP_TWO));

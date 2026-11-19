@@ -9,6 +9,7 @@ const progress = @import("tests").phase.constants.live;
 const strings = @import("tests").strings.runner;
 const tables = @import("tests").strings.tables;
 const Scenario = @import("tests").types.scenario.Scenario;
+const Work = @import("tests").phase.types.work.Work;
 
 pub fn failedBeforeSelection(bytes: []const u8) bool {
     return std.mem.indexOf(u8, bytes, strings.CHECK_FAIL) != null or
@@ -70,6 +71,68 @@ pub fn verifyBootstrap(bytes: []const u8, scenario: Scenario) !void {
     const complete = ended orelse return error.InvalidBootstrapEvidence;
     const checks = (uniqueLine(bytes, strings.CHECK_BEGIN) catch return error.InvalidBootstrapEvidence) orelse return error.InvalidBootstrapEvidence;
     if (begin >= complete or complete >= checks) return error.InvalidBootstrapEvidence;
+}
+
+pub fn rollbackWork(bytes: []const u8) !Work {
+    var tally: Work = .{ .Planned = 0 };
+    var began = false;
+    var matched = false;
+    var checks_started = false;
+    var lines = std.mem.splitScalar(u8, bytes, '\n');
+    while (lines.next()) |raw| {
+        if (lines.index == null) break;
+        const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
+        if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_BEGIN, strings.LINE_SEPARATORS))) {
+            if (began or checks_started) return error.InvalidBootstrapEvidence;
+            began = true;
+        } else if (std.mem.startsWith(u8, line, tables.ROLLBACK_SCHEDULE_PREFIX)) {
+            if (!began or tally.Planned != 0 or checks_started) return error.InvalidBootstrapEvidence;
+            tally.Planned = try rollbackCount(line[tables.ROLLBACK_SCHEDULE_PREFIX.len..]);
+        } else if (std.mem.startsWith(u8, line, tables.ROLLBACK_VERIFIED_PREFIX)) {
+            if (matched or tally.Planned == 0 or checks_started) return error.InvalidBootstrapEvidence;
+            if (try rollbackCount(line[tables.ROLLBACK_VERIFIED_PREFIX.len..]) != tally.Planned) return error.InvalidBootstrapEvidence;
+            matched = true;
+        } else if (std.mem.eql(u8, line, std.mem.trimEnd(u8, tables.ROLLBACK_COMPLETE, strings.LINE_SEPARATORS))) {
+            if (!matched or tally.Verified != 0 or checks_started) return error.InvalidBootstrapEvidence;
+            tally.Verified = tally.Planned;
+        } else if (std.mem.eql(u8, line, strings.CHECK_BEGIN)) {
+            if (tally.Verified == 0 or checks_started) return error.InvalidBootstrapEvidence;
+            checks_started = true;
+        }
+    }
+    return tally;
+}
+
+fn rollbackCount(text: []const u8) !u32 {
+    if (text.len == 0) return error.InvalidBootstrapEvidence;
+    for (text) |byte| if (!std.ascii.isDigit(byte)) return error.InvalidBootstrapEvidence;
+    const count = std.fmt.parseInt(u32, text, 10) catch return error.InvalidBootstrapEvidence;
+    if (count == 0) return error.InvalidBootstrapEvidence;
+    return count;
+}
+
+pub fn partialChecks(bytes: []const u8, selected: Scenario) u32 {
+    const begin = switch (selected) {
+        .Standard, .Devices => strings.CHECK_BEGIN,
+        .Firmware => std.mem.trimEnd(u8, firmware.BEGIN, strings.LINE_SEPARATORS),
+        .PulseDeath, .Collapse => return 0,
+    };
+    var count: u32 = 0;
+    var began = false;
+    var lines = std.mem.splitScalar(u8, bytes, '\n');
+    while (lines.next()) |raw| {
+        if (lines.index == null) break;
+        const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
+        if (failedBeforeSelection(line) or std.mem.startsWith(u8, line, strings.CHECK_COMPLETE) or
+            std.mem.startsWith(u8, line, firmware.COMPLETE)) break;
+        if (std.mem.eql(u8, line, begin)) {
+            if (began) return 0;
+            began = true;
+        } else if (began and line.len > strings.CHECK_PASS.len and std.mem.startsWith(u8, line, strings.CHECK_PASS)) {
+            count += 1;
+        }
+    }
+    return count;
 }
 
 pub fn verifyDisplay(bytes: []const u8) !void {

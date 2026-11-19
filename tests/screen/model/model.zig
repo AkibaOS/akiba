@@ -20,6 +20,7 @@ pub fn begin(state: *types.Model, name: []const u8) bool {
 
 pub fn beginWork(state: *types.Model, total: usize) bool {
     if (state.Active == null or state.ActiveVerified != null or total == 0) return false;
+    if (state.Work) |*tally| tally.addPlan(std.math.cast(u32, total) orelse return false);
     state.ActiveTotal = total;
     state.ActiveVerified = 0;
     return true;
@@ -30,6 +31,7 @@ pub fn checkpoint(state: *types.Model, verified: usize) bool {
     if (state.Active == null or verified <= before) return false;
     if (state.ActiveTotal) |total| {
         if (verified > total or verified - before != 1) return false;
+        if (state.Work) |*tally| tally.credit(1);
     }
     state.ActiveVerified = verified;
     return true;
@@ -58,6 +60,7 @@ fn closeActive(state: *types.Model, outcome: types.Outcome, name: []const u8) bo
 
 pub fn evidence(state: *types.Model, outcome: types.Outcome, name: []const u8) void {
     if (state.Active == null or name.len == 0) return;
+    if (outcome == .Pass) if (state.Work) |*tally| tally.credit(1);
     if (outcome == .Pass and state.TailIsPassEvidence and state.Count != 0) {
         const last = &state.Rows[wrap(state.Oldest, state.Count - 1, state.Rows.len)];
         if (std.mem.eql(u8, last.Text, name)) {
@@ -89,7 +92,13 @@ pub fn percent(state: *const types.Model) usize {
 }
 
 pub fn scaled(state: *const types.Model, scale: usize) usize {
-    if (state.Total == 0 or scale == 0) return 0;
+    if (scale == 0) return 0;
+    if (state.Work) |tally| {
+        if (!tally.valid()) return 0;
+        const verified: usize = @intCast(@as(u128, tally.Verified) * scale / tally.Planned);
+        return if (state.MenuReady) verified else @min(scale - 1, verified);
+    }
+    if (state.Total == 0) return 0;
     const partial = if (state.ActiveTotal) |total|
         @min(scale - 1, @as(u128, state.ActiveVerified orelse 0) * scale / total)
     else

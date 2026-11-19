@@ -139,6 +139,29 @@ pub fn measuredWork() !void {
     try std.testing.expectEqual(@as(?usize, null), state.ActiveTotal);
 }
 
+pub fn verificationWeight() !void {
+    const model = project.screen.model;
+    var rows: [4]project.screen.types.model.Row = undefined;
+    var state = model.initialize(&rows, 28);
+    state.Work = .{ .Planned = 1910, .Verified = 0 };
+    try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
+    try std.testing.expect(model.beginWork(&state, 820));
+    for (1..821) |count| try std.testing.expect(model.checkpoint(&state, count));
+    try std.testing.expectEqual(@as(usize, 30), model.percent(&state));
+    try std.testing.expectEqual(@as(u32, 2730), state.Work.?.Planned);
+    try std.testing.expectEqual(@as(u32, 820), state.Work.?.Verified);
+    try std.testing.expect(model.finish(&state, .Pass));
+    try std.testing.expectEqual(@as(u32, 820), state.Work.?.Verified);
+    try std.testing.expect(model.begin(&state, labels.NEXT_CASE));
+    model.evidence(&state, .Pass, labels.FIRST_CASE);
+    model.evidence(&state, .Pass, labels.FIRST_CASE);
+    try std.testing.expectEqual(@as(u32, 822), state.Work.?.Verified);
+    state.Work = .{ .Planned = 2730, .Verified = 2730 };
+    try std.testing.expectEqual(@as(usize, 99), model.percent(&state));
+    state.MenuReady = true;
+    try std.testing.expectEqual(@as(usize, 100), model.percent(&state));
+}
+
 pub fn rollbackClock() !void {
     const clock = project.screen.clock;
     const origin: u32 = 0xfffff0;

@@ -1,5 +1,7 @@
 //! Diagnostic Test Progress And Visible Rows
 
+const Tally = @import("tests").phase.types.work.Work;
+
 pub const Kind = enum { Info, Running, Pass, Fail };
 pub const Outcome = enum { Pass, Fail };
 
@@ -20,6 +22,7 @@ pub const Model = struct {
     Active: ?[]const u8 = null,
     ActiveVerified: ?usize = null,
     ActiveTotal: ?usize = null,
+    Work: ?Tally = null,
     TailIsPassEvidence: bool = false,
     Done: bool = false,
     MenuReady: bool = false,

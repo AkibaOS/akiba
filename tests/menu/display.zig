@@ -48,6 +48,7 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer, view: *View)
         .Count = count,
         .Completed = phase.menu.completedUnits(offer),
         .Failed = @popCount(offer.FailedMask),
+        .Work = offer.Work,
         .Done = true,
         .MenuReady = true,
     };

@@ -30,6 +30,7 @@ pub fn initialize(rows: []types.Row, offer: Offer) types.Model {
     const previous = live.preceding(offer.Ticket.Scenario);
     state.Completed = live.completed(previous, offer.StandardCompleted, offer.InterruptedMask);
     state.Failed = @popCount(offer.FailedMask);
+    state.Work = offer.Work;
     for (std.enums.values(Scenario)) |selected| {
         const bit = menu.phaseBit(selected);
         if (previous & bit == 0) break;
