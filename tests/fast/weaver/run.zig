@@ -116,8 +116,7 @@ test "Weaver discards a partial graph when a transitive system library is missin
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
         .{ .Parent = &INSTALLED, .Identity = LEAF, .Bytes = &leaf },
     } };
-    const metadata = try elf.read.dynamic.read(&executable);
-    try std.testing.expectError(error.LibraryNotFound, weaver.library.collect.collect(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, metadata));
+    try std.testing.expectError(error.LibraryNotFound, weaver.library.collect.collect(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable));
 }
 
 test "Weaver returns all dependency graph allocations at every injected allocation refusal" {
@@ -135,8 +134,7 @@ fn verifyGraph(allocator: std.mem.Allocator) !void {
         .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge, .Reads = &reads[1] },
         .{ .Parent = &SYSTEM, .Identity = LEAF, .Bytes = &leaf, .Reads = &reads[2] },
     } };
-    const metadata = try elf.read.dynamic.read(&executable);
-    var graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, metadata);
+    var graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable);
     defer graph.deinit();
     try std.testing.expectEqual(@as(usize, 3), graph.Libraries.len);
     try std.testing.expectEqualSlices(usize, &.{ 1, 1, 1 }, &reads);
@@ -144,6 +142,64 @@ fn verifyGraph(allocator: std.mem.Allocator) !void {
     try std.testing.expectEqualSlices(u8, &bridge, graph.get(BRIDGE).?.Bytes);
     try std.testing.expectEqualSlices(u8, &leaf, graph.get(LEAF).?.Bytes);
     try std.testing.expect(graph.get(ALIAS) == null);
+}
+
+test "Weaver places the exact executable snapshot and its libraries without page collisions" {
+    try verifyPlacement(ALLOCATOR);
+}
+
+test "Weaver rejects cross-image page collisions even when the images' bytes do not overlap" {
+    var graph = try layoutGraph(ALLOCATOR);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    const biases: weaver.image.types.layout.Biases = .{ .Executable = 0x200000, .Libraries = &.{ 0x201000, 0x600000 } };
+    try std.testing.expectError(error.AddressOverlap, weaver.image.place.place(ALLOCATOR, &graph, biases, policy, &.{}));
+}
+
+test "Weaver checks launch reservations and the aggregate image budget" {
+    var graph = try layoutGraph(ALLOCATOR);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    const biases: weaver.image.types.layout.Biases = .{ .Executable = 0x200000, .Libraries = &.{ 0x400000, 0x600000 } };
+    const place = weaver.image.place.place;
+    try std.testing.expectError(error.AddressOverlap, place(ALLOCATOR, &graph, biases, policy, &.{.{ .Start = 0x205000, .End = 0x206000 }}));
+    try std.testing.expectError(error.InvalidReservation, place(ALLOCATOR, &graph, biases, policy, &.{.{ .Start = 0x207008, .End = 0x208000 }}));
+    try std.testing.expectError(error.InvalidPlacement, place(ALLOCATOR, &graph, .{ .Executable = 0x200000, .Libraries = &.{0x400000} }, policy, &.{}));
+    var limited = policy;
+    limited.MaximumPages = 5;
+    try std.testing.expectError(error.ImageTooLarge, place(ALLOCATOR, &graph, biases, limited, &.{}));
+}
+
+test "Weaver releases partial image placements at every injected allocator refusal" {
+    try std.testing.checkAllAllocationFailures(ALLOCATOR, verifyPlacement, .{});
+}
+
+fn layoutGraph(allocator: std.mem.Allocator) !weaver.library.types.graph.Graph {
+    var executable = encodeGraph(PROBE_INDEX, null, null);
+    const probe = encodeGraph(BRIDGE_INDEX, null, PROBE_INDEX);
+    const bridge = encodeGraph(0, null, BRIDGE_INDEX);
+    const catalog: Catalog = .{ .Units = &.{
+        .{ .Parent = &SYSTEM, .Identity = text.DYNAMIC_LIBRARY, .Bytes = &probe },
+        .{ .Parent = &SYSTEM, .Identity = BRIDGE, .Bytes = &bridge },
+    } };
+    const graph = try weaver.library.collect.collect(allocator, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, &executable);
+    @memset(&executable, 0);
+    return graph;
+}
+
+fn verifyPlacement(allocator: std.mem.Allocator) !void {
+    var graph = try layoutGraph(allocator);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    const biases: weaver.image.types.layout.Biases = .{ .Executable = 0x200000, .Libraries = &.{ 0x400000, 0x600000 } };
+    var placement = try weaver.image.place.place(allocator, &graph, biases, policy, &.{.{ .Start = 0x207000, .End = 0x208000 }});
+    defer placement.deinit();
+    try std.testing.expectEqual(@as(u64, 0x206001), placement.Executable.Image.Entry);
+    try std.testing.expectEqual(@as(u64, 6), placement.Pages);
+    try std.testing.expectEqual(@as(usize, 2), placement.Libraries.len);
+    try std.testing.expectEqual(@as(u64, 0x405100), placement.Libraries[0].Image.Segments[0].VirtualAddress);
+    try std.testing.expectEqual(@as(u64, 0x605100), placement.Libraries[1].Image.Segments[0].VirtualAddress);
+    try std.testing.expectEqual(@as(u64, 0), placement.Libraries[0].Image.Entry);
 }
 
 fn encodeGraph(need: u64, second: ?u64, identity: ?u64) [inputs.DATA_BYTES]u8 {

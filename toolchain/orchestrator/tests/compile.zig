@@ -23,6 +23,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     checks.addImport(names.MODULE_UTILS, modules.Utils);
     const weaver = builder.createModule(.{ .root_source_file = builder.path(paths.WEAVER_ROOT) });
     weaver.addImport(names.MODULE_WEAVER, weaver);
+    weaver.addImport(names.MODULE_COMMON, modules.Common);
     weaver.addImport(names.MODULE_SHARED, modules.Shared);
     weaver.addImport(names.MODULE_UTILS, modules.Utils);
     const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });

@@ -8,6 +8,7 @@ pub const Index = std.StringHashMapUnmanaged(usize);
 
 pub const Graph = struct {
     Allocator: std.mem.Allocator,
+    Executable: []const u8,
     Libraries: []Library,
     Names: Index,
 
@@ -20,6 +21,8 @@ pub const Graph = struct {
         self.Names.deinit(self.Allocator);
         for (self.Libraries) |*library| library.deinit();
         self.Allocator.free(self.Libraries);
+        self.Allocator.free(self.Executable);
+        self.Executable = &.{};
         self.Names = .empty;
         self.Libraries = &.{};
     }

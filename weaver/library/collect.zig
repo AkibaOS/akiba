@@ -12,19 +12,22 @@ const LibraryError = library.errors.library.LibraryError;
 const Metadata = elf.types.dynamic.Metadata;
 const Source = library.types.source.Source;
 
-pub fn collect(allocator: std.mem.Allocator, source: Source, executable: Metadata) LibraryError!Graph {
+pub fn collect(allocator: std.mem.Allocator, source: Source, executable: []const u8) LibraryError!Graph {
+    const bytes = try allocator.dupe(u8, executable);
+    errdefer allocator.free(bytes);
+    const metadata = try elf.read.dynamic.read(bytes);
     var libraries: std.ArrayList(Library) = .empty;
     defer libraries.deinit(allocator);
     errdefer for (libraries.items) |*snapshot| snapshot.deinit();
     var names: Index = .empty;
     errdefer names.deinit(allocator);
 
-    try addDependencies(allocator, source, executable, &names, &libraries);
+    try addDependencies(allocator, source, metadata, &names, &libraries);
     var next: usize = 0;
     while (next < libraries.items.len) : (next += 1) {
         try addDependencies(allocator, source, libraries.items[next].Metadata, &names, &libraries);
     }
-    return .{ .Allocator = allocator, .Libraries = try libraries.toOwnedSlice(allocator), .Names = names };
+    return .{ .Allocator = allocator, .Executable = bytes, .Libraries = try libraries.toOwnedSlice(allocator), .Names = names };
 }
 
 fn addDependencies(allocator: std.mem.Allocator, source: Source, metadata: Metadata, names: *Index, libraries: *std.ArrayList(Library)) LibraryError!void {
