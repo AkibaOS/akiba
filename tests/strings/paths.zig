@@ -32,6 +32,7 @@ pub const FIRMWARE_PAIRS = [_][2][]const u8{
     .{ "edk2-x86_64-code.fd", "edk2-i386-vars.fd" },
     .{ "OVMF_CODE.fd", "OVMF_VARS.fd" },
     .{ "OVMF_CODE_4M.fd", "OVMF_VARS_4M.fd" },
+    .{ "OVMF_CODE.4m.fd", "OVMF_VARS.4m.fd" },
 };
 pub const MISSING_QEMU = "QEMU executable not found; set QEMU or add qemu-system-x86_64 to PATH.";
 pub const MISSING_IMAGE = "Cached guest check image missing; invoke make test-guest.";

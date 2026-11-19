@@ -69,11 +69,12 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     const runner_checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     runner_checks.addImport(names.MODULE_TESTS, runner_checks);
     runner_checks.addOptions(names.MODULE_RUNNER_OPTIONS, runner_options);
+    const host_os = builder.graph.host.result.os.tag;
     const host = builder.createModule(.{
         .root_source_file = builder.path(paths.RUNNER_ROOT),
         .target = builder.graph.host,
         .optimize = .ReleaseSafe,
-        .link_libc = builder.graph.host.result.os.tag != .windows,
+        .link_libc = host_os != .windows and host_os != .linux,
     });
     host.addImport(names.MODULE_TESTS, runner_checks);
     const runner = builder.addExecutable(.{ .name = names.EXECUTABLE_RUNNER, .root_module = host });
