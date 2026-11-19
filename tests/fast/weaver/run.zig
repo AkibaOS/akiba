@@ -6,6 +6,7 @@ const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
 const fixture = @import("tests").fast.shared.elf.fixture;
 const inputs = @import("tests").constants.elf;
+const pages = @import("tests").fast.weaver.pages;
 const text = @import("tests").strings.elf;
 const weaver = @import("weaver");
 
@@ -200,6 +201,14 @@ fn verifyPlacement(allocator: std.mem.Allocator) !void {
     try std.testing.expectEqual(@as(u64, 0x405100), placement.Libraries[0].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0x605100), placement.Libraries[1].Image.Segments[0].VirtualAddress);
     try std.testing.expectEqual(@as(u64, 0), placement.Libraries[0].Image.Entry);
+}
+
+test "Weaver materializes linked file bytes and split relocations before final page permissions" {
+    try pages.verify(false);
+}
+
+test "Weaver skips image gaps and keeps separate file fragments in one scratch page" {
+    try pages.verify(true);
 }
 
 test "Weaver plans checked function data and same-image bindings" {

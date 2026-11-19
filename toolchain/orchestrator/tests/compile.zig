@@ -26,6 +26,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     weaver.addImport(names.MODULE_COMMON, modules.Common);
     weaver.addImport(names.MODULE_SHARED, modules.Shared);
     weaver.addImport(names.MODULE_UTILS, modules.Utils);
+    checks.addImport(names.MODULE_WEAVER, weaver);
     const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });
     tool.addImport(names.EXECUTABLE_MKAFSDISK, tool);
     tool.addImport(names.MODULE_SHARED, modules.Shared);
