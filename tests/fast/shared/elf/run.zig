@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
 const fixture = @import("tests").fast.shared.elf.fixture;
 const growth = @import("tests").fast.shared.elf.growth;
@@ -10,6 +11,22 @@ const inputs = @import("tests").constants.elf;
 const ImageError = elf.errors.image.ImageError;
 
 const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+
+test "dynamic ELF exposes library names symbols and both relocation tables" {
+    try dynamic.readsTables();
+}
+
+test "dynamic ELF metadata requires unique matching file-backed load ranges" {
+    try dynamic.checksBacking();
+}
+
+test "dynamic ELF names stay within the terminated string table" {
+    try dynamic.checksNames();
+}
+
+test "dynamic ELF rejects malformed tables and a foreign interpreter" {
+    try dynamic.checksTableExtents();
+}
 
 test "ELF counts a terabyte of sparse BSS through intervals without visiting its pages" {
     try growth.sparse();
