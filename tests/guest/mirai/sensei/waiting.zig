@@ -3,13 +3,13 @@
 const std = @import("std");
 
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.sensei;
+const inputs = @import("tests").guest.constants.sensei;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.sensei;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.sensei;
+const types = @import("tests").guest.types.sensei;
 const verify = @import("tests").guest.support.verify;
 
 const Thread = thread.types.thread.Thread;

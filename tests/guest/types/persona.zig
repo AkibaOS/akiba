@@ -1,6 +1,6 @@
 //! Persona Invocation Machine State Fixtures
 
-const Floating = @import("tests").types.context.Floating;
+const Floating = @import("tests").guest.types.context.Floating;
 
 pub const Registers = extern struct {
     RBX: u64 = 0,

@@ -8,7 +8,7 @@ const driver = @import("tests").guest.mirai.sensei.support;
 const guard = @import("asm").interrupts.guard;
 const harness = @import("tests").guest.mirai.postman.harness;
 const inputs = @import("tests").constants.elf;
-const invocations = @import("tests").constants.completion;
+const invocations = @import("tests").guest.constants.completion;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const kernel = @import("mirai").memory.allocator.native;
@@ -16,7 +16,7 @@ const labels = @import("tests").strings.elf;
 const sensei = @import("mirai").sensei;
 const shared = @import("shared").elf;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.completion;
+const types = @import("tests").guest.types.completion;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 

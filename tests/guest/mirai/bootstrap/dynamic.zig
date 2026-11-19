@@ -15,7 +15,7 @@ const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 const weaver = @import("weaver");
 
-const Source = @import("tests").types.elf.Source;
+const Source = @import("tests").guest.types.elf.Source;
 
 const PROGRAM = @embedFile("dynamicimage");
 const LIBRARY = @embedFile("dynamiclibrary");

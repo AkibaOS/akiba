@@ -11,7 +11,7 @@ const memory = @import("hikari").efi.types.memory;
 const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.constants.status;
 const storage = @import("hikari").efi.types.buffer;
-const types = @import("tests").types.hikari;
+const types = @import("tests").guest.types.hikari;
 const verify = @import("tests").guest.support.verify;
 
 var pool: types.PoolState = .{};

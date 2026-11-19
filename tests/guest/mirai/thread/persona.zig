@@ -2,7 +2,7 @@
 
 const common = @import("common");
 const drive = @import("tests").guest.support.drive;
-const inputs = @import("tests").constants.guest;
+const inputs = @import("tests").guest.constants.guest;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.guest;
 const sensei = @import("mirai").sensei;

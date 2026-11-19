@@ -12,12 +12,12 @@ const kata = @import("mirai").kata;
 const labels = @import("tests").strings.weaver;
 const launch = @import("mirai").launch;
 const locations = @import("tests").constants.postman;
-const outcome = @import("tests").constants.completion;
+const outcome = @import("tests").guest.constants.completion;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 
-const Actor = @import("tests").types.postman.Actor;
+const Actor = @import("tests").guest.types.postman.Actor;
 const types = @import("tests").types.weaver;
 
 const IMAGE = @embedFile("weaverimage");

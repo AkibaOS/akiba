@@ -2,13 +2,13 @@
 
 const std = @import("std");
 
-const access = @import("tests").constants.access;
+const access = @import("tests").guest.constants.access;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.completion;
+const inputs = @import("tests").guest.constants.completion;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.completion;
 const support = @import("tests").guest.mirai.invocations.completion.support;
-const types = @import("tests").types.completion;
+const types = @import("tests").guest.types.completion;
 const verify = @import("tests").guest.support.verify;
 
 pub fn run() !void {

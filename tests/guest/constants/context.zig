@@ -1,6 +1,6 @@
 //! Native Thread Context Check Values
 
-const fixtures = @import("tests").types.context;
+const fixtures = @import("tests").guest.types.context;
 
 pub const YIELD_ROUNDS: u32 = 3;
 pub const PREEMPTION_BUDGET: u64 = 100000000;

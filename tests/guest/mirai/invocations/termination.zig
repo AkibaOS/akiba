@@ -2,9 +2,9 @@
 
 const common = @import("common");
 const drive = @import("tests").guest.support.drive;
-const fixtures = @import("tests").constants.invocations;
+const fixtures = @import("tests").guest.constants.invocations;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.guest;
+const inputs = @import("tests").guest.constants.guest;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.guest;
 const sensei = @import("mirai").sensei;

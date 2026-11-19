@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const constants = @import("tests").constants.acquisition;
+const constants = @import("tests").guest.constants.acquisition;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors.afs;
 const fixture = @import("tests").guest.hikari.disk.fixture;

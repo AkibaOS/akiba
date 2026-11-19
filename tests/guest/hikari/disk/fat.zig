@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").constants.acquisition;
+const constants = @import("tests").guest.constants.acquisition;
 const efi = @import("hikari").efi;
 const fat = @import("hikari").fs.types.fat32.reader;
 const fixture = @import("tests").guest.hikari.disk.fixture;

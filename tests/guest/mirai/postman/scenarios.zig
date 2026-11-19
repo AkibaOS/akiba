@@ -10,7 +10,7 @@ const scenarios = @import("tests").guest.mirai.postman;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 const verify = @import("tests").guest.support.verify;
 
 var finished: bool = false;

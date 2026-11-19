@@ -2,7 +2,7 @@
 
 const drive = @import("tests").guest.support.drive;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.retention;
+const inputs = @import("tests").guest.constants.retention;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.retention;
 const sensei = @import("mirai").sensei;

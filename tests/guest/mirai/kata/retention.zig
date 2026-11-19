@@ -4,16 +4,16 @@ const std = @import("std");
 
 const budget = @import("tests").guest.support.allocation;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.retention;
+const inputs = @import("tests").guest.constants.retention;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.retention;
-const limits = @import("tests").constants.guest;
+const limits = @import("tests").guest.constants.guest;
 const pmm = @import("mirai").pmm;
 const pool = @import("mirai").kata.constants.pool;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.retention;
+const types = @import("tests").guest.types.retention;
 const verify = @import("tests").guest.support.verify;
 
 const Kata = kata.types.kata.Kata;

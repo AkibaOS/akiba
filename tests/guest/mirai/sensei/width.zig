@@ -4,7 +4,7 @@ const std = @import("std");
 
 const budget = @import("tests").guest.support.allocation;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.sensei;
+const inputs = @import("tests").guest.constants.sensei;
 const labels = @import("tests").strings.sensei;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;

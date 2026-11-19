@@ -5,14 +5,14 @@ const std = @import("std");
 const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.completion;
+const inputs = @import("tests").guest.constants.completion;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.completion;
 const locations = @import("tests").constants.postman;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.invocations.completion.support;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.completion;
+const types = @import("tests").guest.types.completion;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 

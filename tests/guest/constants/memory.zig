@@ -2,7 +2,7 @@
 
 const common = @import("common");
 const kagami = @import("mirai").kagami;
-const types = @import("tests").types.memory;
+const types = @import("tests").guest.types.memory;
 
 const protection = kagami.constants.protection;
 const sizes = common.constants.memory.sizes;

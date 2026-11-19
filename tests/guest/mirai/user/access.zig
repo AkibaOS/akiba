@@ -4,10 +4,10 @@ const std = @import("std");
 
 const common = @import("common");
 const drive = @import("tests").guest.support.drive;
-const inputs = @import("tests").constants.access;
+const inputs = @import("tests").guest.constants.access;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.access;
-const locations = @import("tests").constants.guest;
+const locations = @import("tests").guest.constants.guest;
 const sensei = @import("mirai").sensei;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;

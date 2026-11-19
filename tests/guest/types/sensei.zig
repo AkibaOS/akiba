@@ -1,6 +1,6 @@
 //! Scheduler Regression Fixtures
 
-const inputs = @import("tests").constants.sensei;
+const inputs = @import("tests").guest.constants.sensei;
 const sensei = @import("mirai").sensei;
 
 const Queue = sensei.types.queue.Queue;

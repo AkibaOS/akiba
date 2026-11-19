@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.pool;
+const inputs = @import("tests").guest.constants.pool;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.retention;

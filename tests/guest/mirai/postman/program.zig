@@ -4,7 +4,7 @@ const std = @import("std");
 
 const abi = @import("mirai").invocations.types.abi;
 const constants = @import("tests").constants.postman;
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 
 const Actor = types.Actor;
 const FixtureError = types.FixtureError;

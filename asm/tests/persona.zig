@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const inputs = @import("tests").constants.persona;
-const strings = @import("tests").strings.persona;
-const types = @import("tests").types.persona;
-const Floating = @import("tests").types.context.Floating;
+const inputs = @import("tests").guest.constants.persona;
+const strings = @import("tests").guest.strings.persona;
+const types = @import("tests").guest.types.persona;
+const Floating = @import("tests").guest.types.context.Floating;
 
 extern var akiba_test_persona_end: u8;
 

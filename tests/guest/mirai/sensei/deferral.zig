@@ -1,7 +1,7 @@
 //! Nested Scheduling Deferral Regressions
 
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.sensei;
+const inputs = @import("tests").guest.constants.sensei;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.sensei;
 const sensei = @import("mirai").sensei;

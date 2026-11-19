@@ -7,13 +7,13 @@ const constants = @import("tests").constants.postman;
 const copy = @import("mirai").user.copy.transfer;
 const elf = @import("shared").elf;
 const harness = @import("tests").guest.mirai.postman.harness;
-const inputs = @import("tests").constants.completion;
+const inputs = @import("tests").guest.constants.completion;
 const invocation = @import("mirai").invocations.types.postman;
 const kata = @import("mirai").kata;
 const kernel = @import("mirai").memory.allocator.native;
 const labels = @import("tests").strings.postman;
 const launch = @import("mirai").launch;
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 

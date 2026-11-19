@@ -1,6 +1,6 @@
 //! Real Hikari GPT Parser Acquisition Regressions
 
-const constants = @import("tests").constants.acquisition;
+const constants = @import("tests").guest.constants.acquisition;
 const errors = @import("hikari").disk.errors.gpt;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const labels = @import("tests").strings.acquisition;

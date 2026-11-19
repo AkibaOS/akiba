@@ -4,7 +4,7 @@ const constants = @import("tests").constants.postman;
 const harness = @import("tests").guest.mirai.postman.harness;
 const labels = @import("tests").strings.postman;
 const postman = @import("mirai").postman;
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 const verify = @import("tests").guest.support.verify;
 
 const Operation = types.Operation;

@@ -2,9 +2,9 @@
 
 const cpu = @import("asm").cpu;
 const drive = @import("tests").guest.support.drive;
-const fixtures = @import("tests").types.context;
+const fixtures = @import("tests").guest.types.context;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.context;
+const inputs = @import("tests").guest.constants.context;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.context;

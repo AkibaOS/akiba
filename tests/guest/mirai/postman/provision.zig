@@ -5,7 +5,7 @@ const harness = @import("tests").guest.mirai.postman.harness;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.postman;
 const mirai = @import("mirai");
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 

@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.memory;
+const inputs = @import("tests").guest.constants.memory;
 const labels = @import("tests").strings.memory;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;

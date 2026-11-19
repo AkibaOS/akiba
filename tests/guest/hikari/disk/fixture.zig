@@ -6,7 +6,7 @@ const afs = @import("shared").afs;
 const base = @import("hikari").efi.types.base;
 const block = @import("hikari").efi.types.block;
 const boot = @import("hikari").efi.types.services.boot;
-const constants = @import("tests").constants.acquisition;
+const constants = @import("tests").guest.constants.acquisition;
 const convention = @import("hikari").efi.constants.convention;
 const crc = @import("utils").crc.checksum;
 const guids = @import("hikari").efi.constants.guids;
@@ -14,7 +14,7 @@ const labels = @import("tests").strings.acquisition;
 const memory = @import("hikari").efi.types.memory;
 const protocols = @import("hikari").efi.types.protocols.block;
 const status = @import("hikari").efi.constants.status;
-const types = @import("tests").types.acquisition;
+const types = @import("tests").guest.types.acquisition;
 
 pub var device: types.Device = .{};
 pub var media: block.BlockIoMedia = undefined;

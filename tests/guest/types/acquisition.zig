@@ -1,6 +1,6 @@
 //! Hikari Disk Acquisition Regression Types
 
-const constants = @import("tests").constants.acquisition;
+const constants = @import("tests").guest.constants.acquisition;
 
 pub const PoolSlot = struct {
     Bytes: [constants.POOL_BYTES]u8 align(constants.IO_ALIGNMENT) = @splat(constants.POOL_GUARD),

@@ -1,6 +1,6 @@
 //! Kata Retention Regression Fixtures
 
-const inputs = @import("tests").constants.retention;
+const inputs = @import("tests").guest.constants.retention;
 const kata = @import("mirai").kata;
 const sensei = @import("mirai").sensei;
 

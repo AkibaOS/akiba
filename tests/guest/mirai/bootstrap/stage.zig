@@ -20,7 +20,7 @@ const Plan = weaver.link.types.link.Plan;
 const Prepared = bootstrap.types.image.Prepared;
 const Protection = user.types.protection.Protection;
 const ReadError = weaver.library.errors.library.ReadError;
-const Source = @import("tests").types.elf.Source;
+const Source = @import("tests").guest.types.elf.Source;
 
 pub fn prepare(launcher: *const Kata, plan: *const Plan, first: ?*const Kata) !Prepared {
     const owner = try kata.create.createFor(launcher);

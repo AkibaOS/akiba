@@ -5,10 +5,10 @@ const std = @import("std");
 const address = @import("utils").address;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.memory;
+const inputs = @import("tests").guest.constants.memory;
 const labels = @import("tests").strings.memory;
 const pmm = @import("mirai").pmm;
-const types = @import("tests").types.memory;
+const types = @import("tests").guest.types.memory;
 const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;

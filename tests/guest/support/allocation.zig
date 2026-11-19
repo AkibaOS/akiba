@@ -1,7 +1,7 @@
 //! Guest Physical Allocation Failure Budget
 
 const common = @import("common");
-const types = @import("tests").types.allocation;
+const types = @import("tests").guest.types.allocation;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const Condition = types.Condition;

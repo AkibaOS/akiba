@@ -1,6 +1,6 @@
 //! Crimson Regression Inputs
 
-const types = @import("tests").types.crimson;
+const types = @import("tests").guest.types.crimson;
 
 pub const VECTORS = [_]types.VectorCase{
     .{ .Number = 0, .Kind = .Overflow, .ErrorCode = false },

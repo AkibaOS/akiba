@@ -4,7 +4,7 @@ const std = @import("std");
 
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.guest;
+const inputs = @import("tests").guest.constants.guest;
 const kata = @import("mirai").kata;
 const labels = @import("tests").strings.context;
 const memory = @import("mirai").memory;

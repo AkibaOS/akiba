@@ -1,6 +1,6 @@
 //! Stable Storage Regression Values
 
-const inputs = @import("tests").constants.pool;
+const inputs = @import("tests").guest.constants.pool;
 
 pub const Value = struct {
     Bytes: [inputs.VALUE_BYTES]u8 align(inputs.VALUE_ALIGNMENT),

@@ -4,12 +4,12 @@ const std = @import("std");
 
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.stack;
+const inputs = @import("tests").guest.constants.stack;
 const kagami = @import("mirai").kagami;
-const labels = @import("tests").strings.stack;
+const labels = @import("tests").guest.strings.stack;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
-const values = @import("tests").constants.memory;
+const values = @import("tests").guest.constants.memory;
 const verify = @import("tests").guest.support.verify;
 
 const limits = memory.constants.stack.limits;

@@ -2,7 +2,7 @@
 
 const guard = @import("asm").interrupts.guard;
 const labels = @import("tests").strings.guest;
-const limits = @import("tests").constants.guest;
+const limits = @import("tests").guest.constants.guest;
 const sensei = @import("mirai").sensei;
 
 pub fn run() void {

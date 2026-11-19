@@ -8,14 +8,14 @@ const constants = @import("tests").constants.postman;
 const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;
 const kata = @import("mirai").kata;
-const limits = @import("tests").constants.guest;
+const limits = @import("tests").guest.constants.guest;
 const postman = @import("mirai").postman;
 const program = @import("tests").guest.mirai.postman.program;
 const sensei = @import("mirai").sensei;
 const strings = @import("tests").strings.postman;
 const support = @import("tests").guest.mirai.sensei.support;
 const thread = @import("mirai").thread;
-const types = @import("tests").types.postman;
+const types = @import("tests").guest.types.postman;
 const user = @import("mirai").user;
 
 const Actor = types.Actor;

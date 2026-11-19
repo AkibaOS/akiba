@@ -7,9 +7,9 @@ const budget = @import("tests").guest.support.allocation;
 const common = @import("common");
 const conversion = @import("mirai").boot.regions.convert;
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.regions;
+const inputs = @import("tests").guest.constants.regions;
 const kagami = @import("mirai").kagami;
-const labels = @import("tests").strings.regions;
+const labels = @import("tests").guest.strings.regions;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 

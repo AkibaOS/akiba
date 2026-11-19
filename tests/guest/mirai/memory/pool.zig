@@ -5,11 +5,11 @@ const std = @import("std");
 const budget = @import("tests").guest.support.allocation;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
-const inputs = @import("tests").constants.pool;
-const labels = @import("tests").strings.pool;
+const inputs = @import("tests").guest.constants.pool;
+const labels = @import("tests").guest.strings.pool;
 const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
-const types = @import("tests").types.pool;
+const types = @import("tests").guest.types.pool;
 const verify = @import("tests").guest.support.verify;
 
 const layout = common.constants.memory.layout;
