@@ -1,5 +1,7 @@
 //! Q35 Fixture AHCI Port Registers
 
+const sizes = @import("common").constants.memory.sizes;
+
 pub const CAP = 0x00;
 pub const GHC = 0x04;
 pub const PORTS = 0x0c;
@@ -10,6 +12,7 @@ pub const BIOS_HANDOFF: u32 = 1;
 pub const PORT_NUMBER_MASK: u32 = 0x1f;
 pub const PORT_BASE = 0x100;
 pub const PORT_STRIDE = 0x80;
+pub const MAPPED_PORTS = (sizes.PAGE_SIZE - PORT_BASE) / PORT_STRIDE;
 pub const LIST = 0x00;
 pub const LIST_HIGH = 0x04;
 pub const FIS = 0x08;

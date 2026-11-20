@@ -1,5 +1,6 @@
 //! Fast Test Types Exports
 
+pub const ahci = @import("ahci/ahci.zig");
 pub const gpt = @import("gpt/gpt.zig");
 pub const image = @import("image/image.zig");
 pub const render = @import("render.zig");

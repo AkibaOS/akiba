@@ -215,7 +215,8 @@ fn expectedFatal(bytes: []const u8) !?usize {
 pub fn verifyAhci(bytes: []const u8) !void {
     const primary = (uniqueLine(bytes, markers.PASS ++ labels.AHCI_CHECK) catch return error.MissingAhciEvidence) orelse return error.MissingAhciEvidence;
     const volume = (uniqueLine(bytes, markers.PASS ++ labels.AHCI_VOLUME_CHECK) catch return error.MissingAhciEvidence) orelse return error.MissingAhciEvidence;
-    if (primary >= volume) return error.MissingAhciEvidence;
+    const location = (uniqueLine(bytes, markers.PASS ++ labels.AHCI_LOCATION_CHECK) catch return error.MissingAhciEvidence) orelse return error.MissingAhciEvidence;
+    if (primary >= volume or volume >= location) return error.MissingAhciEvidence;
 }
 
 fn uniqueLine(bytes: []const u8, expected: []const u8) !?usize {

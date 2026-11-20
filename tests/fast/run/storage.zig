@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const afs = @import("tests").fast.afs;
+const ahci = @import("tests").fast.ahci.discover;
 const boot = @import("tests").fast.boot;
 const fat32 = @import("tests").fast.fat32;
 const gpt = @import("tests").fast.gpt.inspect;
@@ -30,6 +31,18 @@ test "AHCI accepts only an identified 512 byte LBA48 disk" {
     try std.testing.expectEqual(@as(u64, 0x20000), try shared.ahci.command.identify.capacity(&identity));
     std.mem.writeInt(u16, identity[212..214], 0x5000, .little);
     try std.testing.expectError(error.UnsupportedSectorSize, shared.ahci.command.identify.capacity(&identity));
+}
+
+test "AHCI discovery follows PCI class across buses and valid multifunction slots" {
+    try ahci.discoversFunctions();
+}
+
+test "AHCI discovery refuses unconfigured and unsupported PCI apertures" {
+    try ahci.refusesResources();
+}
+
+test "AHCI selection refuses a duplicate or a later unverifiable candidate" {
+    try ahci.selectsUniquely();
 }
 
 test "GPT verifies the handed-off AFS identity beyond table padding" {

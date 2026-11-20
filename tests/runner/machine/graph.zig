@@ -19,7 +19,7 @@ pub fn arguments(allocator: std.mem.Allocator, list: *std.ArrayList([]const u8),
             .@"read-only" = true,
             .file = file(inputs.Image),
         } });
-        try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.AHCI_DEVICE });
+        try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.AHCI_CONTROLLER, strings.DEVICE_FLAG, strings.AHCI_DEVICE });
     } else {
         try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = file(inputs.Image) });
         try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.BOOT_DEVICE });

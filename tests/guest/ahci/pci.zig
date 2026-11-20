@@ -1,26 +1,31 @@
-//! Identify The Expected Q35 SATA Fixture
+//! Diagnostic PCI Configuration Access At A Discovered Address
 
+const fields = @import("shared").ahci.constants.discover.pci;
 const port = @import("asm").io.port;
 const values = @import("tests").guest.constants.ahci.pci;
 
-const Controller = @import("tests").guest.types.ahci.controller.Controller;
-const ProbeError = @import("tests").guest.errors.ahci.transfer.ProbeError;
+const Address = @import("shared").ahci.types.discover.configuration.Address;
+const Source = @import("shared").ahci.types.discover.configuration.Source;
 
-pub fn controller() ProbeError!Controller {
-    if (pci(values.PCI_ID) != values.ICH9_ID or pci(values.PCI_CLASS) >> values.REVISION_BITS != values.AHCI_CLASS)
-        return ProbeError.AhciControllerMissing;
-    const command: u16 = @truncate(pci(values.PCI_COMMAND));
-    const bar = pci(values.PCI_BAR);
-    if (command & values.MEMORY_ENABLE == 0 or bar == 0 or bar & values.BAR_FLAGS != 0) return ProbeError.InvalidAhciBar;
-    return .{ .Bar = bar, .Command = command };
+pub fn source() Source {
+    return .{ .Read = read };
 }
 
-fn pci(register: u32) u32 {
-    port.writeLong(values.PCI_ADDRESS, values.ICH9_ADDRESS | register);
-    return port.readLong(values.PCI_DATA);
+pub fn commandBits(address: Address, command: u16) void {
+    const previous = port.readLong(values.ADDRESS_PORT);
+    defer port.writeLong(values.ADDRESS_PORT, previous);
+    port.writeLong(values.ADDRESS_PORT, selector(address, fields.COMMAND_OFFSET));
+    port.writeWord(values.DATA_PORT, command);
 }
 
-pub fn commandBits(command: u16) void {
-    port.writeLong(values.PCI_ADDRESS, values.ICH9_ADDRESS | values.PCI_COMMAND);
-    port.writeWord(values.PCI_DATA, command);
+fn read(_: ?*anyopaque, address: Address, register: u8) u32 {
+    const previous = port.readLong(values.ADDRESS_PORT);
+    defer port.writeLong(values.ADDRESS_PORT, previous);
+    port.writeLong(values.ADDRESS_PORT, selector(address, register));
+    return port.readLong(values.DATA_PORT);
+}
+
+fn selector(address: Address, register: u8) u32 {
+    const location: u16 = @bitCast(address);
+    return values.ENABLE | (@as(u32, location) << values.ADDRESS_SHIFT) | register;
 }

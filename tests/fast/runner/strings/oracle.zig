@@ -2,6 +2,7 @@
 
 pub const AHCI_HEADER = "CHECK PASS native AHCI read after UEFI returns the diagnostic disk GPT header";
 pub const AHCI_VOLUME = "CHECK PASS native AHCI matches the selected AFS boot volume";
+pub const AHCI_LOCATION = "CHECK PASS native AHCI selected the relocated boot controller";
 pub const AHCI_PREFIX = "other ";
 pub const LF = "\n";
 pub const CRLF = "\r\n";

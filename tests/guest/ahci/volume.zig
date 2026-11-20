@@ -1,25 +1,21 @@
 //! Compare Native AHCI GPT Sectors With The Retained Boot Volume
 
-const boot = @import("mirai").boot.sequence.state;
 const identity = @import("shared").gpt.read.identity;
 const transfer = @import("tests").guest.ahci.transfer;
 const wire = @import("shared").ahci.constants.command.dma;
 
 const Disk = @import("tests").guest.types.ahci.disk.Disk;
-const ProbeError = @import("tests").guest.errors.ahci.transfer.ProbeError;
 const VerifyError = @import("shared").gpt.errors.read.verification.VerifyError;
+const Volume = @import("shared").boot.types.volume.Volume;
 
-pub fn match(disk: *Disk) anyerror!void {
-    const info = boot.getBootInfo() orelse return ProbeError.AhciBootVolumeMissing;
-    const volume = info.Volume orelse return ProbeError.AhciBootVolumeMissing;
+pub fn match(disk: *Disk, volume: Volume) anyerror!bool {
     var scratch: [wire.SECTOR_BYTES]u8 = undefined;
-    const matched = try identity.matchSectors(volume, .{
+    return identity.matchSectors(volume, .{
         .Context = disk,
         .Read = read,
         .BlockBytes = wire.SECTOR_BYTES,
         .LastLBA = disk.Sectors - 1,
     }, &scratch);
-    if (!matched) return ProbeError.AhciBootVolumeMismatch;
 }
 
 fn read(context: *anyopaque, lba: u64, destination: []u8) !void {

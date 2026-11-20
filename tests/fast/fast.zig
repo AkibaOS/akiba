@@ -1,6 +1,7 @@
 //! Fast Regression Exports
 
 pub const afs = @import("afs/afs.zig");
+pub const ahci = @import("ahci/ahci.zig");
 pub const boot = @import("boot/boot.zig");
 pub const common = @import("common/common.zig");
 pub const constants = @import("constants/constants.zig");

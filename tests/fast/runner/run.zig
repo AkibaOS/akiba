@@ -14,20 +14,23 @@ const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Selection = @import("tests").phase.types.boot.frame.Selection;
 
-test "AHCI evidence requires the exact native header and volume assertions" {
+test "AHCI evidence requires the exact header, volume and relocated-controller assertions" {
     const primary = fixtures.AHCI_HEADER;
     const volume = fixtures.AHCI_VOLUME;
+    const location = fixtures.AHCI_LOCATION;
     const lf = fixtures.LF;
     const crlf = fixtures.CRLF;
-    try result.verifyAhci(primary ++ lf ++ volume ++ lf);
-    try result.verifyAhci(primary ++ crlf ++ volume ++ crlf);
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ primary ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(fixtures.AHCI_PREFIX ++ primary ++ lf ++ volume ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ fixtures.AHCI_PREFIX ++ volume ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ crlf ++ primary ++ lf ++ volume ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ crlf ++ volume ++ lf));
+    try result.verifyAhci(primary ++ lf ++ volume ++ lf ++ location ++ lf);
+    try result.verifyAhci(primary ++ crlf ++ volume ++ crlf ++ location ++ crlf);
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ primary ++ lf ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf ++ volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ lf ++ fixtures.AHCI_PREFIX ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ crlf ++ primary ++ lf ++ volume ++ lf ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ crlf ++ volume ++ lf ++ location ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ lf ++ location ++ crlf ++ location ++ lf));
 }
 
 test "a boot selector acknowledgement binds the exact role and epoch" {
