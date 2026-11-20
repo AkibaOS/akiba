@@ -216,7 +216,7 @@ fn exactFences(reader: *readers.Reader, parent: u32) !bool {
         while (record_index < descriptor.RecordCount) : (record_index += 1) {
             const current = try reader.Index.readNode(number);
             const pointer = afs.btree.node.getRecordPointer(@ptrCast(current), reader.Index.NodeSize, record_index);
-            const key: *align(1) const afs.types.btree.IndexKey = @ptrCast(pointer);
+            const key: *align(1) const afs.types.btree.records.IndexKey = @ptrCast(pointer);
             if (key.ParentNodeId != parent) continue;
             if (key.getIdentityLength() != inputs.IDENTITY_BYTES) return false;
             var identity: [inputs.IDENTITY_BYTES]u8 = undefined;

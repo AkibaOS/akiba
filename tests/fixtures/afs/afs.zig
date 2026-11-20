@@ -8,10 +8,10 @@ const names = @import("tests").fixtures.strings.catalog;
 
 const BlockError = afs.errors.block.BlockError;
 const BlockReader = afs.types.block.BlockReader;
-const Header = afs.types.btree.HeaderRecord;
-const IndexKey = afs.types.btree.IndexKey;
+const Header = afs.types.btree.records.HeaderRecord;
+const IndexKey = afs.types.btree.records.IndexKey;
 const LibraryCells = @import("tests").fixtures.types.catalog.LibraryCells;
-const Node = afs.types.btree.NodeDescriptor;
+const Node = afs.types.btree.records.NodeDescriptor;
 const Volume = afs.types.volume.VolumeHeader;
 
 pub fn device(cells: *LibraryCells, library_bytes: []const u8, identity: []const u8, missing: bool) !BlockReader {
@@ -63,7 +63,7 @@ fn volume(cells: *const LibraryCells, destination: []u8) void {
 }
 
 fn header(cells: *const LibraryCells, destination: []u8) void {
-    const node: Node = .{ .NodeType = afs.constants.btree.NODE_TYPE_HEADER, .RecordCount = 1 };
+    const node: Node = .{ .NodeType = afs.constants.btree.records.NODE_TYPE_HEADER, .RecordCount = 1 };
     @memcpy(destination[0..@sizeOf(Node)], std.mem.asBytes(&node));
     const value: Header = .{ .NodeSize = geometry.CELL_SIZE, .TotalNodes = geometry.NODE_COUNT, .LeafRecordCount = records(cells) };
     @memcpy(destination[@sizeOf(Node)..][0..@sizeOf(Header)], std.mem.asBytes(&value));
@@ -96,7 +96,7 @@ fn add(destination: []u8, position: *usize, index: usize, parent: u32, name: []c
     std.mem.writeInt(u16, key_bytes[0..@sizeOf(u16)], key.KeyLength, .little);
     std.mem.writeInt(u32, key_bytes[@offsetOf(IndexKey, "ParentNodeId")..][0..@sizeOf(u32)], key.ParentNodeId, .little);
     for (name, 0..) |_, character| {
-        const start = afs.constants.btree.INDEX_KEY_HEADER_SIZE + character * @sizeOf(u16);
+        const start = afs.constants.btree.records.INDEX_KEY_HEADER_SIZE + character * @sizeOf(u16);
         std.mem.writeInt(u16, key_bytes[start..][0..@sizeOf(u16)], key.Identity[character], .little);
     }
     position.* += key.KeyLength;

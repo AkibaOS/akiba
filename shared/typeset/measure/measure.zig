@@ -7,7 +7,7 @@ const raster = @import("shared").raster;
 const typeset = @import("shared").typeset;
 const utf8 = @import("utils").text.utf8;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
 const TextStyle = typeset.types.style.TextStyle;
 

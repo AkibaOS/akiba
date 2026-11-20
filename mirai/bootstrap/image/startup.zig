@@ -4,7 +4,7 @@ const codec = @import("shared").launch.startup;
 const common = @import("common");
 const types = @import("mirai").bootstrap.types.image.preparation;
 const user = @import("mirai").user;
-const wire = @import("shared").launch.constants.startup;
+const wire = @import("shared").launch.constants.startup.record;
 
 const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 const Kata = @import("mirai").kata.types.kata.Kata;

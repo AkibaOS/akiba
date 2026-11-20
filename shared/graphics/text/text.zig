@@ -11,12 +11,12 @@ const draw = graphics.draw;
 const BlendTarget = graphics.types.renderer.BlendTarget;
 const Color = graphics.types.color.Color;
 const Cursor = typeset.types.cursor.Cursor;
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 const Placement = raster.types.placement.Placement;
 const RowSink = raster.types.sink.RowSink;
 const Surface = graphics.types.surface.Surface;
-const TextError = graphics.errors.text.TextError;
+const TextError = graphics.errors.text.rendering.TextError;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 const TextStyle = typeset.types.style.TextStyle;
 

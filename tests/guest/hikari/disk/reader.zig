@@ -28,7 +28,7 @@ pub fn run() void {
     fixture.reset();
     fixture.encodeAFS();
     const descriptor = (inputs.PARTITION_FIRST_LBA + 1) * inputs.BLOCK_BYTES;
-    fixture.device.Disk[descriptor + @offsetOf(afs.types.btree.NodeDescriptor, labels.NODE_TYPE_FIELD)] = 0xff;
+    fixture.device.Disk[descriptor + @offsetOf(afs.types.btree.records.NodeDescriptor, labels.NODE_TYPE_FIELD)] = 0xff;
     verify.require(volume and rejects(error.InvalidVolumeHeader, 1, 1, 2), labels.READER_HEADER);
     const discovery_rejected = replaceAfterDiscovery();
     const mount_rejected = replaceDuringMount();
@@ -144,7 +144,7 @@ fn largerCell() void {
         fixture.device.Reads[2].Address == fixture.device.Reads[1].Address and
         @intFromPtr(mounted.CellAllocation.Pool.Allocation.?) != @intFromPtr(mounted.CellAllocation.Data);
     const leaf_offset = index_lba * inputs.BLOCK_BYTES + inputs.BLOCK_BYTES;
-    const leaf: *align(1) afs.types.btree.NodeDescriptor = @ptrCast(&fixture.device.Disk[leaf_offset]);
+    const leaf: *align(1) afs.types.btree.records.NodeDescriptor = @ptrCast(&fixture.device.Disk[leaf_offset]);
     leaf.Height = 2;
     var replacement = fixture.media;
     replacement.MediaId += 1;

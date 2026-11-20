@@ -9,7 +9,7 @@ const strings = @import("tests").fast.strings.image;
 const types = @import("tests").fast.types.image;
 
 const AFSImage = types.AFSImage;
-const NodeDescriptor = afs.types.btree.NodeDescriptor;
+const NodeDescriptor = afs.types.btree.records.NodeDescriptor;
 const UnitRecord = afs.types.catalog.UnitRecord;
 
 pub fn metadataAndAllocation(file: std.fs.File) !AFSImage {

@@ -9,7 +9,7 @@ pub const View = struct {
     Pool: efi.types.buffer.claims.PoolClaim = .{},
     Target: graphics.types.surface.Surface = undefined,
     Layout: screen.types.geometry.Layout = undefined,
-    Face: font.types.face.Face = undefined,
+    Face: font.types.face.font.Face = undefined,
     Renderer: graphics.types.renderer.TextRenderer = undefined,
     Pixels: []u32 = &.{},
 };

@@ -1,6 +1,6 @@
 //! AFS Constants
 
-pub const btree = @import("btree.zig");
+pub const btree = @import("btree/btree.zig");
 pub const flags = @import("flags.zig");
 pub const layout = @import("layout.zig");
 pub const magic = @import("magic.zig");

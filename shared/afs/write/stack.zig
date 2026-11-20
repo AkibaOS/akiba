@@ -6,11 +6,11 @@ const separators = @import("utils").path.constants.separators;
 const types = @import("shared").afs.types;
 
 const ChannelInfo = types.volume.ChannelInfo;
-const IndexKey = types.btree.IndexKey;
+const IndexKey = types.btree.records.IndexKey;
 const Permissions = types.catalog.Permissions;
 const StackRecord = types.catalog.StackRecord;
 const UnitRecord = types.catalog.UnitRecord;
-const WriteError = errors.write.WriteError;
+const WriteError = errors.write.transfers.WriteError;
 
 pub fn createStackRecord(
     node_id: u32,
@@ -94,5 +94,5 @@ pub fn createIndexKey(
 
 pub fn indexKeySize(identity_length: usize) WriteError!usize {
     if (identity_length > @as(IndexKey, undefined).Identity.len) return WriteError.InvalidIdentity;
-    return @as(usize, constants.btree.INDEX_KEY_HEADER_SIZE) + identity_length * @sizeOf(u16);
+    return @as(usize, constants.btree.records.INDEX_KEY_HEADER_SIZE) + identity_length * @sizeOf(u16);
 }

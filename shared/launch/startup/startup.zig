@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const layout = @import("shared").launch.constants.startup;
+const layout = @import("shared").launch.constants.startup.record;
 const sizes = @import("common").constants.memory.sizes;
 
-const StartupError = @import("shared").launch.errors.startup.StartupError;
+const StartupError = @import("shared").launch.errors.startup.codec.StartupError;
 
 pub fn size(identity: u64, parameters: u64, available: u64) StartupError!u64 {
     if (identity == 0) return error.InvalidStartup;

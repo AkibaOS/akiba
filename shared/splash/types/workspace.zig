@@ -6,7 +6,7 @@ const raster = @import("shared").raster;
 const splash = @import("shared").splash;
 
 const Edge = raster.types.edge.Edge;
-const Point = font.types.outline.Point;
+const Point = font.types.outline.contour.Point;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 
 const limits = splash.constants.limits;

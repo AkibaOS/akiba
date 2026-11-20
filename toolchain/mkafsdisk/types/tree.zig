@@ -27,7 +27,7 @@ pub const NodePlan = struct {
 pub const TreePlan = struct {
     Allocator: std.mem.Allocator,
     Nodes: []NodePlan,
-    Header: afs.types.btree.HeaderRecord,
+    Header: afs.types.btree.records.HeaderRecord,
 
     pub fn deinit(self: *TreePlan) void {
         for (self.Nodes) |node| self.Allocator.free(node.Records);

@@ -3,7 +3,7 @@
 pub const allocation = @import("allocation.zig");
 pub const attributes = @import("attributes.zig");
 pub const block = @import("block.zig");
-pub const btree = @import("btree.zig");
+pub const btree = @import("btree/btree.zig");
 pub const catalog = @import("catalog.zig");
 pub const extents = @import("extents.zig");
 pub const reader = @import("reader.zig");

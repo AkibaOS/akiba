@@ -26,7 +26,7 @@ pub fn prepare(launcher: *const Kata, plan: *const Plan, first: ?*const Kata) !P
     const owner = try kata.create.createFor(launcher);
     errdefer driver.dispose(owner.ID) catch |failure| verify.failure(failure);
     var buffer: [sizes.PAGE_SIZE]u8 = undefined;
-    var stream: weaver.stage.types.page.Stream = .{ .Link = plan };
+    var stream: weaver.stage.types.page.stream.Stream = .{ .Link = plan };
     while (weaver.stage.page.next.next(&stream, &buffer)) |page| {
         if (page.ImmutableLibrary) {
             if (first) |source| {

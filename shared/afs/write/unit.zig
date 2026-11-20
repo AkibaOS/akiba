@@ -10,7 +10,7 @@ const types = @import("shared").afs.types;
 const BlockWriter = types.block.BlockWriter;
 const ChannelInfo = types.volume.ChannelInfo;
 const SpanDescriptor = types.volume.SpanDescriptor;
-const WriteError = errors.write.WriteError;
+const WriteError = errors.write.transfers.WriteError;
 
 pub fn writeSpan(
     writer: *const BlockWriter,

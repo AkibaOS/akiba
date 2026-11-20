@@ -40,7 +40,7 @@ pub fn invoke(channel: Channel, operation: wire.Operation, argument: u64, protec
 
 fn image(channel: Channel, plan: *const Plan, cache: ?*Cache, boundary: usize) RequestError!void {
     var bytes: [sizes.PAGE_SIZE]u8 = undefined;
-    var stream: weaver.stage.types.page.Stream = .{ .Link = plan };
+    var stream: weaver.stage.types.page.stream.Stream = .{ .Link = plan };
     while (weaver.stage.page.next.next(&stream, &bytes)) |page| {
         const protection: wire.Protection = switch (page.Access) {
             .ReadOnly => .ReadOnly,

@@ -39,7 +39,7 @@ pub fn verify(sparse: bool) !void {
     defer placement.deinit();
     var linked = try weaver.link.plan.plan(ALLOCATOR, &placement);
     defer linked.deinit();
-    var stream: weaver.stage.types.page.Stream = .{ .Link = &linked };
+    var stream: weaver.stage.types.page.stream.Stream = .{ .Link = &linked };
     var bytes: [inputs.PAGE_BYTES]u8 = @splat(0xff);
     const next = weaver.stage.page.next.next;
     const relro = next(&stream, &bytes) orelse return error.MissingPage;

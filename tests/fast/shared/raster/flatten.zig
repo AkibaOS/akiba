@@ -10,7 +10,7 @@ const raster = @import("shared").raster;
 
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
 const Placement = raster.types.placement.Placement;
-const Point = font.types.outline.Point;
+const Point = font.types.outline.contour.Point;
 const Shape = raster.types.shape.Shape;
 const Workspace = raster.types.workspace.Workspace;
 
@@ -126,7 +126,7 @@ pub fn edgeGrowthAndFixedScratch() !void {
         @memcpy(points[start..][0..constants.RECTANGLE_POINTS.len], &constants.RECTANGLE_POINTS);
         end.* = start + constants.RECTANGLE_POINTS.len - 1;
     }
-    const outline: font.types.outline.Outline = .{ .Points = points, .ContourEnds = ends, .PointCount = points.len, .ContourCount = ends.len };
+    const outline: font.types.outline.contour.Outline = .{ .Points = points, .ContourEnds = ends, .PointCount = points.len, .ContourCount = ends.len };
     var shape = Shape.initAllocating(std.testing.allocator);
     defer shape.deinit();
     try raster.flatten.flatten(&outline, try Fixed16Dot16.fromRatio(1, 1), 0, 256, &shape);

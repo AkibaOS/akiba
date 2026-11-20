@@ -6,7 +6,7 @@ const splash = @import("shared").splash;
 const Canvas = splash.types.canvas.Canvas;
 const SplashState = splash.types.state.SplashState;
 const Surface = graphics.types.surface.Surface;
-const TextError = graphics.errors.text.TextError;
+const TextError = graphics.errors.text.rendering.TextError;
 
 const labels = splash.strings.splash;
 const layout = splash.constants.layout;

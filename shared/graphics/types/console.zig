@@ -11,10 +11,10 @@ const draw = graphics.draw;
 
 const Color = graphics.types.color.Color;
 const CoordinateError = raster.errors.raster.CoordinateError;
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
 const Surface = graphics.types.surface.Surface;
-const TextError = graphics.errors.text.TextError;
+const TextError = graphics.errors.text.rendering.TextError;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 
 const constants = graphics.constants.console;

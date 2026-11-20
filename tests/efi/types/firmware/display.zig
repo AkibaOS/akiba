@@ -13,7 +13,7 @@ pub const Scratch = struct {
 pub const Session = struct {
     Surface: graphics.types.surface.Surface,
     Layout: screen.types.geometry.Layout,
-    Face: font.types.face.Face,
+    Face: font.types.face.font.Face,
     Scratch: *Scratch,
     Pixels: []u32,
     Progress: screen.types.model.Model,

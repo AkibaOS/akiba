@@ -5,7 +5,7 @@ const encoding = @import("tests").fast.shared.sfnt.fixture;
 const font = @import("shared").font;
 const types = @import("tests").fast.types.render;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const GlyphFixture = types.GlyphFixture;
 const SFNTFixture = types.SFNTFixture;
 

@@ -8,8 +8,8 @@ const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 
 const BTreeError = errors.afs.BTreeError;
-const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
-const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
+const BTreeNodeDescriptor = afs.types.btree.records.NodeDescriptor;
+const BTreeHeaderRecord = afs.types.btree.records.HeaderRecord;
 const MediaSnapshot = disk.types.media.MediaSnapshot;
 const StackRecord = afs.types.catalog.StackRecord;
 const UnitRecord = afs.types.catalog.UnitRecord;

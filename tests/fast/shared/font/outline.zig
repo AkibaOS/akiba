@@ -8,7 +8,7 @@ const fixture = @import("tests").fast.shared.font.fixture;
 const font = @import("shared").font;
 const types = @import("tests").fast.types.render;
 
-const GlyphBuffer = font.types.outline.GlyphBuffer;
+const GlyphBuffer = font.types.outline.contour.GlyphBuffer;
 const GlyphFixture = types.GlyphFixture;
 
 pub fn simpleAndEmptyOutlines() !void {

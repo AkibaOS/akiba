@@ -4,7 +4,7 @@ const splash = @import("shared").splash;
 const typeset = @import("shared").typeset;
 
 const Canvas = splash.types.canvas.Canvas;
-const TextError = @import("shared").graphics.errors.text.TextError;
+const TextError = @import("shared").graphics.errors.text.rendering.TextError;
 const TextStyle = typeset.types.style.TextStyle;
 
 pub fn width(canvas: *Canvas, style: TextStyle, text: []const u8) TextError!i32 {

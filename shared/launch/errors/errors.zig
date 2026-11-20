@@ -1,3 +1,3 @@
 //! Launch Record Error Exports
 
-pub const startup = @import("startup.zig");
+pub const startup = @import("startup/startup.zig");

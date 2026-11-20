@@ -4,7 +4,7 @@ const std = @import("std");
 
 const elf = @import("shared").elf;
 const sizes = @import("common").constants.memory.sizes;
-const types = @import("weaver").stage.types.page;
+const types = @import("weaver").stage.types.page.stream;
 
 const Program = elf.types.format.Elf64ProgramHeader;
 const Stream = types.Stream;

@@ -3,9 +3,9 @@
 const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
-const GlyphBuffer = font.types.outline.GlyphBuffer;
+const GlyphBuffer = font.types.outline.contour.GlyphBuffer;
 const Reader = sfnt.types.reader.Reader;
 const Transform = font.types.transform.Transform;
 

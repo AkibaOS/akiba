@@ -5,7 +5,7 @@ const graphics = @import("shared").graphics;
 const raster = @import("shared").raster;
 
 const Color = graphics.types.color.Color;
-const Point = font.types.outline.Point;
+const Point = font.types.outline.contour.Point;
 
 pub const BINARY_CAPACITY: usize = 4096;
 pub const LOCATION_CAPACITY: usize = 64;

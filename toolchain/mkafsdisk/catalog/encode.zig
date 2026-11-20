@@ -6,7 +6,7 @@ const afs = @import("shared").afs;
 const tool = @import("mkafsdisk");
 
 const Entry = tool.types.catalog.Entry;
-const NodeDescriptor = afs.types.btree.NodeDescriptor;
+const NodeDescriptor = afs.types.btree.records.NodeDescriptor;
 const PlanningError = tool.errors.planning.PlanningError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 const TreePlan = tool.types.tree.TreePlan;
@@ -29,7 +29,7 @@ pub fn encode(
     const node = plan.Nodes[node_number];
     if (node.Number != node_number) return PlanningError.InvalidNode;
     @memset(destination, 0);
-    if (node_number == afs.constants.btree.HEADER_NODE_NUMBER) {
+    if (node_number == afs.constants.btree.records.HEADER_NODE_NUMBER) {
         if (node.Height != 0 or node.Records.len != 0) return PlanningError.InvalidNode;
         encodeHeader(plan, destination);
         return;
@@ -39,7 +39,7 @@ pub fn encode(
     const descriptor = NodeDescriptor{
         .ForwardLink = node.ForwardLink,
         .BackwardLink = node.BackwardLink,
-        .NodeType = if (node.Height == 1) afs.constants.btree.NODE_TYPE_LEAF else afs.constants.btree.NODE_TYPE_INDEX,
+        .NodeType = if (node.Height == 1) afs.constants.btree.records.NODE_TYPE_LEAF else afs.constants.btree.records.NODE_TYPE_INDEX,
         .Height = node.Height,
         .RecordCount = record_count,
     };
@@ -77,12 +77,12 @@ pub fn encode(
 
 fn encodeHeader(plan: *const TreePlan, destination: []u8) void {
     const descriptor = NodeDescriptor{
-        .NodeType = afs.constants.btree.NODE_TYPE_HEADER,
+        .NodeType = afs.constants.btree.records.NODE_TYPE_HEADER,
         .Height = 0,
         .RecordCount = constants.HEADER_RECORD_COUNT,
     };
     encodeValue(NodeDescriptor, descriptor, destination[0..constants.NODE_DESCRIPTOR_BYTES]);
-    encodeValue(afs.types.btree.HeaderRecord, plan.Header, destination[constants.NODE_DESCRIPTOR_BYTES..][0..constants.HEADER_RECORD_BYTES]);
+    encodeValue(afs.types.btree.records.HeaderRecord, plan.Header, destination[constants.NODE_DESCRIPTOR_BYTES..][0..constants.HEADER_RECORD_BYTES]);
     encodeOffset(destination, 0, constants.NODE_DESCRIPTOR_BYTES);
 }
 
@@ -90,7 +90,7 @@ fn encodeKey(entry: Entry, destination: []u8) void {
     std.mem.writeInt(u16, destination[0..@sizeOf(u16)], @intCast(destination.len), .little);
     std.mem.writeInt(u32, destination[constants.KEY_PARENT_OFFSET..][0..@sizeOf(u32)], entry.ParentNodeId, .little);
     for (entry.Identity, 0..) |character, index| {
-        const offset = afs.constants.btree.INDEX_KEY_HEADER_SIZE + index * @sizeOf(u16);
+        const offset = afs.constants.btree.records.INDEX_KEY_HEADER_SIZE + index * @sizeOf(u16);
         std.mem.writeInt(u16, destination[offset..][0..@sizeOf(u16)], character, .little);
     }
 }
@@ -142,11 +142,11 @@ pub fn encodeValue(comptime Value: type, value: Value, destination: []u8) void {
 
 comptime {
     if (@sizeOf(NodeDescriptor) != constants.NODE_DESCRIPTOR_BYTES or
-        @sizeOf(afs.types.btree.HeaderRecord) != constants.HEADER_RECORD_BYTES or
+        @sizeOf(afs.types.btree.records.HeaderRecord) != constants.HEADER_RECORD_BYTES or
         @sizeOf(afs.types.catalog.StackRecord) != constants.STACK_RECORD_BYTES or
         @sizeOf(afs.types.catalog.UnitRecord) != constants.UNIT_RECORD_BYTES or
-        @offsetOf(afs.types.btree.IndexKey, tool.strings.catalog.KEY_PARENT_FIELD) != constants.KEY_PARENT_OFFSET or
-        @offsetOf(afs.types.btree.IndexKey, tool.strings.catalog.KEY_IDENTITY_FIELD) != afs.constants.btree.INDEX_KEY_HEADER_SIZE)
+        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.KEY_PARENT_FIELD) != constants.KEY_PARENT_OFFSET or
+        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.KEY_IDENTITY_FIELD) != afs.constants.btree.records.INDEX_KEY_HEADER_SIZE)
     {
         @compileError(tool.strings.catalog.INVALID_WIRE_LAYOUT);
     }

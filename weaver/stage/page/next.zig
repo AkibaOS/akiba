@@ -3,7 +3,7 @@
 const fill = @import("weaver").stage.page.fill;
 const format = @import("shared").elf.constants.format;
 const sizes = @import("common").constants.memory.sizes;
-const types = @import("weaver").stage.types.page;
+const types = @import("weaver").stage.types.page.stream;
 
 const Access = types.Access;
 const Page = types.Page;

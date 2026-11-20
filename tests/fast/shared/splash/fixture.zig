@@ -9,7 +9,7 @@ const splash = @import("shared").splash;
 const types = @import("tests").fast.types.render;
 
 const Canvas = splash.types.canvas.Canvas;
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const GuardedFrame = types.GuardedFrame;
 const Surface = graphics.types.surface.Surface;
 const TextRenderer = graphics.types.renderer.TextRenderer;

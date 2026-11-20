@@ -83,7 +83,7 @@ pub fn maximumKeyAndHeaderUseIndependentWireBytes() !void {
     try std.testing.expect(std.mem.allEqual(u8, buffer[constants.MAXIMUM_RECORD_END .. constants.CELL_BYTES - constants.OFFSET_BYTES], 0));
     @memset(&buffer, constants.FILL_BYTE);
     try encode.encode(&tree, constants.HEADER_NODE, &entries, &spans, &buffer);
-    const descriptor = std.mem.bytesToValue(afs.types.btree.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
+    const descriptor = std.mem.bytesToValue(afs.types.btree.records.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
     try std.testing.expect(descriptor.isHeader());
     try std.testing.expectEqual(constants.HEADER_RECORD_BYTES, std.mem.readInt(u16, buffer[constants.HEADER_RECORD_COUNT_OFFSET..][0..2], .little));
     try std.testing.expectEqualSlices(u8, &constants.MAXIMUM_KEY_LE, buffer[constants.HEADER_MAXIMUM_KEY_OFFSET..][0..2]);
@@ -151,7 +151,7 @@ pub fn multiLevelMaximumKeyRoutingAndLinks() !void {
         var buffer: [constants.CELL_BYTES]u8 = @splat(constants.FILL_BYTE);
         try encode.encode(&tree, @intCast(index), &fixture.Entries, &fixture.Spans, &buffer);
         try std.testing.expect(afs.btree.validate.catalogNode(&buffer));
-        const descriptor = std.mem.bytesToValue(afs.types.btree.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
+        const descriptor = std.mem.bytesToValue(afs.types.btree.records.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
         const previous: u32 = if (index > 1 and tree.Nodes[index - 1].Height == planned.Height) @intCast(index - 1) else 0;
         const next: u32 = if (index + 1 < tree.Nodes.len and tree.Nodes[index + 1].Height == planned.Height) @intCast(index + 1) else 0;
         try std.testing.expectEqual(previous, descriptor.BackwardLink);
@@ -246,7 +246,7 @@ fn findUnit(
         var buffer: [constants.CELL_BYTES]u8 = undefined;
         try encode.encode(tree, current, entries, spans, &buffer);
         try std.testing.expect(afs.btree.validate.catalogNode(&buffer));
-        const descriptor = std.mem.bytesToValue(afs.types.btree.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
+        const descriptor = std.mem.bytesToValue(afs.types.btree.records.NodeDescriptor, buffer[0..constants.DESCRIPTOR_BYTES]);
         try std.testing.expectEqual(height, descriptor.Height);
         if (descriptor.isLeaf()) {
             const found = afs.btree.search.searchLeafForUnit(&buffer, constants.CELL_BYTES, descriptor.RecordCount, parent, identity) orelse return null;

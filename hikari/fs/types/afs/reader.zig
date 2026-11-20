@@ -9,8 +9,8 @@ const types = @import("hikari").fs.types;
 const utils = @import("utils");
 
 const BTree = types.afs.btree.BTree;
-const BTreeHeaderRecord = afs.types.btree.HeaderRecord;
-const BTreeNodeDescriptor = afs.types.btree.NodeDescriptor;
+const BTreeHeaderRecord = afs.types.btree.records.HeaderRecord;
+const BTreeNodeDescriptor = afs.types.btree.records.NodeDescriptor;
 const MediaSnapshot = disk.types.media.MediaSnapshot;
 const ReadError = errors.afs.ReadError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
@@ -100,7 +100,7 @@ pub const Reader = struct {
         var current_node_id: u32 = constants.nodes.ORIGIN_STACK;
         var iterator = utils.path.types.iterator.LocationIterator.init(path);
         while (iterator.next()) |component| {
-            var identity_utf16: [@as(afs.types.btree.IndexKey, undefined).Identity.len]u16 = undefined;
+            var identity_utf16: [@as(afs.types.btree.records.IndexKey, undefined).Identity.len]u16 = undefined;
             if (component.len == 0 or component.len > identity_utf16.len) return ReadError.InvalidIdentity;
             const identity_length = text.ascii.widenToUtf16(&identity_utf16, component);
             const identity = identity_utf16[0..identity_length];

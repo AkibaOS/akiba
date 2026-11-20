@@ -5,7 +5,7 @@ const std = @import("std");
 const constants = @import("tests").fast.constants.storage;
 const node = @import("shared").afs.btree.node;
 const search = @import("shared").afs.btree.search;
-const types = @import("shared").afs.types.btree;
+const types = @import("shared").afs.types.btree.records;
 const validate = @import("shared").afs.btree.validate;
 
 pub fn nodeGeometryAndRecords() !void {

@@ -9,7 +9,7 @@ const types = @import("shared").afs.types;
 
 const BlockReader = types.block.BlockReader;
 const ChannelInfo = types.volume.ChannelInfo;
-const ReadError = errors.read.ReadError;
+const ReadError = errors.read.transfers.ReadError;
 const SpanDescriptor = types.volume.SpanDescriptor;
 const UnitRecord = types.catalog.UnitRecord;
 

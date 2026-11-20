@@ -195,11 +195,11 @@ pub fn encodeAfsGeometry(cell_size: u32) void {
         .IndexSpan = .{ .StartCell = 1, .CellCount = 2 },
     };
     @memcpy(device.Disk[start..][0..@sizeOf(afs.types.volume.VolumeHeader)], std.mem.asBytes(&volume));
-    const descriptor: afs.types.btree.NodeDescriptor = .{
-        .NodeType = afs.constants.btree.NODE_TYPE_HEADER,
+    const descriptor: afs.types.btree.records.NodeDescriptor = .{
+        .NodeType = afs.constants.btree.records.NODE_TYPE_HEADER,
         .RecordCount = 1,
     };
-    const header: afs.types.btree.HeaderRecord = .{
+    const header: afs.types.btree.records.HeaderRecord = .{
         .Depth = 0,
         .RootNode = 0,
         .FirstLeafNode = 0,
@@ -209,10 +209,10 @@ pub fn encodeAfsGeometry(cell_size: u32) void {
         .FreeNodes = 1,
     };
     const node = start + cell_size;
-    @memcpy(device.Disk[node..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&descriptor));
-    @memcpy(device.Disk[node + @sizeOf(afs.types.btree.NodeDescriptor) ..][0..@sizeOf(afs.types.btree.HeaderRecord)], std.mem.asBytes(&header));
-    const leaf: afs.types.btree.NodeDescriptor = .{ .NodeType = afs.constants.btree.NODE_TYPE_LEAF, .Height = 1 };
-    @memcpy(device.Disk[node + constants.BLOCK_BYTES ..][0..@sizeOf(afs.types.btree.NodeDescriptor)], std.mem.asBytes(&leaf));
+    @memcpy(device.Disk[node..][0..@sizeOf(afs.types.btree.records.NodeDescriptor)], std.mem.asBytes(&descriptor));
+    @memcpy(device.Disk[node + @sizeOf(afs.types.btree.records.NodeDescriptor) ..][0..@sizeOf(afs.types.btree.records.HeaderRecord)], std.mem.asBytes(&header));
+    const leaf: afs.types.btree.records.NodeDescriptor = .{ .NodeType = afs.constants.btree.records.NODE_TYPE_LEAF, .Height = 1 };
+    @memcpy(device.Disk[node + constants.BLOCK_BYTES ..][0..@sizeOf(afs.types.btree.records.NodeDescriptor)], std.mem.asBytes(&leaf));
     const payload = start + constants.PAYLOAD_CELL * cell_size;
     @memcpy(device.Disk[payload..][0..constants.UNIT_PAYLOAD.len], &constants.UNIT_PAYLOAD);
 }

@@ -33,7 +33,7 @@ pub fn pack(allocator: std.mem.Allocator, entries: []const Entry) (std.mem.Alloc
     const first_leaf: u32 = @intCast(level.Start);
     const last_leaf: u32 = @intCast(level.Start + level.Count - 1);
     while (level.Count > 1) level = try buildParents(allocator, entries, &nodes, level);
-    const header = afs.types.btree.HeaderRecord{
+    const header = afs.types.btree.records.HeaderRecord{
         .Depth = level.Height,
         .RootNode = @intCast(level.Start),
         .LeafRecordCount = record_count,

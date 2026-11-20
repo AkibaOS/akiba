@@ -5,7 +5,7 @@ const font = @import("shared").font;
 const raster = @import("shared").raster;
 
 const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
-const Outline = font.types.outline.Outline;
+const Outline = font.types.outline.contour.Outline;
 const Placement = raster.types.placement.Placement;
 const RasterError = raster.errors.raster.RasterError;
 const Shape = raster.types.shape.Shape;

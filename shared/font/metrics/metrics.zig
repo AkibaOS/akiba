@@ -3,12 +3,12 @@
 const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
-const GlyphMetrics = font.types.metrics.GlyphMetrics;
+const GlyphMetrics = font.types.metrics.units.GlyphMetrics;
 const Reader = sfnt.types.reader.Reader;
 
-const constants = font.constants.metrics;
+const constants = font.constants.metrics.layout;
 
 pub fn glyphMetrics(face: *const Face, glyph_id: u16) FontError!GlyphMetrics {
     if (glyph_id >= face.GlyphCount) {

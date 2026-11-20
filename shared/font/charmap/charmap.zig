@@ -3,12 +3,12 @@
 const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
 const Reader = sfnt.types.reader.Reader;
-const SegmentLayout = font.types.charmap.SegmentLayout;
+const SegmentLayout = font.types.charmap.layout.SegmentLayout;
 
-const constants = font.constants.charmap;
+const constants = font.constants.charmap.encoding;
 
 pub fn select(table: []const u8) FontError![]const u8 {
     return selectWithDomain(table, constants.GLYPH_DOMAIN_SIZE);

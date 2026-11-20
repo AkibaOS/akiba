@@ -14,7 +14,7 @@ pub const Rollback = struct {
 pub const Session = struct {
     Surface: graphics.types.surface.Surface,
     Layout: screen.types.geometry.Layout,
-    Face: font.types.face.Face,
+    Face: font.types.face.font.Face,
     Physical: u64,
     Pages: u64,
     Pixels: []u32,

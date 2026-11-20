@@ -112,7 +112,7 @@ pub fn embeddedFaceIntegration() !void {
     try std.testing.expect(kana != 0 and kana < face.GlyphCount);
     try std.testing.expect((try font.metrics.advanceWidth(&face, latin)) > 0);
     try std.testing.expect((try font.metrics.advanceWidth(&face, kana)) > 0);
-    var buffer = font.types.outline.GlyphBuffer.initAllocating(std.testing.allocator);
+    var buffer = font.types.outline.contour.GlyphBuffer.initAllocating(std.testing.allocator);
     defer buffer.deinit();
     try font.outline.load(&face, latin, &buffer);
     try std.testing.expect(buffer.Shape.ContourCount > 0 and buffer.Shape.PointCount > 0);

@@ -5,11 +5,11 @@ const node = @import("shared").afs.btree.node;
 const types = @import("shared").afs.types;
 
 pub fn catalogNode(buffer: []const u8) bool {
-    if (buffer.len < @sizeOf(types.btree.NodeDescriptor) or buffer.len > constants.sizes.MAXIMUM_CELL_SIZE) return false;
-    const descriptor = @as(*align(1) const types.btree.NodeDescriptor, @ptrCast(buffer.ptr)).*;
+    if (buffer.len < @sizeOf(types.btree.records.NodeDescriptor) or buffer.len > constants.sizes.MAXIMUM_CELL_SIZE) return false;
+    const descriptor = @as(*align(1) const types.btree.records.NodeDescriptor, @ptrCast(buffer.ptr)).*;
     if (!descriptor.isLeaf() and !descriptor.isIndex()) return false;
     const offset_bytes = @as(usize, descriptor.RecordCount) * @sizeOf(u16);
-    if (offset_bytes > buffer.len - @sizeOf(types.btree.NodeDescriptor)) return false;
+    if (offset_bytes > buffer.len - @sizeOf(types.btree.records.NodeDescriptor)) return false;
     const record_limit = buffer.len - offset_bytes;
     var record_index: u16 = 0;
     while (record_index < descriptor.RecordCount) : (record_index += 1) {
@@ -18,14 +18,14 @@ pub fn catalogNode(buffer: []const u8) bool {
             node.getRecordOffset(buffer.ptr, @intCast(buffer.len), record_index + 1)
         else
             record_limit;
-        if (start < @sizeOf(types.btree.NodeDescriptor) or start >= end or end > record_limit or
-            end - start < constants.btree.INDEX_KEY_HEADER_SIZE)
+        if (start < @sizeOf(types.btree.records.NodeDescriptor) or start >= end or end > record_limit or
+            end - start < constants.btree.records.INDEX_KEY_HEADER_SIZE)
         {
             return false;
         }
-        const key: *align(1) const types.btree.IndexKey = @ptrCast(buffer.ptr + start);
-        if (key.KeyLength < constants.btree.INDEX_KEY_HEADER_SIZE or key.KeyLength > end - start or
-            (key.KeyLength - constants.btree.INDEX_KEY_HEADER_SIZE) % @sizeOf(u16) != 0 or
+        const key: *align(1) const types.btree.records.IndexKey = @ptrCast(buffer.ptr + start);
+        if (key.KeyLength < constants.btree.records.INDEX_KEY_HEADER_SIZE or key.KeyLength > end - start or
+            (key.KeyLength - constants.btree.records.INDEX_KEY_HEADER_SIZE) % @sizeOf(u16) != 0 or
             key.getIdentityLength() > key.Identity.len)
         {
             return false;

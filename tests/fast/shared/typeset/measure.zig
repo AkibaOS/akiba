@@ -81,7 +81,7 @@ fn expectPlaced(cursor: *Cursor, glyph_id: u16, pen_x: i32, offset: usize) !void
     try std.testing.expectEqual(offset, cursor.Offset);
 }
 
-fn wideCoordinates(face: *const font.types.face.Face) !void {
+fn wideCoordinates(face: *const font.types.face.font.Face) !void {
     const tracking = -@divExact(std.math.minInt(i32), limits.ONE_PIXEL);
     const style: TextStyle = .{ .PixelSize = 4, .Tracking = tracking };
     var cursor = try Cursor.initialize(face, style, strings.LETTER, -tracking);
@@ -100,7 +100,7 @@ fn wideCoordinates(face: *const font.types.face.Face) !void {
     }, strings.PAIR));
 }
 
-fn wideMetrics(original: font.types.face.Face) !void {
+fn wideMetrics(original: font.types.face.font.Face) !void {
     try std.testing.expectError(error.InvalidPixelSize, original.scaleFor(0));
     try std.testing.expectError(error.ScaleOutOfRange, original.scaleFor(std.math.maxInt(i32)));
 

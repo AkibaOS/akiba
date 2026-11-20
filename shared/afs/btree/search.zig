@@ -4,7 +4,7 @@ const constants = @import("shared").afs.constants;
 const node = @import("shared").afs.btree.node;
 const types = @import("shared").afs.types;
 
-const IndexKey = types.btree.IndexKey;
+const IndexKey = types.btree.records.IndexKey;
 const StackRecord = types.catalog.StackRecord;
 const ThreadRecord = types.catalog.ThreadRecord;
 const UnitRecord = types.catalog.UnitRecord;

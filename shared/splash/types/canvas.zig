@@ -8,7 +8,7 @@ const raster = @import("shared").raster;
 const splash = @import("shared").splash;
 const typeset = @import("shared").typeset;
 
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const Surface = graphics.types.surface.Surface;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 const TextStyle = typeset.types.style.TextStyle;

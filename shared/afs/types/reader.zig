@@ -3,7 +3,7 @@
 const afs = @import("shared").afs;
 
 const BlockReader = afs.types.block.BlockReader;
-const HeaderRecord = afs.types.btree.HeaderRecord;
+const HeaderRecord = afs.types.btree.records.HeaderRecord;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 
 pub const Catalog = struct {

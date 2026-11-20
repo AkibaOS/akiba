@@ -4,12 +4,12 @@ const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
 const Directory = sfnt.types.directory.Directory;
-const Face = font.types.face.Face;
+const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;
 const Reader = sfnt.types.reader.Reader;
 
 const limits = font.constants.limits;
-const metrics = font.constants.metrics;
+const metrics = font.constants.metrics.layout;
 const tags = sfnt.constants.tags;
 
 pub fn load(data: []const u8) FontError!Face {

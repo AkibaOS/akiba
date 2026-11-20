@@ -5,8 +5,8 @@ const std = @import("std");
 const font = @import("shared").font;
 const preview = @import("fontpreview");
 
-const Face = font.types.face.Face;
-const GlyphBuffer = font.types.outline.GlyphBuffer;
+const Face = font.types.face.font.Face;
+const GlyphBuffer = font.types.outline.contour.GlyphBuffer;
 
 const messages = preview.strings.messages;
 

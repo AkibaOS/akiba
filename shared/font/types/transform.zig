@@ -6,7 +6,7 @@ const font = @import("shared").font;
 
 const constants = font.constants.glyf;
 const FontError = font.errors.font.FontError;
-const Point = font.types.outline.Point;
+const Point = font.types.outline.contour.Point;
 
 pub const Transform = struct {
     A: i32,

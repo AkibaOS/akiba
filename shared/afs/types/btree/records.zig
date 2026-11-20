@@ -5,25 +5,25 @@ const constants = @import("shared").afs.constants;
 pub const NodeDescriptor = extern struct {
     ForwardLink: u32 = 0,
     BackwardLink: u32 = 0,
-    NodeType: i8 = constants.btree.NODE_TYPE_LEAF,
+    NodeType: i8 = constants.btree.records.NODE_TYPE_LEAF,
     Height: u8 = 0,
     RecordCount: u16 = 0,
     Reserved: u16 = 0,
 
     pub fn isLeaf(self: *const NodeDescriptor) bool {
-        return self.NodeType == constants.btree.NODE_TYPE_LEAF;
+        return self.NodeType == constants.btree.records.NODE_TYPE_LEAF;
     }
 
     pub fn isIndex(self: *const NodeDescriptor) bool {
-        return self.NodeType == constants.btree.NODE_TYPE_INDEX;
+        return self.NodeType == constants.btree.records.NODE_TYPE_INDEX;
     }
 
     pub fn isHeader(self: *const NodeDescriptor) bool {
-        return self.NodeType == constants.btree.NODE_TYPE_HEADER;
+        return self.NodeType == constants.btree.records.NODE_TYPE_HEADER;
     }
 
     pub fn isMap(self: *const NodeDescriptor) bool {
-        return self.NodeType == constants.btree.NODE_TYPE_MAP;
+        return self.NodeType == constants.btree.records.NODE_TYPE_MAP;
     }
 };
 
@@ -52,9 +52,9 @@ pub const IndexKey = extern struct {
 
     pub fn getIdentityLength(self: *align(1) const IndexKey) usize {
         const total_key_length = self.KeyLength;
-        if (total_key_length <= constants.btree.INDEX_KEY_HEADER_SIZE) {
+        if (total_key_length <= constants.btree.records.INDEX_KEY_HEADER_SIZE) {
             return 0;
         }
-        return (total_key_length - constants.btree.INDEX_KEY_HEADER_SIZE) / @sizeOf(u16);
+        return (total_key_length - constants.btree.records.INDEX_KEY_HEADER_SIZE) / @sizeOf(u16);
     }
 };

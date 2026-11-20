@@ -23,7 +23,7 @@ pub fn open(allocator: std.mem.Allocator, source: Source, name: []const u8) Libr
 }
 
 fn checkName(name: []const u8) LibraryError!void {
-    if (name.len <= location.LIBRARY_SUFFIX.len or name.len > @as(afs.types.btree.IndexKey, undefined).Identity.len or
+    if (name.len <= location.LIBRARY_SUFFIX.len or name.len > @as(afs.types.btree.records.IndexKey, undefined).Identity.len or
         !std.mem.endsWith(u8, name, location.LIBRARY_SUFFIX)) return error.InvalidLibraryName;
     for (name) |character| {
         switch (character) {

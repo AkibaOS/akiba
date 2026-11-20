@@ -24,26 +24,26 @@ pub fn openImage(file: std.fs.File) !types.AFSImage {
     };
 }
 
-pub fn treeHeader(image: *types.AFSImage) !afs.types.btree.HeaderRecord {
+pub fn treeHeader(image: *types.AFSImage) !afs.types.btree.records.HeaderRecord {
     const reader = io.reader(image);
     try reader.readCell(image.Header.IndexSpan.StartCell, &image.Leaf);
-    const descriptor = std.mem.bytesToValue(afs.types.btree.NodeDescriptor, image.Leaf[0..capacity.DESCRIPTOR_BYTES]);
+    const descriptor = std.mem.bytesToValue(afs.types.btree.records.NodeDescriptor, image.Leaf[0..capacity.DESCRIPTOR_BYTES]);
     try std.testing.expect(descriptor.isHeader());
     try std.testing.expectEqual(@as(u8, 0), descriptor.Height);
     try std.testing.expectEqual(@as(u16, 1), descriptor.RecordCount);
     try std.testing.expectEqual(@as(u32, 0), descriptor.ForwardLink);
     try std.testing.expectEqual(@as(u32, 0), descriptor.BackwardLink);
-    return std.mem.bytesToValue(afs.types.btree.HeaderRecord, image.Leaf[capacity.DESCRIPTOR_BYTES..][0..@sizeOf(afs.types.btree.HeaderRecord)]);
+    return std.mem.bytesToValue(afs.types.btree.records.HeaderRecord, image.Leaf[capacity.DESCRIPTOR_BYTES..][0..@sizeOf(afs.types.btree.records.HeaderRecord)]);
 }
 
-pub fn readNode(image: *types.AFSImage, node_number: u32) !afs.types.btree.NodeDescriptor {
+pub fn readNode(image: *types.AFSImage, node_number: u32) !afs.types.btree.records.NodeDescriptor {
     try std.testing.expect(node_number != 0 and node_number < image.Header.IndexTotalNodes);
     try std.testing.expect(node_number < image.Header.IndexSpan.CellCount);
     const cell = try std.math.add(u64, image.Header.IndexSpan.StartCell, node_number);
     const reader = io.reader(image);
     try reader.readCell(cell, &image.Leaf);
     try std.testing.expect(afs.btree.validate.catalogNode(&image.Leaf));
-    return std.mem.bytesToValue(afs.types.btree.NodeDescriptor, image.Leaf[0..capacity.DESCRIPTOR_BYTES]);
+    return std.mem.bytesToValue(afs.types.btree.records.NodeDescriptor, image.Leaf[0..capacity.DESCRIPTOR_BYTES]);
 }
 
 pub fn findRecord(comptime Record: type, image: *types.AFSImage, parent: u32, identity_bytes: []const u8) !?Record {

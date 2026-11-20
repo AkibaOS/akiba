@@ -8,8 +8,8 @@ const raster = @import("shared").raster;
 
 const Color = graphics.types.color.Color;
 const Edge = raster.types.edge.Edge;
-const GlyphBuffer = font.types.outline.GlyphBuffer;
-const Point = font.types.outline.Point;
+const GlyphBuffer = font.types.outline.contour.GlyphBuffer;
+const Point = font.types.outline.contour.Point;
 const Shape = raster.types.shape.Shape;
 const Surface = graphics.types.surface.Surface;
 const Workspace = raster.types.workspace.Workspace;

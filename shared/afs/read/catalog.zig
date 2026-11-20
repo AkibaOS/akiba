@@ -10,9 +10,9 @@ const separators = @import("utils").path.constants.separators;
 
 const BlockReader = afs.types.block.BlockReader;
 const Catalog = afs.types.reader.Catalog;
-const Header = afs.types.btree.HeaderRecord;
-const Node = afs.types.btree.NodeDescriptor;
-const ReadError = afs.errors.read.ReadError;
+const Header = afs.types.btree.records.HeaderRecord;
+const Node = afs.types.btree.records.NodeDescriptor;
+const ReadError = afs.errors.read.transfers.ReadError;
 const Unit = afs.types.catalog.UnitRecord;
 const Volume = afs.types.volume.VolumeHeader;
 
@@ -44,7 +44,7 @@ pub fn mount(reader: BlockReader, scratch: []u8) ReadError!Catalog {
 
 pub fn open(catalog: *const Catalog, parents: []const []const u8, name: []const u8, scratch: []u8) ReadError!?Unit {
     var parent_id = afs.constants.nodes.ORIGIN_STACK;
-    var wide: [@as(afs.types.btree.IndexKey, undefined).Identity.len]u16 = undefined;
+    var wide: [@as(afs.types.btree.records.IndexKey, undefined).Identity.len]u16 = undefined;
     for (parents) |component| {
         const identity = try widen(component, &wide);
         const leaf = (try findLeaf(catalog, parent_id, identity, scratch)) orelse return null;

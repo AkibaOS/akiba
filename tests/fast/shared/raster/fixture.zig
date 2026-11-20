@@ -5,8 +5,8 @@ const raster = @import("shared").raster;
 const types = @import("tests").fast.types.render;
 
 const CoverageCapture = types.CoverageCapture;
-const Outline = font.types.outline.Outline;
-const Point = font.types.outline.Point;
+const Outline = font.types.outline.contour.Outline;
+const Point = font.types.outline.contour.Point;
 const RowSink = raster.types.sink.RowSink;
 const Shape = raster.types.shape.Shape;
 
