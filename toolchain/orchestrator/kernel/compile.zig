@@ -67,9 +67,19 @@ pub fn artifact(builder: *std.Build, modules: types.modules.Modules, guest_check
         checks.addImport(names.MODULE_TEST_ASSEMBLY, probes);
         module.addImport(names.MODULE_TESTS, checks);
     }
+    const root = builder.createModule(.{
+        .root_source_file = builder.path(paths.MIRAI_ENTRY),
+        .target = target,
+        .optimize = .ReleaseSafe,
+        .code_model = .kernel,
+        .pic = false,
+        .red_zone = false,
+    });
+    root.addImport(names.EXECUTABLE_MIRAI, module);
+    root.addImport(names.MODULE_UTILS, modules.Utils);
     const executable = builder.addExecutable(.{
         .name = if (guest_checks) names.EXECUTABLE_GUEST else names.EXECUTABLE_MIRAI,
-        .root_module = module,
+        .root_module = root,
         .linkage = .static,
         .use_llvm = true,
         .use_lld = true,

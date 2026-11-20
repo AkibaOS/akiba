@@ -24,7 +24,7 @@ pub fn run(system: *const efi.types.services.system.SystemTable) void {
 
     const actual = std.os.uefi.system_table;
     std.os.uefi.system_table = @ptrCast(&wrapped);
-    const status = hikari.main();
+    const status = hikari.sequence.entry.run();
     std.os.uefi.system_table = actual;
     output.require(@intFromEnum(status) == codes.UNSUPPORTED, labels.BOOT_FAILURE_STATUS);
 }

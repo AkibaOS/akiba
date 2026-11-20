@@ -19,9 +19,15 @@ pub fn artifact(builder: *std.Build, modules: types.Modules) *std.Build.Step.Com
     module.addImport(names.MODULE_UTILS, modules.Utils);
     module.addImport(names.EXECUTABLE_MKAFSDISK, module);
 
+    const entry = builder.createModule(.{
+        .root_source_file = builder.path(paths.MKAFSDISK_ENTRY),
+        .target = builder.graph.host,
+        .optimize = optimize,
+    });
+    entry.addImport(names.EXECUTABLE_MKAFSDISK, module);
     const executable = builder.addExecutable(.{
         .name = names.EXECUTABLE_MKAFSDISK,
-        .root_module = module,
+        .root_module = entry,
     });
     return executable;
 }

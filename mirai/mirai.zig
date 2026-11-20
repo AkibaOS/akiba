@@ -1,12 +1,5 @@
 //! Mirai Kernel
 
-const std = @import("std");
-
-const force = @import("utils").analysis.force;
-
-pub const common = @import("common");
-pub const shared = @import("shared");
-
 pub const assembly = @import("asm");
 pub const boot = @import("boot/boot.zig");
 pub const bootstrap = @import("bootstrap/bootstrap.zig");
@@ -24,30 +17,3 @@ pub const postman = @import("postman/postman.zig");
 pub const sensei = @import("sensei/sensei.zig");
 pub const thread = @import("thread/thread.zig");
 pub const user = @import("user/user.zig");
-
-comptime {
-    force.all(boot);
-    force.all(bootstrap);
-    force.all(crimson);
-    force.all(drivers);
-    force.all(interrupts);
-    force.all(invocations);
-    force.all(kagami);
-    force.all(kata);
-    force.all(kernel);
-    force.all(launch);
-    force.all(memory);
-    force.all(pmm);
-    force.all(postman);
-    force.all(sensei);
-    force.all(thread);
-    force.all(user);
-}
-
-fn panicHandler(message: []const u8, first_trace_address: ?usize) noreturn {
-    _ = first_trace_address;
-    drivers.serial.write.printf(crimson.strings.messages.KERNEL_PANIC, .{message});
-    assembly.cpu.halt.haltLoop();
-}
-
-pub const panic = std.debug.FullPanic(panicHandler);

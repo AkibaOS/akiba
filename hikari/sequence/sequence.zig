@@ -3,6 +3,7 @@
 pub const acpi = @import("acpi/acpi.zig");
 pub const cleanup = @import("cleanup/cleanup.zig");
 pub const console = @import("console/console.zig");
+pub const entry = @import("entry/entry.zig");
 pub const constants = @import("constants/constants.zig");
 pub const errors = @import("errors/errors.zig");
 pub const graphics = @import("graphics/graphics.zig");

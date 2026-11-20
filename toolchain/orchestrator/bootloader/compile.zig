@@ -30,7 +30,14 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, diagnostics: bool) 
         .os_tag = .uefi,
         .abi = .msvc,
     });
-    const root = module(builder, modules, target, diagnostics);
+    const hikari = module(builder, modules, target, diagnostics);
+    const root = builder.createModule(.{
+        .root_source_file = builder.path(paths.HIKARI_ENTRY),
+        .target = target,
+        .optimize = .ReleaseSafe,
+    });
+    root.addImport(names.EXECUTABLE_HIKARI, hikari);
+    root.addImport(names.MODULE_UTILS, modules.Utils);
     return builder.addExecutable(.{
         .name = names.EXECUTABLE_HIKARI,
         .root_module = root,
