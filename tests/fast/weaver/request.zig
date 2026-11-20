@@ -112,7 +112,7 @@ pub fn aborts() !void {
 }
 
 pub fn reusesPages() !void {
-    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = ALLOCATOR };
+    var cache: weaver.launch.types.cache.state.Cache = .{ .Allocator = ALLOCATOR };
     defer cache.Entries.deinit(ALLOCATOR);
     var first: Sink = .{};
     try std.testing.expectEqual(CHILD, try launchWith(&first, true, STARTUP, &cache, 0x41));
@@ -133,7 +133,7 @@ pub fn reusesPages() !void {
 }
 
 pub fn discardsPending() !void {
-    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = ALLOCATOR };
+    var cache: weaver.launch.types.cache.state.Cache = .{ .Allocator = ALLOCATOR };
     defer cache.Entries.deinit(ALLOCATOR);
     var rejected: Sink = .{ .RefuseStart = true };
     try std.testing.expectError(error.ProvisionRefused, launchWith(&rejected, true, STARTUP, &cache, 0x41));
@@ -151,7 +151,7 @@ fn launch(sink: *Sink, available: bool, startup_address: u64) !u64 {
     return launchWith(sink, available, startup_address, null, 0);
 }
 
-fn launchWith(sink: *Sink, available: bool, startup_address: u64, cache: ?*weaver.launch.types.cache.Cache, code: u8) !u64 {
+fn launchWith(sink: *Sink, available: bool, startup_address: u64, cache: ?*weaver.launch.types.cache.state.Cache, code: u8) !u64 {
     var executable = dynamic.loadImage();
     var library = dynamic.loadImage();
     prepare(&executable);

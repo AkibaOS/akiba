@@ -3,7 +3,7 @@
 const image = @import("weaver").image.types.layout;
 const provision = @import("shared").launch.types.provision;
 
-const Cache = @import("weaver").launch.types.cache.Cache;
+const Cache = @import("weaver").launch.types.cache.state.Cache;
 const Policy = @import("shared").elf.types.image.Policy;
 
 pub const Options = struct {

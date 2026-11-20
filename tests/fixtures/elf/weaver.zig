@@ -30,7 +30,7 @@ comptime {
 
 export fn akiba_fixture_main(_: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     var cache_allocator = std.heap.FixedBufferAllocator.init(&cache_heap);
-    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = cache_allocator.allocator() };
+    var cache: weaver.launch.types.cache.state.Cache = .{ .Allocator = cache_allocator.allocator() };
     while (true) {
         var payload: [1]u8 = undefined;
         var header: types.Header = undefined;
@@ -50,7 +50,7 @@ pub fn panic(_: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     invocation.exit(inputs.REJECTED_STARTUP_RESULT);
 }
 
-fn launch(cache: *weaver.launch.types.cache.Cache, mode: types.Mode, ticket: u64) types.Receipt {
+fn launch(cache: *weaver.launch.types.cache.state.Cache, mode: types.Mode, ticket: u64) types.Receipt {
     var request: types.Request = .{ .Mode = mode };
     const channel: weaver.launch.types.request.Channel = .{ .Ticket = ticket, .Context = &request, .Invoke = invoke };
     if (mode == .Evict) {

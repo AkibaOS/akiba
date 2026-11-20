@@ -4,9 +4,9 @@ const std = @import("std");
 
 const launch = @import("weaver").launch;
 
-const Cache = launch.types.cache.Cache;
+const Cache = launch.types.cache.state.Cache;
 const Channel = launch.types.request.Channel;
-const Key = launch.types.cache.Key;
+const Key = launch.types.cache.key.Key;
 const Protection = @import("shared").launch.types.provision.Protection;
 const RequestError = launch.errors.request.RequestError;
 

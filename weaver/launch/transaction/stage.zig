@@ -5,9 +5,9 @@ const shared = @import("shared").launch;
 const sizes = @import("common").constants.memory.sizes;
 const weaver = @import("weaver");
 
-const Cache = launch.types.cache.Cache;
+const Cache = launch.types.cache.state.Cache;
 const Channel = launch.types.request.Channel;
-const Key = launch.types.cache.Key;
+const Key = launch.types.cache.key.Key;
 const Options = launch.types.request.Options;
 const Plan = weaver.link.types.link.Plan;
 const RequestError = launch.errors.request.RequestError;
