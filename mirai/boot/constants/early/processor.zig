@@ -1,6 +1,6 @@
 //! Early Processor Contract Constants
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 
 pub const CR0_REQUIRED: u64 = control.CR0_MONITOR_COPROCESSOR | control.CR0_NUMERIC_ERROR | control.CR0_WRITE_PROTECT;
 pub const CR0_FORBIDDEN: u64 = control.CR0_EMULATION | control.CR0_TASK_SWITCHED;

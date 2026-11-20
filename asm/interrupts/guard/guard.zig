@@ -1,6 +1,6 @@
 //! Uniprocessor Interrupt Guard
 
-const constants = @import("asm").cpu.constants.control;
+const constants = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
 const flags = @import("asm").interrupts.flags;
 

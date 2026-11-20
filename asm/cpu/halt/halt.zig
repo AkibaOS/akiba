@@ -1,6 +1,6 @@
 //! CPU Halt Operations
 
-const strings = @import("asm").cpu.strings.halt;
+const strings = @import("asm").cpu.strings.halt.instructions;
 
 pub fn waitForInterrupt() void {
     asm volatile (strings.WAIT_FOR_INTERRUPT ::: .{ .memory = true });

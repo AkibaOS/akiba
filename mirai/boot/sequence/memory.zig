@@ -77,7 +77,7 @@ pub fn finish(boot_info: *const BootInfo) bool {
 pub fn retireLoader(info: *const BootInfo) ?u64 {
     const stack_pointer = cpu.state.readStackPointer();
     const active_root = kagami.activate.getActivePML4();
-    if (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE != 0 or
+    if (cpu.state.readFlags() & cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE != 0 or
         !kagami.state.hasOwnedKernel() or kagami.state.getCurrentKagami() != kagami.state.getKernelKagami() or
         active_root != info.PML4Physical or active_root == info.LoaderPML4Physical or
         info.BootStackSize > info.BootStackTop or stack_pointer < info.BootStackTop - info.BootStackSize or

@@ -89,9 +89,9 @@ fn prepareWith(info: *const sequence.BootInfo, comptime observe: ?*const fn () v
 }
 
 fn validateCPU() errors.BootError!void {
-    if ((cpu.control.readCR4() & (cpu.constants.control.CR4_PCID_ENABLE | cpu.constants.control.CR4_LINEAR_ADDRESS_57_ENABLE)) != 0 or
+    if ((cpu.control.readCR4() & (cpu.constants.control.registers.CR4_PCID_ENABLE | cpu.constants.control.registers.CR4_LINEAR_ADDRESS_57_ENABLE)) != 0 or
         !cpu.cpuid.supportsNoExecute() or
-        (cpu.msr.read(cpu.constants.msr.EFER) & cpu.constants.msr.EFER_NO_EXECUTE_ENABLE) == 0 or
+        (cpu.msr.read(cpu.constants.msr.registers.EFER) & cpu.constants.msr.registers.EFER_NO_EXECUTE_ENABLE) == 0 or
         !cpu.msr.validateMemoryTypes())
     {
         return errors.BootError.InvalidCPUState;
@@ -190,7 +190,7 @@ pub fn finishActivation(prepared: *PreparedRoot) void {
     if (prepared != &pending or prepared.Phase != .Prepared or
         (cpu.control.readCR3() & indices.ADDRESS_MASK) != prepared.Kagami.PML4Physical or
         stack_pointer < prepared.Policy.BootStackBase or stack_pointer >= prepared.Policy.BootStackTop or
-        (cpu.control.readCR0() & cpu.constants.control.CR0_WRITE_PROTECT) == 0 or
+        (cpu.control.readCR0() & cpu.constants.control.registers.CR0_WRITE_PROTECT) == 0 or
         !stack.state.canCommitBoot()) cpu.halt.haltLoop();
     if (!state.publishOwned(&prepared.Kagami, &prepared.Policy) or
         !stack.state.commitBoot(prepared.Policy.BootStackBase, prepared.Policy.BootStackTop)) cpu.halt.haltLoop();

@@ -1,8 +1,8 @@
 //! Cooperative CPU Context Type
 
-const control = @import("asm").cpu.constants.control;
-const fpu = @import("asm").cpu.constants.fpu;
-const strings = @import("asm").cpu.strings.context;
+const control = @import("asm").cpu.constants.control.registers;
+const fpu = @import("asm").cpu.constants.fpu.state;
+const strings = @import("asm").cpu.strings.context.transfer;
 
 pub const Context = extern struct {
     RAX: u64 = 0,

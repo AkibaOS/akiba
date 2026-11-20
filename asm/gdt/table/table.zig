@@ -1,7 +1,7 @@
 //! GDT Table Load Operations
 
 const register = @import("asm").gdt.types.register;
-const strings = @import("asm").gdt.strings.table;
+const strings = @import("asm").gdt.strings.table.instructions;
 
 pub fn loadGlobalDescriptorTable(descriptor: *const register.GDTR) void {
     asm volatile (strings.LOAD_GLOBAL_DESCRIPTOR_TABLE

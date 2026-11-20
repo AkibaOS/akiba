@@ -1,7 +1,7 @@
 //! CPU Control Register Operations
 
-const constants = @import("asm").cpu.constants.control;
-const strings = @import("asm").cpu.strings.control;
+const constants = @import("asm").cpu.constants.control.registers;
+const strings = @import("asm").cpu.strings.control.instructions;
 
 pub fn readCR0() u64 {
     var result: u64 = undefined;

@@ -1,6 +1,6 @@
 //! Atomic Condition Waiting And Wakeup
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
 const errors = @import("mirai").sensei.errors.scheduling;
 const guard = @import("asm").interrupts.guard;

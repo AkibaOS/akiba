@@ -1,6 +1,6 @@
 //! Debug Register Operations
 
-const strings = @import("asm").cpu.strings.debug;
+const strings = @import("asm").cpu.strings.debug.instructions;
 
 pub fn readDR0() u64 {
     var value: u64 = undefined;

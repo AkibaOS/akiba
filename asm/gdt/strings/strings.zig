@@ -1,4 +1,4 @@
 //! GDT Instruction Strings
 
-pub const segment = @import("segment.zig");
-pub const table = @import("table.zig");
+pub const segment = @import("segment/segment.zig");
+pub const table = @import("table/table.zig");

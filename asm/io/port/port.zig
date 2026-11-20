@@ -1,7 +1,7 @@
 //! Port I/O Operations
 
-const constants = @import("asm").io.constants.port;
-const strings = @import("asm").io.strings.port;
+const constants = @import("asm").io.constants.port.delay;
+const strings = @import("asm").io.strings.port.instructions;
 
 pub fn readByte(port: u16) u8 {
     var result: u8 = undefined;

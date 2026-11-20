@@ -18,9 +18,9 @@ const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
 const verify = @import("tests").guest.support.verify;
 
-const control = cpu.constants.control;
+const control = cpu.constants.control.registers;
 const layout = common.constants.memory.layout;
-const msr = cpu.constants.msr;
+const msr = cpu.constants.msr.registers;
 const sizes = common.constants.memory.sizes;
 const Region = types.image.Region;
 const TSS = types.tss.structure.TSS;

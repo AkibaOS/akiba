@@ -2,7 +2,7 @@
 
 const activate = @import("asm").cpu.transition.activate;
 const strings = @import("hikari").assembly.strings.jump;
-const types = @import("asm").cpu.types.transition;
+const types = @import("asm").cpu.types.transition.continuation;
 
 pub fn jumpToKernel(entry_point: u64, stack_top: u64, boot_params: u64, pml4_address: u64) noreturn {
     asm volatile (strings.FLUSH_CACHES ::: .{ .memory = true });

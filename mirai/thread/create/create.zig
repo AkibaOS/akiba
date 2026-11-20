@@ -46,11 +46,11 @@ pub fn create(owner: *Kata, start: Entry, argument: ?*anyopaque) (AllocationErro
             .RSP = kernel_stack.Top - @sizeOf(u64),
             .RIP = @intFromPtr(&entry.start),
             .CR3 = root.PML4Physical,
-            .FPU = cpu.constants.fpu.INITIAL_STATE,
+            .FPU = cpu.constants.fpu.state.INITIAL_STATE,
         },
         .EntryPoint = start,
         .Argument = argument,
-        .EnableInterrupts = (previous_flags & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0,
+        .EnableInterrupts = (previous_flags & cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE) != 0,
     };
     owner.ThreadCount += 1;
     return thread;

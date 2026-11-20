@@ -69,7 +69,7 @@ pub fn create(owner: *Kata, instruction: u64, stack_base: u64, stack_size: u64, 
     };
     target.Argument = @ptrCast(target);
     if (!validReturn(target, instruction, target.User.RSP) or
-        target.User.RSP % cpu.constants.user.STACK_ALIGNMENT != 0) return OwnershipError.InvalidState;
+        target.User.RSP % cpu.constants.user.entry.STACK_ALIGNMENT != 0) return OwnershipError.InvalidState;
     const initial = [_]u8{0} ** limits.ENTRY_STACK_BYTES;
     try transfer.write(owner, target.User.RSP, &initial);
     return target;
@@ -102,11 +102,11 @@ fn stopFaulted(argument: *anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn 
 fn enterPersona(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const target: *Thread = @ptrCast(@alignCast(argument orelse @panic(messages.INVALID_CONTEXT)));
     if (state.getCurrent() != target or !target.Started or !validReturn(target, target.User.RIP, target.User.RSP) or
-        (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
-    const entry = cpu.types.user.Entry{
+        (cpu.state.readFlags() & cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
+    const entry = cpu.types.user.transfer.Entry{
         .RIP = target.User.RIP,
         .RSP = target.User.RSP,
-        .RFLAGS = cpu.constants.user.RFLAGS_INITIAL,
+        .RFLAGS = cpu.constants.user.entry.RFLAGS_INITIAL,
         .CS = @as(u64, selectors.USER_CODE_SELECTOR) | selectors.RING_3,
         .SS = @as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3,
         .Argument = target.User.Argument,

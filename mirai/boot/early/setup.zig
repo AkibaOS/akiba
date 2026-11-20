@@ -2,15 +2,15 @@
 
 const boot = @import("mirai").boot;
 const control = @import("asm").cpu.control;
-const efer = @import("asm").cpu.constants.msr;
-const floating = @import("asm").cpu.constants.fpu;
+const efer = @import("asm").cpu.constants.msr.registers;
+const floating = @import("asm").cpu.constants.fpu.state;
 const fpu = @import("asm").cpu.fpu;
 const gdt = @import("asm").gdt;
 const interrupt = @import("asm").interrupts;
 const interrupts = @import("mirai").interrupts;
 const msr = @import("asm").cpu.msr;
 const processor = @import("mirai").boot.constants.early.processor;
-const registers = @import("asm").cpu.constants.control;
+const registers = @import("asm").cpu.constants.control.registers;
 const serial = @import("mirai").drivers.serial;
 
 var initialized: bool = false;

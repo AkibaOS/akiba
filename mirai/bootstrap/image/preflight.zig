@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;

@@ -1,6 +1,6 @@
 //! FPU/SSE Operations
 
-const strings = @import("asm").cpu.strings.fpu;
+const strings = @import("asm").cpu.strings.fpu.instructions;
 
 pub fn saveFpuState(address: u64) void {
     asm volatile (strings.SAVE_FPU_STATE

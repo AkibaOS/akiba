@@ -1,6 +1,6 @@
 //! Interrupt Dispatch Stack Constants
 
-const fpu = @import("asm").cpu.constants.fpu;
+const fpu = @import("asm").cpu.constants.fpu.state;
 
 pub const KERNEL_MXCSR_OFFSET: usize = fpu.STATE_SIZE;
 pub const STACK_SIZE: usize = fpu.STATE_SIZE + fpu.STATE_ALIGNMENT;

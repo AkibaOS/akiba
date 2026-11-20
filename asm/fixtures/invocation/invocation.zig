@@ -1,9 +1,9 @@
 //! Compiler Fixture Persona Invocations
 
-const constants = @import("fixtureasm").constants.invocation;
-const instructions = @import("fixtureasm").strings.invocation;
+const constants = @import("fixtureasm").constants.invocation.code;
+const instructions = @import("fixtureasm").strings.invocation.instructions;
 
-const Result = @import("fixtureasm").types.invocation.Result;
+const Result = @import("fixtureasm").types.invocation.result.Result;
 
 pub fn call(service: u64, first: u64, second: u64, third: u64, fourth: u64) Result {
     var status: u64 = undefined;

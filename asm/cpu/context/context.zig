@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const constants = @import("asm").cpu.constants.control;
-const strings = @import("asm").cpu.strings.context;
-const types = @import("asm").cpu.types.context;
+const constants = @import("asm").cpu.constants.control.registers;
+const strings = @import("asm").cpu.strings.context.transfer;
+const types = @import("asm").cpu.types.context.frame;
 
 const Context = types.Context;
 

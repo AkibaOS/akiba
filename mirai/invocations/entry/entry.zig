@@ -15,14 +15,14 @@ const types = @import("mirai").invocations.types.abi;
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 
 export fn invocation_dispatch(frame: *InterruptFrame) void {
-    if ((frame.CS & cpu.constants.user.SELECTOR_RPL_MASK) != cpu.constants.user.SELECTOR_RPL_USER) {
+    if ((frame.CS & cpu.constants.user.entry.SELECTOR_RPL_MASK) != cpu.constants.user.entry.SELECTOR_RPL_USER) {
         frame.RAX = @intFromEnum(types.Status.InvalidCaller);
         frame.RDX = 0;
         return;
     }
     const current = thread.state.getCurrent() orelse @panic(messages.INVALID_CONTEXT);
     if (current.Mode != .Persona or !current.Managed or current.Status != .Running or
-        (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
+        (cpu.state.readFlags() & cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE) != 0) @panic(messages.INVALID_CONTEXT);
     if (frame.CS != (@as(u64, selectors.USER_CODE_SELECTOR) | selectors.RING_3) or
         frame.SS != (@as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3))
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);

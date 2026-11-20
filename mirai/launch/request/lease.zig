@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const allocator = @import("mirai").memory.allocator.native;
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
 const kata = @import("mirai").kata;
 const messages = @import("mirai").launch.strings.transaction;

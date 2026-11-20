@@ -1,8 +1,8 @@
 //! CPUID Operations
 
-const constants = @import("asm").cpu.constants.cpuid;
-const strings = @import("asm").cpu.strings.cpuid;
-const types = @import("asm").cpu.types.cpuid;
+const constants = @import("asm").cpu.constants.cpuid.leaves;
+const strings = @import("asm").cpu.strings.cpuid.instructions;
+const types = @import("asm").cpu.types.cpuid.registers;
 
 pub fn query(leaf: u32, subleaf: u32) types.Registers {
     var accumulator: u32 = undefined;

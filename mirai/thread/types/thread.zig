@@ -1,6 +1,6 @@
 //! Owned Kernel Execution Context
 
-const Context = @import("asm").cpu.types.context.Context;
+const Context = @import("asm").cpu.types.context.frame.Context;
 const Entry = @import("mirai").thread.types.entry.Entry;
 const Kata = @import("mirai").kata.types.kata.Kata;
 const KernelStack = @import("mirai").memory.types.stack.kernel.KernelStack;

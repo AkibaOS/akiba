@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").sensei.strings.messages;
 const run = @import("mirai").sensei.run;

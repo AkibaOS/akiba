@@ -1,6 +1,6 @@
 //! UTF-8 Decoding
 
-const constants = @import("utils").text.constants.utf8;
+const constants = @import("utils").text.constants.utf8.encoding;
 
 const Decoded = @import("utils").text.types.decoded.Decoded;
 

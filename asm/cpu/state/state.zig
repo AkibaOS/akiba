@@ -1,6 +1,6 @@
 //! CPU State Operations
 
-const strings = @import("asm").cpu.strings.state;
+const strings = @import("asm").cpu.strings.state.instructions;
 
 pub fn readStackPointer() u64 {
     var value: u64 = undefined;

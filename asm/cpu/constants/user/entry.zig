@@ -1,6 +1,6 @@
 //! Ring Three Entry Constants
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 
 pub const RFLAGS_INITIAL: u64 = control.RFLAGS_RESERVED | control.RFLAGS_INTERRUPT_ENABLE;
 pub const SELECTOR_MAX: u64 = 0xFFFF;

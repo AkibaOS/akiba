@@ -14,7 +14,7 @@ const InterruptFrame = frame.InterruptFrame;
 
 export fn exception_dispatch(interrupt_frame: *InterruptFrame) void {
     const vector: u8 = @truncate(interrupt_frame.Vector);
-    if ((interrupt_frame.CS & cpu.constants.user.SELECTOR_RPL_MASK) == cpu.constants.user.SELECTOR_RPL_USER and
+    if ((interrupt_frame.CS & cpu.constants.user.entry.SELECTOR_RPL_MASK) == cpu.constants.user.entry.SELECTOR_RPL_USER and
         vector != vectors.NMI_VECTOR and vector != vectors.DOUBLE_FAULT_VECTOR and vector != vectors.MACHINE_CHECK_VECTOR)
     {
         const address = if (vector == crimson.constants.vectors.PAGE_FAULT_VECTOR) cpu.control.readCR2() else interrupt_frame.RIP;

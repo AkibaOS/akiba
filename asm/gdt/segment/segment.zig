@@ -1,6 +1,6 @@
 //! Segment Register Operations
 
-const strings = @import("asm").gdt.strings.segment;
+const strings = @import("asm").gdt.strings.segment.instructions;
 
 pub fn readCodeSegment() u16 {
     var value: u16 = undefined;

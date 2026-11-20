@@ -1,6 +1,6 @@
 //! ASCII Text Utilities
 
-const constants = @import("utils").text.constants.ascii;
+const constants = @import("utils").text.constants.ascii.case;
 
 pub fn toUpper(character: u8) u8 {
     if (character >= 'a' and character <= 'z') {

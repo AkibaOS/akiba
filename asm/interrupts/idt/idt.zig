@@ -1,6 +1,6 @@
 //! IDT Load Operations
 
-const strings = @import("asm").interrupts.strings.idt;
+const strings = @import("asm").interrupts.strings.idt.instructions;
 
 pub fn loadInterruptDescriptorTable(descriptor: *const anyopaque) void {
     asm volatile (strings.LOAD_INTERRUPT_DESCRIPTOR_TABLE

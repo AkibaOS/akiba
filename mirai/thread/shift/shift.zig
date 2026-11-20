@@ -41,8 +41,8 @@ fn canResume(thread: *const Thread) bool {
     return context.CR3 == thread.Owner.AddressSpace.?.PML4Physical and
         context.RSP >= thread.Stack.Base + 2 * @sizeOf(u64) and context.RSP <= thread.Stack.Top - @sizeOf(u64) and
         context.RIP >= text.VirtualStart and context.RIP < text.VirtualEnd and
-        (context.RFLAGS & cpu.constants.control.RFLAGS_RESERVED) != 0 and
-        (context.RFLAGS & (cpu.constants.control.RFLAGS_INTERRUPT_ENABLE | cpu.constants.control.RFLAGS_DIRECTION)) == 0;
+        (context.RFLAGS & cpu.constants.control.registers.RFLAGS_RESERVED) != 0 and
+        (context.RFLAGS & (cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE | cpu.constants.control.registers.RFLAGS_DIRECTION)) == 0;
 }
 
 pub fn shift(next: *Thread) OwnershipError!void {
@@ -67,8 +67,8 @@ fn transfer(next: *Thread, previous_status: State, managed: bool) OwnershipError
         return;
     }
     if (!canResume(next) or
-        (cpu.control.readCR4() & cpu.constants.control.CR4_OS_XSAVE) != 0 or
-        (cpu.control.readCR0() & (cpu.constants.control.CR0_EMULATION | cpu.constants.control.CR0_TASK_SWITCHED)) != 0)
+        (cpu.control.readCR4() & cpu.constants.control.registers.CR4_OS_XSAVE) != 0 or
+        (cpu.control.readCR0() & (cpu.constants.control.registers.CR0_EMULATION | cpu.constants.control.registers.CR0_TASK_SWITCHED)) != 0)
         return OwnershipError.InvalidState;
     if (!next.Admitted and !execution.admit(next)) return OwnershipError.InvalidState;
     execution.change(previous, previous_status);
@@ -82,7 +82,7 @@ fn transfer(next: *Thread, previous_status: State, managed: bool) OwnershipError
 pub fn finish() bool {
     const current = state.getCurrent() orelse return false;
     if (!hasOwner(current) or current.Status != .Running or
-        (cpu.state.readFlags() & cpu.constants.control.RFLAGS_INTERRUPT_ENABLE) != 0) return false;
+        (cpu.state.readFlags() & cpu.constants.control.registers.RFLAGS_INTERRUPT_ENABLE) != 0) return false;
     const pointer = cpu.state.readStackPointer();
     if (pointer < current.Stack.Base or pointer >= current.Stack.Top or
         (cpu.control.readCR3() & indices.ADDRESS_MASK) != current.Owner.AddressSpace.?.PML4Physical or

@@ -28,8 +28,8 @@ pub fn canActivate(kagami: *const Kagami) bool {
     if (!state.hasOwnedKernel() or
         !(kagami == state.getKernelKagami() or create.owns(kagami)) or
         !tables.walk.isValidTable(kagami.PML4Physical) or
-        (cpu.control.readCR4() & (cpu.constants.control.CR4_PCID_ENABLE | cpu.constants.control.CR4_LINEAR_ADDRESS_57_ENABLE)) != 0 or
-        (cpu.control.readCR0() & cpu.constants.control.CR0_WRITE_PROTECT) == 0) return false;
+        (cpu.control.readCR4() & (cpu.constants.control.registers.CR4_PCID_ENABLE | cpu.constants.control.registers.CR4_LINEAR_ADDRESS_57_ENABLE)) != 0 or
+        (cpu.control.readCR0() & cpu.constants.control.registers.CR0_WRITE_PROTECT) == 0) return false;
     if (kagami != state.getKernelKagami()) {
         if (!kagami.SharesKernel) return false;
         const root = tables.walk.getPML4(kagami.PML4Physical);

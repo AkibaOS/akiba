@@ -1,6 +1,6 @@
 //! Off CPU Scheduler Record Retirement
 
-const control = @import("asm").cpu.constants.control;
+const control = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
 const kata = @import("mirai").kata;
 const messages = @import("mirai").sensei.strings.messages;

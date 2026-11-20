@@ -2,9 +2,9 @@
 
 const constants = @import("asm").cpu.constants;
 const cpuid = @import("asm").cpu.cpuid;
-const strings = @import("asm").cpu.strings.msr;
+const strings = @import("asm").cpu.strings.msr.instructions;
 
-const registers = constants.msr;
+const registers = constants.msr.registers;
 
 pub fn read(register: u32) u64 {
     var low: u32 = undefined;

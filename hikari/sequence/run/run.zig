@@ -128,13 +128,13 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
         splash.fail(messages.ERROR_MEMORY);
         return status.UNSUPPORTED;
     }
-    const firmware_efer = msr.read(processor.msr.EFER);
+    const firmware_efer = msr.read(processor.msr.registers.EFER);
     const firmware_cr0 = control.readCR0();
     defer {
-        const write_protect = processor.control.CR0_WRITE_PROTECT;
-        const no_execute = processor.msr.EFER_NO_EXECUTE_ENABLE;
+        const write_protect = processor.control.registers.CR0_WRITE_PROTECT;
+        const no_execute = processor.msr.registers.EFER_NO_EXECUTE_ENABLE;
         control.writeCR0((control.readCR0() & ~write_protect) | (firmware_cr0 & write_protect));
-        msr.write(processor.msr.EFER, (msr.read(processor.msr.EFER) & ~no_execute) | (firmware_efer & no_execute));
+        msr.write(processor.msr.registers.EFER, (msr.read(processor.msr.registers.EFER) & ~no_execute) | (firmware_efer & no_execute));
     }
     if (!msr.enableNoExecute() or !control.enableWriteProtect()) {
         splash.fail(messages.ERROR_MEMORY);
@@ -220,12 +220,12 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
         splash.fail(messages.ERROR_MEMORY_SURVEY);
         return status.LOAD_ERROR;
     };
-    const floating_control = processor.control;
+    const floating_control = processor.control.registers;
     control.writeCR0((control.readCR0() | floating_control.CR0_MONITOR_COPROCESSOR | floating_control.CR0_NUMERIC_ERROR) &
         ~(floating_control.CR0_EMULATION | floating_control.CR0_TASK_SWITCHED));
     control.writeCR4((control.readCR4() | floating_control.CR4_OS_FXSAVE | floating_control.CR4_OS_XMM_EXCEPTION) & ~floating_control.CR4_OS_XSAVE);
     fpu.initializeFpu();
-    const mxcsr = processor.fpu.DEFAULT_MXCSR;
+    const mxcsr = processor.fpu.state.DEFAULT_MXCSR;
     fpu.loadMXCSR(&mxcsr);
     assembly.jump.jumpToKernel(loaded_image.EntryPoint, handoff.stackTop(startup), handoff.parameterAlias(startup), page_setup.getL4Address());
 }
