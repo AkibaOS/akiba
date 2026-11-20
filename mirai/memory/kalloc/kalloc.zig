@@ -12,7 +12,7 @@ const names = strings.kalloc.names;
 const zone_sizes = constants.kalloc.sizes.ZONE_SIZES;
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const MemoryError = errors.AllocationError;
-const Zone = types.zone.Zone;
+const Zone = types.zone.layout.Zone;
 
 var zones: [zone_sizes.len]?*Zone = [_]?*Zone{null} ** zone_sizes.len;
 var initialized: bool = false;

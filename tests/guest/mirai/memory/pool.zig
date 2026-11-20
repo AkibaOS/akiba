@@ -40,7 +40,7 @@ pub fn run() !void {
 
 fn coldFailure() !void {
     const zone = memory.zone.bootstrap.getZoneZone();
-    var held: [sizes.PAGE_SIZE / @sizeOf(memory.types.zone.Zone)]*memory.types.zone.Zone = undefined;
+    var held: [sizes.PAGE_SIZE / @sizeOf(memory.types.zone.layout.Zone)]*memory.types.zone.layout.Zone = undefined;
     var count: usize = 0;
     defer for (held[0..count]) |descriptor| {
         verify.require(memory.zone.destroy.destroy(descriptor), labels.ZONE_LIFETIME);
@@ -254,7 +254,7 @@ fn geometry() void {
         alignment = reason == error.InvalidAlignment;
     };
     verify.require(too_large and alignment and std.meta.eql(before, pmm.state.getStatistics()), labels.INVALID);
-    const unknown: *memory.types.zone.Zone = @ptrFromInt(sizes.PAGE_SIZE);
+    const unknown: *memory.types.zone.layout.Zone = @ptrFromInt(sizes.PAGE_SIZE);
     verify.require(!memory.zone.destroy.destroy(memory.zone.bootstrap.getZoneZone()) and
         !memory.zone.destroy.destroy(memory.zone.bootstrap.getPageMetaZone()) and !memory.zone.destroy.destroy(unknown), labels.ZONE_LIFETIME);
 }

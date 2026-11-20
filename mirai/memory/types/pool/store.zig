@@ -12,7 +12,7 @@ const zone = @import("mirai").memory.zone;
 
 const sizes = common.constants.memory.sizes;
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const Zone = types.zone.Zone;
+const Zone = types.zone.layout.Zone;
 
 pub fn create(comptime Value: type) type {
     const Record = records.create(Value);

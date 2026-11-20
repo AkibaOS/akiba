@@ -7,9 +7,9 @@ const tree = @import("common").datatypes.tree;
 const types = @import("mirai").memory.types;
 
 const sizes = common.constants.memory.sizes;
-const FreeElement = types.zone.FreeElement;
-const Zone = types.zone.Zone;
-const ZonePageMeta = types.zone.ZonePageMeta;
+const FreeElement = types.zone.layout.FreeElement;
+const Zone = types.zone.layout.Zone;
+const ZonePageMeta = types.zone.layout.ZonePageMeta;
 
 pub fn attach(zone: *Zone, meta: *ZonePageMeta, physical: u64, offset: usize) void {
     const virtual = address.translate.physToVirt(physical);

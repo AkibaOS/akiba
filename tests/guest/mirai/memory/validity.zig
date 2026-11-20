@@ -8,7 +8,7 @@ const labels = @import("tests").guest.strings.memory;
 const memory = @import("mirai").memory;
 const verify = @import("tests").guest.support.verify;
 
-const Zone = memory.types.zone.Zone;
+const Zone = memory.types.zone.layout.Zone;
 
 var retained_zone: ?*Zone = null;
 

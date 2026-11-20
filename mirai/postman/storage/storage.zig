@@ -12,7 +12,7 @@ const EnvelopeStore = memory.types.pool.store.create(Envelope);
 const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
 const PostError = @import("mirai").postman.errors.transport.PostError;
 const Status = @import("mirai").postman.types.status.Status;
-const Zone = memory.types.zone.Zone;
+const Zone = memory.types.zone.layout.Zone;
 
 var records: EnvelopeStore = .{};
 var payloads: ?*Zone = null;

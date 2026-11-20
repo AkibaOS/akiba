@@ -2,8 +2,8 @@
 
 pub const access = @import("access.zig");
 pub const acquisition = @import("acquisition.zig");
-pub const boot = @import("boot.zig");
 pub const ahci = @import("ahci.zig");
+pub const boot = @import("boot.zig");
 pub const completion = @import("completion.zig");
 pub const context = @import("context.zig");
 pub const crimson = @import("crimson.zig");

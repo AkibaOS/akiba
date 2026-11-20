@@ -1,6 +1,5 @@
 //! Mirai Kernel
 
-pub const assembly = @import("asm");
 pub const boot = @import("boot/boot.zig");
 pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const crimson = @import("crimson/crimson.zig");

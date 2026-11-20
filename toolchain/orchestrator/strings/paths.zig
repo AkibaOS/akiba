@@ -12,6 +12,7 @@ pub const WEAVER_ROOT = "weaver/weaver.zig";
 pub const MKAFSDISK_ROOT = "toolchain/mkafsdisk/mkafsdisk.zig";
 pub const MKAFSDISK_ENTRY = "toolchain/mkafsdisk/entry/entry.zig";
 pub const FONTPREVIEW_ROOT = "toolchain/fontpreview/fontpreview.zig";
+pub const FONTPREVIEW_ENTRY = "toolchain/fontpreview/entry/entry.zig";
 pub const FONT_RESOURCE = "resources/system/fonts/Hikari.ttf";
 pub const LINKER_SCRIPT = "linker/mirai.linker";
 pub const HIKARI_OUTPUT = "EFI/BOOT/BOOTX64.EFI";

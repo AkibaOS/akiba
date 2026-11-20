@@ -14,9 +14,9 @@ const types = @import("mirai").memory.types;
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const FreeElement = types.zone.FreeElement;
-const Zone = types.zone.Zone;
-const ZonePageMeta = types.zone.ZonePageMeta;
+const FreeElement = types.zone.layout.FreeElement;
+const Zone = types.zone.layout.Zone;
+const ZonePageMeta = types.zone.layout.ZonePageMeta;
 
 pub fn zalloc(zone: *Zone) AllocationError!*anyopaque {
     const previous_flags = guard.acquire();

@@ -7,7 +7,7 @@ const font = @import("shared").font;
 const sfnt = @import("shared").sfnt;
 
 const Directory = sfnt.types.directory.Directory;
-const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
+const Fixed16Dot16 = common.datatypes.fixed.types.ratio.Fixed16Dot16;
 const FontError = font.errors.font.FontError;
 
 pub const Face = struct {

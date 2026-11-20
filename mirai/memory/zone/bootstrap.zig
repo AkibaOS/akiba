@@ -15,9 +15,9 @@ const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const FreeElement = types.zone.FreeElement;
-const Zone = types.zone.Zone;
-const ZonePageMeta = types.zone.ZonePageMeta;
+const FreeElement = types.zone.layout.FreeElement;
+const Zone = types.zone.layout.Zone;
+const ZonePageMeta = types.zone.layout.ZonePageMeta;
 
 var zone_zone: Zone = undefined;
 var page_meta_zone: Zone = undefined;

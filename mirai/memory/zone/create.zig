@@ -13,8 +13,8 @@ const limits = constants.zone.limits;
 const sizes = common.constants.memory.sizes;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const FreeElement = types.zone.FreeElement;
-const Zone = types.zone.Zone;
+const FreeElement = types.zone.layout.FreeElement;
+const Zone = types.zone.layout.Zone;
 
 pub fn create(name: []const u8, element_size: usize) AllocationError!*Zone {
     const previous_flags = guard.acquire();

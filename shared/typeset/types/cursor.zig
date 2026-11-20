@@ -10,7 +10,7 @@ const utf8 = @import("utils").text.utf8;
 
 const CoordinateError = raster.errors.raster.CoordinateError;
 const Face = font.types.face.font.Face;
-const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
+const Fixed16Dot16 = common.datatypes.fixed.types.ratio.Fixed16Dot16;
 const FontError = font.errors.font.FontError;
 const PlacedGlyph = typeset.types.placement.PlacedGlyph;
 const Placement = raster.types.placement.Placement;

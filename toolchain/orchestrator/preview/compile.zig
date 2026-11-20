@@ -18,9 +18,15 @@ pub fn add(builder: *std.Build, modules: types.Modules) *std.Build.Step {
     module.addImport(names.MODULE_UTILS, modules.Utils);
     module.addImport(names.EXECUTABLE_FONTPREVIEW, module);
 
+    const entry = builder.createModule(.{
+        .root_source_file = builder.path(paths.FONTPREVIEW_ENTRY),
+        .target = builder.graph.host,
+        .optimize = .Debug,
+    });
+    entry.addImport(names.EXECUTABLE_FONTPREVIEW, module);
     const executable = builder.addExecutable(.{
         .name = names.EXECUTABLE_FONTPREVIEW,
-        .root_module = module,
+        .root_module = entry,
     });
     const install = builder.addInstallArtifact(executable, .{});
     builder.step(names.EXECUTABLE_FONTPREVIEW, steps.FONTPREVIEW_DESCRIPTION).dependOn(&install.step);

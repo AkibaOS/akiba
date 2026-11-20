@@ -11,8 +11,8 @@ const tree = @import("common").datatypes.tree;
 const types = @import("mirai").memory.types;
 
 const sizes = common.constants.memory.sizes;
-const Zone = types.zone.Zone;
-const ZonePageMeta = types.zone.ZonePageMeta;
+const Zone = types.zone.layout.Zone;
+const ZonePageMeta = types.zone.layout.ZonePageMeta;
 
 pub fn collect(zone: *Zone) usize {
     const previous_flags = guard.acquire();

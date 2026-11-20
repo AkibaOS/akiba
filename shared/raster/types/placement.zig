@@ -6,7 +6,7 @@ const common = @import("common");
 const raster = @import("shared").raster;
 
 const CoordinateError = raster.errors.raster.CoordinateError;
-const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
+const Fixed16Dot16 = common.datatypes.fixed.types.ratio.Fixed16Dot16;
 
 const limits = raster.constants.limits;
 

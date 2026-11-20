@@ -8,7 +8,7 @@ const fixture = @import("tests").fast.shared.raster.fixture;
 const font = @import("shared").font;
 const raster = @import("shared").raster;
 
-const Fixed16Dot16 = common.datatypes.fixed.Fixed16Dot16;
+const Fixed16Dot16 = common.datatypes.fixed.types.ratio.Fixed16Dot16;
 const Placement = raster.types.placement.Placement;
 const Point = font.types.outline.contour.Point;
 const Shape = raster.types.shape.Shape;

@@ -2,7 +2,7 @@
 
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
-const errors = @import("mirai").kagami.errors.bootstrap.build;
+const errors = @import("mirai").kagami.errors.bootstrap.preparation;
 const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").kagami.types;

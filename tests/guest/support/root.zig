@@ -92,7 +92,7 @@ pub fn run(info: *const BootInfo) void {
     serial.printf(bootstrapwire.ROLLBACK_COMPLETE, .{});
 }
 
-fn prepare(info: *const BootInfo) kagami.errors.bootstrap.build.BootError!*kagami.types.prepared.PreparedRoot {
+fn prepare(info: *const BootInfo) kagami.errors.bootstrap.preparation.BootError!*kagami.types.prepared.PreparedRoot {
     return kagami.bootstrap.prepareObserved(info, screen.bootPulse);
 }
 

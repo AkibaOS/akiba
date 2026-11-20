@@ -6,7 +6,7 @@ const gc = @import("mirai").memory.zone.gc;
 const guard = @import("asm").interrupts.guard;
 const types = @import("mirai").memory.types;
 
-const Zone = types.zone.Zone;
+const Zone = types.zone.layout.Zone;
 
 pub fn destroy(zone: *Zone) bool {
     const flags = guard.acquire();

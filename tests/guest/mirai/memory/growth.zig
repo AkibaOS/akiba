@@ -11,8 +11,8 @@ const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
-const Zone = memory.types.zone.Zone;
-const ZonePageMeta = memory.types.zone.ZonePageMeta;
+const Zone = memory.types.zone.layout.Zone;
+const ZonePageMeta = memory.types.zone.layout.ZonePageMeta;
 
 var retained_zone: ?*Zone = null;
 

@@ -10,7 +10,7 @@ const memory = @import("mirai").memory;
 const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 
-const Zone = memory.types.zone.Zone;
+const Zone = memory.types.zone.layout.Zone;
 
 var retained_zone: ?*Zone = null;
 

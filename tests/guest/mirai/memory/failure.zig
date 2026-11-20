@@ -12,7 +12,7 @@ const pmm = @import("mirai").pmm;
 const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
-const Zone = memory.types.zone.Zone;
+const Zone = memory.types.zone.layout.Zone;
 
 var retained_zone: ?*Zone = null;
 var reserved = [_]?*anyopaque{null} ** inputs.ZONE_METADATA_PRESSURE_SLOTS;
