@@ -38,7 +38,9 @@ pub fn weaverRequest(builder: *std.Build, modules: Modules, weaver: *std.Build.M
     const executable = build(builder, paths.WEAVER_FIXTURE_ROOT, paths.ELF_FIXTURE_LINKER, names.EXECUTABLE_WEAVER_FIXTURE);
     const root = executable.root_module;
     root.strip = true;
-    root.addImport(names.MODULE_TESTS, checks(builder));
+    const fixture_checks = checks(builder);
+    fixture_checks.addImport(names.MODULE_SHARED, modules.Shared);
+    root.addImport(names.MODULE_TESTS, fixture_checks);
     root.addImport(names.MODULE_SHARED, modules.Shared);
     root.addImport(names.MODULE_WEAVER, weaver);
     root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = artifacts.Program });

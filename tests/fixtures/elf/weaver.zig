@@ -2,6 +2,8 @@
 
 const std = @import("std");
 
+const afs = @import("shared").afs;
+const cells = @import("tests").fixtures.afs;
 const elf = @import("tests").fixtures.constants.elf;
 const entry = @import("fixtureasm").entry;
 const fixturetext = @import("tests").fixtures.strings.elf;
@@ -10,9 +12,12 @@ const invocation = @import("fixtureasm").invocation;
 const labels = @import("tests").fixtures.strings.weaver;
 const postmanwire = @import("tests").fixtures.constants.postman;
 const provision = @import("shared").launch.constants.provision;
+const storage = @import("tests").fixtures.constants.catalog;
 const types = @import("tests").fixtures.types.weaver;
 const weaver = @import("weaver");
 const wire = @import("shared").launch.types.provision;
+
+const LibraryCells = @import("tests").fixtures.types.catalog.LibraryCells;
 
 const PROGRAM = @embedFile("dynamicimage");
 const LIBRARY = @embedFile("dynamiclibrary");
@@ -54,10 +59,14 @@ fn launch(cache: *weaver.launch.types.cache.Cache, mode: types.Mode, ticket: u64
         return request.Receipt;
     }
     var allocator = std.heap.FixedBufferAllocator.init(&heap);
+    var device: LibraryCells = undefined;
+    const reader = cells.device(&device, LIBRARY, fixturetext.DYNAMIC_SOURCE, mode == .Missing) catch return request.Receipt;
+    var scratch: [storage.CELL_SIZE]u8 = undefined;
+    const mounted = afs.read.catalog.mount(reader, &scratch) catch return request.Receipt;
     var parameters: [inputs.PARAMETER_COUNT]u8 = @splat(inputs.PARAMETER_BYTE);
     if (mode == .Cached) parameters[0] = inputs.HOLD_PARAMETER;
     parameters[parameters.len - 1] = inputs.PARAMETER_LAST;
-    const child = weaver.launch.transaction.run.run(allocator.allocator(), .{ .Context = &request, .ReadFromOrigin = read }, PROGRAM, .{
+    const child = weaver.launch.transaction.run.run(allocator.allocator(), weaver.library.afs.source(&mounted), PROGRAM, .{
         .Biases = .{ .Executable = elf.DYNAMIC_EXECUTABLE_BIAS, .Libraries = &.{elf.DYNAMIC_LIBRARY_BIAS} },
         .Policy = .{ .MinimumAddress = elf.PAGE_BYTES, .MaximumAddress = elf.USER_END, .MaximumPages = elf.MAXIMUM_PAGES },
         .StackBase = elf.STACK_ADDRESS,
@@ -77,14 +86,6 @@ fn launch(cache: *weaver.launch.types.cache.Cache, mode: types.Mode, ticket: u64
     request.Receipt.Child = child;
     request.Receipt.State = .Started;
     return request.Receipt;
-}
-
-fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) weaver.library.errors.library.ReadError!?[]u8 {
-    const request: *const types.Request = @ptrCast(@alignCast(context));
-    const expected = weaver.library.strings.location.SYSTEM_LIBRARIES;
-    if (request.Mode == .Missing or parent.len != expected.len or !std.mem.eql(u8, name, fixturetext.DYNAMIC_SOURCE)) return null;
-    for (parent, expected) |actual, component| if (!std.mem.eql(u8, actual, component)) return null;
-    return try allocator.dupe(u8, LIBRARY);
 }
 
 fn invoke(context: *anyopaque, ticket: u64, operation: wire.Operation, argument: u64, protection: wire.Protection) wire.Result {
