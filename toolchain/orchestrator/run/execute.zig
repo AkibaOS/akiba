@@ -15,7 +15,7 @@ pub fn build(builder: *std.Build) void {
     const bootloader_artifact = bootloader.compile.artifact(builder, module_set, false);
     const disk_artifact = disk.compile.artifact(builder, module_set);
     const bootloader_step = bootloader.compile.install(builder, bootloader_artifact);
-    const kernel_artifact = kernel.compile.artifact(builder, module_set, false);
+    const kernel_artifact = kernel.compile.artifact(builder, module_set, null);
     const kernel_step = kernel.compile.install(builder, kernel_artifact);
     const disk_step = disk.compile.install(builder, disk_artifact);
     _ = preview.compile.add(builder, module_set);

@@ -5,6 +5,7 @@ const std = @import("std");
 const boot = @import("boot.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
 const firmware = @import("firmware.zig");
+const fixture = @import("fixture.zig");
 const kernel = @import("../kernel/kernel.zig");
 const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
@@ -32,6 +33,7 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
     tool.addImport(names.MODULE_SHARED, modules.Shared);
     tool.addImport(names.MODULE_UTILS, modules.Utils);
     checks.addImport(names.EXECUTABLE_MKAFSDISK, tool);
+    const dynamic = fixture.dynamic(builder);
     const step = builder.step(names.STEP_FAST_CHECKS, steps.FAST_CHECKS_DESCRIPTION);
     for (suites.FAST) |suite| {
         const root = builder.createModule(.{
@@ -44,13 +46,17 @@ pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std
         root.addImport(names.MODULE_SHARED, modules.Shared);
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
+        if (std.mem.eql(u8, suite.Root, paths.WEAVER_TEST_ROOT)) {
+            root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
+            root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });
+        }
         const executable_name = builder.fmt(suites.EXECUTABLE, .{suite.Name});
         const tests = builder.addTest(.{ .name = executable_name, .root_module = root, .use_llvm = true });
         const run = builder.addRunArtifact(tests);
         run.has_side_effects = true;
         step.dependOn(&run.step);
     }
-    const guest = kernel.compile.addGuest(builder, modules);
+    const guest = kernel.compile.addGuest(builder, modules, dynamic);
     const selector = boot.artifact(builder, modules, .{
         .Diagnostic = diagnostics.compile.artifact(builder, modules, true),
         .Firmware = firmware.artifact(builder, modules),

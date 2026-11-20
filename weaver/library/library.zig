@@ -1,5 +1,6 @@
 //! Weaver Library Selection Exports
 
+pub const afs = @import("afs/afs.zig");
 pub const errors = @import("errors/errors.zig");
 pub const load = @import("load/load.zig");
 pub const strings = @import("strings/strings.zig");

@@ -6,5 +6,6 @@ pub const block = @import("block.zig");
 pub const btree = @import("btree.zig");
 pub const catalog = @import("catalog.zig");
 pub const extents = @import("extents.zig");
+pub const reader = @import("reader.zig");
 pub const timestamp = @import("timestamp.zig");
 pub const volume = @import("volume.zig");

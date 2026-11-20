@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const afs = @import("tests").fast.weaver.afs;
 const dynamic = @import("tests").fast.shared.elf.dynamic;
 const elf = @import("shared").elf;
 const fixture = @import("tests").fixtures.bytes.elf;
@@ -15,6 +16,10 @@ const weaver = @import("weaver");
 const ALLOCATOR = std.testing.allocator;
 const SYSTEM = [_][]const u8{ "system", "libraries" };
 const INSTALLED = [_][]const u8{"libraries"};
+
+test "Weaver resolves a native library through a real writer produced AFS catalog" {
+    try afs.installed(@embedFile("dynamicimage"), @embedFile("dynamiclibrary"));
+}
 const ALIAS = "alias.lib";
 const OTHER_CASE = "Probe.lib";
 const STORAGE_WORD = inputs.PAGE_BYTES + inputs.DYNAMIC_TABLE;

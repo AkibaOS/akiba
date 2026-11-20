@@ -5,4 +5,7 @@ pub const ReadError = error{
     UnitTooLarge,
     InvalidSpan,
     BufferTooSmall,
+    InvalidVolumeHeader,
+    InvalidCatalog,
+    InvalidIdentity,
 };

@@ -47,19 +47,21 @@ pub fn readSpan(
     return bytes_read;
 }
 
+pub fn size(reader: *const BlockReader, channel: *const ChannelInfo) ReadError!u64 {
+    const unit_size = channel.LogicalSize;
+    if (channel.TotalCells > reader.TotalCells or unit_size > channel.PhysicalSize or
+        channel.PhysicalSize > @as(u64, channel.TotalCells) * reader.CellSize) return ReadError.InvalidSpan;
+    return unit_size;
+}
+
 pub fn readUnitInlineSpans(
     reader: *const BlockReader,
     channel: *const ChannelInfo,
     buffer: []u8,
     cell_buffer: []u8,
 ) ReadError!u64 {
-    const unit_size = channel.LogicalSize;
     if (reader.CellSize == 0 or cell_buffer.len < reader.CellSize) return ReadError.BufferTooSmall;
-    if (channel.TotalCells > reader.TotalCells or unit_size > channel.PhysicalSize or
-        channel.PhysicalSize > @as(u64, channel.TotalCells) * reader.CellSize)
-    {
-        return ReadError.InvalidSpan;
-    }
+    const unit_size = try size(reader, channel);
 
     if (buffer.len < unit_size) {
         return ReadError.BufferTooSmall;
