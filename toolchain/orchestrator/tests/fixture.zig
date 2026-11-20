@@ -37,6 +37,7 @@ pub fn dynamic(builder: *std.Build) Dynamic {
 pub fn weaverRequest(builder: *std.Build, modules: Modules, weaver: *std.Build.Module, artifacts: Dynamic) *std.Build.Step.Compile {
     const executable = build(builder, paths.WEAVER_FIXTURE_ROOT, paths.ELF_FIXTURE_LINKER, names.EXECUTABLE_WEAVER_FIXTURE);
     const root = executable.root_module;
+    root.strip = true;
     root.addImport(names.MODULE_TESTS, checks(builder));
     root.addImport(names.MODULE_SHARED, modules.Shared);
     root.addImport(names.MODULE_WEAVER, weaver);
