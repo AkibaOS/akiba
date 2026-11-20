@@ -128,7 +128,7 @@ pub fn release(owner: *Kata) bool {
     defer guard.release(flags);
     const slot = data(owner) orelse return false;
     if (owner.Permanent or owner.ThreadCount != 0 or owner.LiveThreadCount != 0 or owner.RunnableThreadCount != 0 or
-        (owner.State != .Born and owner.State != .Dead) or owner.AddressSpace != null or slot.Threads != null or slot.Pages != null or
+        (owner.State != .Born and owner.State != .Dead) or owner.AddressSpace != null or slot.Threads != null or slot.Pages != null or slot.Templates != null or
         tree.lookup.find(&identities, owner.ID) != &slot.Index) return false;
     if (!completion.lifetime.release(owner.ID)) return false;
     lifecycle.discard(owner);

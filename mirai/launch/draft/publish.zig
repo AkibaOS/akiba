@@ -3,6 +3,7 @@
 const bootstrap = @import("mirai").bootstrap;
 const messages = @import("mirai").launch.strings.transaction;
 const pages = @import("mirai").launch.draft.pages;
+const templates = @import("mirai").launch.templates;
 const thread = @import("mirai").thread;
 
 const Transaction = @import("mirai").launch.types.transaction.Transaction;
@@ -19,6 +20,7 @@ pub fn start(draft: *Transaction, entry: u64, stack_base: u64, stack_length: u64
         .Thread = initial,
         .ThreadGeneration = thread.state.generation(initial).?,
     });
+    templates.commit(draft);
     draft.Child = null;
     return identifier;
 }

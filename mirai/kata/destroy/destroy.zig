@@ -5,6 +5,7 @@ const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const release = @import("mirai").user.memory.release;
 const state = @import("mirai").kata.state;
+const templates = @import("mirai").launch.templates;
 const types = @import("mirai").kata.types;
 const usererrors = @import("mirai").user.errors.memory;
 
@@ -23,7 +24,9 @@ pub fn destroy(owner: *Kata) (OwnershipError || UserError)!void {
     if (root == kagami.state.getCurrentKagami() or kagami.activate.isActive(root) or
         root.ExecutionOwners != 1 or root.ReferenceCount != 1) return OwnershipError.InUse;
     if (!kagami.destroy.validate(root)) return OwnershipError.InvalidState;
+    try templates.validateOwner(owner);
     try release.releaseAll(owner);
+    templates.releaseOwner(owner);
     if (!kagami.retain.release(root)) return OwnershipError.InvalidState;
     if (kagami.destroy.destroy(root) != .Destroyed) {
         _ = kagami.retain.acquire(root);

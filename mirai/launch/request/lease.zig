@@ -8,8 +8,10 @@ const cpu = @import("asm").cpu.state;
 const kata = @import("mirai").kata;
 const messages = @import("mirai").launch.strings.transaction;
 const postman = @import("mirai").postman;
+const templates = @import("mirai").launch.templates;
 
 const Envelope = postman.types.envelope.Envelope;
+const Kata = kata.types.kata.Kata;
 const PostError = postman.errors.transport.PostError;
 const Thread = @import("mirai").thread.types.thread.Thread;
 const Transaction = @import("mirai").launch.types.transaction.Transaction;
@@ -31,12 +33,12 @@ pub fn active(server: *Thread, ticket: u64) (PostError || error{InvalidCaller})!
     return envelope;
 }
 
-pub fn begin(envelope: *Envelope) !void {
+pub fn begin(envelope: *Envelope, server: *Kata) !void {
     if (envelope.Lease != null) return PostError.Busy;
     const heap = allocator.get();
     const draft = try heap.create(Transaction);
     errdefer heap.destroy(draft);
-    draft.* = .{ .Child = try kata.create.createFor(envelope.Client.?.Owner.?) };
+    draft.* = .{ .Child = try kata.create.createFor(envelope.Client.?.Owner.?), .Server = server };
     envelope.Lease = .{ .Context = draft, .Revoke = revoke };
 }
 
@@ -54,6 +56,7 @@ pub fn transaction(envelope: *const Envelope) ?*Transaction {
 
 fn revoke(context: *anyopaque) void {
     const draft: *Transaction = @ptrCast(@alignCast(context));
+    templates.discard(draft);
     if (draft.Child) |child| kata.destroy.destroy(child) catch @panic(messages.ROLLBACK_FAILED);
     allocator.get().destroy(draft);
 }

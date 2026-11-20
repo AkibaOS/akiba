@@ -11,6 +11,8 @@ pub const Operation = enum(u64) {
     Load = 3,
     Seal = 4,
     Start = 5,
+    Retain = 6,
+    Attach = 7,
 };
 
 pub const Protection = enum(u64) {
@@ -32,6 +34,11 @@ pub const Start = extern struct {
     Startup: u64,
 };
 
+pub const Attach = extern struct {
+    Handle: u64,
+    Address: u64,
+};
+
 pub const Result = struct {
     Status: u64 = wire.SUCCESS,
     Value: u64 = 0,
@@ -40,4 +47,5 @@ pub const Result = struct {
 comptime {
     std.debug.assert(@sizeOf(Load) == 3 * @sizeOf(u64));
     std.debug.assert(@sizeOf(Start) == 4 * @sizeOf(u64));
+    std.debug.assert(@sizeOf(Attach) == 2 * @sizeOf(u64));
 }

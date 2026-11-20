@@ -22,6 +22,12 @@ pub fn retain(owner: *const Kata, address: u64) UserError!Reference {
     return .{ .Frame = record.Backing };
 }
 
+pub fn validate(reference: *const Reference) UserError!void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    _ = try access.sealedAlias(reference.Frame orelse return UserError.NotOwned);
+}
+
 pub fn map(reference: *const Reference, receiver: *Kata, address: u64) UserError!void {
     const flags = guard.acquire();
     defer guard.release(flags);

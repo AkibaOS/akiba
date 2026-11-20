@@ -7,6 +7,7 @@ const copy = @import("mirai").user.copy.transfer;
 const pages = @import("mirai").launch.draft.pages;
 const publish = @import("mirai").launch.draft.publish;
 const request = @import("mirai").launch.request.lease;
+const templates = @import("mirai").launch.templates;
 const types = @import("shared").launch.types.provision;
 
 const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;
@@ -27,7 +28,7 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
     const operation = std.enums.fromInt(types.Operation, frame.RSI) orelse return error.InvalidArgument;
     switch (operation) {
         .Begin => {
-            try request.begin(envelope);
+            try request.begin(envelope, current.Owner);
             return 0;
         },
         .Abort => {
@@ -37,6 +38,7 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
         else => {},
     }
     const draft = request.transaction(envelope) orelse return error.InvalidState;
+    if (draft.Server != current.Owner) return error.InvalidCaller;
     switch (operation) {
         .Allocate => try pages.allocate(draft, frame.RDX),
         .Load => {
@@ -54,6 +56,11 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
         .Start => {
             const fields = try input(types.Start, current, frame.RDX);
             return publish.start(draft, fields.Entry, fields.StackBase, fields.StackLength, fields.Startup);
+        },
+        .Retain => return templates.retain(draft, frame.RDX),
+        .Attach => {
+            const fields = try input(types.Attach, current, frame.RDX);
+            try templates.attach(draft, fields.Handle, fields.Address);
         },
         .Begin, .Abort => unreachable,
     }
@@ -73,6 +80,7 @@ fn status(failure: anyerror) abi.Status {
         error.InvalidUserRange, error.InvalidAddress, error.AddressNotAligned, error.NotOwned, error.InvalidOwnedMapping, error.InvalidPhysmap => .InvalidAddress,
         error.CopyTooLarge => .TooLarge,
         error.InvalidReply => .InvalidReply,
+        error.InvalidTemplateHandle => .InvalidTarget,
         error.PeerGone => .PeerGone,
         error.Busy => .Busy,
         error.OutOfMemory, error.NoResources, error.CapacityReached, error.PageTableAllocationFailed => .NoResources,

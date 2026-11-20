@@ -55,6 +55,7 @@ const Sink = struct {
                 sink.Start = descriptor.*;
                 return .{ .Value = CHILD };
             },
+            .Retain, .Attach => return .{ .Status = 1 },
         }
         return .{};
     }
