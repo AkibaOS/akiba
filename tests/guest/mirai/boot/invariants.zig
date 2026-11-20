@@ -1,5 +1,7 @@
 //! Active Boot And CPU Invariants
 
+const std = @import("std");
+
 const bootstate = @import("mirai").boot.sequence.state;
 const common = @import("common");
 const construction = @import("tests").guest.support.root;
@@ -17,6 +19,7 @@ const thread = @import("mirai").thread;
 const tss = @import("mirai").boot.tss;
 const types = @import("mirai").boot.types;
 const verify = @import("tests").guest.support.verify;
+const volume = @import("tests").guest.constants.volume;
 
 const control = cpu.constants.control.registers;
 const layout = common.constants.memory.layout;
@@ -46,6 +49,12 @@ pub fn run() void {
     const correct_role = if (protected) retired_role == .Reserved else (retired_role == .Free or retired_role == .Allocated);
     verify.require(construction.retirementPassed() and boot_info.Retirement == null and boot_info.MemoryMap.len == 0 and
         inherited != root.PML4Physical and correct_role, labels.RETIRED_ROOT);
+    verify.require(if (boot_info.Volume) |record|
+        std.mem.eql(u8, &record.DiskGUID, &volume.DISK_GUID) and std.mem.eql(u8, &record.PartitionGUID, &volume.AFS_GUID) and
+            record.FirstLBA == volume.FIRST_LBA and record.LastLBA == volume.LAST_LBA and record.DiskLastLBA == volume.DISK_LAST_LBA and
+            record.BlockBytes == volume.BLOCK_BYTES
+    else
+        false, labels.BOOT_VOLUME);
     verify.require(cpu.control.readCR0() & control.CR0_WRITE_PROTECT != 0 and
         cpu.msr.read(msr.EFER) & msr.EFER_NO_EXECUTE_ENABLE != 0, labels.PROTECTION);
     verify.require(cpu.control.readCR0() & (control.CR0_EMULATION | control.CR0_TASK_SWITCHED) == 0 and

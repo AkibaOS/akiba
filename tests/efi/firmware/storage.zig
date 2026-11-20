@@ -36,7 +36,7 @@ pub fn run(real: *services.boot.BootServices) !void {
     require(discovery.Handles.isEmpty() and discovery.Parser.Scratch.Pool.isEmpty() and state.LivePools == 0, labels.PARTITION);
     state.Reader = .{ .BootServices = &wrapped };
     const reader = &state.Reader.?;
-    try reader.initialize(found.Media, found.StartLBA, found.EndLBA);
+    try reader.initialize(found.Media, found.Volume.FirstLBA, found.Volume.LastLBA);
     require(reader.Index.Depth >= inputs.MINIMUM_DEPTH and reader.Index.TotalNodes > inputs.FORMER_INDEX_NODES and
         reader.VolumeHeader.IndexDepth == reader.Index.Depth and reader.VolumeHeader.IndexTotalNodes == reader.Index.TotalNodes, labels.SHAPE);
     const nested = try nestedNode(reader);

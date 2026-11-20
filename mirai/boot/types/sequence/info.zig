@@ -1,9 +1,10 @@
-//! Memory And Address Information Carried Through Early Boot
+//! Validated Early Boot Snapshot
 
 const pmm = @import("mirai").pmm;
 const retirement = @import("mirai").boot.types.retirement.footprint;
 
 const MemoryRegion = pmm.types.region.MemoryRegion;
+const Volume = @import("shared").boot.types.volume.Volume;
 
 pub const BootInfo = struct {
     MemoryMap: []const MemoryRegion,
@@ -20,4 +21,5 @@ pub const BootInfo = struct {
     PhysmapSize: u64,
     BootStackTop: u64,
     BootStackSize: u64,
+    Volume: ?Volume = null,
 };

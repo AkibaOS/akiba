@@ -27,6 +27,7 @@ pub const FIRST_USABLE_LBA: u64 = 8;
 pub const LAST_USABLE_LBA: u64 = 62;
 pub const PARTITION_FIRST_LBA: u64 = 24;
 pub const PARTITION_LAST_LBA: u64 = 55;
+pub const SELECTED_PARTITION_GUID_LOW: u32 = 0xf0000002;
 pub const VOLUME_CELLS: u32 = 32;
 pub const PAYLOAD_CELL: u64 = 3;
 pub const UNIT_LIMIT: u64 = 64;

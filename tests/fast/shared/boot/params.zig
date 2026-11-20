@@ -14,7 +14,7 @@ pub fn initializedHandoff() !void {
     try std.testing.expectEqualDeep(expected, actual);
     try std.testing.expect(actual.isValid());
     try std.testing.expectEqualSlices(u8, &[_]u8{ 0x41, 0x4b, 0x42, 0x4d, 0x49, 0x52, 0x41, 0x49 }, std.mem.asBytes(&actual)[0..@sizeOf(u64)]);
-    try std.testing.expectEqualSlices(u8, &[_]u8{ 3, 0, 0, 0 }, std.mem.asBytes(&actual)[@sizeOf(u64)..][0..@sizeOf(u32)]);
+    try std.testing.expectEqualSlices(u8, &[_]u8{ 4, 0, 0, 0 }, std.mem.asBytes(&actual)[@sizeOf(u64)..][0..@sizeOf(u32)]);
 }
 
 pub fn corruptedMagicAndVersion() !void {

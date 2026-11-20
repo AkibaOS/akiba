@@ -58,5 +58,15 @@ fn scan(state: *Discovery, handles: []const efi.types.base.Handle) DiscoveryErro
 fn match(table: *const parser.Parser) ?PartitionInfo {
     if (table.Media.LogicalPartition or !table.Media.isCurrent()) return null;
     const partition = table.findPartitionByType(efi.constants.guids.GPT_PARTITION_TYPE_AKIBA_AFS) orelse return null;
-    return .{ .Media = table.Media, .StartLBA = partition.StartingLBA, .EndLBA = partition.EndingLBA };
+    return .{
+        .Media = table.Media,
+        .Volume = .{
+            .DiskGUID = @bitCast(table.getDiskGUID()),
+            .PartitionGUID = @bitCast(partition.UniquePartitionGUID),
+            .FirstLBA = partition.StartingLBA,
+            .LastLBA = partition.EndingLBA,
+            .DiskLastLBA = table.Media.LastBlock,
+            .BlockBytes = table.Media.BlockSize,
+        },
+    };
 }

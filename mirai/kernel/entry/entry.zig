@@ -73,6 +73,7 @@ fn snapshot(params: *const BootParams) ?BootInfo {
     const parameter_pages = (@sizeOf(BootParams) + sizes.PAGE_MASK) / sizes.PAGE_SIZE;
     const map_range = retirement.pageRange(map.Entries, params.Retirement.MapPages, coverage) orelse return null;
     if (@as(u64, map.EntryCount) * map.EntrySize > params.Retirement.MapPages * sizes.PAGE_SIZE) return null;
+    const volume = params.Volume;
     var info: BootInfo = .{
         .MemoryMap = &.{},
         .Retirement = .{
@@ -94,6 +95,7 @@ fn snapshot(params: *const BootParams) ?BootInfo {
         .PhysmapSize = coverage,
         .BootStackTop = kernel.StackTop,
         .BootStackSize = kernel.StackSize,
+        .Volume = if (volume.isValid()) volume else null,
     };
     if (!retirement.aliases(&info, map_range)) return null;
     const raw = regions.convert.inspect(map, coverage) orelse return null;

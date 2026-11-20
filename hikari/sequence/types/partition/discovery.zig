@@ -3,11 +3,11 @@
 const buffer = @import("hikari").efi.types.buffer.claims;
 const media = @import("hikari").disk.types.media;
 const parser = @import("hikari").disk.types.parser;
+const volume = @import("shared").boot.types.volume;
 
 pub const PartitionInfo = struct {
     Media: media.MediaSnapshot,
-    StartLBA: u64,
-    EndLBA: u64,
+    Volume: volume.Volume,
 };
 
 pub const Discovery = struct {

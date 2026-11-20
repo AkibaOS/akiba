@@ -270,6 +270,14 @@ test "FAT32 table links preserve exact values and bounded neighboring bytes" {
     try fat32.table.allocationAndLinks();
 }
 
+test "BootParams copies the GPT identity and geometry as a fixed record" {
+    try boot.volume.copiedRecord();
+}
+
+test "The boot volume record refuses invalid identity and geometry" {
+    try boot.volume.invalidIdentityAndGeometry();
+}
+
 test "BootParams initialization stamps the header and zeroes the handoff" {
     try boot.params.initializedHandoff();
 }

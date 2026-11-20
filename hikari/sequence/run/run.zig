@@ -96,7 +96,7 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
     splash.report(messages.INITIALIZING_FILE_SYSTEM);
     claims.Reader = .{ .BootServices = boot_services };
     const afs_reader = &claims.Reader.?;
-    afs_reader.initialize(afs_partition.Media, afs_partition.StartLBA, afs_partition.EndLBA) catch |failure| {
+    afs_reader.initialize(afs_partition.Media, afs_partition.Volume.FirstLBA, afs_partition.Volume.LastLBA) catch |failure| {
         splash.fail(if (failure == error.ReleaseFailed) messages.ERROR_CLEANUP else messages.ERROR_FILE_SYSTEM);
         return status.DEVICE_ERROR;
     };
@@ -211,6 +211,7 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
     splash.report(messages.STARTING_AKIBA);
     boot_params.Splash = splash.getState().*;
     boot_params.Retirement = page_setup.retirementInventory();
+    boot_params.Volume = afs_partition.Volume;
     handoff.exit(startup, image_handle) catch {
         if (startup.ExitAttempted) {
             interrupts.disableInterrupts();

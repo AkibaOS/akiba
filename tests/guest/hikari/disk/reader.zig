@@ -1,5 +1,7 @@
 //! AFS Reader Initialization Rejection And Unwind Checks
 
+const std = @import("std");
+
 const abort = @import("hikari").sequence.cleanup;
 const afs = @import("shared").afs;
 const claimtypes = @import("hikari").sequence.types.cleanup.claims;
@@ -46,11 +48,19 @@ fn replaceAfterDiscovery() bool {
     var discovery: partition.Discovery = .{ .Parser = .{ .BootServices = &fixture.services } };
     defer if (!locator.deinitialize(&discovery)) verify.failure(error.ReleaseFailed);
     const acquired = (locator.findAfsPartition(&discovery) catch return false) orelse return false;
+    var partition_guid = inputs.DISK_GUID;
+    partition_guid.TimeLow = inputs.SELECTED_PARTITION_GUID_LOW;
+    const disk_bytes: [16]u8 = @bitCast(inputs.DISK_GUID);
+    const partition_bytes: [16]u8 = @bitCast(partition_guid);
+    const volume = acquired.Volume;
+    if (!volume.isValid() or !std.mem.eql(u8, &volume.DiskGUID, &disk_bytes) or !std.mem.eql(u8, &volume.PartitionGUID, &partition_bytes) or
+        volume.FirstLBA != inputs.PARTITION_FIRST_LBA or volume.LastLBA != inputs.PARTITION_LAST_LBA or
+        volume.DiskLastLBA != inputs.DISK_BLOCKS - 1 or volume.BlockBytes != inputs.BLOCK_BYTES or !fixture.clean()) return false;
     const allocations = fixture.device.AllocateCalls;
     const reads = fixture.device.ReadCalls;
     fixture.media.MediaId += 1;
     var source: reader.Reader = .{ .BootServices = &fixture.services };
-    const refused = if (source.initialize(acquired.Media, acquired.StartLBA, acquired.EndLBA)) |_| false else |failure| failure == error.ReadFailed;
+    const refused = if (source.initialize(acquired.Media, volume.FirstLBA, volume.LastLBA)) |_| false else |failure| failure == error.ReadFailed;
     return source.deinitialize() and refused and fixture.device.AllocateCalls == allocations and fixture.device.ReadCalls == reads and fixture.clean();
 }
 

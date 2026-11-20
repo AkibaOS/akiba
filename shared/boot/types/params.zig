@@ -8,6 +8,7 @@ const kernel = @import("shared").boot.types.kernel;
 const memory = @import("shared").boot.types.memory;
 const retirement = @import("shared").boot.types.retirement;
 const splash = @import("shared").splash;
+const volume = @import("shared").boot.types.volume;
 
 const constants = @import("shared").boot.constants;
 
@@ -23,6 +24,7 @@ pub const BootParams = extern struct {
     Splash: splash.types.state.SplashState,
     BootTime: u64,
     Retirement: retirement.Inventory,
+    Volume: volume.Volume,
 
     Reserved: [constants.params.RESERVED_SIZE]u8,
 
