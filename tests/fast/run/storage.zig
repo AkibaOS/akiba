@@ -6,6 +6,7 @@ const afs = @import("tests").fast.afs;
 const boot = @import("tests").fast.boot;
 const fat32 = @import("tests").fast.fat32;
 const gpt = @import("tests").fast.gpt.inspect;
+const sectors = @import("tests").fast.gpt.source;
 const shared = @import("shared");
 
 test "AHCI builds a single read DMA descriptor without a write flag" {
@@ -49,6 +50,22 @@ test "GPT bounds the header and partition read window before use" {
 
 test "GPT refuses duplicate nonempty partition identities" {
     try gpt.ambiguousIdentity();
+}
+
+test "GPT gathers a selected partition entry across sector boundaries" {
+    try sectors.splitEntry();
+}
+
+test "GPT does not read the array after rejected geometry or header identity" {
+    try sectors.headerRefusal();
+}
+
+test "GPT waits for every sector and the full CRC before accepting a candidate" {
+    try sectors.lateRefusal();
+}
+
+test "GPT recognizes duplicate identities when the second entry straddles sectors" {
+    try sectors.duplicateEntry();
 }
 
 test "AFS spans fit entirely inside the volume" {

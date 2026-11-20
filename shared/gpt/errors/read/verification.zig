@@ -4,6 +4,7 @@ pub const VerifyError = error{
     AmbiguousPartition,
     HeaderChecksum,
     InvalidHeader,
+    InvalidSource,
     InvalidTable,
     TableChecksum,
 };

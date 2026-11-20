@@ -5,3 +5,4 @@ pub const probe = @import("probe.zig");
 pub const registers = @import("registers.zig");
 pub const run = @import("run.zig");
 pub const transfer = @import("transfer.zig");
+pub const volume = @import("volume.zig");

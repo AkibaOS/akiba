@@ -1,5 +1,11 @@
 //! Serial Oracle Fixtures
 
+pub const AHCI_HEADER = "CHECK PASS native AHCI read after UEFI returns the diagnostic disk GPT header";
+pub const AHCI_VOLUME = "CHECK PASS native AHCI matches the selected AFS boot volume";
+pub const AHCI_PREFIX = "other ";
+pub const LF = "\n";
+pub const CRLF = "\r\n";
+
 pub const VALID = "AKIBA_GUEST_CHECKS_BEGIN\nCHECK GROUP test\nCHECK PASS one\nAKIBA_GUEST_CHECKS_COMPLETE 1\nAkiba Ready\n";
 pub const PENDING = "AKIBA_GUEST_CHECKS_BEGIN\nCHECK PASS one\n";
 pub const MISSING = "Akiba Ready\n";

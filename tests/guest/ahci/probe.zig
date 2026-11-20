@@ -12,10 +12,11 @@ const sizes = @import("common").constants.memory.sizes;
 const transfer = @import("tests").guest.ahci.transfer;
 const values = @import("tests").guest.constants.ahci.registers;
 
+const Disk = @import("tests").guest.types.ahci.disk.Disk;
 const ProbeError = @import("tests").guest.errors.ahci.transfer.ProbeError;
 const wire = ahci.constants.command.dma;
 
-pub fn readSector(sector: u64, destination: *[wire.SECTOR_BYTES]u8) !void {
+pub fn withDisk(comptime use: fn (*Disk) anyerror!void) !void {
     const flags = guard.acquire();
     defer guard.release(flags);
     const device = try pci.controller();
@@ -45,7 +46,7 @@ pub fn readSector(sector: u64, destination: *[wire.SECTOR_BYTES]u8) !void {
     registers.write(sata, values.COMMAND, registers.read(sata, values.COMMAND) | values.RECEIVE_FIS);
     registers.write(sata, values.COMMAND, registers.read(sata, values.COMMAND) | values.START);
 
-    const outcome = transfer.read(sata, physical, page, sector);
+    const outcome = useAttached(sata, physical, page, use);
     if (!registers.stop(sata)) {
         pci.commandBits(device.Command & ~bus.BUS_MASTER);
         safe_to_restore = false;
@@ -55,6 +56,15 @@ pub fn readSector(sector: u64, destination: *[wire.SECTOR_BYTES]u8) !void {
     registers.write(sata, values.FIS, 0);
     pci.commandBits(device.Command);
     registers.write(controller, values.GHC, global);
-    try outcome;
-    @memcpy(destination, page[wire.DATA_OFFSET..][0..wire.SECTOR_BYTES]);
+    return outcome;
+}
+
+fn useAttached(port: u64, physical: u64, page: *[sizes.PAGE_SIZE]u8, comptime use: fn (*Disk) anyerror!void) !void {
+    var disk: Disk = .{
+        .Port = port,
+        .Physical = physical,
+        .Page = page,
+        .Sectors = try transfer.identify(port, page),
+    };
+    try use(&disk);
 }

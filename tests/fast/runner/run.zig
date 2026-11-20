@@ -14,12 +14,20 @@ const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Selection = @import("tests").phase.types.boot.frame.Selection;
 
-test "AHCI evidence requires one exact LF or CRLF assertion line" {
-    const evidence = "CHECK PASS native AHCI read after UEFI returns the diagnostic disk GPT header";
-    try result.verifyAhci(evidence ++ "\n");
-    try result.verifyAhci(evidence ++ "\r\n");
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci("other " ++ evidence ++ "\n"));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(evidence ++ "\r\n" ++ evidence ++ "\n"));
+test "AHCI evidence requires the exact native header and volume assertions" {
+    const primary = fixtures.AHCI_HEADER;
+    const volume = fixtures.AHCI_VOLUME;
+    const lf = fixtures.LF;
+    const crlf = fixtures.CRLF;
+    try result.verifyAhci(primary ++ lf ++ volume ++ lf);
+    try result.verifyAhci(primary ++ crlf ++ volume ++ crlf);
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ primary ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(fixtures.AHCI_PREFIX ++ primary ++ lf ++ volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ fixtures.AHCI_PREFIX ++ volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ crlf ++ primary ++ lf ++ volume ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ crlf ++ volume ++ lf));
 }
 
 test "a boot selector acknowledgement binds the exact role and epoch" {

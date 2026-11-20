@@ -12,6 +12,7 @@ pub const CANCEL_ARGUMENT = "name=" ++ CANCEL_FILE ++ ",string=" ++ PHASE_VALUE;
 pub const AHCI_FILE = "opt/akiba/test-ahci";
 pub const AHCI_ARGUMENT = "name=" ++ AHCI_FILE ++ ",string=" ++ PHASE_VALUE;
 pub const AHCI_CHECK = "native AHCI read after UEFI returns the diagnostic disk GPT header";
+pub const AHCI_VOLUME_CHECK = "native AHCI matches the selected AFS boot volume";
 pub const INVALID_PHASE = "Test phase ticket missing or invalid";
 pub const BUILD_DATE_FILE = "opt/akiba/test-build-date";
 pub const BUILD_DATE_ARGUMENT = "name=" ++ BUILD_DATE_FILE ++ ",string={s}";
