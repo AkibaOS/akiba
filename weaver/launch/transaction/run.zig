@@ -19,11 +19,15 @@ pub fn run(allocator: std.mem.Allocator, source: Source, executable: []const u8,
     defer placement.deinit();
     var linked = try weaver.link.plan.plan(allocator, &placement);
     defer linked.deinit();
+    const boundary = if (options.Cache) |cache| try launch.cache.begin(cache) else 0;
+    var committed = false;
+    defer if (options.Cache) |cache| launch.cache.finish(cache, boundary, committed);
     _ = try launch.transaction.stage.invoke(channel, .Begin, 0, .ReadOnly);
-    const child = launch.transaction.stage.stage(channel, &linked, options, spans) catch |failure| {
+    const child = launch.transaction.stage.stage(channel, &linked, options, spans, boundary) catch |failure| {
         _ = launch.transaction.stage.invoke(channel, .Abort, 0, .ReadOnly) catch return error.RollbackRefused;
         return failure;
     };
+    committed = true;
     if (child == 0) return error.InvalidChild;
     return child;
 }

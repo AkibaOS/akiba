@@ -1,6 +1,10 @@
 //! Real Request Bound Weaver Diagnostic Values
 
 pub const HEAP_BYTES: usize = 256 * 1024;
+pub const CACHE_HEAP_BYTES: usize = 32 * 1024;
+pub const HOLD_PARAMETER: u8 = 0x5a;
+pub const RELEASE_TYPE: u64 = 0x5310;
+pub const INVALID_ARGUMENT: u64 = 2;
 pub const SERVER_STACK: u64 = 0x90000000;
 pub const SERVER_STACK_PAGES: u64 = 16;
 pub const STARTUP_ADDRESS: u64 = 0x71000000;

@@ -5,6 +5,7 @@ const entry = @import("fixtureasm").entry;
 const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;
 const labels = @import("tests").fixtures.strings.weaver;
+const types = @import("tests").fixtures.types.weaver;
 
 extern var linked_counter: u64;
 extern fn linked_step() callconv(.c) u64;
@@ -27,6 +28,15 @@ fn verifyStartup(address: u64) bool {
     const payload: [*]const volatile u8 = @ptrFromInt(address + elf.STARTUP_HEADER_BYTES);
     for (labels.IDENTITY, 0..) |expected, index| if (payload[index] != expected) return false;
     const parameters = payload + labels.IDENTITY.len;
-    for (0..inputs.PARAMETER_COUNT - 1) |index| if (parameters[index] != inputs.PARAMETER_BYTE) return false;
-    return parameters[inputs.PARAMETER_COUNT - 1] == inputs.PARAMETER_LAST;
+    const mode = parameters[0];
+    if (mode != inputs.PARAMETER_BYTE and mode != inputs.HOLD_PARAMETER) return false;
+    for (1..inputs.PARAMETER_COUNT - 1) |index| if (parameters[index] != inputs.PARAMETER_BYTE) return false;
+    if (parameters[inputs.PARAMETER_COUNT - 1] != inputs.PARAMETER_LAST) return false;
+    return mode != inputs.HOLD_PARAMETER or awaitRelease();
+}
+
+fn awaitRelease() bool {
+    var header: types.Header = undefined;
+    const result = invocation.call(inputs.RECEIVE, 0, 0, @intFromPtr(&header), 0);
+    return result.Status == 0 and result.Value == 0 and header.Type == inputs.RELEASE_TYPE and header.ReplyTicket == 0;
 }

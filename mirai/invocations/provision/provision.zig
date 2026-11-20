@@ -35,6 +35,10 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
             try request.abort(envelope);
             return 0;
         },
+        .Forget => {
+            try templates.forget(current.Owner, frame.RDX);
+            return 0;
+        },
         else => {},
     }
     const draft = request.transaction(envelope) orelse return error.InvalidState;
@@ -62,7 +66,13 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
             const fields = try input(types.Attach, current, frame.RDX);
             try templates.attach(draft, fields.Handle, fields.Address);
         },
-        .Begin, .Abort => unreachable,
+        .AttachVerified => {
+            const fields = try input(types.AttachVerified, current, frame.RDX);
+            const protection = std.enums.fromInt(types.Protection, frame.R10) orelse return error.InvalidArgument;
+            if (protection == .ReadWrite) return error.InvalidArgument;
+            try templates.attachVerified(draft, fields.Handle, fields.Address, fields.Source, protection == .ReadExecute);
+        },
+        .Begin, .Abort, .Forget => unreachable,
     }
     return 0;
 }

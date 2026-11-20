@@ -217,6 +217,14 @@ test "Weaver aborts exactly once on a rejected staged load and reports a rejecte
     try request.aborts();
 }
 
+test "Weaver reuses only unchanged sealed library pages and explicitly evicts them" {
+    try request.reusesPages();
+}
+
+test "Weaver discards cache handles from an aborted launch" {
+    try request.discardsPending();
+}
+
 test "Launch startup bytes and page extent preserve the private record" {
     try startup.preservesWire();
 }

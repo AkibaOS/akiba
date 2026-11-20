@@ -1,10 +1,12 @@
 //! Draft Retention And Committed Provisioner Backing Ownership
 
 const allocator = @import("mirai").memory.allocator.native;
+const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").launch.strings.transaction;
 const pages = @import("mirai").launch.draft.pages;
 const reference = @import("mirai").user.memory.reference;
+const sizes = @import("common").constants.memory.sizes;
 const state = @import("mirai").kata.state;
 const tree = @import("common").datatypes.tree;
 
@@ -35,9 +37,27 @@ pub fn attach(draft: *Transaction, handle: u64, address: u64) !void {
     const flags = guard.acquire();
     defer guard.release(flags);
     const child = try pages.child(draft);
-    const entry = find(handle) orelse return error.InvalidTemplateHandle;
-    if (entry.OwnerID != draft.Server.ID) return error.InvalidTemplateHandle;
+    const entry = try owned(draft.Server, handle);
     try reference.map(&entry.Frame, child, address);
+}
+
+pub fn attachVerified(draft: *Transaction, handle: u64, address: u64, source: u64, executable: bool) !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const child = try pages.child(draft);
+    const entry = try owned(draft.Server, handle);
+    var expected: [sizes.PAGE_SIZE]u8 = undefined;
+    try copy.read(draft.Server, &expected, source);
+    if (!try reference.matches(&entry.Frame, &expected, executable)) return error.InvalidArgument;
+    try reference.map(&entry.Frame, child, address);
+}
+
+pub fn forget(owner: *const Kata, handle: u64) !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const entry = try owned(owner, handle);
+    try reference.validate(&entry.Frame);
+    unlink(owner, entry);
 }
 
 pub fn commit(draft: *Transaction) void {
@@ -49,6 +69,7 @@ pub fn commit(draft: *Transaction) void {
         draft.Pending = entry.Next;
         if (!tree.insert.insert(&identities, &entry.Index, entry.ID)) @panic(messages.TEMPLATE_STATE);
         entry.Next = slot.Templates;
+        if (entry.Next) |next| next.Previous = entry;
         slot.Templates = entry;
     }
 }
@@ -67,9 +88,11 @@ pub fn validateOwner(owner: *const Kata) UserError!void {
     defer guard.release(flags);
     const slot = state.data(owner) orelse return UserError.InvalidOwner;
     var current = slot.Templates;
+    var previous: ?*const Template = null;
     while (current) |entry| : (current = entry.Next) {
-        if (entry.OwnerID != owner.ID or find(entry.ID) != entry) return UserError.InvalidOwnedMapping;
+        if (entry.OwnerID != owner.ID or entry.Previous != previous or find(entry.ID) != entry) return UserError.InvalidOwnedMapping;
         try reference.validate(&entry.Frame);
+        previous = entry;
     }
 }
 
@@ -77,11 +100,25 @@ pub fn releaseOwner(owner: *const Kata) void {
     const flags = guard.acquire();
     defer guard.release(flags);
     const slot = state.data(owner) orelse @panic(messages.TEMPLATE_STATE);
-    while (slot.Templates) |entry| {
-        if (!tree.remove.remove(&identities, &entry.Index)) @panic(messages.TEMPLATE_STATE);
-        slot.Templates = entry.Next;
-        drop(entry);
+    while (slot.Templates) |entry| unlink(owner, entry);
+}
+
+fn owned(owner: *const Kata, handle: u64) error{InvalidTemplateHandle}!*Template {
+    const entry = find(handle) orelse return error.InvalidTemplateHandle;
+    if (entry.OwnerID != owner.ID) return error.InvalidTemplateHandle;
+    return entry;
+}
+
+fn unlink(owner: *const Kata, entry: *Template) void {
+    const slot = state.data(owner) orelse @panic(messages.TEMPLATE_STATE);
+    if (if (entry.Previous) |previous| previous.Next != entry else slot.Templates != entry) @panic(messages.TEMPLATE_STATE);
+    if (entry.Next) |next| {
+        if (next.Previous != entry) @panic(messages.TEMPLATE_STATE);
     }
+    if (!tree.remove.remove(&identities, &entry.Index)) @panic(messages.TEMPLATE_STATE);
+    if (entry.Previous) |previous| previous.Next = entry.Next else slot.Templates = entry.Next;
+    if (entry.Next) |next| next.Previous = entry.Previous;
+    drop(entry);
 }
 
 fn find(handle: u64) ?*Template {

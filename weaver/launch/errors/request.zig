@@ -5,7 +5,9 @@ const weaver = @import("weaver");
 
 pub const RequestError = weaver.image.errors.layout.LayoutError || weaver.library.errors.library.LibraryError ||
     weaver.link.errors.link.LinkError || launch.errors.startup.StartupError || error{
+    CacheBusy,
     InvalidChild,
+    InvalidTemplateHandle,
     InvalidStack,
     InvalidTicket,
     ProvisionRefused,

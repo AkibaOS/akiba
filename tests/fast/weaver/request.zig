@@ -27,6 +27,10 @@ const Sink = struct {
     Bytes: [2 * inputs.PAGE_BYTES]u8 = @splat(0),
     RefuseLoad: bool = false,
     RefuseAbort: bool = false,
+    RefuseStart: bool = false,
+    Retained: usize = 0,
+    Attached: usize = 0,
+    Forgotten: usize = 0,
 
     fn invoke(context: *anyopaque, ticket: u64, operation: ABI.Operation, argument: u64, _: ABI.Protection) ABI.Result {
         const sink: *Sink = @ptrCast(@alignCast(context));
@@ -51,11 +55,18 @@ const Sink = struct {
             },
             .Seal => sink.Sealed += 1,
             .Start => {
+                if (sink.RefuseStart) return .{ .Status = 15 };
                 const descriptor: *const ABI.Start = @ptrFromInt(argument);
                 sink.Start = descriptor.*;
                 return .{ .Value = CHILD };
             },
-            .Retain, .Attach => return .{ .Status = 1 },
+            .Retain => {
+                sink.Retained += 1;
+                return .{ .Value = sink.Retained };
+            },
+            .AttachVerified => sink.Attached += 1,
+            .Forget => sink.Forgotten += 1,
+            .Attach => return .{ .Status = 1 },
         }
         return .{};
     }
@@ -100,15 +111,56 @@ pub fn aborts() !void {
     try std.testing.expect(sink.Start == null);
 }
 
+pub fn reusesPages() !void {
+    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = ALLOCATOR };
+    defer cache.Entries.deinit(ALLOCATOR);
+    var first: Sink = .{};
+    try std.testing.expectEqual(CHILD, try launchWith(&first, true, STARTUP, &cache, 0x41));
+    try std.testing.expectEqual(@as(usize, 1), first.Retained);
+    try std.testing.expectEqual(@as(usize, 0), first.Attached);
+    var second: Sink = .{};
+    try std.testing.expectEqual(CHILD, try launchWith(&second, true, STARTUP, &cache, 0x41));
+    try std.testing.expectEqual(@as(usize, 0), second.Retained);
+    try std.testing.expectEqual(@as(usize, 1), second.Attached);
+    try std.testing.expectEqual(first.Allocated - 1, second.Allocated);
+    var changed: Sink = .{};
+    try std.testing.expectEqual(CHILD, try launchWith(&changed, true, STARTUP, &cache, 0x42));
+    try std.testing.expectEqual(@as(usize, 1), changed.Retained);
+    try std.testing.expectEqual(@as(usize, 0), changed.Attached);
+    try weaver.launch.cache.evict(&cache, .{ .Ticket = TICKET, .Context = &changed, .Invoke = Sink.invoke });
+    try std.testing.expectEqual(@as(usize, 2), changed.Forgotten);
+    try std.testing.expectEqual(@as(usize, 0), cache.Entries.count());
+}
+
+pub fn discardsPending() !void {
+    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = ALLOCATOR };
+    defer cache.Entries.deinit(ALLOCATOR);
+    var rejected: Sink = .{ .RefuseStart = true };
+    try std.testing.expectError(error.ProvisionRefused, launchWith(&rejected, true, STARTUP, &cache, 0x41));
+    try std.testing.expectEqual(@as(usize, 1), rejected.Retained);
+    try std.testing.expectEqual(@as(usize, 1), rejected.Aborted);
+    try std.testing.expectEqual(@as(usize, 0), cache.Entries.count());
+    var fresh: Sink = .{};
+    try std.testing.expectEqual(CHILD, try launchWith(&fresh, true, STARTUP, &cache, 0x41));
+    try std.testing.expectEqual(@as(usize, 0), fresh.Attached);
+    try std.testing.expectEqual(@as(usize, 1), fresh.Retained);
+    try weaver.launch.cache.evict(&cache, .{ .Ticket = TICKET, .Context = &fresh, .Invoke = Sink.invoke });
+}
+
 fn launch(sink: *Sink, available: bool, startup_address: u64) !u64 {
+    return launchWith(sink, available, startup_address, null, 0);
+}
+
+fn launchWith(sink: *Sink, available: bool, startup_address: u64, cache: ?*weaver.launch.types.cache.Cache, code: u8) !u64 {
     var executable = dynamic.loadImage();
     var library = dynamic.loadImage();
     prepare(&executable);
     prepare(&library);
+    library[2 * inputs.PAGE_BYTES] = code;
     fixture.write64(&library, TABLE, 21);
     fixture.write64(&library, TABLE + 8, 0);
     const source: ?[]const u8 = if (available) &library else null;
-    return weaver.launch.transaction.run.run(ALLOCATOR, .{ .Context = &source, .ReadFromOrigin = read }, &executable, .{
+    const options: weaver.launch.types.request.Options = .{
         .Biases = .{ .Executable = 0x200000, .Libraries = &.{0x400000} },
         .Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES },
         .StackBase = inputs.STACK_ADDRESS,
@@ -116,7 +168,9 @@ fn launch(sink: *Sink, available: bool, startup_address: u64) !u64 {
         .StartupBase = startup_address,
         .Identity = "app",
         .Parameters = &PARAMETERS,
-    }, .{ .Ticket = TICKET, .Context = sink, .Invoke = Sink.invoke });
+        .Cache = cache,
+    };
+    return weaver.launch.transaction.run.run(ALLOCATOR, .{ .Context = &source, .ReadFromOrigin = read }, &executable, options, .{ .Ticket = TICKET, .Context = sink, .Invoke = Sink.invoke });
 }
 
 fn prepare(bytes: []u8) void {

@@ -8,5 +8,6 @@ pub const Template = struct {
     OwnerID: u64,
     Frame: Reference,
     Index: Node = .{},
+    Previous: ?*Template = null,
     Next: ?*Template = null,
 };

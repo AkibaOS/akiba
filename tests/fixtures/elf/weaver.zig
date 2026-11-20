@@ -17,12 +17,15 @@ const wire = @import("shared").launch.types.provision;
 const PROGRAM = @embedFile("dynamicimage");
 const LIBRARY = @embedFile("dynamiclibrary");
 var heap: [inputs.HEAP_BYTES]u8 = undefined;
+var cache_heap: [inputs.CACHE_HEAP_BYTES]u8 = undefined;
 
 comptime {
     _ = entry.akiba_fixture_start;
 }
 
 export fn akiba_fixture_main(_: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn {
+    var cache_allocator = std.heap.FixedBufferAllocator.init(&cache_heap);
+    var cache: weaver.launch.types.cache.Cache = .{ .Allocator = cache_allocator.allocator() };
     while (true) {
         var payload: [1]u8 = undefined;
         var header: types.Header = undefined;
@@ -32,7 +35,7 @@ export fn akiba_fixture_main(_: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn 
             std.enums.fromInt(types.Mode, payload[0])
         else
             null;
-        const receipt = if (mode) |selected| launch(selected, header.ReplyTicket) else types.Receipt{};
+        const receipt = if (mode) |selected| launch(&cache, selected, header.ReplyTicket) else types.Receipt{};
         const sent = invocation.call(inputs.REPLY, header.ReplyTicket, @intFromPtr(&receipt), @sizeOf(types.Receipt), postmanwire.REPLY_TYPE);
         if (sent.Status != provision.SUCCESS) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
     }
@@ -42,10 +45,17 @@ pub fn panic(_: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     invocation.exit(inputs.REJECTED_STARTUP_RESULT);
 }
 
-fn launch(mode: types.Mode, ticket: u64) types.Receipt {
-    var allocator = std.heap.FixedBufferAllocator.init(&heap);
+fn launch(cache: *weaver.launch.types.cache.Cache, mode: types.Mode, ticket: u64) types.Receipt {
     var request: types.Request = .{ .Mode = mode };
+    const channel: weaver.launch.types.request.Channel = .{ .Ticket = ticket, .Context = &request, .Invoke = invoke };
+    if (mode == .Evict) {
+        weaver.launch.cache.evict(cache, channel) catch return request.Receipt;
+        request.Receipt.State = .Evicted;
+        return request.Receipt;
+    }
+    var allocator = std.heap.FixedBufferAllocator.init(&heap);
     var parameters: [inputs.PARAMETER_COUNT]u8 = @splat(inputs.PARAMETER_BYTE);
+    if (mode == .Cached) parameters[0] = inputs.HOLD_PARAMETER;
     parameters[parameters.len - 1] = inputs.PARAMETER_LAST;
     const child = weaver.launch.transaction.run.run(allocator.allocator(), .{ .Context = &request, .ReadFromOrigin = read }, PROGRAM, .{
         .Biases = .{ .Executable = elf.DYNAMIC_EXECUTABLE_BIAS, .Libraries = &.{elf.DYNAMIC_LIBRARY_BIAS} },
@@ -55,7 +65,8 @@ fn launch(mode: types.Mode, ticket: u64) types.Receipt {
         .StartupBase = inputs.STARTUP_ADDRESS,
         .Identity = labels.IDENTITY,
         .Parameters = &parameters,
-    }, .{ .Ticket = ticket, .Context = &request, .Invoke = invoke }) catch |failure| {
+        .Cache = if (mode == .Cached or mode == .Mismatch or mode == .ProtectionMismatch) cache else null,
+    }, channel) catch |failure| {
         request.Receipt.State = switch (failure) {
             error.LibraryNotFound => .MissingLibrary,
             error.ProvisionRefused => .Refused,
@@ -80,6 +91,21 @@ fn invoke(context: *anyopaque, ticket: u64, operation: wire.Operation, argument:
     const request: *types.Request = @ptrCast(@alignCast(context));
     if (operation == .Begin) request.Receipt.Begins += 1;
     const result = refused: {
+        if (operation == .AttachVerified) {
+            if (request.Mode == .Mismatch) {
+                const supplied: *const wire.AttachVerified = @ptrFromInt(argument);
+                const source: *const [elf.PAGE_BYTES]u8 = @ptrFromInt(supplied.Source);
+                var different = source.*;
+                different[0] ^= 1;
+                var invalid = supplied.*;
+                invalid.Source = @intFromPtr(&different);
+                break :refused invocation.call(provision.SERVICE, ticket, @intFromEnum(operation), @intFromPtr(&invalid), @intFromEnum(protection));
+            }
+            if (request.Mode == .ProtectionMismatch) {
+                const different: wire.Protection = if (protection == .ReadOnly) .ReadExecute else .ReadOnly;
+                break :refused invocation.call(provision.SERVICE, ticket, @intFromEnum(operation), argument, @intFromEnum(different));
+            }
+        }
         if (operation == .Load and request.Mode == .RefuseLoad and request.Receipt.Allocations == 2) {
             const supplied: *const wire.Load = @ptrFromInt(argument);
             var invalid = supplied.*;
@@ -91,6 +117,8 @@ fn invoke(context: *anyopaque, ticket: u64, operation: wire.Operation, argument:
     if (result.Status == provision.SUCCESS) {
         if (operation == .Allocate) request.Receipt.Allocations += 1;
         if (operation == .Abort) request.Receipt.Aborts += 1;
+        if (operation == .Retain) request.Receipt.Retained += 1;
+        if (operation == .AttachVerified) request.Receipt.Attached += 1;
     } else {
         request.Receipt.RejectedStatus = result.Status;
     }

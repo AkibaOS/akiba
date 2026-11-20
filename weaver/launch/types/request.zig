@@ -3,6 +3,7 @@
 const image = @import("weaver").image.types.layout;
 const provision = @import("shared").launch.types.provision;
 
+const Cache = @import("weaver").launch.types.cache.Cache;
 const Policy = @import("shared").elf.types.image.Policy;
 
 pub const Options = struct {
@@ -13,6 +14,7 @@ pub const Options = struct {
     StartupBase: u64,
     Identity: []const u8,
     Parameters: []const u8,
+    Cache: ?*Cache = null,
 };
 
 pub const Spans = struct {
