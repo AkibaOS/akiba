@@ -55,7 +55,7 @@ pub fn exactNodeFillSplitsOnlyTheNextRecord() !void {
 
 pub fn maximumKeyAndHeaderUseIndependentWireBytes() !void {
     const identity = [_]u8{constants.NAME_BYTE} ** constants.MAXIMUM_NAME_BYTES;
-    const entries = [_]tool.types.catalog.Entry{.{
+    const entries = [_]tool.types.catalog.entry.Entry{.{
         .ParentNodeId = constants.KEY_PARENT,
         .NodeId = constants.KEY_NODE,
         .Identity = &identity,
@@ -118,7 +118,7 @@ pub fn globalOrderingAndParentIsolation() !void {
 }
 
 pub fn duplicateAndInvalidCatalogEntriesAreRejected() !void {
-    var duplicate = [_]tool.types.catalog.Entry{ constants.ORDERED_INPUT[3], constants.ORDERED_INPUT[3] };
+    var duplicate = [_]tool.types.catalog.entry.Entry{ constants.ORDERED_INPUT[3], constants.ORDERED_INPUT[3] };
     duplicate[1].NodeId = constants.BETA_ID;
     try std.testing.expectError(error.DuplicateKey, pack.pack(std.testing.allocator, &duplicate));
     const oversized = [_]u8{constants.NAME_BYTE} ** constants.INVALID_NAME_BYTES;
@@ -202,7 +202,7 @@ pub fn finalInternalGroupDoesNotRemainUnary() !void {
 pub fn identityBytesAreWidenedWithoutUnicodeDecoding() !void {
     var entry = constants.ORDERED_INPUT[3];
     entry.Identity = strings.BYTE_IDENTITY;
-    const entries = [_]tool.types.catalog.Entry{entry};
+    const entries = [_]tool.types.catalog.entry.Entry{entry};
     const spans = [_]afs.types.volume.SpanDescriptor{.{}};
     var tree = try pack.pack(std.testing.allocator, &entries);
     defer tree.deinit();
@@ -235,7 +235,7 @@ fn setSuffix(name: []u8, value: usize) void {
 
 fn findUnit(
     tree: *const tool.types.tree.TreePlan,
-    entries: []const tool.types.catalog.Entry,
+    entries: []const tool.types.catalog.entry.Entry,
     spans: []const afs.types.volume.SpanDescriptor,
     parent: u32,
     identity: []const u16,

@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const catalog = @import("mkafsdisk").types.catalog;
+const catalog = @import("mkafsdisk").types.catalog.entry;
 
 pub const SourceEntry = struct {
     Identity: []u8,

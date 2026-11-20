@@ -15,7 +15,7 @@ pub const Output = struct {
 
     pub fn finish(self: *Output) !void {
         const destination = self.file();
-        if (try destination.getEndPos() != self.ExpectedBytes) return tool.errors.image.ImageError.ImageSizeMismatch;
+        if (try destination.getEndPos() != self.ExpectedBytes) return tool.errors.image.creation.ImageError.ImageSizeMismatch;
         const operations = self.IO orelse tool.image.io.native();
         try operations.SyncFn(operations.Context, destination);
         try self.Atomic.flush();

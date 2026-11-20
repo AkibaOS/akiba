@@ -6,12 +6,12 @@ const bootloader = @import("../bootloader/bootloader.zig");
 const fixture = @import("../tests/fixture.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
-const steps = @import("../strings/steps.zig");
+const steps = @import("../strings/steps/descriptions.zig");
 const types = @import("../types/types.zig");
 
 const Dynamic = @import("../types/fixture.zig").Dynamic;
 
-pub fn artifact(builder: *std.Build, modules: types.modules.Modules, images: ?Dynamic) *std.Build.Step.Compile {
+pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules, images: ?Dynamic) *std.Build.Step.Compile {
     const guest_checks = images != null;
     const target = builder.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
@@ -100,7 +100,7 @@ pub fn install(builder: *std.Build, executable: *std.Build.Step.Compile) *std.Bu
     return &copy.step;
 }
 
-pub fn addGuest(builder: *std.Build, modules: types.modules.Modules, images: Dynamic) *std.Build.Step.Compile {
+pub fn addGuest(builder: *std.Build, modules: types.modules.dependencies.Modules, images: Dynamic) *std.Build.Step.Compile {
     const executable = artifact(builder, modules, images);
     const copy = builder.addInstallFile(executable.getEmittedBin(), paths.GUEST_OUTPUT);
     const step = builder.step(names.STEP_GUEST_CHECKS, steps.GUEST_CHECKS_DESCRIPTION);

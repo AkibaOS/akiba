@@ -35,7 +35,7 @@ pub fn metadataAndPayloadMustFit() !void {
 }
 
 pub fn spansAreAssignedInsideTheFrozenPayloadPlan() !void {
-    var entries = [_]tool.types.catalog.Entry{
+    var entries = [_]tool.types.catalog.entry.Entry{
         constants.ORDERED_INPUT[3],
         constants.ORDERED_INPUT[2],
         constants.ORDERED_INPUT[4],

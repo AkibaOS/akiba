@@ -5,13 +5,13 @@ const std = @import("std");
 const afs = @import("shared").afs;
 const tool = @import("mkafsdisk");
 
-const Entry = tool.types.catalog.Entry;
+const Entry = tool.types.catalog.entry.Entry;
 const NodeDescriptor = afs.types.btree.records.NodeDescriptor;
 const PlanningError = tool.errors.planning.PlanningError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
 const TreePlan = tool.types.tree.TreePlan;
 
-const constants = tool.constants.catalog;
+const constants = tool.constants.catalog.records;
 
 pub fn encode(
     plan: *const TreePlan,
@@ -133,10 +133,10 @@ pub fn encodeValue(comptime Value: type, value: Value, destination: []u8) void {
             } else if (comptime Value == afs.types.catalog.SpecialInfo) {
                 encodeValue(@TypeOf(value.Raw), value.Raw, destination);
             } else {
-                @compileError(tool.strings.catalog.UNSUPPORTED_WIRE_TYPE);
+                @compileError(tool.strings.catalog.records.UNSUPPORTED_WIRE_TYPE);
             }
         },
-        else => @compileError(tool.strings.catalog.UNSUPPORTED_WIRE_TYPE),
+        else => @compileError(tool.strings.catalog.records.UNSUPPORTED_WIRE_TYPE),
     }
 }
 
@@ -145,9 +145,9 @@ comptime {
         @sizeOf(afs.types.btree.records.HeaderRecord) != constants.HEADER_RECORD_BYTES or
         @sizeOf(afs.types.catalog.StackRecord) != constants.STACK_RECORD_BYTES or
         @sizeOf(afs.types.catalog.UnitRecord) != constants.UNIT_RECORD_BYTES or
-        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.KEY_PARENT_FIELD) != constants.KEY_PARENT_OFFSET or
-        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.KEY_IDENTITY_FIELD) != afs.constants.btree.records.INDEX_KEY_HEADER_SIZE)
+        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.records.KEY_PARENT_FIELD) != constants.KEY_PARENT_OFFSET or
+        @offsetOf(afs.types.btree.records.IndexKey, tool.strings.catalog.records.KEY_IDENTITY_FIELD) != afs.constants.btree.records.INDEX_KEY_HEADER_SIZE)
     {
-        @compileError(tool.strings.catalog.INVALID_WIRE_LAYOUT);
+        @compileError(tool.strings.catalog.records.INVALID_WIRE_LAYOUT);
     }
 }

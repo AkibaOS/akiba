@@ -4,7 +4,7 @@ const std = @import("std");
 
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
-const types = @import("../types/modules.zig");
+const types = @import("../types/modules/dependencies.zig");
 
 pub fn create(builder: *std.Build) types.Modules {
     const common = builder.createModule(.{

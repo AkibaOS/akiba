@@ -11,12 +11,12 @@ const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
 const progress = @import("pack.zig");
 const paths = @import("../strings/paths.zig");
-const steps = @import("../strings/steps.zig");
+const steps = @import("../strings/steps/descriptions.zig");
 const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile) void {
+pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile) void {
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);

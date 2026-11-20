@@ -108,7 +108,7 @@ fn collectEntry(collection: *Collection, directory: std.fs.Dir, parent_path: []c
     });
 }
 
-fn appendEntry(collection: *Collection, entry: tool.types.catalog.Entry) !void {
+fn appendEntry(collection: *Collection, entry: tool.types.catalog.entry.Entry) !void {
     if (collection.Entries.items.len >= std.math.maxInt(u32)) return PlanningError.Overflow;
     switch (entry.Kind) {
         .Stack => try incrementCount(&collection.StackCount),

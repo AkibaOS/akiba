@@ -15,14 +15,14 @@ pub fn validateOutput(allocator: std.mem.Allocator, source_location: []const u8,
     defer output_directory.close();
     const parent = try output_directory.realpathAlloc(allocator, tool.strings.names.ENTRY_CURRENT);
     defer allocator.free(parent);
-    if (isWithin(parent, source)) return tool.errors.image.ImageError.OutputInsideSource;
+    if (isWithin(parent, source)) return tool.errors.image.creation.ImageError.OutputInsideSource;
     const existing: ?[]u8 = std.fs.cwd().realpathAlloc(allocator, output_path) catch |failure| switch (failure) {
         error.FileNotFound => null,
         else => return failure,
     };
     if (existing) |resolved| {
         defer allocator.free(resolved);
-        if (isWithin(resolved, source)) return tool.errors.image.ImageError.OutputInsideSource;
+        if (isWithin(resolved, source)) return tool.errors.image.creation.ImageError.OutputInsideSource;
     }
 }
 

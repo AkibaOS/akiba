@@ -9,7 +9,7 @@ const layout = tool.constants.disk;
 const PlanningError = tool.errors.planning.PlanningError;
 
 pub fn disk(size_mib: u32) PlanningError!tool.types.geometry.DiskPlan {
-    const total_bytes = std.math.mul(u64, size_mib, tool.constants.catalog.MEBIBYTE_BYTES) catch return PlanningError.Overflow;
+    const total_bytes = std.math.mul(u64, size_mib, tool.constants.catalog.records.MEBIBYTE_BYTES) catch return PlanningError.Overflow;
     const total_sectors = total_bytes / layout.SECTOR_SIZE;
     const esp_start: u64 = layout.ESP_START_SECTOR;
     const esp_end = esp_start + layout.ESP_SIZE_SECTORS - 1;
@@ -45,7 +45,7 @@ pub fn volume(total_cells: u64, tree_nodes: u64, payload_cells: u64) PlanningErr
     if (total_cells > std.math.maxInt(u32) or tree_nodes > std.math.maxInt(u32) or payload_cells > std.math.maxInt(u32)) {
         return PlanningError.Overflow;
     }
-    if (total_cells == 0 or tree_nodes < tool.constants.catalog.MINIMUM_TREE_NODES) return PlanningError.InvalidGeometry;
+    if (total_cells == 0 or tree_nodes < tool.constants.catalog.records.MINIMUM_TREE_NODES) return PlanningError.InvalidGeometry;
     const cell_size = afs.constants.sizes.DEFAULT_CELL_SIZE;
     const bitmap_bytes = (total_cells - 1) / @bitSizeOf(u8) + 1;
     const bitmap_cells = (bitmap_bytes - 1) / cell_size + 1;
@@ -75,7 +75,7 @@ pub fn payloadCells(logical_size: u64) PlanningError!u32 {
 
 pub fn spans(
     allocator: std.mem.Allocator,
-    entries: []const tool.types.catalog.Entry,
+    entries: []const tool.types.catalog.entry.Entry,
     plan: tool.types.geometry.VolumePlan,
 ) (std.mem.Allocator.Error || PlanningError)![]afs.types.volume.SpanDescriptor {
     if (plan.UsedCells < plan.DataStartCell) return PlanningError.InvalidGeometry;

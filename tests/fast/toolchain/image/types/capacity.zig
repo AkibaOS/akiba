@@ -22,12 +22,12 @@ pub const DiskCase = struct {
 
 pub const ExactFixture = struct {
     Names: [6][203]u8,
-    Entries: [6]tool.types.catalog.Entry,
+    Entries: [6]tool.types.catalog.entry.Entry,
     Spans: [6]afs.types.volume.SpanDescriptor,
 };
 
 pub const DeepFixture = struct {
     Names: [128][180]u8,
-    Entries: [128]tool.types.catalog.Entry,
+    Entries: [128]tool.types.catalog.entry.Entry,
     Spans: [128]afs.types.volume.SpanDescriptor,
 };

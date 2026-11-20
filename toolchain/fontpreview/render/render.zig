@@ -17,7 +17,7 @@ const RowSink = raster.types.sink.RowSink;
 const TextRenderer = graphics.types.renderer.TextRenderer;
 
 const output = preview.constants.limits;
-const strings = preview.strings.render;
+const strings = preview.strings.render.image;
 
 pub fn renderText(allocator: std.mem.Allocator, data: []const u8, args: [][:0]u8) !void {
     if (args.len != 8) return ArgumentError.InvalidArgs;

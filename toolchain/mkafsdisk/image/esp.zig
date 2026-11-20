@@ -15,7 +15,7 @@ const esp = constants.esp;
 const names = strings.names;
 
 const BootSector = fat32.types.boot.BootSector;
-const ImageError = errors.image.ImageError;
+const ImageError = errors.image.creation.ImageError;
 const StackEntry = fat32.types.entry.StackEntry;
 
 pub fn createEsp(

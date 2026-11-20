@@ -1,6 +1,6 @@
 //! Disk Image Types
 
-pub const catalog = @import("catalog.zig");
+pub const catalog = @import("catalog/catalog.zig");
 pub const filesystem = @import("filesystem.zig");
 pub const geometry = @import("geometry.zig");
 pub const io = @import("io.zig");

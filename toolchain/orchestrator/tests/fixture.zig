@@ -7,7 +7,7 @@ const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 
 const Dynamic = @import("../types/fixture.zig").Dynamic;
-const Modules = @import("../types/modules.zig").Modules;
+const Modules = @import("../types/modules/dependencies.zig").Modules;
 
 pub fn artifact(builder: *std.Build) *std.Build.Step.Compile {
     return build(builder, paths.ELF_FIXTURE_ROOT, paths.ELF_FIXTURE_LINKER, names.EXECUTABLE_ELF_FIXTURE);

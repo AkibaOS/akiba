@@ -4,8 +4,8 @@ const std = @import("std");
 
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
-const steps = @import("../strings/steps.zig");
-const types = @import("../types/modules.zig");
+const steps = @import("../strings/steps/descriptions.zig");
+const types = @import("../types/modules/dependencies.zig");
 
 pub fn module(builder: *std.Build, modules: types.Modules, target: ?std.Build.ResolvedTarget, diagnostics: bool) *std.Build.Module {
     const root = builder.createModule(.{

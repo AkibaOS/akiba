@@ -22,7 +22,7 @@ pub fn emptySourceRetainsOrigin() !void {
     const origin = manifest.Entries[0];
     try std.testing.expectEqual(constants.ORIGIN_PARENT, origin.ParentNodeId);
     try std.testing.expectEqual(constants.ORIGIN_ID, origin.NodeId);
-    try std.testing.expectEqual(types.catalog.EntryKind.Stack, origin.Kind);
+    try std.testing.expectEqual(types.catalog.entry.EntryKind.Stack, origin.Kind);
     try std.testing.expectEqualStrings(strings.EMPTY_IDENTITY, origin.Identity);
     var tree = try pack.pack(std.testing.allocator, manifest.Entries);
     defer tree.deinit();

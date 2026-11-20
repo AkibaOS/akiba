@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const paths = @import("../strings/paths.zig");
-const steps = @import("../strings/steps.zig");
+const steps = @import("../strings/steps/descriptions.zig");
 
 pub fn add(builder: *std.Build, bootloader: *std.Build.Step, kernel: *std.Build.Step, disk: *std.Build.Step) void {
     const all = builder.step(steps.ALL, steps.ALL_DESCRIPTION);

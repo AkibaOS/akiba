@@ -122,7 +122,7 @@ pub const DISKS = [_]types.DiskCase{
     .{ .SizeMiB = 16777251, .TotalSectors = 34359810048, .ProtectiveSectorCount = 4294967295, .TotalCells = 4294967291 },
 };
 
-pub const ORDERED_INPUT = [_]tool.types.catalog.Entry{
+pub const ORDERED_INPUT = [_]tool.types.catalog.entry.Entry{
     .{ .ParentNodeId = 8, .NodeId = 20, .Identity = strings.FIRST_IDENTITY, .Kind = .Unit },
     .{ .ParentNodeId = 7, .NodeId = 19, .Identity = strings.LOWER_IDENTITY, .Kind = .Unit },
     .{ .ParentNodeId = 7, .NodeId = 18, .Identity = strings.PREFIX_IDENTITY, .Kind = .Unit },

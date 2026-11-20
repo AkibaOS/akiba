@@ -5,7 +5,7 @@ const std = @import("std");
 const afs = @import("shared").afs;
 const tool = @import("mkafsdisk");
 
-const Entry = tool.types.catalog.Entry;
+const Entry = tool.types.catalog.entry.Entry;
 const FilesystemPlan = tool.types.filesystem.FilesystemPlan;
 const PlanningError = tool.errors.planning.PlanningError;
 const SpanDescriptor = afs.types.volume.SpanDescriptor;
@@ -82,7 +82,7 @@ pub const Writer = struct {
         const source = try std.fs.cwd().openFile(entry.Path, .{});
         defer source.close();
         const initial = try source.stat();
-        if (initial.kind != .file or initial.size != entry.LogicalSize) return tool.errors.image.ImageError.SourceChanged;
+        if (initial.kind != .file or initial.size != entry.LogicalSize) return tool.errors.image.creation.ImageError.SourceChanged;
         var remaining = entry.LogicalSize;
         var current_cell = span.StartCell;
         var buffer: [afs.constants.sizes.DEFAULT_CELL_SIZE]u8 = undefined;
@@ -96,7 +96,7 @@ pub const Writer = struct {
             current_cell += 1;
         }
         const final = try source.stat();
-        if (final.kind != .file or final.size != entry.LogicalSize or final.mtime != initial.mtime) return tool.errors.image.ImageError.SourceChanged;
+        if (final.kind != .file or final.size != entry.LogicalSize or final.mtime != initial.mtime) return tool.errors.image.creation.ImageError.SourceChanged;
     }
 
     fn writeIndex(self: *Self, plan: *const FilesystemPlan) !void {

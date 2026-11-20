@@ -12,7 +12,7 @@ pub fn readExact(operations: tool.types.io.Operations, file: std.fs.File, buffer
     var offset: usize = 0;
     while (offset < buffer.len) {
         const count = try operations.ReadFn(operations.Context, file, buffer[offset..]);
-        if (count == 0 or count > buffer.len - offset) return tool.errors.image.ImageError.SourceChanged;
+        if (count == 0 or count > buffer.len - offset) return tool.errors.image.creation.ImageError.SourceChanged;
         offset += count;
     }
 }

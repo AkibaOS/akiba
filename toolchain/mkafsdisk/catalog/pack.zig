@@ -6,13 +6,13 @@ const afs = @import("shared").afs;
 const separators = @import("utils").path.constants.separators;
 const tool = @import("mkafsdisk");
 
-const Entry = tool.types.catalog.Entry;
+const Entry = tool.types.catalog.entry.Entry;
 const Level = tool.types.tree.Level;
 const NodePlan = tool.types.tree.NodePlan;
 const PlanningError = tool.errors.planning.PlanningError;
 const RecordPlan = tool.types.tree.RecordPlan;
 
-const constants = tool.constants.catalog;
+const constants = tool.constants.catalog.records;
 
 pub fn pack(allocator: std.mem.Allocator, entries: []const Entry) (std.mem.Allocator.Error || PlanningError)!tool.types.tree.TreePlan {
     if (entries.len == 0) return PlanningError.InvalidCatalog;

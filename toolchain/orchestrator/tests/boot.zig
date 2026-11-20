@@ -8,7 +8,7 @@ const paths = @import("../strings/paths.zig");
 const types = @import("../types/types.zig");
 const Applications = @import("../types/boot.zig").Applications;
 
-pub fn artifact(builder: *std.Build, modules: types.modules.Modules, images: Applications) *std.Build.Step.Compile {
+pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules, images: Applications) *std.Build.Step.Compile {
     const target = builder.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .uefi, .abi = .msvc });
     const hikari = bootloader.compile.module(builder, modules, target, false);
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
