@@ -28,8 +28,8 @@ pub const Reader = struct {
     CellSize: u32 = 0,
     Index: BTree = .{},
     HasSpanOverflow: bool = false,
-    CellAllocation: efi.types.buffer.AlignedBuffer = .{},
-    NodeAllocation: efi.types.buffer.PoolClaim = .{},
+    CellAllocation: efi.types.buffer.claims.AlignedBuffer = .{},
+    NodeAllocation: efi.types.buffer.claims.PoolClaim = .{},
 
     pub fn initialize(
         self: *Reader,
@@ -175,7 +175,7 @@ pub const Reader = struct {
         }
     }
 
-    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64, owner: *efi.types.buffer.PoolClaim) ReadError![]u8 {
+    pub fn readUnitToAllocated(self: *Reader, unit: *const UnitRecord, max_size: u64, owner: *efi.types.buffer.claims.PoolClaim) ReadError![]u8 {
         if (self.CellSize == 0) return ReadError.ReadFailed;
         const unit_size = unit.DataChannel.LogicalSize;
         if (unit_size == 0 or unit_size > max_size) return ReadError.UnitTooLarge;

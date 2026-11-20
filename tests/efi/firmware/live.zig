@@ -31,7 +31,7 @@ fn prepareKeyboard(services: *efi.types.services.boot.BootServices) !?*keys.Inpu
         error.MenuInputMissing, error.MenuKeyboardMissing => return null,
         else => return failure,
     };
-    if (input.Reset(input, false) != efi.constants.status.SUCCESS) return error.FirmwareKeyboardResetFailed;
+    if (input.Reset(input, false) != efi.constants.status.codes.SUCCESS) return error.FirmwareKeyboardResetFailed;
     return input;
 }
 

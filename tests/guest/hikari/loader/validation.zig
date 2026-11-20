@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const elf = @import("shared").elf.types.format;
-const errors = @import("hikari").loader.errors.elf;
+const errors = @import("hikari").loader.errors.elf.load;
 const format = @import("shared").elf.constants.format;
 const inputs = @import("tests").fixtures.constants.hikari;
 const labels = @import("tests").guest.strings.hikari;

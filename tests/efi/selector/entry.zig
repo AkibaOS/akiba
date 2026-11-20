@@ -8,7 +8,7 @@ const phase = @import("tests").phase;
 const ports = @import("common").constants.serial.ports;
 const uart = @import("tests").efi.serial;
 const Role = phase.types.boot.Role;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn main() std.os.uefi.Status {
     const boot_services = std.os.uefi.system_table.boot_services orelse return @enumFromInt(status.UNSUPPORTED);

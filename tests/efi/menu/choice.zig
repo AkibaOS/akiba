@@ -10,7 +10,7 @@ const Action = phase.types.action.Action;
 const BootServices = efi.types.services.boot.BootServices;
 const Input = @import("tests").efi.keyboard.Input;
 const View = @import("tests").efi.types.menu.display.View;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn readyAndWait(services: *BootServices, input: *Input, epoch: u64, view: *View) !Action {
     const armed = phase.menu.encodeArmed(epoch);

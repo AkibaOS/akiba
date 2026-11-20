@@ -36,7 +36,7 @@ fn span(real: *efi.types.services.boot.BootServices) !void {
     }
     const planned = try validation.validateImage(&bytes);
     output.require(planned.Size == inputs.IMAGE_BYTES + inputs.LARGE_BSS_BYTES, labels.LARGE_PLAN);
-    var backing: efi.types.pages.Claim = .{};
+    var backing: efi.types.pages.claims.Claim = .{};
     defer if (!efi.pages.release(real, &backing.Backing)) output.fail(labels.CLEANUP_FAILED);
     const refused = if (loader.load(real, inputs.LARGE_BSS_BYTES, &bytes, &backing)) |_| false else |failure| failure == error.UnsupportedImageLayout;
     output.require(refused and backing.Backing == null and !backing.Untrusted, labels.LARGE_GEOMETRY);

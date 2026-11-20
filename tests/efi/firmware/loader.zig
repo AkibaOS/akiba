@@ -4,11 +4,11 @@ const std = @import("std");
 
 const abort = @import("hikari").sequence.cleanup;
 const base = @import("hikari").efi.types.base;
-const claimtypes = @import("hikari").sequence.types.cleanup;
-const codes = @import("hikari").efi.constants.status;
+const claimtypes = @import("hikari").sequence.types.cleanup.claims;
+const codes = @import("hikari").efi.constants.status.codes;
 const convention = @import("hikari").efi.constants.convention;
 const efi = @import("hikari").efi;
-const errors = @import("hikari").loader.errors.elf;
+const errors = @import("hikari").loader.errors.elf.load;
 const fixtures = @import("tests").fixtures.constants.hikari;
 const inputs = @import("tests").efi.constants.firmware.loading;
 const labels = @import("tests").efi.strings.firmware.loading;
@@ -57,7 +57,7 @@ fn rejectBeforeAllocation(real: *services.boot.BootServices) !void {
 
 fn loadFallback(real: *services.boot.BootServices) !void {
     var wrapped = try begin(real);
-    var backing: efi.types.pages.Claim = .{};
+    var backing: efi.types.pages.claims.Claim = .{};
     const image = try loader.load(&wrapped, inputs.PHYSICAL_LIMIT, &fixtures.VALID_ELF, &backing);
     const allocation = fixture.Created orelse return errors.LoadError.AllocationFailed;
     const fallback = !backing.Untrusted and backing.Backing != null and backing.Backing.?.Physical == allocation.Address and backing.Backing.?.Pages == allocation.Pages and
@@ -140,7 +140,7 @@ fn begin(real: *services.boot.BootServices) !services.boot.BootServices {
 }
 
 fn rejects(wrapped: *services.boot.BootServices, physical_limit: u64, data: []const u8, expected: errors.LoadError) bool {
-    var backing: efi.types.pages.Claim = .{};
+    var backing: efi.types.pages.claims.Claim = .{};
     if (loader.load(wrapped, physical_limit, data, &backing)) |_| return false else |failure| return failure == expected and backing.Backing == null and !backing.Untrusted;
 }
 

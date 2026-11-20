@@ -6,7 +6,7 @@ const graphics = @import("shared").graphics;
 const screen = @import("tests").screen;
 
 pub const View = struct {
-    Pool: efi.types.buffer.PoolClaim = .{},
+    Pool: efi.types.buffer.claims.PoolClaim = .{},
     Target: graphics.types.surface.Surface = undefined,
     Layout: screen.types.geometry.Layout = undefined,
     Face: font.types.face.Face = undefined,

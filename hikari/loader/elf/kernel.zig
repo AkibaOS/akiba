@@ -1,11 +1,11 @@
 //! Hikari Kernel ELF Layout Validation
 
 const elf = @import("shared").elf.constants.format;
-const errors = @import("hikari").loader.errors.elf;
+const errors = @import("hikari").loader.errors.elf.load;
 const kernel = @import("hikari").loader.constants.kernel;
 const layout = @import("common").constants.memory.layout;
 const sizes = @import("common").constants.memory.sizes;
-const types = @import("hikari").loader.types.elf;
+const types = @import("hikari").loader.types.elf.image;
 
 pub fn validate(image: *const types.ImageLayout) errors.LoadError!void {
     if (image.SegmentCount != kernel.SEGMENT_COUNT or

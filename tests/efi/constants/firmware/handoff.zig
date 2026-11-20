@@ -1,6 +1,6 @@
 //! Firmware Handoff Regression Inputs
 
-const status = @import("hikari").efi.constants.status;
+const status = @import("hikari").efi.constants.status.codes;
 const types = @import("tests").efi.types.firmware.handoff;
 
 pub const SERIAL_POLL_LIMIT: usize = 1000000;

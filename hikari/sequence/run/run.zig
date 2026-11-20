@@ -32,10 +32,10 @@ const layout = common.constants.memory.layout;
 const messages = strings.messages;
 const paths = strings.paths;
 const sizes = common.constants.memory.sizes;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable) efi.types.base.Status {
-    var claims: types.cleanup.Claims = .{ .Paging = .{ .BootServices = system_table.BootServices } };
+    var claims: types.cleanup.claims.Claims = .{ .Paging = .{ .BootServices = system_table.BootServices } };
     const result = launch(image_handle, system_table, &claims);
     if (!cleanup.finish(&claims)) {
         const attempted = if (claims.Handoff) |state| state.ExitAttempted or state.Exited else false;
@@ -47,7 +47,7 @@ pub fn run(image_handle: efi.types.base.Handle, system_table: *efi.types.service
     return result;
 }
 
-fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable, claims: *types.cleanup.Claims) efi.types.base.Status {
+fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services.system.SystemTable, claims: *types.cleanup.claims.Claims) efi.types.base.Status {
     const boot_services = system_table.BootServices;
     const console_output = system_table.ConsoleOutput;
     _ = console_output.ClearScreen(console_output);

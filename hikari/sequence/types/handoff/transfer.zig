@@ -2,7 +2,7 @@
 
 const efi = @import("hikari").efi;
 
-const Allocation = efi.types.pages.Allocation;
+const Allocation = efi.types.pages.claims.Allocation;
 
 pub const Handoff = struct {
     BootServices: *efi.types.services.boot.BootServices,

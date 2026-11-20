@@ -1,6 +1,6 @@
 //! Hikari Partition Information
 
-const buffer = @import("hikari").efi.types.buffer;
+const buffer = @import("hikari").efi.types.buffer.claims;
 const media = @import("hikari").disk.types.media;
 const parser = @import("hikari").disk.types.parser;
 

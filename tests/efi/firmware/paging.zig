@@ -13,7 +13,7 @@ const retirement = @import("shared").boot.types.retirement;
 const retirementlimits = @import("shared").boot.constants.retirement;
 const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.status;
-const statuses = @import("hikari").efi.constants.status;
+const statuses = @import("hikari").efi.constants.status.codes;
 
 const Setup = paging.types.setup.PageTableSetup;
 const Table = paging.types.table.PageTable;

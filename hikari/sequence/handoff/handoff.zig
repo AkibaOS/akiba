@@ -10,14 +10,14 @@ const errors = @import("hikari").sequence.errors;
 const math = @import("utils").math;
 const types = @import("hikari").sequence.types;
 
-const Allocation = efi.types.pages.Allocation;
+const Allocation = efi.types.pages.claims.Allocation;
 const BootParams = boot.types.params.BootParams;
-const Handoff = types.handoff.Handoff;
-const HandoffError = errors.handoff.HandoffError;
+const Handoff = types.handoff.transfer.Handoff;
+const HandoffError = errors.handoff.transfer.HandoffError;
 const layout = common.constants.memory.layout;
 const memory = boot.constants.memory;
 const sizes = common.constants.memory.sizes;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn initialize(state: *Handoff) HandoffError!void {
     if (state.Closing or state.UntrustedAllocation or state.Exited or state.ExitAttempted or state.Stack != null or state.Parameters != null or

@@ -4,7 +4,7 @@ const constants = @import("hikari").sequence.constants.memory;
 const efi = @import("hikari").efi;
 const handoff = @import("hikari").sequence.handoff;
 const partition = @import("hikari").sequence.partition;
-const types = @import("hikari").sequence.types.cleanup;
+const types = @import("hikari").sequence.types.cleanup.claims;
 
 pub fn releaseSource(claims: *types.Claims) bool {
     if (sealed(claims)) return false;

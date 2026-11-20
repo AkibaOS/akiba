@@ -13,7 +13,7 @@ const guids = @import("hikari").efi.constants.guids;
 const labels = @import("tests").guest.strings.acquisition;
 const memory = @import("hikari").efi.types.memory;
 const protocols = @import("hikari").efi.types.protocols.block;
-const status = @import("hikari").efi.constants.status;
+const status = @import("hikari").efi.constants.status.codes;
 const types = @import("tests").guest.types.acquisition;
 
 pub var device: types.Device = .{};

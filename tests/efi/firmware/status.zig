@@ -8,7 +8,7 @@ const labels = @import("tests").efi.strings.firmware.handoff;
 const output = @import("tests").efi.firmware.run;
 
 const base = efi.types.base;
-const codes = efi.constants.status;
+const codes = efi.constants.status.codes;
 const convention = efi.constants.convention.CALLING_CONVENTION;
 const Console = efi.types.protocols.output.SimpleTextOutputProtocol;
 

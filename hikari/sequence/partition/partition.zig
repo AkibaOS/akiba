@@ -3,14 +3,14 @@
 const std = @import("std");
 
 const efi = @import("hikari").efi;
-const errors = @import("hikari").sequence.errors.partition;
+const errors = @import("hikari").sequence.errors.partition.discovery;
 const parser = @import("hikari").disk.types.parser;
-const types = @import("hikari").sequence.types.partition;
+const types = @import("hikari").sequence.types.partition.discovery;
 
 const Discovery = types.Discovery;
 const DiscoveryError = errors.DiscoveryError;
 const PartitionInfo = types.PartitionInfo;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn findAfsPartition(state: *Discovery) DiscoveryError!?PartitionInfo {
     if (!state.Handles.isEmpty() or !state.Parser.Scratch.Pool.isEmpty()) return DiscoveryError.ReleaseFailed;

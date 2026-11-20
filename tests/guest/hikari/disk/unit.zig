@@ -38,7 +38,7 @@ fn acquire() !void {
     var source = try initialize();
     defer if (!source.deinitialize()) verify.failure(error.ReleaseFailed);
     const record = fixture.unit();
-    var storage: efi.types.buffer.PoolClaim = .{};
+    var storage: efi.types.buffer.claims.PoolClaim = .{};
     const bytes = try source.readUnitToAllocated(&record, constants.UNIT_LIMIT, &storage);
     const valid = bytes.len == constants.UNIT_PAYLOAD.len and storage.Allocation != null and bytes.ptr == storage.Allocation.? and
         std.mem.eql(u8, bytes, &constants.UNIT_PAYLOAD) and
@@ -122,7 +122,7 @@ fn changedGeometry() !void {
 }
 
 fn rejects(source: *Reader, record: *const UnitRecord, maximum: u64, expected: ReadError) bool {
-    var storage: efi.types.buffer.PoolClaim = .{};
+    var storage: efi.types.buffer.claims.PoolClaim = .{};
     const rejected = if (source.readUnitToAllocated(record, maximum, &storage)) |_| false else |failure| failure == expected;
     const released = efi.buffer.releasePool(&fixture.services, &storage);
     return rejected and released;

@@ -17,8 +17,8 @@ const sizes = common.constants.memory.sizes;
 
 const Elf64Header = wire.Elf64Header;
 const Elf64ProgramHeader = wire.Elf64ProgramHeader;
-const ImageLayout = types.elf.ImageLayout;
-const LoadError = errors.elf.LoadError;
+const ImageLayout = types.elf.image.ImageLayout;
+const LoadError = errors.elf.load.LoadError;
 
 pub fn validateImage(data: []const u8) LoadError!ImageLayout {
     const header = try validateHeader(data);

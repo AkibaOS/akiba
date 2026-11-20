@@ -2,14 +2,14 @@
 
 const common = @import("common");
 const efi = @import("hikari").efi;
-const errors = @import("hikari").loader.errors.elf;
-const types = @import("hikari").loader.types.elf;
+const errors = @import("hikari").loader.errors.elf.load;
+const types = @import("hikari").loader.types.elf.image;
 const validation = @import("hikari").loader.elf.validation;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 
-pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64, unit_data: []const u8, owner: *efi.types.pages.Claim) errors.LoadError!types.LoadedImage {
+pub fn load(boot_services: *efi.types.services.boot.BootServices, physical_limit: u64, unit_data: []const u8, owner: *efi.types.pages.claims.Claim) errors.LoadError!types.LoadedImage {
     if (owner.Untrusted) return error.AllocationFailed;
     const image_layout = try validation.validateImage(unit_data);
     if (physical_limit == 0 or (physical_limit & sizes.PAGE_MASK) != 0 or

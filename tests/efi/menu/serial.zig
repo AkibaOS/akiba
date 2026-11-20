@@ -9,7 +9,7 @@ const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
 
 const BootServices = efi.types.services.boot.BootServices;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn attach() bool {
     return configure(ports.COM3);

@@ -110,7 +110,7 @@ fn unitFailure() !void {
     entry.setFirstCluster(clusters.CLUSTER_DATA_START);
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
     fixture.device.FailLBA = reader.DataStartLBA;
-    var backing: efi.types.buffer.PoolClaim = .{};
+    var backing: efi.types.buffer.claims.PoolClaim = .{};
     const failed = failedWith(reader.readUnitToAllocated(&entry, constants.UNIT_PAYLOAD.len, &backing), error.ReadFailed);
     fixture.device.FailFree = fixture.device.FreeCalls + 1;
     const refused = !efi.buffer.releasePool(&fixture.services, &backing);
@@ -140,7 +140,7 @@ fn exactUnit() !void {
     const volume_bound = fixture.device.AllocateCalls == 2 and fixture.device.ReadCalls == 1;
 
     entry.UnitSize = constants.UNIT_PAYLOAD.len;
-    var backing: efi.types.buffer.PoolClaim = .{};
+    var backing: efi.types.buffer.claims.PoolClaim = .{};
     defer if (!efi.buffer.releasePool(&fixture.services, &backing)) verify.failure(error.ReleaseFailed);
     const result = try reader.readUnitToAllocated(&entry, entry.UnitSize, &backing);
     const exact = result.Size == constants.UNIT_PAYLOAD.len and std.mem.eql(u8, result.Buffer[0..result.Size], &constants.UNIT_PAYLOAD);
@@ -274,7 +274,7 @@ fn failedWith(result: anytype, expected: anyerror) bool {
 }
 
 fn rejectsAllocated(reader: *fat.Reader, entry: *const StackEntry, maximum: u32, expected: anyerror) bool {
-    var backing: efi.types.buffer.PoolClaim = .{};
+    var backing: efi.types.buffer.claims.PoolClaim = .{};
     const refused = if (reader.readUnitToAllocated(entry, maximum, &backing)) |_| false else |failure| failure == expected;
     return efi.buffer.releasePool(&fixture.services, &backing) and refused;
 }

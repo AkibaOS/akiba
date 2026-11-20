@@ -9,8 +9,8 @@ const inputs = @import("tests").fixtures.constants.hikari;
 const labels = @import("tests").guest.strings.hikari;
 const memory = @import("hikari").efi.types.memory;
 const services = @import("hikari").efi.types.services;
-const status = @import("hikari").efi.constants.status;
-const storage = @import("hikari").efi.types.buffer;
+const status = @import("hikari").efi.constants.status.codes;
+const storage = @import("hikari").efi.types.buffer.claims;
 const types = @import("tests").guest.types.hikari;
 const verify = @import("tests").guest.support.verify;
 

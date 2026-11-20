@@ -9,7 +9,7 @@ const menu = @import("tests").efi.menu;
 const phase = @import("tests").phase;
 const types = @import("tests").efi.types.menu;
 
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn main() void {
     const system_table = std.os.uefi.system_table;

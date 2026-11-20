@@ -4,10 +4,10 @@ const std = @import("std");
 
 const efi = @import("hikari").efi;
 
-const AlignedBuffer = efi.types.buffer.AlignedBuffer;
+const AlignedBuffer = efi.types.buffer.claims.AlignedBuffer;
 const BootServices = efi.types.services.boot.BootServices;
-const PoolClaim = efi.types.buffer.PoolClaim;
-const status = efi.constants.status;
+const PoolClaim = efi.types.buffer.claims.PoolClaim;
+const status = efi.constants.status.codes;
 
 pub fn recordPool(owner: *PoolClaim, allocation: ?[*]align(8) u8, size: usize) bool {
     if (!owner.isEmpty()) return false;

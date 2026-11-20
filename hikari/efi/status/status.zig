@@ -1,6 +1,6 @@
 //! Hikari EFI Status Operations
 
-const constants = @import("hikari").efi.constants.status;
+const constants = @import("hikari").efi.constants.status.codes;
 
 const Status = @import("hikari").efi.types.base.Status;
 

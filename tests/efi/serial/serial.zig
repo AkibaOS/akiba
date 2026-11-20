@@ -8,7 +8,7 @@ const registers = @import("common").constants.serial.registers;
 const scenario = @import("tests").machine.constants.serial;
 
 const BootServices = efi.types.services.boot.BootServices;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn attach(base: u16) bool {
     if (readLineStatus(base) == limits.UNAVAILABLE) return false;

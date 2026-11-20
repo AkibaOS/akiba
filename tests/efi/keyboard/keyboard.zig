@@ -9,13 +9,13 @@ const BootServices = efi.types.services.boot.BootServices;
 const Handle = efi.types.base.Handle;
 pub const Input = efi.types.protocols.input.SimpleTextInputProtocol;
 const guids = efi.constants.guids;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn locate(services: *BootServices) !*Input {
     var count: usize = 0;
     var handles: ?[*]Handle = null;
     if (services.LocateHandleBuffer(.ByProtocol, &guids.SIMPLE_TEXT_INPUT_PROTOCOL, null, &count, @ptrCast(&handles)) != status.SUCCESS) return error.MenuInputMissing;
-    var pool: efi.types.buffer.PoolClaim = .{};
+    var pool: efi.types.buffer.claims.PoolClaim = .{};
     const bytes = std.math.mul(usize, count, @sizeOf(Handle)) catch return error.InvalidMenuInputHandles;
     const raw: ?[*]align(8) u8 = if (handles) |list| @ptrCast(list) else null;
     if (!efi.buffer.recordPool(&pool, raw, bytes)) return error.InvalidMenuInputHandles;

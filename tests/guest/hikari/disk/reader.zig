@@ -2,13 +2,13 @@
 
 const abort = @import("hikari").sequence.cleanup;
 const afs = @import("shared").afs;
-const claimtypes = @import("hikari").sequence.types.cleanup;
+const claimtypes = @import("hikari").sequence.types.cleanup.claims;
 const inputs = @import("tests").guest.constants.acquisition;
 const fixture = @import("tests").guest.hikari.disk.fixture;
 const labels = @import("tests").guest.strings.acquisition;
 const locator = @import("hikari").sequence.partition;
 const media = @import("hikari").disk.types.media;
-const partition = @import("hikari").sequence.types.partition;
+const partition = @import("hikari").sequence.types.partition.discovery;
 const reader = @import("hikari").fs.types.afs.reader;
 const verify = @import("tests").guest.support.verify;
 

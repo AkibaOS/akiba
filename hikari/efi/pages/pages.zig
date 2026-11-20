@@ -3,11 +3,11 @@
 const common = @import("common");
 const efi = @import("hikari").efi;
 
-const Acquisition = efi.types.pages.Acquisition;
-const Allocation = efi.types.pages.Allocation;
+const Acquisition = efi.types.pages.claims.Acquisition;
+const Allocation = efi.types.pages.claims.Allocation;
 const BootServices = efi.types.services.boot.BootServices;
 const sizes = common.constants.memory.sizes;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 pub fn acquire(services: *BootServices, requested: ?u64, limit: u64, count: usize, owner: *?Allocation) Acquisition {
     if (owner.* != null or count == 0 or limit & sizes.PAGE_MASK != 0 or count > limit / sizes.PAGE_SIZE) return .Invalid;

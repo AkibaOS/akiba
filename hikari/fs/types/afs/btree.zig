@@ -41,7 +41,7 @@ pub const BTree = struct {
         cell_buffer: []align(8) u8,
         base_span: SpanDescriptor,
         header: *const BTreeHeaderRecord,
-        node_owner: *efi.types.buffer.PoolClaim,
+        node_owner: *efi.types.buffer.claims.PoolClaim,
     ) BTreeError!BTree {
         const cell_size = std.math.cast(u32, cell_buffer.len) orelse return BTreeError.InvalidHeader;
         const block_size = media.BlockSize;

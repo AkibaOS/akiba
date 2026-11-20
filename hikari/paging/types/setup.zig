@@ -26,7 +26,7 @@ pub const PageTableSetup = struct {
     BootServices: *efi.types.services.boot.BootServices,
     L4: *types.table.TableL4 = undefined,
     Ledger: ?*retirement.Ledger = null,
-    Rejected: ?efi.types.pages.Allocation = null,
+    Rejected: ?efi.types.pages.claims.Allocation = null,
     AllocatedCount: usize = 0,
     Closing: bool = false,
     UntrustedAllocation: bool = false,
@@ -84,7 +84,7 @@ pub const PageTableSetup = struct {
         return complete;
     }
 
-    fn releasePages(self: *PageTableSetup, allocation: efi.types.pages.Allocation, attempts: usize) bool {
+    fn releasePages(self: *PageTableSetup, allocation: efi.types.pages.claims.Allocation, attempts: usize) bool {
         for (0..attempts) |_| {
             if (efi.pages.free(self.BootServices, allocation)) return true;
         }

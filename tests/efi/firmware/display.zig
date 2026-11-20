@@ -16,7 +16,7 @@ const Scratch = types.Scratch;
 const Surface = graphics.types.surface.Surface;
 
 var active: ?types.Session = null;
-var pool: efi.types.buffer.PoolClaim = .{};
+var pool: efi.types.buffer.claims.PoolClaim = .{};
 var pool_services: ?*BootServices = null;
 
 pub fn start(services: *BootServices, offer: phase.types.live.Offer, cancel_ready: bool) !void {

@@ -16,7 +16,7 @@ pub const Parser = struct {
     BootServices: *efi.types.services.boot.BootServices,
     Media: MediaSnapshot = undefined,
     Header: types.gpt.Header = undefined,
-    Scratch: efi.types.buffer.AlignedBuffer = .{},
+    Scratch: efi.types.buffer.claims.AlignedBuffer = .{},
     EntriesCount: u32 = 0,
     EntrySize: u32 = 0,
 

@@ -1,6 +1,6 @@
 //! Hikari CPU Halt Operations
 
-const strings = @import("hikari").assembly.strings.halt;
+const strings = @import("hikari").assembly.strings.halt.instructions;
 
 pub fn haltLoop() noreturn {
     while (true) {

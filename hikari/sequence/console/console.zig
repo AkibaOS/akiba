@@ -1,6 +1,6 @@
 //! Hikari Console Output Helper
 
-const constants = @import("hikari").sequence.constants.console;
+const constants = @import("hikari").sequence.constants.console.controls;
 const efi = @import("hikari").efi;
 
 pub fn print(console: *efi.types.protocols.output.SimpleTextOutputProtocol, message: []const u8) void {

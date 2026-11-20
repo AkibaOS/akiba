@@ -15,7 +15,7 @@ const StackEntry = fat32.types.entry.StackEntry;
 const cluster = fat32.read.cluster;
 const clusters = fat32.constants.clusters;
 const stack = fat32.read.stack;
-const status = efi.constants.status;
+const status = efi.constants.status.codes;
 
 const MediaBinding = struct {
     Source: *const efi.types.block.BlockIoMedia,
@@ -83,8 +83,8 @@ pub const Reader = struct {
     BytesPerCluster: u32 = 0,
     ClusterCount: u32 = 0,
     OriginCluster: u32 = 0,
-    ClusterAllocation: efi.types.buffer.AlignedBuffer = .{},
-    SectorAllocation: efi.types.buffer.AlignedBuffer = .{},
+    ClusterAllocation: efi.types.buffer.claims.AlignedBuffer = .{},
+    SectorAllocation: efi.types.buffer.claims.AlignedBuffer = .{},
 
     pub fn initialize(
         self: *Reader,
@@ -235,7 +235,7 @@ pub const Reader = struct {
         return bytes_read;
     }
 
-    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry, max_size: u32, owner: *efi.types.buffer.PoolClaim) ReadError!AllocatedBuffer {
+    pub fn readUnitToAllocated(self: *Reader, entry: *const StackEntry, max_size: u32, owner: *efi.types.buffer.claims.PoolClaim) ReadError!AllocatedBuffer {
         const unit = entry.*;
         try self.checkUnit(&unit, max_size);
         if (!efi.buffer.allocatePool(self.BootServices, @max(unit.UnitSize, 1), owner)) return ReadError.AllocationFailed;
@@ -259,7 +259,7 @@ pub const Reader = struct {
         if (entry.UnitSize != 0 and !clusterFits(entry.getFirstCluster(), self.ClusterCount)) return ReadError.InvalidCluster;
     }
 
-    fn readRange(self: *Reader, start_lba: u64, end_lba: u64, lba: u64, sector_count: u32, allocation: *const efi.types.buffer.AlignedBuffer) ReadError!void {
+    fn readRange(self: *Reader, start_lba: u64, end_lba: u64, lba: u64, sector_count: u32, allocation: *const efi.types.buffer.claims.AlignedBuffer) ReadError!void {
         if (start_lba < self.PartitionStartLBA or end_lba > @min(self.PartitionEndLBA, self.VolumeEndLBA, self.Media.LastBlock) or
             lba < start_lba or lba > end_lba or sector_count == 0 or sector_count - 1 > end_lba - lba)
         {

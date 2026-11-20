@@ -1,7 +1,7 @@
 //! Hikari Kernel Jump
 
 const activate = @import("asm").cpu.transition.activate;
-const strings = @import("hikari").assembly.strings.jump;
+const strings = @import("hikari").assembly.strings.jump.instructions;
 const types = @import("asm").cpu.types.transition.continuation;
 
 pub fn jumpToKernel(entry_point: u64, stack_top: u64, boot_params: u64, pml4_address: u64) noreturn {
