@@ -4,5 +4,6 @@ pub const access = @import("access.zig");
 pub const failure = @import("failure.zig");
 pub const memory = @import("memory.zig");
 pub const population = @import("population.zig");
+pub const reference = @import("reference.zig");
 pub const regressions = @import("regressions.zig");
 pub const sharing = @import("sharing.zig");

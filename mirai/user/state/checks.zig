@@ -10,6 +10,7 @@ const types = @import("mirai").user.types;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
+const Backing = types.backing.Backing;
 const Kata = kata.types.kata.Kata;
 const Lookup = kagami.types.lookup.Lookup;
 const Record = types.record.Record;
@@ -47,12 +48,16 @@ pub fn lookupOwned(record: *const Record) ?Lookup {
 }
 
 pub fn lookupAlias(record: *const Record) ?Lookup {
-    if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record or
-        !backing.owns(record.Backing) or !isPayloadPhysical(record.Backing.PA) or !kagami.state.hasOwnedKernel()) return null;
+    if (!isValidOwner(record.Owner) or record.Root != record.Owner.AddressSpace or ledger.find(record.Owner, record.VA) != record) return null;
+    return lookupBackingAlias(record.Backing);
+}
+
+pub fn lookupBackingAlias(frame: *const Backing) ?Lookup {
+    if (!backing.owns(frame) or !isPayloadPhysical(frame.PA) or !kagami.state.hasOwnedKernel()) return null;
     const policy = kagami.state.getPolicy();
     if (policy.PhysmapBase != layout.PHYSMAP_BASE) return null;
-    const resolved = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, policy.PhysmapBase + record.Backing.PA) orelse return null;
-    if (resolved.PhysicalAddress != record.Backing.PA or resolved.UserAccessible or resolved.Entry.UserAccessible or
+    const resolved = kagami.tables.walk.lookup(kagami.state.getKernelKagami().PML4Physical, policy.PhysmapBase + frame.PA) orelse return null;
+    if (resolved.PhysicalAddress != frame.PA or resolved.UserAccessible or resolved.Entry.UserAccessible or
         resolved.Executable or !resolved.Entry.NoExecute or resolved.Entry.CacheDisabled or resolved.Entry.WriteThrough) return null;
     const pat = if (resolved.PageSize == sizes.PAGE_SIZE) resolved.Entry.HugePage else (resolved.Entry.getPhysicalAddress() & sizes.PAGE_SIZE) != 0;
     return if (!pat) resolved else null;

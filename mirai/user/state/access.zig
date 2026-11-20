@@ -7,6 +7,8 @@ const types = @import("mirai").user.types;
 const usererrors = @import("mirai").user.errors.memory;
 
 const sizes = common.constants.memory.sizes;
+const Backing = types.backing.Backing;
+const Lookup = @import("mirai").kagami.types.lookup.Lookup;
 const Record = types.record.Record;
 const Stage = types.stage.Stage;
 const UserError = usererrors.UserError;
@@ -37,4 +39,11 @@ pub fn validate(record: *const Record, write_access: bool) UserError!void {
     const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
     if (alias.Writable != writable or alias.Entry.Writable != writable or
         (!writable and alias.PageSize != sizes.PAGE_SIZE)) return UserError.InvalidPhysmap;
+}
+
+pub fn sealedAlias(frame: *const Backing) UserError!Lookup {
+    const alias = checks.lookupBackingAlias(frame) orelse return UserError.InvalidPhysmap;
+    if (isWritable(frame.Stage)) return UserError.NotShareable;
+    if (alias.Writable or alias.Entry.Writable or alias.PageSize != sizes.PAGE_SIZE) return UserError.InvalidPhysmap;
+    return alias;
 }

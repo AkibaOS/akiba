@@ -7,6 +7,7 @@ const kagami = @import("mirai").kagami;
 const ledger = @import("mirai").user.state.ledger;
 const pmm = @import("mirai").pmm;
 
+const Backing = @import("mirai").user.types.backing.Backing;
 const Kata = @import("mirai").kata.types.kata.Kata;
 const UserError = @import("mirai").user.errors.memory.UserError;
 
@@ -19,6 +20,19 @@ pub fn map(source: *const Kata, source_address: u64, receiver: *Kata, destinatio
     const frame = original.Backing;
     if (frame.Stage != .ReadOnly and frame.Stage != .Executable) return UserError.NotShareable;
     try access.validate(original, false);
+    try install(frame, receiver, destination);
+}
+
+pub fn attach(frame: *Backing, receiver: *Kata, destination: u64) UserError!void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    if (!checks.isValidOwner(receiver)) return UserError.InvalidOwner;
+    if (receiver.State != .Born) return UserError.OwnerInUse;
+    _ = try access.sealedAlias(frame);
+    try install(frame, receiver, destination);
+}
+
+fn install(frame: *Backing, receiver: *Kata, destination: u64) UserError!void {
     const search = pmm.state.getState().SearchStart;
     errdefer pmm.state.getState().SearchStart = search;
     const record = try ledger.registerShared(receiver, destination, frame);

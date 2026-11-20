@@ -9,3 +9,7 @@ pub const Backing = struct {
     Stage: Stage = .Loading,
     PhysicalIndex: Node = .{},
 };
+
+pub const Reference = struct {
+    Frame: ?*Backing,
+};

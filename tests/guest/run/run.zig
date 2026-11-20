@@ -40,7 +40,7 @@ const groups = .{
         guest.mirai.kagami.graph.run,    guest.mirai.kagami.population.run, guest.mirai.kagami.alias.run,
     } },
     .{ grouptext.MEMORY_GROUP_OWNED, .{ guest.mirai.user.regressions.run, guest.mirai.user.population.run, guest.mirai.user.failure.run } },
-    .{ grouptext.GUEST_GROUP_MEMORY, .{ guest.mirai.user.memory.run, guest.mirai.user.sharing.run } },
+    .{ grouptext.GUEST_GROUP_MEMORY, .{ guest.mirai.user.memory.run, guest.mirai.user.sharing.run, guest.mirai.user.reference.run } },
     .{ grouptext.ELF_GROUP, .{
         guest.mirai.bootstrap.image.run,   guest.mirai.bootstrap.rejection.run,    guest.mirai.bootstrap.pressure.run,
         guest.mirai.bootstrap.growth.run,  guest.mirai.bootstrap.finalization.run, guest.mirai.bootstrap.order.run,

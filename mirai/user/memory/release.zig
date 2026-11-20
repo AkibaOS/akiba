@@ -1,6 +1,7 @@
 //! Inactive Owned User Page Release
 
 const access = @import("mirai").user.state.access;
+const backing = @import("mirai").user.state.backing;
 const checks = @import("mirai").user.state.checks;
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
@@ -11,7 +12,9 @@ const pmm = @import("mirai").pmm;
 const types = @import("mirai").user.types;
 const usererrors = @import("mirai").user.errors.memory;
 
+const Backing = types.backing.Backing;
 const Kata = kata.types.kata.Kata;
+const Lookup = kagami.types.lookup.Lookup;
 const Record = types.record.Record;
 const UserError = usererrors.UserError;
 
@@ -37,15 +40,31 @@ fn validateRelease(record: *const Record) UserError!void {
 
 fn releaseRecord(record: *Record) UserError!void {
     const alias = checks.lookupAlias(record) orelse return UserError.InvalidPhysmap;
-    const physical = record.Backing.PA;
-    const last = record.Backing.References == 1;
+    const frame = record.Backing;
+    const physical = frame.PA;
     const removed = kagami.remove.removeOwned(record.Owner.AddressSpace.?, record.VA, physical) orelse return UserError.InvalidOwnedMapping;
     if (removed != physical) return UserError.InvalidOwnedMapping;
-    if (last and !alias.Writable) {
+    const last = restoreLastAlias(frame, alias);
+    ledger.unregister(record);
+    if (last) pmm.free.single.freePage(physical);
+}
+
+pub fn dropSealed(frame: *Backing) UserError!void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const alias = try access.sealedAlias(frame);
+    const physical = frame.PA;
+    const last = restoreLastAlias(frame, alias);
+    backing.detach(frame);
+    if (last) pmm.free.single.freePage(physical);
+}
+
+fn restoreLastAlias(frame: *const Backing, alias: Lookup) bool {
+    if (frame.References != 1) return false;
+    if (!alias.Writable) {
         const leaf: *kagami.types.entry.Entry = @constCast(alias.Entry);
         leaf.Writable = true;
         cpu.control.flushAllTLB();
     }
-    ledger.unregister(record);
-    if (last) pmm.free.single.freePage(physical);
+    return true;
 }
