@@ -4,6 +4,7 @@ const std = @import("std");
 
 const display = @import("../../mkafsdisk/command/display.zig");
 const messages = @import("../../mkafsdisk/strings/messages.zig");
+const packing = @import("../strings/packing.zig");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps/descriptions.zig");
 const Pack = @import("../types/pack.zig").Pack;
@@ -34,7 +35,7 @@ fn make(step: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
     manifest.hash.addBytes(messages.PROGRESS_STREAM);
     manifest.hash.addBytes(source);
     manifest.hash.addBytes(pack.ImageName);
-    manifest.hash.addBytes(paths.GUEST_IMAGE_MB);
+    manifest.hash.addBytes(packing.GUEST_IMAGE_MB);
     _ = try manifest.addFile(executable, null);
     const hit = try step.cacheHitAndWatch(&manifest);
     const digest = manifest.final();
@@ -55,7 +56,7 @@ fn make(step: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
 }
 
 fn emit(step: *std.Build.Step, options: std.Build.Step.MakeOptions, name: []const u8, executable: []const u8, source: []const u8, output: []const u8) !Report {
-    const arguments = &.{ executable, source, output, paths.GUEST_IMAGE_MB, messages.PROGRESS_STREAM };
+    const arguments = &.{ executable, source, output, packing.GUEST_IMAGE_MB, messages.PROGRESS_STREAM };
     var progress = display.Progress.init(name);
     defer progress.end();
     var child = std.process.Child.init(arguments, options.gpa);

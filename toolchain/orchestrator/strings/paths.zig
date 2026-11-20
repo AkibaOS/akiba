@@ -27,7 +27,6 @@ pub const RUNNER_ROOT = "tests/runner/entry/entry.zig";
 pub const RESOURCES_ROOT = "resources";
 pub const DIRECTORY_ROOT = "";
 pub const GUEST_IMAGE_NAME = "tests.img";
-pub const GUEST_IMAGE_MB = "64";
 pub const FIRMWARE_TEST_ROOT = "tests/efi/firmware/entry.zig";
 pub const MENU_ROOT = "tests/efi/menu/entry.zig";
 pub const SELECTOR_ROOT = "tests/efi/selector/entry.zig";

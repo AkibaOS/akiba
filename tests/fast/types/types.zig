@@ -1,6 +1,6 @@
 //! Fast Test Types Exports
 
-pub const image = @import("image.zig");
+pub const image = @import("image/image.zig");
 pub const render = @import("render.zig");
 pub const storage = @import("storage.zig");
 pub const tree = @import("tree.zig");

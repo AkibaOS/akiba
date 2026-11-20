@@ -2,10 +2,12 @@
 
 const std = @import("std");
 
+const dates = @import("tests").fast.runner.constants.date;
 const fixtures = @import("tests").fast.runner.strings.oracle;
 const inputs = @import("tests").fast.runner.constants.protocol;
 const labels = @import("tests").phase.strings.scenario;
 const project = @import("tests");
+const samples = @import("tests").fast.runner.strings.date;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 pub fn actions() !void {
@@ -308,4 +310,16 @@ pub fn acknowledgements() !void {
     malformed = accepted;
     @memset(malformed[4..12], 0);
     try std.testing.expect(wire.decode(&malformed, .Acknowledgement) == null);
+}
+
+pub fn buildDate() !void {
+    const date = project.phase.date;
+    var buffer: [project.phase.constants.date.format.DATE_BYTES]u8 = undefined;
+    const formatted = date.format(&buffer, dates.LEAP_DAY_SECONDS * std.time.ns_per_s).?;
+    try std.testing.expectEqualStrings(samples.LEAP_BUILD_DATE, formatted);
+    try std.testing.expect(date.valid(formatted));
+    try std.testing.expect(!date.valid(samples.INVALID_BUILD_DATE));
+    try std.testing.expect(!date.valid(samples.DASHED_BUILD_DATE));
+    try std.testing.expect(!date.valid(samples.INVALID_CALENDAR_DATE));
+    try std.testing.expect(date.format(&buffer, -1) == null);
 }

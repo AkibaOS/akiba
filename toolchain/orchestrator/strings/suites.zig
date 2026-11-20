@@ -7,11 +7,11 @@ const Suite = @import("../types/suite.zig").Suite;
 pub const FAST = [_]Suite{
     .{ .Name = "common", .Root = "tests/fast/common/run.zig" },
     .{ .Name = "utils", .Root = "tests/fast/utils/run.zig" },
-    .{ .Name = "storage", .Root = "tests/fast/shared/storage.zig" },
-    .{ .Name = "render", .Root = "tests/fast/shared/render.zig" },
+    .{ .Name = "storage", .Root = "tests/fast/run/storage.zig" },
+    .{ .Name = "render", .Root = "tests/fast/run/render.zig" },
     .{ .Name = "runner", .Root = "tests/fast/runner/run.zig" },
-    .{ .Name = "image", .Root = "tests/fast/toolchain/run.zig" },
-    .{ .Name = "elf", .Root = "tests/fast/shared/elf/run.zig" },
+    .{ .Name = "image", .Root = "tests/fast/image/run.zig" },
+    .{ .Name = "elf", .Root = "tests/fast/elf/run.zig" },
     .{ .Name = "weaver", .Root = paths.WEAVER_TEST_ROOT },
 };
 pub const EXECUTABLE = "tests-{s}";

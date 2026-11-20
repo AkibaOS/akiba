@@ -41,6 +41,10 @@ test "a boot selector acknowledgement binds the exact role and epoch" {
     try std.testing.expect(!boot.acknowledges(.{ .Epoch = selection.Epoch, .Role = .Ordinary }, &acknowledged));
 }
 
+test "diagnostic build date uses the cached image timestamp in UTC" {
+    try phase.buildDate();
+}
+
 test "serial evidence starts at the new boot boundary and rejects truncation" {
     var directory = std.testing.tmpDir(.{});
     defer directory.cleanup();

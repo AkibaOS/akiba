@@ -4,9 +4,9 @@ const std = @import("std");
 
 const afs = @import("shared").afs;
 const elf = @import("tests").fixtures.constants.elf.layout;
-const files = @import("tests").fast.toolchain.image;
-const geometry = @import("tests").fast.constants.image;
-const names = @import("tests").fast.strings.image;
+const files = @import("tests").fast.image;
+const geometry = @import("tests").fast.constants.image.fixtures;
+const names = @import("tests").fast.strings.image.witnesses;
 const packer = @import("mkafsdisk");
 const strings = @import("tests").fast.weaver.strings.afs;
 const weaver = @import("weaver");
