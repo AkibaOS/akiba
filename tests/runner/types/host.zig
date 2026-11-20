@@ -17,6 +17,7 @@ pub const Paths = struct {
     FirmwareTemplate: []const u8,
     Qemu: []const u8,
     QemuImage: []const u8,
+    BootOverlay: ?[]const u8 = null,
 };
 
 pub const Connection = struct {
@@ -70,6 +71,7 @@ pub const Session = struct {
     Process: Process,
     Control: ?Connection = null,
     Owned: bool = false,
+    Ahci: bool = false,
     OperatorExit: bool = false,
     Cancelled: bool = false,
     CleanupVerified: bool = true,

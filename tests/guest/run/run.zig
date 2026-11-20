@@ -79,6 +79,7 @@ pub fn execute() bool {
             defer screen.release();
             serial.printf(inputwire.GROUP, .{});
             @call(.never_inline, guest.mirai.drivers.input.run, .{});
+            check(guest.mirai.drivers.ahci.run);
             screen.checkpoint();
             serial.printf(markers.COMPLETE_FORMAT, .{verify.count()});
             return owned;

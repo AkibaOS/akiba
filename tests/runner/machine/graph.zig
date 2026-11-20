@@ -13,8 +13,17 @@ pub fn arguments(allocator: std.mem.Allocator, list: *std.ArrayList([]const u8),
     try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.FLASH_CODE, .@"read-only" = true, .file = file(inputs.FirmwareCode) });
     try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.FLASH_VARS, .file = file(inputs.Variables) });
     try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.STATE, .file = file(inputs.State) });
-    try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = file(inputs.Image) });
-    try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.BOOT_DEVICE });
+    if (inputs.BootOverlay) |overlay| {
+        try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.DISK, .file = file(overlay), .backing = .{
+            .driver = strings.RAW,
+            .@"read-only" = true,
+            .file = file(inputs.Image),
+        } });
+        try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.AHCI_DEVICE });
+    } else {
+        try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = file(inputs.Image) });
+        try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.BOOT_DEVICE });
+    }
 }
 
 fn file(filename: []const u8) struct { driver: []const u8, filename: []const u8 } {
@@ -44,7 +53,11 @@ pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connectio
             if (variables or !try matches(allocator, node, inputs.Variables, strings.QCOW2, false, inputs.FirmwareTemplate)) return error.WrongGuest;
             variables = true;
         } else if (std.mem.eql(u8, name, strings.DISK)) {
-            if (boot or !try matches(allocator, node, inputs.Image, strings.RAW, true, null)) return error.WrongGuest;
+            const valid = if (inputs.BootOverlay) |overlay|
+                try matches(allocator, node, overlay, strings.QCOW2, false, inputs.Image)
+            else
+                try matches(allocator, node, inputs.Image, strings.RAW, true, null);
+            if (boot or !valid) return error.WrongGuest;
             boot = true;
         } else return error.WrongGuest;
     }

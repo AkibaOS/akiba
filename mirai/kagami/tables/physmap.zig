@@ -39,6 +39,40 @@ pub fn prepare(owner: *const Kata, virtual_address: u64) UserError!*Entry {
     return split(record.Backing.PA, resolved);
 }
 
+pub fn uncachedDevicePage(physical: u64) UserError!*Entry {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    if (!pmm.state.isInitialized() or !state.hasOwnedKernel() or physical & sizes.PAGE_MASK != 0 or
+        physical >= state.getPolicy().PhysmapSize or pmm.state.getRole(physical) != .Hole or ledger.ownsPhysical(physical))
+        return UserError.InvalidPhysmap;
+    const address = layout.PHYSMAP_BASE + physical;
+    const resolved = walk.lookup(state.getKernelKagami().PML4Physical, address) orelse return UserError.InvalidPhysmap;
+    if (resolved.PhysicalAddress != physical or !resolved.Writable or resolved.UserAccessible or resolved.Executable or
+        resolved.Entry.CacheDisabled or resolved.Entry.WriteThrough or !resolved.Entry.NoExecute) return UserError.InvalidPhysmap;
+    const pat = if (resolved.PageSize == sizes.PAGE_SIZE) resolved.Entry.HugePage else (resolved.Entry.getPhysicalAddress() & limits.BIG_PAT) != 0;
+    if (pat) return UserError.InvalidPhysmap;
+    try validatePath(address, resolved.Entry);
+    const leaf = switch (resolved.PageSize) {
+        sizes.PAGE_SIZE => @constCast(resolved.Entry),
+        sizes.LARGE_PAGE_SIZE, sizes.HUGE_PAGE_SIZE => try split(physical, resolved),
+        else => return UserError.InvalidPhysmap,
+    };
+    cpu.control.writeBackAndInvalidate();
+    leaf.CacheDisabled = true;
+    leaf.WriteThrough = true;
+    cpu.control.flushAllTLB();
+    return leaf;
+}
+
+pub fn restoreDevicePage(leaf: *Entry) void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    cpu.control.writeBackAndInvalidate();
+    leaf.CacheDisabled = false;
+    leaf.WriteThrough = false;
+    cpu.control.flushAllTLB();
+}
+
 fn validatePath(virtual_address: u64, leaf: *const Entry) UserError!void {
     var current_physical = state.getKernelKagami().PML4Physical;
     var visited: [limits.PARENT_SHIFTS.len]u64 = undefined;

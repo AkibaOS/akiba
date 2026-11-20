@@ -23,6 +23,7 @@ pub fn local(stage: Stage, reason: anyerror) bool {
             error.UnexpectedBootstrapSweep,
             error.UnexpectedKeyboardInput,
             error.MissingInjectedInput,
+            error.MissingAhciEvidence,
             error.GuestOutcomeChanged,
             => true,
             else => false,

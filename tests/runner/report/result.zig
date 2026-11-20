@@ -212,6 +212,11 @@ fn expectedFatal(bytes: []const u8) !?usize {
     return 1;
 }
 
+pub fn verifyAhci(bytes: []const u8) !void {
+    const proof = uniqueLine(bytes, markers.PASS ++ labels.AHCI_CHECK) catch return error.MissingAhciEvidence;
+    if (proof == null) return error.MissingAhciEvidence;
+}
+
 fn uniqueLine(bytes: []const u8, expected: []const u8) !?usize {
     const text = std.mem.trimEnd(u8, expected, strings.LINE_SEPARATORS);
     var found: ?usize = null;

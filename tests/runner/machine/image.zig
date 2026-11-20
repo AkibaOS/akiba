@@ -26,6 +26,8 @@ pub fn fingerprint(path: []const u8) !types.Fingerprint {
 pub fn prepare(allocator: std.mem.Allocator, paths: *const types.Paths, cleaned: *bool) !void {
     try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, strings.BACKING_FORMAT_FLAG, strings.RAW, strings.BACKING_FLAG, paths.FirmwareTemplate, paths.Variables }, cleaned);
     try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, paths.State, strings.STATE_SIZE }, cleaned);
+    if (paths.BootOverlay) |overlay|
+        try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, strings.BACKING_FORMAT_FLAG, strings.RAW, strings.BACKING_FLAG, paths.Image, overlay }, cleaned);
 }
 
 fn create(allocator: std.mem.Allocator, paths: *const types.Paths, arguments: []const []const u8, cleaned: *bool) !void {

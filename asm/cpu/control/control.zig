@@ -75,6 +75,14 @@ pub fn flushAllTLB() void {
     }
 }
 
+pub fn fenceMemory() void {
+    asm volatile (strings.FENCE_MEMORY ::: .{ .memory = true });
+}
+
+pub fn writeBackAndInvalidate() void {
+    asm volatile (strings.WRITE_BACK_AND_INVALIDATE ::: .{ .memory = true });
+}
+
 pub fn invalidatePage(virtual_address: u64) void {
     asm volatile (strings.INVALIDATE_PAGE
         :

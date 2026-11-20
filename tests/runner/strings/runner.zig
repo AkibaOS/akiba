@@ -82,8 +82,10 @@ pub const ORDINARY_EVENT = "  Unexpected QEMU event after ordinary Ready: {s}\n"
 pub const MENU_READY = "  Diagnostic menu ready. Enter boots Akiba, S shuts down. Automatic boot in 30 seconds.\n";
 pub const MENU_ACTION = "  Diagnostic menu action: {s}\n";
 pub const UNATTENDED = "--unattended";
+pub const AHCI = "--ahci";
 pub const VGA = "VGA";
 pub const BOOT_DEVICE = "virtio-blk-pci,drive=" ++ DISK ++ ",bootindex=1,id=stage-drive";
+pub const AHCI_DEVICE = "ide-hd,bus=ide.0,drive=" ++ DISK ++ ",bootindex=1,id=stage-drive";
 pub const CREATE = "create";
 pub const FORMAT_FLAG = "-f";
 pub const BACKING_FORMAT_FLAG = "-F";
@@ -95,6 +97,7 @@ pub const SNAPSHOT_SAVE = "snapshot-save";
 pub const SNAPSHOT_LOAD = "snapshot-load";
 pub const SNAPSHOT_ID = "cold";
 pub const SNAPSHOT_ARGUMENTS = "{\"job-id\":\"" ++ SNAPSHOT_ID ++ "\",\"tag\":\"cold\",\"vmstate\":\"" ++ STATE ++ "\",\"devices\":[\"" ++ FLASH_VARS ++ "\",\"" ++ STATE ++ "\"]}";
+pub const AHCI_SNAPSHOT_ARGUMENTS = "{\"job-id\":\"" ++ SNAPSHOT_ID ++ "\",\"tag\":\"cold\",\"vmstate\":\"" ++ STATE ++ "\",\"devices\":[\"" ++ FLASH_VARS ++ "\",\"" ++ STATE ++ "\",\"" ++ DISK ++ "\"]}";
 pub const QUERY_JOBS = "query-jobs";
 pub const JOB_DISMISS = "job-dismiss";
 pub const DISMISS_ARGUMENTS = "{\"id\":\"" ++ SNAPSHOT_ID ++ "\"}";

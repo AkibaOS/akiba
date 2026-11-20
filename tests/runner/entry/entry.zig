@@ -17,8 +17,10 @@ fn launch() !void {
     defer arguments.deinit();
     _ = arguments.next();
     if (arguments.next()) |argument| {
-        if (!std.mem.eql(u8, argument, strings.UNATTENDED) or arguments.next() != null) return error.InvalidRunnerArguments;
-        return execute.run(true);
+        if (arguments.next() != null) return error.InvalidRunnerArguments;
+        if (std.mem.eql(u8, argument, strings.UNATTENDED)) return execute.run(true, false);
+        if (std.mem.eql(u8, argument, strings.AHCI)) return execute.run(false, true);
+        return error.InvalidRunnerArguments;
     }
-    return execute.run(false);
+    return execute.run(false, false);
 }

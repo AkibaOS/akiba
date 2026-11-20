@@ -13,6 +13,7 @@ const limits = @import("tests").runner.constants.limits;
 const live = @import("tests").phase.constants.live;
 const markers = @import("tests").phase.strings.serial;
 const menubits = @import("tests").phase.menu;
+const pathnames = @import("tests").runner.strings.paths;
 const paths = @import("tests").runner.machine.paths;
 const phase = @import("tests").runner.transport.phase;
 const process = @import("tests").runner.process.lifetime;
@@ -31,7 +32,7 @@ const BootSelection = @import("tests").phase.types.boot.Selection;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const PAGE = std.heap.page_allocator;
 
-pub fn run(unattended: bool) !void {
+pub fn run(unattended: bool, ahci: bool) !void {
     terminal.begin();
     process.installCancellation() catch |failure| {
         terminal.fail(null, .Prepare, failure, null);
@@ -41,11 +42,11 @@ pub fn run(unattended: bool) !void {
     var arena = std.heap.ArenaAllocator.init(PAGE);
     defer arena.deinit();
     const allocator = arena.allocator();
-    const inputs = paths.prepare(allocator) catch |failure| {
+    var inputs = paths.prepare(allocator) catch |failure| {
         terminal.fail(null, .Prepare, failure, null);
         return failure;
     };
-    var session: types.Session = .{ .Process = process.init(allocator, &.{}), .Work = .{ .Planned = work.reference() } };
+    var session: types.Session = .{ .Process = process.init(allocator, &.{}), .Work = .{ .Planned = work.reference() }, .Ahci = ahci };
     const bases = [_][]const u8{ inputs.Image, inputs.FirmwareCode, inputs.FirmwareTemplate };
     var fingerprints: [bases.len]types.Fingerprint = undefined;
     var known: usize = 0;
@@ -54,6 +55,7 @@ pub fn run(unattended: bool) !void {
             fingerprint.* = image.fingerprint(path) catch |failure| break :work failure;
             known += 1;
         }
+        if (ahci) inputs.BootOverlay = std.fs.path.join(allocator, &.{ inputs.Run, pathnames.BOOT_OVERLAY_FILE }) catch |failure| break :work failure;
         break :work execute(allocator, &inputs, &session, unattended);
     };
     var failure: ?anyerror = if (outcome) |_| null else |reason| reason;
@@ -115,7 +117,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     defer log.close();
     if (try log.getEndPos() != 0) return error.UnexpectedSerialHistory;
     session.Stage = .Checkpoint;
-    try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_SAVE);
+    try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_SAVE, session.Ahci);
     try protocol.verifyStatus(PAGE, connection, strings.PRELAUNCH);
 
     var build_date: [datefields.DATE_BYTES]u8 = undefined;
@@ -265,7 +267,7 @@ fn postSuite(inputs: *const types.Paths, session: *types.Session, log: *const st
 fn restore(inputs: *const types.Paths, session: *types.Session, log: *const std.fs.File) !void {
     const connection = &session.Control.?;
     session.SerialStart = try log.getEndPos();
-    try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_LOAD);
+    try checkpoint.run(PAGE, &session.Process, connection, strings.SNAPSHOT_LOAD, session.Ahci);
     try protocol.verifyStatus(PAGE, connection, strings.PAUSED);
     if (try log.getEndPos() != session.SerialStart) return error.UnexpectedSerialHistory;
     try graph.verifyAttached(PAGE, connection, inputs);
@@ -342,7 +344,10 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 try result.verifyBootstrap(frozen, selected);
                 if (selected != .Firmware) try result.verifyDisplay(frozen);
                 if (selected == .Standard and try result.standardProgress(frozen) != live.STANDARD_UNITS) return error.InvalidBootstrapEvidence;
-                if (selected == .Devices and try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
+                if (selected == .Devices) {
+                    if (try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
+                    if (session.Ahci) try result.verifyAhci(frozen);
+                }
                 const assertions = std.math.cast(u32, count) orelse return error.InvalidGuestCheckCount;
                 const rollback = if (selected == .Standard) try result.rollbackWork(frozen) else null;
                 if (rollback) |sweep| if (sweep.Verified == 0) return error.InvalidBootstrapEvidence;
@@ -418,6 +423,7 @@ fn arguments(allocator: Allocator, inputs: *const types.Paths, name: []const u8,
         scenario.LIVE_ARGUMENT,
     });
     if (!unattended) try list.appendSlice(allocator, &.{ scenario.FLAG, scenario.CANCEL_ARGUMENT });
+    if (inputs.BootOverlay != null) try list.appendSlice(allocator, &.{ scenario.FLAG, scenario.AHCI_ARGUMENT });
     if (buildDateArgument(allocator, inputs.Image)) |date| try list.appendSlice(allocator, &.{ scenario.FLAG, date });
     try graph.arguments(allocator, &list, inputs);
     return list.items;

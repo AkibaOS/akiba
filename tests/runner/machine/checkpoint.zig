@@ -8,10 +8,11 @@ const protocol = @import("tests").runner.transport.protocol;
 const strings = @import("tests").runner.strings.runner;
 const types = @import("tests").runner.types.host;
 
-pub fn run(allocator: std.mem.Allocator, instance: *types.Process, connection: *types.Connection, operation: []const u8) !void {
+pub fn run(allocator: std.mem.Allocator, instance: *types.Process, connection: *types.Connection, operation: []const u8, ahci: bool) !void {
     var timer = try std.time.Timer.start();
     const deadline: types.Deadline = .{ .Timer = &timer, .Limit = limits.SNAPSHOT_NS };
-    const started = try protocol.commandWithin(allocator, connection, operation, strings.SNAPSHOT_ARGUMENTS, deadline);
+    const arguments = if (ahci) strings.AHCI_SNAPSHOT_ARGUMENTS else strings.SNAPSHOT_ARGUMENTS;
+    const started = try protocol.commandWithin(allocator, connection, operation, arguments, deadline);
     started.deinit();
     while (true) {
         if (process.cancelled()) return error.Cancelled;

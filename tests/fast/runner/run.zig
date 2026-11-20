@@ -12,6 +12,14 @@ const runner = @import("tests").runner;
 const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 
+test "AHCI evidence requires one exact LF or CRLF assertion line" {
+    const evidence = "CHECK PASS native AHCI read after UEFI returns the diagnostic disk GPT header";
+    try result.verifyAhci(evidence ++ "\n");
+    try result.verifyAhci(evidence ++ "\r\n");
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci("other " ++ evidence ++ "\n"));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(evidence ++ "\r\n" ++ evidence ++ "\n"));
+}
+
 test "a boot selector acknowledgement binds the exact role and epoch" {
     const protocol = @import("tests").phase;
     const selection: protocol.types.boot.Selection = .{ .Epoch = 0x0807060504030201, .Role = .Menu };

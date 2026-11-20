@@ -7,6 +7,7 @@ pub const RUN_CLEANUP = "Could not remove the guest run directory: {s}";
 pub const SERIAL_FILE = "serial.log";
 pub const VARIABLES_FILE = "uefi-vars.qcow2";
 pub const STATE_FILE = "cold-state.qcow2";
+pub const BOOT_OVERLAY_FILE = "ahci-boot.qcow2";
 pub const QEMU_NAME = "qemu-system-x86_64";
 pub const QEMU_IMAGE_NAME = "qemu-img";
 pub const MISSING_QEMU_IMAGE = "qemu-img is required beside QEMU or on PATH for cold guest checkpoints.";
