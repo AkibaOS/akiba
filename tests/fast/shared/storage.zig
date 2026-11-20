@@ -1,8 +1,34 @@
 //! Explicit Host Storage Regression Entry
 
+const std = @import("std");
+
 const afs = @import("tests").fast.shared.afs;
 const boot = @import("tests").fast.shared.boot;
 const fat32 = @import("tests").fast.shared.fat32;
+const shared = @import("shared");
+
+test "AHCI builds a single read DMA descriptor without a write flag" {
+    var page: [4096]u8 = undefined;
+    try shared.ahci.command.prepare(&page, 0x100000, .{ .Read = 0x123456789abc });
+    try std.testing.expectEqual(@as(u32, 0x00010005), std.mem.readInt(u32, page[0..4], .little));
+    try std.testing.expectEqual(@as(u32, 0x100500), std.mem.readInt(u32, page[8..12], .little));
+    try std.testing.expectEqualSlices(u8, &.{ 0x27, 0x80, 0x25, 0, 0xbc, 0x9a, 0x78, 0x40, 0x56, 0x34, 0x12, 0, 1, 0 }, page[0x500..0x50e]);
+    try std.testing.expectEqual(@as(u32, 0x100800), std.mem.readInt(u32, page[0x580..0x584], .little));
+    try std.testing.expectEqual(@as(u32, 511), std.mem.readInt(u32, page[0x58c..0x590], .little));
+    try std.testing.expectError(error.InvalidDmaPage, shared.ahci.command.prepare(&page, 0x100001, .Identify));
+    try std.testing.expectError(error.InvalidDmaPage, shared.ahci.command.prepare(&page, 0x100000000, .Identify));
+    try std.testing.expectError(error.InvalidSector, shared.ahci.command.prepare(&page, 0x100000, .{ .Read = 0x1000000000000 }));
+}
+
+test "AHCI accepts only an identified 512 byte LBA48 disk" {
+    var identity: [512]u8 = @splat(0);
+    try std.testing.expectError(error.UnsupportedDisk, shared.ahci.command.capacity(&identity));
+    std.mem.writeInt(u16, identity[166..168], 0x4400, .little);
+    std.mem.writeInt(u64, identity[200..208], 0x20000, .little);
+    try std.testing.expectEqual(@as(u64, 0x20000), try shared.ahci.command.capacity(&identity));
+    std.mem.writeInt(u16, identity[212..214], 0x5000, .little);
+    try std.testing.expectError(error.UnsupportedSectorSize, shared.ahci.command.capacity(&identity));
+}
 
 test "AFS spans fit entirely inside the volume" {
     try afs.bounds.spanBounds();
