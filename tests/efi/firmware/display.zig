@@ -11,7 +11,7 @@ const screen = @import("tests").screen;
 const types = @import("tests").efi.types.firmware.display;
 
 const BootServices = efi.types.services.boot.BootServices;
-const Row = screen.types.model.Row;
+const Row = screen.types.model.state.Row;
 const Scratch = types.Scratch;
 const Surface = graphics.types.surface.Surface;
 
@@ -19,7 +19,7 @@ var active: ?types.Session = null;
 var pool: efi.types.buffer.claims.PoolClaim = .{};
 var pool_services: ?*BootServices = null;
 
-pub fn start(services: *BootServices, offer: phase.types.live.Offer, cancel_ready: bool) !void {
+pub fn start(services: *BootServices, offer: phase.types.live.frames.Offer, cancel_ready: bool) !void {
     var surface = locateSurface(services) orelse return error.FirmwareViewportUnavailable;
     const layout = screen.layout.plan(surface.Width, surface.Height) orelse return error.FirmwareViewportUnavailable;
     const face = try font.face.load(graphics.assets.font.HIKARI);
@@ -52,7 +52,7 @@ pub fn record(name: []const u8) void {
 pub fn refresh() void {
     if (active) |*session| {
         session.Frame +%= 1;
-        const text: screen.types.render.Text = .{ .Face = &session.Face, .Renderer = &session.Scratch.Renderer };
+        const text: screen.types.render.text.Text = .{ .Face = &session.Face, .Renderer = &session.Scratch.Renderer };
         if (!screen.render.update(&session.Surface, session.Layout, session.Pixels, text, &session.Progress, session.Frame)) active = null;
     }
 }

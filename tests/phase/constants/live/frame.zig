@@ -1,7 +1,7 @@
 //! Live Diagnostic Boot Context And Scheduled Progress Units
 
-const date = @import("tests").phase.constants.date;
-const menu = @import("tests").phase.constants.menu;
+const date = @import("tests").phase.constants.date.format;
+const menu = @import("tests").phase.constants.menu.frame;
 const schedule = @import("tests").phase.strings.schedule;
 const Work = @import("tests").phase.types.work.Work;
 

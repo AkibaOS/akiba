@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const checksum = @import("utils").crc.checksum;
-const strings = @import("tests").fast.strings.utils;
+const strings = @import("tests").fast.strings.utils.vectors;
 
 pub fn knownTextVectors() !void {
     try std.testing.expectEqual(@as(u32, 0x00000000), checksum.calculate(strings.EMPTY));

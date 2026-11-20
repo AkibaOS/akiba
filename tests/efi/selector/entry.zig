@@ -7,7 +7,7 @@ const efi = @import("hikari").efi;
 const phase = @import("tests").phase;
 const ports = @import("common").constants.serial.ports;
 const uart = @import("tests").efi.serial;
-const Role = phase.types.boot.Role;
+const Role = phase.types.boot.frame.Role;
 const status = efi.constants.status.codes;
 
 pub fn main() std.os.uefi.Status {
@@ -17,8 +17,8 @@ pub fn main() std.os.uefi.Status {
 }
 
 fn start(services: *efi.types.services.boot.BootServices, parent: efi.types.base.Handle) efi.types.base.Status {
-    if (!uart.attach(ports.COM4) or !uart.send(services, ports.COM4, &phase.constants.boot.READY)) return status.DEVICE_ERROR;
-    var offer: phase.types.boot.Frame = undefined;
+    if (!uart.attach(ports.COM4) or !uart.send(services, ports.COM4, &phase.constants.boot.frame.READY)) return status.DEVICE_ERROR;
+    var offer: phase.types.boot.frame.Frame = undefined;
     if (!uart.receive(services, ports.COM4, &offer)) return status.DEVICE_ERROR;
     const selection = phase.boot.decode(&offer, .Offer) orelse return status.INVALID_PARAMETER;
     const acknowledgement = phase.boot.encode(selection, .Acknowledgement) orelse return status.INVALID_PARAMETER;

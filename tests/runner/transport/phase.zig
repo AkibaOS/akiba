@@ -24,35 +24,35 @@ pub fn open(port: u16, instance: *Process, timer: *std.time.Timer) !std.net.Stre
     return stream;
 }
 
-pub fn selectBoot(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, selection: phase.types.boot.Selection) !void {
+pub fn selectBoot(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, selection: phase.types.boot.frame.Selection) !void {
     const offer = phase.boot.encode(selection, .Offer) orelse return error.InvalidBootSelection;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.START_NS };
-    try greeting(stream, instance, deadline, evidence, &phase.constants.boot.READY);
+    try greeting(stream, instance, deadline, evidence, &phase.constants.boot.frame.READY);
     try send(stream, instance, deadline, &offer);
-    var acknowledgement: phase.types.boot.Frame = undefined;
+    var acknowledgement: phase.types.boot.frame.Frame = undefined;
     try receive(stream, instance, deadline, &acknowledgement, evidence);
     _ = try remaining(instance, deadline);
     if (!phase.boot.acknowledges(selection, &acknowledgement)) return error.InvalidBootAcknowledgement;
 }
 
-pub fn start(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, context: phase.types.live.Offer) !void {
+pub fn start(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, context: phase.types.live.frames.Offer) !void {
     const offer = phase.live.encodeOffer(context) orelse return error.InvalidPhaseOffer;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.CHECK_NS };
-    try greeting(stream, instance, deadline, evidence, &phase.constants.live.READY);
+    try greeting(stream, instance, deadline, evidence, &phase.constants.live.frame.READY);
     try send(stream, instance, deadline, &offer);
-    var acknowledgement: phase.types.live.Acknowledgement = undefined;
+    var acknowledgement: phase.types.live.frames.Acknowledgement = undefined;
     try receive(stream, instance, deadline, &acknowledgement, evidence);
     _ = try remaining(instance, deadline);
     if (!phase.live.acknowledges(context.Ticket, &acknowledgement)) return error.InvalidPhaseAcknowledgement;
 }
 
-pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, summary: phase.types.menu.Offer) !phase.types.action.Action {
-    comptime std.debug.assert(limits.MENU_NS == @as(u64, phase.constants.menu.COUNTDOWN_SECONDS) * std.time.ns_per_s);
+pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer, evidence: Epoch, summary: phase.types.menu.frames.Offer) !phase.types.action.frame.Action {
+    comptime std.debug.assert(limits.MENU_NS == @as(u64, phase.constants.menu.frame.COUNTDOWN_SECONDS) * std.time.ns_per_s);
     const offer = phase.menu.encodeOffer(summary) orelse return error.InvalidMenuOffer;
     const deadline: Deadline = .{ .Timer = timer, .Limit = limits.START_NS };
-    try greeting(stream, instance, deadline, evidence, &phase.constants.menu.READY);
+    try greeting(stream, instance, deadline, evidence, &phase.constants.menu.frame.READY);
     try send(stream, instance, deadline, &offer);
-    var ready: phase.types.menu.ArmedFrame = undefined;
+    var ready: phase.types.menu.frames.ArmedFrame = undefined;
     try receive(stream, instance, deadline, &ready, evidence);
     if (!phase.menu.isArmed(summary.Epoch, &ready)) return error.InvalidMenuAcknowledgement;
     var timer_after_arm = try std.time.Timer.start();
@@ -60,8 +60,8 @@ pub fn choose(stream: std.net.Stream, instance: *Process, timer: *std.time.Timer
     return menuAction(stream, instance, .{ .Timer = &timer_after_arm, .Limit = limits.MENU_NS }, evidence, summary.Epoch);
 }
 
-pub fn menuAction(stream: std.net.Stream, instance: ?*Process, idle: Deadline, evidence: ?Epoch, epoch: u64) !phase.types.action.Action {
-    var response: phase.types.action.Frame = undefined;
+pub fn menuAction(stream: std.net.Stream, instance: ?*Process, idle: Deadline, evidence: ?Epoch, epoch: u64) !phase.types.action.frame.Action {
+    var response: phase.types.action.frame.Frame = undefined;
     receiveMenuStart(stream, instance, idle, response[0..1], evidence, epoch) catch |failure| switch (failure) {
         error.GuestPhaseTimeout => {
             if (evidence) |log| try checkSerial(log);
@@ -101,7 +101,7 @@ fn greeting(stream: std.net.Stream, instance: *Process, deadline: Deadline, evid
 }
 
 fn receiveMenuStart(stream: std.net.Stream, instance: ?*Process, idle: Deadline, first: []u8, evidence: ?Epoch, epoch: u64) !void {
-    var tick: phase.types.menu.CountdownFrame = undefined;
+    var tick: phase.types.menu.frames.CountdownFrame = undefined;
     var sent: usize = tick.len;
     var scheduled_seconds = countdownSeconds(idle.Limit);
     while (true) {
@@ -123,7 +123,7 @@ fn receiveMenuStart(stream: std.net.Stream, instance: ?*Process, idle: Deadline,
 
 fn countdownSeconds(nanoseconds: u64) u8 {
     const rounded = nanoseconds / std.time.ns_per_s + @intFromBool(nanoseconds % std.time.ns_per_s != 0);
-    return @intCast(@min(rounded, phase.constants.menu.COUNTDOWN_SECONDS));
+    return @intCast(@min(rounded, phase.constants.menu.frame.COUNTDOWN_SECONDS));
 }
 
 fn receive(stream: std.net.Stream, instance: ?*Process, deadline: Deadline, bytes: []u8, evidence: ?Epoch) !void {

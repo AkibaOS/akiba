@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const constants = @import("tests").phase.constants.action;
-const types = @import("tests").phase.types.action;
+const constants = @import("tests").phase.constants.action.frame;
+const types = @import("tests").phase.types.action.frame;
 
 pub fn encode(epoch: u64, action: types.Action) ?types.Frame {
     if (epoch == 0 or action == .Timeout) return null;

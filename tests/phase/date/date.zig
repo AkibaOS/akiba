@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const inputs = @import("tests").phase.constants.date;
-const labels = @import("tests").phase.strings.date;
+const inputs = @import("tests").phase.constants.date.format;
+const labels = @import("tests").phase.strings.date.format;
 
 pub fn format(buffer: *[inputs.DATE_BYTES]u8, modified: i128) ?[]const u8 {
     const seconds = @divFloor(modified, std.time.ns_per_s);

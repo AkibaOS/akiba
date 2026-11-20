@@ -1,6 +1,6 @@
 //! Compiler PIE For Persona Shared Library Execution
 
-const elf = @import("tests").fixtures.constants.elf;
+const elf = @import("tests").fixtures.constants.elf.layout;
 const entry = @import("fixtureasm").entry;
 const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;

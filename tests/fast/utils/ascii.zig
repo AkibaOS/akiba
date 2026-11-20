@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const ascii = @import("utils").text.ascii;
-const strings = @import("tests").fast.strings.utils;
+const strings = @import("tests").fast.strings.utils.vectors;
 
 pub fn uppercaseBoundaries() !void {
     const input = [_]u8{ 0x00, 0x40, 0x41, 0x5a, 0x5b, 0x60, 0x61, 0x7a, 0x7b, 0x7f, 0x80, 0xff };

@@ -3,14 +3,14 @@
 const std = @import("std");
 
 const checkpoint = @import("tests").runner.machine.checkpoint;
-const datefields = @import("tests").phase.constants.date;
+const datefields = @import("tests").phase.constants.date.format;
 const datecode = @import("tests").phase.date;
 const graph = @import("tests").runner.machine.graph;
 const image = @import("tests").runner.machine.image;
 const input = @import("tests").runner.session.input;
 const keyboard = @import("tests").runner.types.input;
 const limits = @import("tests").runner.constants.limits;
-const live = @import("tests").phase.constants.live;
+const live = @import("tests").phase.constants.live.frame;
 const markers = @import("tests").phase.strings.serial;
 const menubits = @import("tests").phase.menu;
 const pathnames = @import("tests").runner.strings.paths;
@@ -28,7 +28,7 @@ const types = @import("tests").runner.types.host;
 const work = @import("tests").runner.work;
 
 const Allocator = std.mem.Allocator;
-const BootSelection = @import("tests").phase.types.boot.Selection;
+const BootSelection = @import("tests").phase.types.boot.frame.Selection;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const PAGE = std.heap.page_allocator;
 

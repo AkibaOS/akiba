@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const boot = @import("tests").phase.boot;
 const fixtures = @import("tests").fast.runner.strings.oracle;
 const input = @import("tests").runner.types.input;
 const labels = @import("tests").phase.strings.scenario;
@@ -11,6 +12,7 @@ const result = @import("tests").runner.report.result;
 const runner = @import("tests").runner;
 const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
+const Selection = @import("tests").phase.types.boot.frame.Selection;
 
 test "AHCI evidence requires one exact LF or CRLF assertion line" {
     const evidence = "CHECK PASS native AHCI read after UEFI returns the diagnostic disk GPT header";
@@ -21,23 +23,22 @@ test "AHCI evidence requires one exact LF or CRLF assertion line" {
 }
 
 test "a boot selector acknowledgement binds the exact role and epoch" {
-    const protocol = @import("tests").phase;
-    const selection: protocol.types.boot.Selection = .{ .Epoch = 0x0807060504030201, .Role = .Menu };
+    const selection: Selection = .{ .Epoch = 0x0807060504030201, .Role = .Menu };
     const encoded = [_]u8{ 'A', 'K', 'B', 'O', 1, 2, 3, 4, 5, 6, 7, 8, 2 };
-    try std.testing.expectEqualSlices(u8, &encoded, &protocol.boot.encode(selection, .Offer).?);
-    try std.testing.expectEqual(selection, protocol.boot.decode(&encoded, .Offer).?);
-    try std.testing.expect(protocol.boot.decode(encoded[0..12], .Offer) == null);
-    try std.testing.expect(protocol.boot.decode(&encoded, .Acknowledgement) == null);
+    try std.testing.expectEqualSlices(u8, &encoded, &boot.encode(selection, .Offer).?);
+    try std.testing.expectEqual(selection, boot.decode(&encoded, .Offer).?);
+    try std.testing.expect(boot.decode(encoded[0..12], .Offer) == null);
+    try std.testing.expect(boot.decode(&encoded, .Acknowledgement) == null);
     var corrupt = encoded;
     corrupt[12] = 4;
-    try std.testing.expect(protocol.boot.decode(&corrupt, .Offer) == null);
+    try std.testing.expect(boot.decode(&corrupt, .Offer) == null);
     @memset(corrupt[4..12], 0);
     corrupt[12] = 2;
-    try std.testing.expect(protocol.boot.decode(&corrupt, .Offer) == null);
-    const acknowledged = protocol.boot.encode(selection, .Acknowledgement).?;
-    try std.testing.expect(protocol.boot.acknowledges(selection, &acknowledged));
-    try std.testing.expect(!protocol.boot.acknowledges(.{ .Epoch = selection.Epoch + 1, .Role = .Menu }, &acknowledged));
-    try std.testing.expect(!protocol.boot.acknowledges(.{ .Epoch = selection.Epoch, .Role = .Ordinary }, &acknowledged));
+    try std.testing.expect(boot.decode(&corrupt, .Offer) == null);
+    const acknowledged = boot.encode(selection, .Acknowledgement).?;
+    try std.testing.expect(boot.acknowledges(selection, &acknowledged));
+    try std.testing.expect(!boot.acknowledges(.{ .Epoch = selection.Epoch + 1, .Role = .Menu }, &acknowledged));
+    try std.testing.expect(!boot.acknowledges(.{ .Epoch = selection.Epoch, .Role = .Ordinary }, &acknowledged));
 }
 
 test "serial evidence starts at the new boot boundary and rejects truncation" {

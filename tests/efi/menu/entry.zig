@@ -28,8 +28,8 @@ fn haltOnPanic(_: []const u8, _: ?usize) noreturn {
 
 fn run(services: *efi.types.services.boot.BootServices) !void {
     const input = try keyboard.locate(services);
-    if (!menu.serial.attach() or !menu.serial.send(services, &phase.constants.menu.READY)) return error.MenuGreetingFailed;
-    var bytes: [phase.constants.menu.OFFER_BYTES]u8 = undefined;
+    if (!menu.serial.attach() or !menu.serial.send(services, &phase.constants.menu.frame.READY)) return error.MenuGreetingFailed;
+    var bytes: [phase.constants.menu.frame.OFFER_BYTES]u8 = undefined;
     if (!menu.serial.receive(services, &bytes)) return error.MenuOfferMissing;
     const offer = phase.menu.decodeOffer(&bytes) orelse return error.InvalidMenuOffer;
 
@@ -39,7 +39,7 @@ fn run(services: *efi.types.services.boot.BootServices) !void {
     if (!menu.serial.send(services, &message)) return error.MenuActionTransmissionFailed;
 }
 
-fn waitForSelection(services: *efi.types.services.boot.BootServices, input: *keyboard.Input, offer: phase.types.menu.Offer) !phase.types.action.Action {
+fn waitForSelection(services: *efi.types.services.boot.BootServices, input: *keyboard.Input, offer: phase.types.menu.frames.Offer) !phase.types.action.frame.Action {
     var view: types.display.View = .{};
     const selection = if (menu.display.show(services, offer, &view)) menu.choice.readyAndWait(services, input, offer.Epoch, &view) else error.MenuRenderFailed;
     const released = menu.display.release(services, &view);

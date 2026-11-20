@@ -1,7 +1,7 @@
 //! Verified Diagnostic Menu Summary
 
-const date = @import("tests").phase.constants.date;
-const limits = @import("tests").phase.constants.menu;
+const date = @import("tests").phase.constants.date.format;
+const limits = @import("tests").phase.constants.menu.frame;
 const Tally = @import("tests").phase.types.work.Work;
 
 pub const Offer = struct {

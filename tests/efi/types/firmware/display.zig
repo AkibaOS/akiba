@@ -16,6 +16,6 @@ pub const Session = struct {
     Face: font.types.face.font.Face,
     Scratch: *Scratch,
     Pixels: []u32,
-    Progress: screen.types.model.Model,
+    Progress: screen.types.model.state.Model,
     Frame: usize = 0,
 };

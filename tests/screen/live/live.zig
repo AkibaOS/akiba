@@ -3,14 +3,14 @@
 const std = @import("std");
 
 const live = @import("tests").phase.live;
-const limits = @import("tests").phase.constants.live;
+const limits = @import("tests").phase.constants.live.frame;
 const menu = @import("tests").phase.menu;
 const markers = @import("tests").phase.strings.serial;
 const model = @import("tests").screen.model;
 const schedule = @import("tests").phase.strings.schedule;
 const text = @import("tests").screen.strings.text;
-const types = @import("tests").screen.types.model;
-const Offer = @import("tests").phase.types.live.Offer;
+const types = @import("tests").screen.types.model.state;
+const Offer = @import("tests").phase.types.live.frames.Offer;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 comptime {

@@ -1,6 +1,6 @@
 //! Test Disk Launch Roles
 
-const wire = @import("tests").phase.constants.boot;
+const wire = @import("tests").phase.constants.boot.frame;
 
 pub const Role = enum(u8) { Diagnostic, Firmware, Menu, Ordinary };
 pub const Kind = enum { Offer, Acknowledgement };

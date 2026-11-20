@@ -28,11 +28,11 @@ pub fn fixedChrome() !void {
     const face = try font.face.load(graphics.assets.font.HIKARI);
     var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
     defer renderer.deinit();
-    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
+    const text: screen.types.render.text.Text = .{ .Face = &face, .Renderer = &renderer };
     for ([_]graphics.types.pixel.PixelFormat{ .RGB, .BGR }) |format| {
         @memset(pixels, guard_pixel);
         var target: Surface = .{ .Base = pixels.ptr, .Width = width, .Height = height, .Stride = stride, .Format = format };
-        var rows: [4]screen.types.model.Row = undefined;
+        var rows: [4]screen.types.model.state.Row = undefined;
         var progress = screen.model.initialize(&rows, 2);
         try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &progress, null));
         const header = geometry.Header;
@@ -126,8 +126,8 @@ pub fn menuCountdown() !void {
     const face = try font.face.load(graphics.assets.font.HIKARI);
     var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
     defer renderer.deinit();
-    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
-    var rows: [2]screen.types.model.Row = undefined;
+    const text: screen.types.render.text.Text = .{ .Face = &face, .Renderer = &renderer };
+    var rows: [2]screen.types.model.state.Row = undefined;
     var progress = screen.model.initialize(&rows, 1);
     try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &progress, null));
     try std.testing.expect(peakInk(&target, right_footer) <= 128);
@@ -166,8 +166,8 @@ pub fn activeBootRow() !void {
     const face = try font.face.load(graphics.assets.font.HIKARI);
     var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
     defer renderer.deinit();
-    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
-    var rows: [4]screen.types.model.Row = undefined;
+    const text: screen.types.render.text.Text = .{ .Face = &face, .Renderer = &renderer };
+    var rows: [4]screen.types.model.state.Row = undefined;
     var state = screen.model.initialize(&rows, 2);
     try std.testing.expect(screen.model.begin(&state, labels.FIRST_CASE));
     try std.testing.expect(screen.model.beginWork(&state, 4));
@@ -217,7 +217,7 @@ pub fn failedComposition() !void {
     damaged.Glyf = &.{};
     var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
     defer renderer.deinit();
-    var rows: [3]screen.types.model.Row = undefined;
+    var rows: [3]screen.types.model.state.Row = undefined;
     var progress = screen.model.initialize(&rows, 1);
     try std.testing.expect(!screen.render.takeover(&target, geometry, scratch, .{ .Face = &damaged, .Renderer = &renderer }, &progress, null));
     try std.testing.expect(scratch[0] != guard_pixel);
@@ -242,8 +242,8 @@ pub fn fallbackTitle() !void {
     const face = try font.face.load(graphics.assets.font.HIKARI);
     var renderer = graphics.types.renderer.TextRenderer.initAllocating(allocator);
     defer renderer.deinit();
-    const text: screen.types.render.Text = .{ .Face = &face, .Renderer = &renderer };
-    var rows: [1]screen.types.model.Row = undefined;
+    const text: screen.types.render.text.Text = .{ .Face = &face, .Renderer = &renderer };
+    var rows: [1]screen.types.model.state.Row = undefined;
     const state = screen.model.initialize(&rows, 1);
     try std.testing.expect(screen.render.takeover(&target, geometry, scratch, text, &state, labels.UNKNOWN_DATE));
     @memcpy(expected, pixels);
@@ -274,7 +274,7 @@ fn expectStatusTag(target: *const Surface, log: Rect, line: u32, tag: graphics.t
     try std.testing.expect(status_visible and label_visible);
 }
 
-fn expectCompleteControls(target: *const Surface, controls: Rect, scratch: []u32, text: screen.types.render.Text) !void {
+fn expectCompleteControls(target: *const Surface, controls: Rect, scratch: []u32, text: screen.types.render.text.Text) !void {
     const frame = screen.constants.frame;
     const reference_width = controls.Width - 2 * frame.INSET;
     var reference: Surface = .{ .Base = scratch.ptr, .Width = reference_width, .Height = 2 * controls.Height, .Stride = reference_width, .Format = target.Format };
@@ -287,7 +287,7 @@ fn expectCompleteControls(target: *const Surface, controls: Rect, scratch: []u32
     try std.testing.expectEqual(expected, inkCount(target, legend));
 }
 
-fn expectCountdown(target: *const Surface, region: Rect, scratch: []u32, text: screen.types.render.Text, message: []const u8) !void {
+fn expectCountdown(target: *const Surface, region: Rect, scratch: []u32, text: screen.types.render.text.Text, message: []const u8) !void {
     const frame = screen.constants.frame;
     const style: typeset.types.style.TextStyle = .{ .PixelSize = frame.CAPTION_SIZE, .Tracking = 0 };
     var reference: Surface = .{ .Base = scratch.ptr, .Width = region.Width, .Height = region.Height, .Stride = region.Width, .Format = target.Format };

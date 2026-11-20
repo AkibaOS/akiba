@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").phase.constants.wire;
+const constants = @import("tests").phase.constants.wire.frame;
 const types = @import("tests").phase.types.ticket;
 
 pub fn advanceGreeting(marker: []const u8, matched: usize, byte: u8) usize {

@@ -25,7 +25,7 @@ const IMAGE = @embedFile("provisionimage");
 pub fn run() !void {
     var plan = try elf.validate.image.parse(kernel.get(), IMAGE, .{
         .MinimumAddress = constants.PAGE_BYTES,
-        .MaximumAddress = @import("tests").fixtures.constants.elf.USER_END,
+        .MaximumAddress = @import("tests").fixtures.constants.elf.layout.USER_END,
         .MaximumPages = 1,
     });
     defer plan.deinit();

@@ -11,16 +11,16 @@ const registers = common.constants.serial.registers;
 const ports = common.constants.serial.ports;
 
 var accepted_epoch: ?u64 = null;
-var live_offer: ?phase.types.live.Offer = null;
+var live_offer: ?phase.types.live.frames.Offer = null;
 
-pub fn context() ?phase.types.live.Offer {
+pub fn context() ?phase.types.live.frames.Offer {
     return live_offer;
 }
 
 pub fn selectLive() ?Scenario {
     initialize();
-    if (!send(&phase.constants.live.READY)) return null;
-    var frame: phase.types.live.OfferFrame = undefined;
+    if (!send(&phase.constants.live.frame.READY)) return null;
+    var frame: phase.types.live.frames.OfferFrame = undefined;
     if (!receive(&frame)) return null;
     const offer = phase.live.decodeOffer(&frame) orelse return null;
     if (offer.Ticket.Scenario == .Firmware) return null;
@@ -42,7 +42,7 @@ pub fn cancel(boot_epoch: u64) bool {
 
 pub fn select() ?Scenario {
     initialize();
-    if (!send(&phase.constants.wire.READY)) return null;
+    if (!send(&phase.constants.wire.frame.READY)) return null;
     var frame: phase.types.ticket.Frame = undefined;
     if (!receive(&frame)) return null;
     const ticket = phase.wire.decode(&frame, .Offer) orelse return null;

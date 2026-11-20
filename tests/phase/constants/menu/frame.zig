@@ -1,6 +1,6 @@
 //! Firmware Menu Handshake Layout
 
-const date = @import("tests").phase.constants.date;
+const date = @import("tests").phase.constants.date.format;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 

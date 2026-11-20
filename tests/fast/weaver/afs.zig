@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const elf = @import("tests").fixtures.constants.elf;
+const elf = @import("tests").fixtures.constants.elf.layout;
 const files = @import("tests").fast.toolchain.image;
 const geometry = @import("tests").fast.constants.image;
 const names = @import("tests").fast.strings.image;
@@ -13,7 +13,7 @@ const weaver = @import("weaver");
 
 const Device = @import("tests").fast.weaver.types.afs.Device;
 const ALLOCATOR = std.testing.allocator;
-const LIBRARY_NAME = @import("tests").fixtures.strings.elf.DYNAMIC_SOURCE;
+const LIBRARY_NAME = @import("tests").fixtures.strings.elf.identities.DYNAMIC_SOURCE;
 
 pub fn installed(program: []const u8, library: []const u8) !void {
     var temporary = std.testing.tmpDir(.{});

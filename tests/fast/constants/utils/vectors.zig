@@ -1,6 +1,6 @@
 //! Common And Utility Check Values
 
-const fixtures = @import("tests").fast.types.utils;
+const fixtures = @import("tests").fast.types.utils.vectors;
 
 pub const FIXED26_ROUNDING_CASES = [_]fixtures.Fixed26RoundingCase{
     .{ .Raw = -97, .Floor = -2, .Ceiling = -1, .Round = -2, .Fraction = 31 },

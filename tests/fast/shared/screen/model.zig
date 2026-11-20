@@ -7,7 +7,7 @@ const project = @import("tests");
 
 pub fn lifecycle() !void {
     const model = project.screen.model;
-    var rows: [6]project.screen.types.model.Row = undefined;
+    var rows: [6]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 2);
     try std.testing.expectEqual(@as(usize, 0), model.percent(&state));
     try std.testing.expectEqual(.Info, model.row(&state, 0).?.Kind);
@@ -36,7 +36,7 @@ pub fn lifecycle() !void {
 
 pub fn scrolling() !void {
     const model = project.screen.model;
-    var rows: [3]project.screen.types.model.Row = undefined;
+    var rows: [3]project.screen.types.model.state.Row = undefined;
     const case_count = 129;
     var state = model.initialize(&rows, case_count);
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
@@ -62,7 +62,7 @@ pub fn scrolling() !void {
 
 pub fn evidence() !void {
     const model = project.screen.model;
-    var rows: [5]project.screen.types.model.Row = undefined;
+    var rows: [5]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 2);
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
     const repeats = 32;
@@ -81,7 +81,7 @@ pub fn evidence() !void {
 
 pub fn failure() !void {
     const model = project.screen.model;
-    var rows: [1]project.screen.types.model.Row = undefined;
+    var rows: [1]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 2);
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
     try std.testing.expect(model.fail(&state, labels.NEXT_CASE));
@@ -94,7 +94,7 @@ pub fn failure() !void {
 
 pub fn checkpoints() !void {
     const model = project.screen.model;
-    var rows: [6]project.screen.types.model.Row = undefined;
+    var rows: [6]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 2);
     try std.testing.expect(!model.checkpoint(&state, 1));
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
@@ -116,7 +116,7 @@ pub fn checkpoints() !void {
 
 pub fn measuredWork() !void {
     const model = project.screen.model;
-    var rows: [4]project.screen.types.model.Row = undefined;
+    var rows: [4]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 2);
     try std.testing.expect(!model.beginWork(&state, 4));
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
@@ -141,7 +141,7 @@ pub fn measuredWork() !void {
 
 pub fn verificationWeight() !void {
     const model = project.screen.model;
-    var rows: [4]project.screen.types.model.Row = undefined;
+    var rows: [4]project.screen.types.model.state.Row = undefined;
     var state = model.initialize(&rows, 28);
     state.Work = .{ .Planned = 1910, .Verified = 0 };
     try std.testing.expect(model.begin(&state, labels.FIRST_CASE));
@@ -182,7 +182,7 @@ pub fn rollbackClock() !void {
 
 pub fn metadata() !void {
     const date = project.phase.date;
-    var buffer: [project.phase.constants.date.DATE_BYTES]u8 = undefined;
+    var buffer: [project.phase.constants.date.format.DATE_BYTES]u8 = undefined;
     const leap_day_seconds: i128 = 1_709_164_800;
     const formatted = date.format(&buffer, leap_day_seconds * std.time.ns_per_s).?;
     try std.testing.expectEqualStrings(labels.LEAP_BUILD_DATE, formatted);

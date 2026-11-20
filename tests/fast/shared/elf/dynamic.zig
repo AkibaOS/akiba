@@ -4,8 +4,8 @@ const std = @import("std");
 
 const elf = @import("shared").elf;
 const fixture = @import("tests").fixtures.bytes.elf;
-const fixturetext = @import("tests").fixtures.strings.elf;
-const inputs = @import("tests").fixtures.constants.elf;
+const fixturetext = @import("tests").fixtures.strings.elf.identities;
+const inputs = @import("tests").fixtures.constants.elf.layout;
 
 pub fn readsTables() !void {
     var bytes = image();

@@ -7,7 +7,7 @@ const graphics = @import("shared").graphics;
 const limits = @import("shared").raster.constants.limits;
 const model = @import("tests").screen.model;
 const palette = @import("tests").screen.constants.palette;
-const phase = @import("tests").phase.constants.menu;
+const phase = @import("tests").phase.constants.menu.frame;
 const planner = @import("tests").screen.layout;
 const strings = @import("tests").screen.strings.text;
 const types = @import("tests").screen.types;
@@ -17,9 +17,9 @@ const Color = graphics.types.color.Color;
 const Layout = types.geometry.Layout;
 const Rect = types.geometry.Rect;
 const Surface = graphics.types.surface.Surface;
-const Text = types.render.Text;
+const Text = types.render.text.Text;
 
-pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, date: ?[]const u8) bool {
+pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.state.Model, date: ?[]const u8) bool {
     var staging = prepare(target, layout, scratch) orelse return false;
     graphics.draw.clear(&staging, palette.DESKTOP);
     chrome(&staging, layout, text, date orelse strings.UNKNOWN_DATE, state) catch return false;
@@ -29,7 +29,7 @@ pub fn takeover(target: *Surface, layout: Layout, scratch: []u32, text: Text, st
     return true;
 }
 
-pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, animation_frame: usize) bool {
+pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.state.Model, animation_frame: usize) bool {
     var staging = prepare(target, layout, scratch) orelse return false;
     viewport(&staging, layout, text, state, animation_frame) catch return false;
     progress(&staging, layout.Progress, text, state) catch return false;
@@ -46,7 +46,7 @@ pub fn update(target: *Surface, layout: Layout, scratch: []u32, text: Text, stat
     return true;
 }
 
-pub fn updateActive(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.Model, animation_frame: usize, repaint_progress: bool) bool {
+pub fn updateActive(target: *Surface, layout: Layout, scratch: []u32, text: Text, state: *const types.model.state.Model, animation_frame: usize, repaint_progress: bool) bool {
     var staging = prepare(target, layout, scratch) orelse return false;
     const index = model.activeIndex(state) orelse return false;
     if (index >= layout.VisibleRows) return false;
@@ -85,7 +85,7 @@ fn prepare(target: *const Surface, layout: Layout, scratch: []u32) ?Surface {
     return .{ .Base = scratch.ptr, .Width = layout.Width, .Height = layout.Height, .Stride = layout.Width, .Format = target.Format };
 }
 
-fn chrome(staging: *Surface, layout: Layout, text: Text, date: []const u8, state: *const types.model.Model) !void {
+fn chrome(staging: *Surface, layout: Layout, text: Text, date: []const u8, state: *const types.model.state.Model) !void {
     var header = panel(staging, layout.Header, palette.TITLE_BAR);
     var title = inset(&header, frame.INSET, frame.BORDER);
     const date_x = try drawFitted(&title, text, frame.TITLE_SIZE, 0, frame.TITLE_BASELINE, strings.TITLE, palette.TITLE_TEXT);
@@ -94,7 +94,7 @@ fn chrome(staging: *Surface, layout: Layout, text: Text, date: []const u8, state
     try controls(staging, layout.Controls, text, state);
 }
 
-fn controls(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.Model) !void {
+fn controls(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.state.Model) !void {
     var strip = scoped(staging, rectangle);
     graphics.draw.clear(&strip, palette.DESKTOP);
     var caption = inset(&strip, frame.INSET, 0);
@@ -143,14 +143,14 @@ fn subtitleRegion(header: Rect) Rect {
     };
 }
 
-fn subtitle(staging: *Surface, header: Rect, text: Text, state: *const types.model.Model) !void {
+fn subtitle(staging: *Surface, header: Rect, text: Text, state: *const types.model.state.Model) !void {
     var area = scoped(staging, subtitleRegion(header));
     graphics.draw.clear(&area, palette.TITLE_BAR);
     const message = if (state.MenuReady) strings.FINISHED_SUBTITLE else if (state.Done) strings.PHASE_SUBTITLE else strings.SUBTITLE;
     _ = try drawFitted(&area, text, frame.CAPTION_SIZE, 0, frame.SUBTITLE_BASELINE, message, palette.SUBTITLE_TEXT);
 }
 
-fn viewport(staging: *Surface, layout: Layout, text: Text, state: *const types.model.Model, animation_frame: usize) !void {
+fn viewport(staging: *Surface, layout: Layout, text: Text, state: *const types.model.state.Model, animation_frame: usize) !void {
     var log = scoped(staging, layout.Log);
     graphics.draw.clear(&log, palette.TERMINAL);
     var content = inset(&log, frame.INSET, frame.INSET);
@@ -161,7 +161,7 @@ fn viewport(staging: *Surface, layout: Layout, text: Text, state: *const types.m
     }
 }
 
-fn renderRow(line: *Surface, text: Text, entry: types.model.Row, animation_frame: usize) !void {
+fn renderRow(line: *Surface, text: Text, entry: types.model.state.Row, animation_frame: usize) !void {
     const status_color = switch (entry.Kind) {
         .Info => palette.INFORMATION,
         .Pass => palette.PASSED,
@@ -198,7 +198,7 @@ pub fn progressSlots(width: u32) usize {
     return (width -| (frame.PERCENT_WIDTH + 2 * frame.BAR_CELL)) / frame.BAR_CELL;
 }
 
-fn progress(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.Model) !void {
+fn progress(staging: *Surface, rectangle: Rect, text: Text, state: *const types.model.state.Model) !void {
     var band = scoped(staging, rectangle);
     graphics.draw.clear(&band, palette.DESKTOP);
     const bar_width = band.Width - frame.PERCENT_WIDTH;

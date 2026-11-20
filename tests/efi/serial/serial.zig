@@ -1,7 +1,7 @@
 //! Bounded Raw UART Transport For Firmware Checks And Boot Selection
 
 const efi = @import("hikari").efi;
-const limits = @import("tests").efi.constants.serial;
+const limits = @import("tests").efi.constants.serial.transport;
 const port = @import("asm").io.port;
 const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;

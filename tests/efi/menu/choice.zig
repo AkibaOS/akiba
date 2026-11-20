@@ -6,7 +6,7 @@ const limits = @import("tests").efi.constants.menu.limits;
 const phase = @import("tests").phase;
 const serial = @import("tests").efi.menu.serial;
 
-const Action = phase.types.action.Action;
+const Action = phase.types.action.frame.Action;
 const BootServices = efi.types.services.boot.BootServices;
 const Input = @import("tests").efi.keyboard.Input;
 const View = @import("tests").efi.types.menu.display.View;
@@ -15,9 +15,9 @@ const status = efi.constants.status.codes;
 pub fn readyAndWait(services: *BootServices, input: *Input, epoch: u64, view: *View) !Action {
     const armed = phase.menu.encodeArmed(epoch);
     if (!serial.send(services, &armed)) return error.MenuArmedTransmissionFailed;
-    var tick: phase.types.menu.CountdownFrame = undefined;
+    var tick: phase.types.menu.frames.CountdownFrame = undefined;
     var received: usize = 0;
-    var previous = phase.constants.menu.COUNTDOWN_SECONDS;
+    var previous = phase.constants.menu.frame.COUNTDOWN_SECONDS;
     while (true) {
         if (try readAction(input)) |action| return action;
         received += try serial.receiveAvailable(tick[received..]);

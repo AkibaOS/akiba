@@ -6,7 +6,7 @@ const screen = @import("tests").screen;
 
 pub const Rollback = struct {
     Timer: ?u16,
-    Clock: screen.types.clock.Clock,
+    Clock: screen.types.clock.timer.Clock,
     Percent: usize = 0,
     FilledSlots: usize = 0,
 };
@@ -18,8 +18,8 @@ pub const Session = struct {
     Physical: u64,
     Pages: u64,
     Pixels: []u32,
-    Rows: []screen.types.model.Row,
-    Progress: screen.types.model.Model,
+    Rows: []screen.types.model.state.Row,
+    Progress: screen.types.model.state.Model,
     Started: u64 = 0,
     LastFrame: usize = 0,
     Rendering: bool = false,

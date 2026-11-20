@@ -1,6 +1,6 @@
 //! Free-Running Q35 Diagnostics Clock Before PIT Interrupts
 
-const limits = @import("tests").screen.constants.clock;
+const limits = @import("tests").screen.constants.clock.timer;
 const port = @import("asm").io.port;
 
 pub fn locate() ?u16 {

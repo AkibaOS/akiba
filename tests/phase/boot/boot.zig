@@ -2,8 +2,8 @@
 
 const std = @import("std");
 
-const constants = @import("tests").phase.constants.boot;
-const types = @import("tests").phase.types.boot;
+const constants = @import("tests").phase.constants.boot.frame;
+const types = @import("tests").phase.types.boot.frame;
 
 pub fn encode(selection: types.Selection, kind: types.Kind) ?types.Frame {
     if (selection.Epoch == 0) return null;

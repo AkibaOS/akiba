@@ -4,9 +4,9 @@ const std = @import("std");
 
 const afs = @import("shared").afs;
 const cells = @import("tests").fixtures.afs;
-const elf = @import("tests").fixtures.constants.elf;
+const elf = @import("tests").fixtures.constants.elf.layout;
 const entry = @import("fixtureasm").entry;
-const fixturetext = @import("tests").fixtures.strings.elf;
+const fixturetext = @import("tests").fixtures.strings.elf.identities;
 const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;
 const labels = @import("tests").fixtures.strings.weaver;

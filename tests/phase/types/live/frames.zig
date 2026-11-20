@@ -1,7 +1,7 @@
 //! Typed Live Diagnostic View State
 
-const date = @import("tests").phase.constants.date;
-const wire = @import("tests").phase.constants.live;
+const date = @import("tests").phase.constants.date.format;
+const wire = @import("tests").phase.constants.live.frame;
 const Ticket = @import("tests").phase.types.ticket.Ticket;
 const Tally = @import("tests").phase.types.work.Work;
 

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const constants = @import("tests").fast.constants.utils;
+const constants = @import("tests").fast.constants.utils.vectors;
 const decompose = @import("utils").address.decompose;
 const translate = @import("utils").address.translate;
 

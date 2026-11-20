@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const text = @import("tests").screen.strings.text;
-const types = @import("tests").screen.types.model;
+const types = @import("tests").screen.types.model.state;
 
 pub fn initialize(rows: []types.Row, total: usize) types.Model {
     var state: types.Model = .{ .Rows = rows, .Total = total };

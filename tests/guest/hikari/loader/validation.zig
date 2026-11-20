@@ -6,8 +6,8 @@ const elf = @import("shared").elf.types.format;
 const errors = @import("hikari").loader.errors.elf.load;
 const format = @import("shared").elf.constants.format;
 const inputs = @import("tests").fixtures.constants.hikari;
-const labels = @import("tests").guest.strings.hikari;
-const types = @import("tests").guest.types.hikari;
+const labels = @import("tests").guest.strings.hikari.expectations;
+const types = @import("tests").guest.types.hikari.fixtures;
 const validation = @import("hikari").loader.elf.validation;
 const verify = @import("tests").guest.support.verify;
 

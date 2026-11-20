@@ -10,7 +10,7 @@ const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 pub fn actions() !void {
     const wire = project.phase.action;
-    const Action = project.phase.types.action.Action;
+    const Action = project.phase.types.action.frame.Action;
     const epoch = 0x0807060504030201;
     const boot = [_]u8{ 'A', 'K', 'M', 'A', 1, 2, 3, 4, 5, 6, 7, 8, 1 };
     const stop = boot[0..12].* ++ [_]u8{2};
@@ -129,7 +129,7 @@ pub fn menuOffer() !void {
     const menu = project.phase.menu;
     const epoch = 0x0807060504030201;
     const expected = [_]u8{ 'A', 'K', 'M', 'V', 1, 2, 3, 4, 5, 6, 7, 8, 118, 7, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 0, 0, 24, 0, 170, 10, 0, 0, 170, 10, 0, 0 };
-    const offer: project.phase.types.menu.Offer = .{
+    const offer: project.phase.types.menu.frames.Offer = .{
         .Epoch = epoch,
         .Passed = 1910,
         .Date = expected[16..24].*,
@@ -157,7 +157,7 @@ pub fn menuOffer() !void {
 
 pub fn failedMenuOffer() !void {
     const menu = project.phase.menu;
-    const Offer = project.phase.types.menu.Offer;
+    const Offer = project.phase.types.menu.frames.Offer;
     const wire = [_]u8{ 'A', 'K', 'M', 'V', 1, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, '1', '9', '1', '1', '2', '0', '2', '6', 1, 1, 0, 0, 118, 7, 0, 0, 80, 0, 0, 0 };
     const failure: Offer = menu.decodeOffer(&wire).?;
     try std.testing.expectEqual(@as(u32, 80), failure.Passed);
@@ -216,7 +216,7 @@ pub fn liveHistory() !void {
     try std.testing.expect(live.encodeOffer(forged) == null);
     forged.Work.Verified = forged.Work.Planned + 1;
     try std.testing.expect(live.encodeOffer(forged) == null);
-    var rows: [32]project.screen.types.model.Row = undefined;
+    var rows: [32]project.screen.types.model.state.Row = undefined;
     var state = view.initialize(&rows, offer);
     try std.testing.expectEqual(@as(usize, 28), state.Total);
     try std.testing.expectEqual(@as(usize, 25), state.Completed);
@@ -259,7 +259,7 @@ pub fn earlyFailures() !void {
 
 pub fn greeting() !void {
     const wire = project.phase.wire;
-    const ready = project.phase.constants.wire.READY;
+    const ready = project.phase.constants.wire.frame.READY;
     const prelude = [_]u8{ 0x1b, '[', '2', 'J', 'A', 'K', 'P', 'R', 0x0d, 0x0a };
     var matched: usize = 0;
     for (prelude) |byte| matched = wire.advanceGreeting(&ready, matched, byte);

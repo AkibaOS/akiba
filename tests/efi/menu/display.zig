@@ -18,7 +18,7 @@ const Surface = graphics.types.surface.Surface;
 const View = @import("tests").efi.types.menu.display.View;
 const Workspace = splash.types.workspace.Workspace;
 
-pub fn show(services: *BootServices, offer: phase.types.menu.Offer, view: *View) bool {
+pub fn show(services: *BootServices, offer: phase.types.menu.frames.Offer, view: *View) bool {
     const target = locateSurface(services) orelse return false;
     const layout = screen.layout.plan(target.Width, target.Height) orelse return false;
     const pixel_count = std.math.mul(usize, layout.Width, layout.Height) catch return false;
@@ -29,7 +29,7 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer, view: *View)
     var primary: [labels.SUITE_PASSED.len + format.MAX_DECIMAL_DIGITS]u8 = undefined;
     var verified: [labels.VERIFIED_CHECKS.len + format.MAX_DECIMAL_DIGITS]u8 = undefined;
     var failures: [labels.PHASE_FAILURES.len + 2 * format.MAX_DECIMAL_DIGITS]u8 = undefined;
-    var rows: [3 + phase.constants.menu.PHASE_COUNT]screen.types.model.Row = undefined;
+    var rows: [3 + phase.constants.menu.frame.PHASE_COUNT]screen.types.model.state.Row = undefined;
     const count: usize = if (offer.FailedMask == 0) success: {
         const message = std.fmt.bufPrint(&primary, labels.SUITE_PASSED, .{offer.Passed}) catch return false;
         rows[0] = .{ .Kind = .Pass, .Text = message };
@@ -42,9 +42,9 @@ pub fn show(services: *BootServices, offer: phase.types.menu.Offer, view: *View)
         rows[2] = .{ .Kind = .Info, .Text = phases };
         break :failed 3 + failedRows(rows[3..], offer);
     };
-    const snapshot: screen.types.model.Model = .{
+    const snapshot: screen.types.model.state.Model = .{
         .Rows = rows[0..count],
-        .Total = phase.constants.live.TOTAL_UNITS,
+        .Total = phase.constants.live.frame.TOTAL_UNITS,
         .Count = count,
         .Completed = phase.menu.completedUnits(offer),
         .Failed = @popCount(offer.FailedMask),
@@ -73,11 +73,11 @@ pub fn release(services: *BootServices, view: *View) bool {
     return efi.buffer.releasePool(services, &view.Pool);
 }
 
-fn textContext(view: *View) screen.types.render.Text {
+fn textContext(view: *View) screen.types.render.text.Text {
     return .{ .Face = &view.Face, .Renderer = &view.Renderer };
 }
 
-fn failedRows(rows: []screen.types.model.Row, offer: phase.types.menu.Offer) usize {
+fn failedRows(rows: []screen.types.model.state.Row, offer: phase.types.menu.frames.Offer) usize {
     var count: usize = 0;
     for (std.enums.values(Scenario)) |selected| {
         const name = switch (phase.menu.phaseStatus(offer, selected)) {

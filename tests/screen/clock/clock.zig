@@ -1,8 +1,8 @@
 //! Rollback Frames From An Independent Wrapping Timer
 
-const limits = @import("tests").screen.constants.clock;
+const limits = @import("tests").screen.constants.clock.timer;
 const strings = @import("tests").screen.strings.text;
-const Clock = @import("tests").screen.types.clock.Clock;
+const Clock = @import("tests").screen.types.clock.timer.Clock;
 
 pub fn start(counter: u32) Clock {
     return .{ .Last = counter & limits.COUNTER_MASK };

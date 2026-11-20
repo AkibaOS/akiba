@@ -3,10 +3,10 @@
 const std = @import("std");
 
 const date = @import("tests").phase.date;
-const limits = @import("tests").phase.constants.menu;
+const limits = @import("tests").phase.constants.menu.frame;
 const live = @import("tests").phase.live;
-const progress = @import("tests").phase.constants.live;
-const types = @import("tests").phase.types.menu;
+const progress = @import("tests").phase.constants.live.frame;
+const types = @import("tests").phase.types.menu.frames;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 

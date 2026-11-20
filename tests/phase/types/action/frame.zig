@@ -1,6 +1,6 @@
 //! Actions Bound To A Live Diagnostic Epoch
 
-const constants = @import("tests").phase.constants.action;
+const constants = @import("tests").phase.constants.action.frame;
 
 pub const Frame = [constants.FRAME_BYTES]u8;
 pub const Mode = enum { Closed, Testing, Menu };

@@ -18,9 +18,9 @@ const timer = @import("tests").guest.screen.timer;
 const types = @import("tests").guest.screen.types.session;
 
 const Framebuffer = boot.types.framebuffer.FramebufferInfo;
-const LiveOffer = @import("tests").phase.types.live.Offer;
-const Outcome = screen.types.model.Outcome;
-const Row = screen.types.model.Row;
+const LiveOffer = @import("tests").phase.types.live.frames.Offer;
+const Outcome = screen.types.model.state.Outcome;
+const Row = screen.types.model.state.Row;
 const Session = types.Session;
 const page_size = common.constants.memory.sizes.PAGE_SIZE;
 
@@ -124,7 +124,7 @@ fn repaintBoot(session: *Session, view: *types.Rollback) void {
     const percent = screen.model.percent(&session.Progress);
     const slots = screen.model.scaled(&session.Progress, screen.render.progressSlots(session.Layout.Progress.Width));
     const repaint_progress = percent != view.Percent or slots != view.FilledSlots;
-    const text: screen.types.render.Text = .{ .Face = &session.Face, .Renderer = &renderer };
+    const text: screen.types.render.text.Text = .{ .Face = &session.Face, .Renderer = &renderer };
     if (screen.render.updateActive(&session.Surface, session.Layout, session.Pixels, text, &session.Progress, view.Clock.Frame, repaint_progress)) {
         view.Percent = percent;
         view.FilledSlots = slots;

@@ -13,8 +13,8 @@ var boot_epoch: ?u64 = null;
 
 pub fn start(services: *efi.types.services.boot.BootServices) !void {
     if (!config.liveEnabled()) return;
-    if (!serial.attach(ports.COM3) or !serial.send(services, ports.COM3, &phase.constants.live.READY)) return error.FirmwareLiveGreetingFailed;
-    var bytes: [phase.constants.live.OFFER_BYTES]u8 = undefined;
+    if (!serial.attach(ports.COM3) or !serial.send(services, ports.COM3, &phase.constants.live.frame.READY)) return error.FirmwareLiveGreetingFailed;
+    var bytes: [phase.constants.live.frame.OFFER_BYTES]u8 = undefined;
     if (!serial.receive(services, ports.COM3, &bytes)) return error.FirmwareLiveOfferMissing;
     const offer = phase.live.decodeOffer(&bytes) orelse return error.InvalidFirmwareLiveOffer;
     if (offer.Ticket.Scenario != .Firmware) return error.InvalidFirmwareLiveScenario;

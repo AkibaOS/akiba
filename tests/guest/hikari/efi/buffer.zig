@@ -6,12 +6,12 @@ const base = @import("hikari").efi.types.base;
 const buffer = @import("hikari").efi.buffer;
 const convention = @import("hikari").efi.constants.convention;
 const inputs = @import("tests").fixtures.constants.hikari;
-const labels = @import("tests").guest.strings.hikari;
+const labels = @import("tests").guest.strings.hikari.expectations;
 const memory = @import("hikari").efi.types.memory;
 const services = @import("hikari").efi.types.services;
 const status = @import("hikari").efi.constants.status.codes;
 const storage = @import("hikari").efi.types.buffer.claims;
-const types = @import("tests").guest.types.hikari;
+const types = @import("tests").guest.types.hikari.fixtures;
 const verify = @import("tests").guest.support.verify;
 
 var pool: types.PoolState = .{};

@@ -3,7 +3,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const ActionFrame = @import("tests").phase.types.action.Frame;
+const ActionFrame = @import("tests").phase.types.action.frame.Frame;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Work = @import("tests").phase.types.work.Work;
 
