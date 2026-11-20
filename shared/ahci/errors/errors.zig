@@ -1,3 +1,3 @@
 //! AHCI Protocol Error Exports
 
-pub const command = @import("command.zig");
+pub const command = @import("command/command.zig");

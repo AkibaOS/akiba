@@ -1,3 +1,3 @@
 //! AHCI Protocol Type Exports
 
-pub const command = @import("command.zig");
+pub const command = @import("command/command.zig");

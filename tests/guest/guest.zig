@@ -1,6 +1,7 @@
 //! Guest Regression Exports
 
 pub const constants = @import("constants/constants.zig");
+pub const errors = @import("errors/errors.zig");
 pub const hikari = @import("hikari/hikari.zig");
 pub const mirai = @import("mirai/mirai.zig");
 pub const run = @import("run/run.zig");
