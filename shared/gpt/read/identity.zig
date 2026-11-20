@@ -7,7 +7,7 @@ const header = @import("shared").gpt.read.header;
 const table = @import("shared").gpt.read.table;
 
 const Scan = @import("shared").gpt.types.read.scan.Scan;
-const Source = @import("shared").gpt.types.read.source.Source;
+const Source = @import("shared").storage.types.sector.Source;
 const VerifyError = @import("shared").gpt.errors.read.verification.VerifyError;
 const Volume = @import("shared").boot.types.volume.Volume;
 

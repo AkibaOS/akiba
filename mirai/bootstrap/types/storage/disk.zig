@@ -1,4 +1,4 @@
-//! Attached Q35 Diagnostic Disk And Owned DMA Page
+//! Attached Boot Disk And Owned DMA Page
 
 const sizes = @import("common").constants.memory.sizes;
 

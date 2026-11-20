@@ -1,10 +1,10 @@
-//! Q35 Fixture MMIO Access And Port Drain
+//! Boot AHCI MMIO And Port Drain
 
 const cpu = @import("asm").cpu;
-const limits = @import("tests").guest.constants.ahci.limits;
-const values = @import("tests").guest.constants.ahci.registers;
+const limits = @import("mirai").bootstrap.constants.storage.limits;
+const values = @import("mirai").bootstrap.constants.storage.registers;
 
-const ProbeError = @import("tests").guest.errors.ahci.transfer.ProbeError;
+const StorageError = @import("mirai").bootstrap.errors.storage.read.StorageError;
 
 pub fn stop(sata: u64) bool {
     write(sata, values.COMMAND, read(sata, values.COMMAND) & ~values.START);
@@ -13,23 +13,23 @@ pub fn stop(sata: u64) bool {
     return waitClear(sata, values.COMMAND, values.RUNNING_FIS);
 }
 
-pub fn ports(controller: u64) ProbeError!u32 {
+pub fn ports(controller: u64) StorageError!u32 {
     const count = (read(controller, values.CAP) & values.PORT_NUMBER_MASK) + 1;
-    if (count > values.MAPPED_PORTS) return ProbeError.UnsupportedAhciController;
+    if (count > values.MAPPED_PORTS) return StorageError.UnsupportedAhciController;
     const valid = (@as(u32, 1) << @as(u5, @intCast(count))) - 1;
     const implemented = read(controller, values.PORTS);
-    if (implemented & ~valid != 0) return ProbeError.UnsupportedAhciController;
+    if (implemented & ~valid != 0) return StorageError.UnsupportedAhciController;
     return implemented;
 }
 
-pub fn diskPort(controller: u64, index: u5) ProbeError!?u64 {
-    if (index >= values.MAPPED_PORTS) return ProbeError.UnsupportedAhciPort;
+pub fn diskPort(controller: u64, index: u5) StorageError!?u64 {
+    if (index >= values.MAPPED_PORTS) return StorageError.UnsupportedAhciPort;
     const sata = controller + values.PORT_BASE + @as(u64, index) * values.PORT_STRIDE;
     const link = read(sata, values.LINK);
     const presence = link & values.LINK_PRESENT_MASK;
     if (presence == 0) return null;
     if (presence != values.LINK_PRESENT or link & values.LINK_ACTIVE_MASK != values.LINK_ACTIVE or read(sata, values.SIGNATURE) != values.ATA_SIGNATURE)
-        return ProbeError.UnsupportedAhciPort;
+        return StorageError.UnsupportedAhciPort;
     return sata;
 }
 

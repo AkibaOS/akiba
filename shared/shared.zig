@@ -12,4 +12,5 @@ pub const launch = @import("launch/launch.zig");
 pub const raster = @import("raster/raster.zig");
 pub const sfnt = @import("sfnt/sfnt.zig");
 pub const splash = @import("splash/splash.zig");
+pub const storage = @import("storage/storage.zig");
 pub const typeset = @import("typeset/typeset.zig");

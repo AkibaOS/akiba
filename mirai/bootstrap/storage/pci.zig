@@ -1,8 +1,8 @@
-//! Diagnostic PCI Configuration Access At A Discovered Address
+//! Bootstrap PCI Configuration Access At A Discovered Address
 
 const fields = @import("shared").ahci.constants.discover.pci;
 const port = @import("asm").io.port;
-const values = @import("tests").guest.constants.ahci.pci;
+const values = @import("mirai").bootstrap.constants.storage.pci;
 
 const Address = @import("shared").ahci.types.discover.configuration.Address;
 const Source = @import("shared").ahci.types.discover.configuration.Source;

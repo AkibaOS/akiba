@@ -4,6 +4,7 @@ const std = @import("std");
 
 const boot = @import("boot.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
+const diskfixture = @import("../../../tests/fixtures/strings/elf/boot.zig");
 const firmware = @import("firmware.zig");
 const fixture = @import("fixture.zig");
 const kernel = @import("../kernel/kernel.zig");
@@ -68,6 +69,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(selector.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
+    _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     storage.add(builder, stage);
     const image = progress.image(builder, stage, packer, paths.GUEST_IMAGE_NAME);
     const runner_options = builder.addOptions();

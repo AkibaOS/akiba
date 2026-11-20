@@ -1,7 +1,6 @@
 //! Guest Test Types Exports
 
 pub const acquisition = @import("acquisition.zig");
-pub const ahci = @import("ahci/ahci.zig");
 pub const allocation = @import("allocation.zig");
 pub const completion = @import("completion/completion.zig");
 pub const context = @import("context.zig");

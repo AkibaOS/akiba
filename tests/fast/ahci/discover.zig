@@ -74,6 +74,22 @@ pub fn selectsUniquely() !void {
     try std.testing.expectEqual(devices.len, trace.Checked);
 }
 
+pub fn reinspectsExactly() !void {
+    var devices = [_]Device{
+        .{ .Key = values.SINGLE_SLOT },
+        .{ .Key = values.REMOTE_TARGET },
+    };
+    var trace: Trace = .{ .Devices = &devices };
+    const address: Address = @bitCast(values.SINGLE_SLOT);
+    const located = (try discovery.pci.inspect(source(&trace), address)).?;
+    try std.testing.expectEqual(values.SINGLE_SLOT, @as(u16, @bitCast(located.Address)));
+    devices[0].Class = values.LEGACY_IDE_CLASS;
+    try std.testing.expect((try discovery.pci.inspect(source(&trace), address)) == null);
+    devices[0].Class = values.AHCI_CLASS;
+    devices[0].Bar = values.IO_BAR;
+    try std.testing.expectError(error.InvalidAhciBar, discovery.pci.inspect(source(&trace), address));
+}
+
 fn source(trace: *Trace) Source {
     return .{ .Context = trace, .Read = read };
 }

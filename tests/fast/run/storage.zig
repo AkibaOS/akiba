@@ -45,6 +45,22 @@ test "AHCI selection refuses a duplicate or a later unverifiable candidate" {
     try ahci.selectsUniquely();
 }
 
+test "AHCI reopen rechecks the selected function without falling through to another" {
+    try ahci.reinspectsExactly();
+}
+
+test "AFS sector-backed cells read exactly the selected partition window" {
+    try afs.sectors.exactWindow();
+}
+
+test "AFS sector-backed cells reject invalid geometry and partial cells" {
+    try afs.sectors.rejectsInvalidGeometry();
+}
+
+test "AFS sector-backed cells propagate a failed late sector" {
+    try afs.sectors.lateReadFailure();
+}
+
 test "GPT verifies the handed-off AFS identity beyond table padding" {
     try gpt.exactVolume();
 }

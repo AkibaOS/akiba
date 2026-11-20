@@ -1,14 +1,16 @@
-//! Native AHCI Diagnostic Refusals
+//! Boot Transport And Unit Acquisition Errors
 
-pub const ProbeError = error{
+pub const StorageError = error{
     AhciBootVolumeMismatch,
-    AhciBootVolumeMissing,
     AhciEngineDidNotStop,
     AhciPortBusy,
     AhciShortTransfer,
     AhciTransferFailed,
     AhciTransferTimeout,
-    InvalidAhciMode,
+    BootDeviceChanged,
+    BootUnitMissing,
+    ImageTooLarge,
+    InvalidSectorBuffer,
     UnsupportedAhciController,
     UnsupportedAhciPort,
 };

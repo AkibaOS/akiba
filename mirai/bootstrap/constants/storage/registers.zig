@@ -1,4 +1,4 @@
-//! Q35 Fixture AHCI Port Registers
+//! Boot AHCI Register Window And Status Fields
 
 const sizes = @import("common").constants.memory.sizes;
 
