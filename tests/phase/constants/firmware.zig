@@ -1,5 +1,4 @@
 //! Shared Firmware Assertion Count
 
-const storage = @import("tests").fixtures.constants.storage;
-
-pub const ASSERTION_COUNT: usize = 63 + storage.ASSERTION_COUNT;
+pub const STORAGE_ASSERTION_COUNT: usize = 12;
+pub const ASSERTION_COUNT: usize = 63 + STORAGE_ASSERTION_COUNT;

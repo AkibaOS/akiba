@@ -21,7 +21,7 @@ const ports = @import("common").constants.serial.ports;
 const registers = @import("common").constants.serial.registers;
 const status = @import("tests").efi.firmware.status;
 const storage = @import("tests").efi.firmware.storage;
-const storagelabels = @import("tests").fixtures.strings.storage;
+const storagelabels = @import("tests").efi.strings.firmware.storage;
 const suite = @import("tests").efi.firmware.handoff;
 
 var passed: usize = 0;

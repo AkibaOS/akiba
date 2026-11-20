@@ -22,43 +22,43 @@ const LiveOffer = @import("tests").phase.types.live.frames.Offer;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 
 const groups = .{
-    .{ grouptext.ACQUISITION_GROUP, .{ guest.hikari.disk.gpt.run, guest.hikari.disk.fat.run, guest.hikari.disk.reader.run, guest.hikari.disk.unit.run } },
-    .{ grouptext.HIKARI_GROUP_ELF, .{guest.hikari.loader.validation.run} },
-    .{ grouptext.HIKARI_GROUP_EFI, .{guest.hikari.efi.buffer.run} },
-    .{ grouptext.BOOT_GROUP, .{ guest.mirai.boot.invariants.run, guest.mirai.boot.regions.run } },
-    .{ grouptext.MEMORY_GROUP_PMM, .{ guest.mirai.pmm.frames.run, guest.mirai.pmm.ranges.run, guest.mirai.pmm.reservation.run, guest.mirai.pmm.sparse.run } },
+    .{ grouptext.ACQUISITION_GROUP, .{ guest.disk.gpt.run, guest.disk.fat.run, guest.disk.reader.run, guest.disk.unit.run } },
+    .{ grouptext.HIKARI_GROUP_ELF, .{guest.loader.validation.run} },
+    .{ grouptext.HIKARI_GROUP_EFI, .{guest.efi.buffer.run} },
+    .{ grouptext.BOOT_GROUP, .{ guest.boot.invariants.run, guest.boot.regions.run } },
+    .{ grouptext.MEMORY_GROUP_PMM, .{ guest.pmm.frames.run, guest.pmm.ranges.run, guest.pmm.reservation.run, guest.pmm.sparse.run } },
     .{ grouptext.MEMORY_GROUP_KERNEL, .{
-        guest.mirai.memory.allocation.run,  guest.mirai.memory.range.run,     guest.mirai.memory.heap.run,
-        guest.mirai.memory.validation.run,  guest.mirai.memory.allocator.run, guest.mirai.memory.zone.run,
-        guest.mirai.memory.growth.run,      guest.mirai.memory.validity.run,  guest.mirai.memory.failure.run,
-        guest.mirai.memory.pool.run,        guest.mirai.memory.stack.run,     guest.mirai.memory.reuse.run,
-        guest.mirai.memory.reservation.run,
+        guest.memory.allocation.run,  guest.memory.range.run,     guest.memory.heap.run,
+        guest.memory.validation.run,  guest.memory.allocator.run, guest.memory.zone.run,
+        guest.memory.growth.run,      guest.memory.validity.run,  guest.memory.failure.run,
+        guest.memory.pool.run,        guest.memory.stack.run,     guest.memory.reuse.run,
+        guest.memory.reservation.run,
     } },
     .{ grouptext.MEMORY_GROUP_KAGAMI, .{
-        guest.mirai.kagami.mapping.run,  guest.mirai.kagami.ownership.run,  guest.mirai.kagami.rejection.run,
-        guest.mirai.kagami.validity.run, guest.mirai.kagami.effective.run,  guest.mirai.kagami.failure.run,
-        guest.mirai.kagami.graph.run,    guest.mirai.kagami.population.run, guest.mirai.kagami.alias.run,
+        guest.kagami.mapping.run,  guest.kagami.ownership.run,  guest.kagami.rejection.run,
+        guest.kagami.validity.run, guest.kagami.effective.run,  guest.kagami.failure.run,
+        guest.kagami.graph.run,    guest.kagami.population.run, guest.kagami.alias.run,
     } },
-    .{ grouptext.MEMORY_GROUP_OWNED, .{ guest.mirai.user.regressions.run, guest.mirai.user.population.run, guest.mirai.user.failure.run } },
-    .{ grouptext.GUEST_GROUP_MEMORY, .{ guest.mirai.user.memory.run, guest.mirai.user.sharing.run, guest.mirai.user.reference.run } },
+    .{ grouptext.MEMORY_GROUP_OWNED, .{ guest.user.regressions.run, guest.user.population.run, guest.user.failure.run } },
+    .{ grouptext.GUEST_GROUP_MEMORY, .{ guest.user.memory.run, guest.user.sharing.run, guest.user.reference.run } },
     .{ grouptext.ELF_GROUP, .{
-        guest.mirai.bootstrap.image.run,   guest.mirai.bootstrap.rejection.run,    guest.mirai.bootstrap.pressure.run,
-        guest.mirai.bootstrap.growth.run,  guest.mirai.bootstrap.finalization.run, guest.mirai.bootstrap.order.run,
-        guest.mirai.bootstrap.startup.run, guest.mirai.bootstrap.execution.run,    guest.mirai.bootstrap.dynamic.run,
+        guest.bootstrap.image.run,   guest.bootstrap.rejection.run,    guest.bootstrap.pressure.run,
+        guest.bootstrap.growth.run,  guest.bootstrap.finalization.run, guest.bootstrap.order.run,
+        guest.bootstrap.startup.run, guest.bootstrap.execution.run,    guest.bootstrap.dynamic.run,
     } },
-    .{ grouptext.SENSEI_GROUP, .{ guest.mirai.sensei.admission.run, guest.mirai.sensei.waiting.run, guest.mirai.sensei.deferral.run, guest.mirai.sensei.population.run, guest.mirai.sensei.width.run } },
-    .{ grouptext.RETENTION_GROUP, .{ guest.mirai.kata.retention.run, guest.mirai.kata.race.run } },
-    .{ grouptext.RETENTION_GROUP_POPULATION, .{guest.mirai.kata.population.run} },
-    .{ grouptext.GUEST_GROUP_LIFECYCLE, .{ guest.mirai.kata.destruction.run, guest.mirai.kata.lifecycle.run } },
-    .{ grouptext.GUEST_GROUP_COMPLETION, .{guest.mirai.kata.completion.run} },
-    .{ grouptext.ACCESS_GROUP, .{guest.mirai.user.access.run} },
-    .{ grouptext.GUEST_GROUP_PERSONA, .{guest.mirai.thread.persona.run} },
-    .{ grouptext.INVOCATIONS_GROUP, .{ guest.mirai.invocations.query.run, guest.mirai.invocations.state.run } },
-    .{ grouptext.COMPLETION_GROUP, .{guest.mirai.invocations.completion.run.run} },
-    .{ grouptext.GUEST_GROUP_TERMINATION, .{guest.mirai.invocations.termination.run} },
-    .{ grouptext.POSTMAN_GROUP, .{guest.mirai.postman.scenarios.run} },
-    .{ grouptext.CONTEXT_GROUP, .{ guest.mirai.thread.construction.run, guest.mirai.thread.context.run } },
-    .{ grouptext.CRIMSON_GROUP, .{ guest.mirai.crimson.codec.run, guest.mirai.crimson.ports.run, guest.mirai.crimson.corpse.run, guest.mirai.crimson.modules.run } },
+    .{ grouptext.SENSEI_GROUP, .{ guest.sensei.admission.run, guest.sensei.waiting.run, guest.sensei.deferral.run, guest.sensei.population.run, guest.sensei.width.run } },
+    .{ grouptext.RETENTION_GROUP, .{ guest.kata.retention.run, guest.kata.race.run } },
+    .{ grouptext.RETENTION_GROUP_POPULATION, .{guest.kata.population.run} },
+    .{ grouptext.GUEST_GROUP_LIFECYCLE, .{ guest.kata.destruction.run, guest.kata.lifecycle.run } },
+    .{ grouptext.GUEST_GROUP_COMPLETION, .{guest.kata.completion.run} },
+    .{ grouptext.ACCESS_GROUP, .{guest.user.access.run} },
+    .{ grouptext.GUEST_GROUP_PERSONA, .{guest.thread.persona.run} },
+    .{ grouptext.INVOCATIONS_GROUP, .{ guest.invocations.query.run, guest.invocations.state.run } },
+    .{ grouptext.COMPLETION_GROUP, .{guest.completion.run.run} },
+    .{ grouptext.GUEST_GROUP_TERMINATION, .{guest.invocations.termination.run} },
+    .{ grouptext.POSTMAN_GROUP, .{guest.postman.scenarios.run} },
+    .{ grouptext.CONTEXT_GROUP, .{ guest.thread.construction.run, guest.thread.context.run } },
+    .{ grouptext.CRIMSON_GROUP, .{ guest.crimson.codec.run, guest.crimson.ports.run, guest.crimson.corpse.run, guest.crimson.modules.run } },
 };
 
 comptime {
@@ -72,20 +72,20 @@ pub fn execute() bool {
     serial.printf(markers.BEGIN_LINE, .{});
     switch (guest.support.selector.selected()) {
         .Standard => return standard(),
-        .Collapse => @call(.never_inline, guest.mirai.crimson.fatal.run, .{}),
+        .Collapse => @call(.never_inline, guest.crimson.fatal.run, .{}),
         .Firmware => @panic(scenariolabels.INVALID),
         .Devices => {
             const owned = screen.isActive();
             defer screen.release();
             serial.printf(inputwire.GROUP, .{});
-            @call(.never_inline, guest.mirai.drivers.input.run, .{});
-            check(guest.mirai.drivers.ahci.run);
+            @call(.never_inline, guest.drivers.input.run, .{});
+            check(guest.ahci.run.run);
             screen.checkpoint();
             serial.printf(markers.COMPLETE_FORMAT, .{verify.count()});
             return owned;
         },
         .PulseDeath => {
-            check(guest.mirai.kata.fatal.run);
+            check(guest.kata.fatal.run);
             return false;
         },
     }

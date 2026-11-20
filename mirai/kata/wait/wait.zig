@@ -1,6 +1,6 @@
 //! Open Completion Waiting And Registration Cleanup
 
-const checks = if (options.GUEST_CHECKS) @import("tests").guest.mirai.kata.race else null;
+const checks = if (options.GUEST_CHECKS) @import("tests").guest.kata.race else null;
 const completion = @import("mirai").kata.completion;
 const control = @import("asm").cpu.constants.control.registers;
 const errors = @import("mirai").kata.errors.completion.collection;

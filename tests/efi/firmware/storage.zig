@@ -9,8 +9,10 @@ const claimtypes = @import("hikari").sequence.types.cleanup.claims;
 const codes = @import("hikari").efi.constants.status.codes;
 const convention = @import("hikari").efi.constants.convention;
 const efi = @import("hikari").efi;
+const criteria = @import("tests").efi.constants.firmware.storage;
 const inputs = @import("tests").fixtures.constants.storage;
-const labels = @import("tests").fixtures.strings.storage;
+const labels = @import("tests").efi.strings.firmware.storage;
+const locations = @import("tests").fixtures.strings.storage;
 const locator = @import("hikari").sequence.partition;
 const output = @import("tests").efi.firmware.run;
 const partition = @import("hikari").sequence.types.partition.discovery;
@@ -37,7 +39,7 @@ pub fn run(real: *services.boot.BootServices) !void {
     state.Reader = .{ .BootServices = &wrapped };
     const reader = &state.Reader.?;
     try reader.initialize(found.Media, found.Volume.FirstLBA, found.Volume.LastLBA);
-    require(reader.Index.Depth >= inputs.MINIMUM_DEPTH and reader.Index.TotalNodes > inputs.FORMER_INDEX_NODES and
+    require(reader.Index.Depth >= criteria.MINIMUM_DEPTH and reader.Index.TotalNodes > criteria.FORMER_INDEX_NODES and
         reader.VolumeHeader.IndexDepth == reader.Index.Depth and reader.VolumeHeader.IndexTotalNodes == reader.Index.TotalNodes, labels.SHAPE);
     const nested = try nestedNode(reader);
     require(nested != null, labels.NESTED);
@@ -120,8 +122,8 @@ fn locateHandles(search: efi.types.memory.LocateSearchType, protocol: ?*align(8)
 fn readOwnership(reader: *readers.Reader, wrapped: *services.boot.BootServices) !bool {
     var identity: [inputs.IDENTITY_BYTES]u8 = undefined;
     createIdentity(0, &identity);
-    var location: [labels.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
-    const path = try std.fmt.bufPrint(&location, labels.LOCATION_FORMAT, .{&identity});
+    var location: [locations.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
+    const path = try std.fmt.bufPrint(&location, locations.LOCATION_FORMAT, .{&identity});
     var unit = try reader.openLocation(path);
     unit.DataChannel.PhysicalSize = 0;
     var claims: claimtypes.Claims = .{ .Paging = .{ .BootServices = wrapped } };
@@ -152,7 +154,7 @@ fn require(condition: bool, comptime label: []const u8) void {
 
 fn nestedNode(reader: *readers.Reader) !?u32 {
     var parent: u32 = afs.constants.nodes.ORIGIN_STACK;
-    for ([_][]const u8{ labels.CHECKS_IDENTITY, labels.STORAGE_IDENTITY, labels.NESTED_IDENTITY }) |name| {
+    for ([_][]const u8{ locations.CHECKS_IDENTITY, locations.STORAGE_IDENTITY, locations.NESTED_IDENTITY }) |name| {
         var identity: [inputs.IDENTITY_BYTES]u16 = undefined;
         for (name, 0..) |byte, index| identity[index] = byte;
         const stack = (try reader.Index.searchIndexForStack(parent, identity[0..name.len])) orelse return null;
@@ -171,16 +173,16 @@ fn allPayloads(reader: *readers.Reader) !bool {
 }
 
 fn missingQueries(reader: *readers.Reader) !bool {
-    var location: [labels.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
+    var location: [locations.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
     for (0..inputs.UNIT_COUNT) |index| {
         var identity: [inputs.IDENTITY_BYTES]u8 = undefined;
         createIdentity(index * inputs.IDENTITY_STRIDE, &identity);
         if (!try isMissing(reader, &identity)) return false;
         createIdentity(index * inputs.IDENTITY_STRIDE + 1, &identity);
-        const path = try std.fmt.bufPrint(&location, labels.LOCATION_FORMAT, .{&identity});
+        const path = try std.fmt.bufPrint(&location, locations.LOCATION_FORMAT, .{&identity});
         if (!try isMissing(reader, path)) return false;
     }
-    return isMissing(reader, labels.NESTED_PATH);
+    return isMissing(reader, locations.NESTED_PATH);
 }
 
 fn isMissing(reader: *readers.Reader, path: []const u8) !bool {
@@ -192,8 +194,8 @@ fn isMissing(reader: *readers.Reader, path: []const u8) !bool {
 }
 
 fn readNamed(reader: *readers.Reader, identity: []const u8, ordinal: usize) !bool {
-    var location: [labels.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
-    const path = try std.fmt.bufPrint(&location, labels.LOCATION_FORMAT, .{identity});
+    var location: [locations.LOCATION_PREFIX.len + inputs.IDENTITY_BYTES]u8 = undefined;
+    const path = try std.fmt.bufPrint(&location, locations.LOCATION_FORMAT, .{identity});
     const unit = try reader.openLocation(path);
     if (unit.DataChannel.LogicalSize != inputs.PAYLOAD_BYTES) return false;
     var actual: [inputs.PAYLOAD_BYTES]u8 = undefined;
@@ -231,7 +233,7 @@ fn exactFences(reader: *readers.Reader, parent: u32) !bool {
             saw_lower = saw_lower or descriptor.Height < reader.Index.Depth;
         }
     }
-    return count >= inputs.MINIMUM_FENCES and saw_root and saw_lower;
+    return count >= criteria.MINIMUM_FENCES and saw_root and saw_lower;
 }
 
 fn createIdentity(value: usize, identity: *[inputs.IDENTITY_BYTES]u8) void {

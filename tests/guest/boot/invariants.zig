@@ -1,0 +1,106 @@
+//! Active Boot And CPU Invariants
+
+const std = @import("std");
+
+const bootstate = @import("mirai").boot.sequence.state;
+const common = @import("common");
+const construction = @import("tests").guest.support.root;
+const cpu = @import("asm").cpu;
+const gdt = @import("mirai").boot.gdt;
+const guard = @import("asm").interrupts.guard;
+const interrupts = @import("mirai").interrupts;
+const kagami = @import("mirai").kagami;
+const labels = @import("tests").guest.strings.boot.invariants;
+const ownership = @import("tests").guest.strings.tables;
+const pmm = @import("mirai").pmm;
+const retirement = @import("mirai").boot.retirement.layout;
+const selectors = @import("mirai").boot.constants.gdt.selectors;
+const thread = @import("mirai").thread;
+const tss = @import("mirai").boot.tss;
+const types = @import("mirai").boot.types;
+const verify = @import("tests").guest.support.verify;
+const volume = @import("tests").guest.constants.volume;
+
+const control = cpu.constants.control.registers;
+const layout = common.constants.memory.layout;
+const msr = cpu.constants.msr.registers;
+const sizes = common.constants.memory.sizes;
+const Region = types.image.manifest.Region;
+const TSS = types.tss.structure.TSS;
+
+pub fn run() void {
+    const flags = guard.acquire();
+    verify.require(construction.passed(), ownership.EARLY_ROLLBACK);
+    const current = thread.state.getCurrent().?;
+    const root = kagami.state.getKernelKagami();
+    const policy = kagami.state.getPolicy();
+    const pointer = cpu.state.readStackPointer();
+    verify.require(kagami.state.getCurrentKagami() == root and cpu.control.readCR3() == root.PML4Physical and
+        pointer >= current.Stack.Base and pointer < current.Stack.Top and pointer >= layout.KERNEL_STACK_AREA_BASE, labels.ROOT);
+    verify.require(kagami.tables.ownership.reset(root) and kagami.tables.ownership.owns(root, root.PML4Physical) and
+        root.Frames != null, labels.FRAMES);
+    verify.require(kagami.tables.walk.lookup(root.PML4Physical, layout.KERNEL_PHYSICAL_BASE) == null, labels.LOW);
+    const inherited = bootstate.getBootInfo().?.LoaderPML4Physical;
+    const retired_role = pmm.state.getRole(inherited);
+    const boot_info = bootstate.getBootInfo().?;
+    const page = inherited / sizes.PAGE_SIZE;
+    var protected = false;
+    for (retirement.retainedWindows(boot_info)) |range| protected = protected or (range.Start <= page and page < range.End);
+    const correct_role = if (protected) retired_role == .Reserved else (retired_role == .Free or retired_role == .Allocated);
+    verify.require(construction.retirementPassed() and boot_info.Retirement == null and boot_info.MemoryMap.len == 0 and
+        inherited != root.PML4Physical and correct_role, labels.RETIRED_ROOT);
+    verify.require(if (boot_info.Volume) |record|
+        std.mem.eql(u8, &record.DiskGUID, &volume.DISK_GUID) and std.mem.eql(u8, &record.PartitionGUID, &volume.AFS_GUID) and
+            record.FirstLBA == volume.FIRST_LBA and record.LastLBA == volume.LAST_LBA and record.DiskLastLBA == volume.DISK_LAST_LBA and
+            record.BlockBytes == volume.BLOCK_BYTES
+    else
+        false, labels.BOOT_VOLUME);
+    verify.require(cpu.control.readCR0() & control.CR0_WRITE_PROTECT != 0 and
+        cpu.msr.read(msr.EFER) & msr.EFER_NO_EXECUTE_ENABLE != 0, labels.PROTECTION);
+    verify.require(cpu.control.readCR0() & (control.CR0_EMULATION | control.CR0_TASK_SWITCHED) == 0 and
+        cpu.control.readCR4() & (control.CR4_OS_FXSAVE | control.CR4_OS_XMM_EXCEPTION) ==
+            (control.CR4_OS_FXSAVE | control.CR4_OS_XMM_EXCEPTION) and cpu.control.readCR4() & control.CR4_OS_XSAVE == 0, labels.FPU);
+    verify.require(cpu.control.readCR4() & (control.CR4_PCID_ENABLE | control.CR4_LINEAR_ADDRESS_57_ENABLE) == 0, labels.PAGE_MODE);
+    const text = kagami.tables.walk.lookup(root.PML4Physical, policy.Image.Text.VirtualStart).?;
+    const text_alias = kagami.tables.walk.lookup(root.PML4Physical, policy.PhysmapBase + policy.Image.Text.PhysicalStart).?;
+    verify.require(text.Executable and !text.Writable and !text.UserAccessible and
+        !text_alias.Executable and !text_alias.Writable and !text_alias.UserAccessible, labels.TEXT);
+    const rodata = kagami.tables.walk.lookup(root.PML4Physical, policy.Image.Rodata.VirtualStart).?;
+    const rodata_alias = kagami.tables.walk.lookup(root.PML4Physical, policy.PhysmapBase + policy.Image.Rodata.PhysicalStart).?;
+    verify.require(!rodata.Executable and !rodata.Writable and !rodata.UserAccessible and
+        !rodata_alias.Executable and !rodata_alias.Writable and !rodata_alias.UserAccessible, labels.RODATA);
+    if (policy.FramebufferEnd > policy.FramebufferStart) {
+        const framebuffer = kagami.tables.walk.lookup(root.PML4Physical, policy.PhysmapBase + policy.FramebufferStart).?;
+        verify.require(!framebuffer.UserAccessible and !framebuffer.Executable and framebuffer.Entry.CacheDisabled, labels.FRAMEBUFFER);
+    }
+    const active_tss = tss.state.getBootTSS();
+    const descriptor = gdt.state.getTable().TSS;
+    const limit = (@as(u20, @as(u4, @truncate(descriptor.LimitHighAndFlags))) << @bitSizeOf(u16)) | descriptor.LimitLow;
+    verify.require(active_tss.RSP0 == current.Stack.Top and active_tss.IOPBOffset == @sizeOf(TSS) and
+        limit + 1 == @sizeOf(TSS) and active_tss.IOPBOffset > limit, labels.TSS_STACK);
+    const regions = [_]Region{
+        policy.Image.DoubleFault, policy.Image.NonMaskable, policy.Image.MachineCheck, policy.Image.Debug,
+    };
+    for (regions, 0..) |region, index| {
+        const body = kagami.tables.walk.lookup(root.PML4Physical, region.VirtualStart).?;
+        verify.require(active_tss.getIST(@intCast(index + 1)) == region.VirtualEnd and body.Writable and
+            !body.Executable and !body.UserAccessible and
+            kagami.tables.walk.lookup(root.PML4Physical, region.VirtualStart - sizes.PAGE_SIZE) == null, labels.IST);
+    }
+    const gate = interrupts.table.entries.entries[common.constants.interrupts.vectors.INVOCATION_VECTOR];
+    verify.require(gate.Present and gate.DPL == .Ring3 and gate.GateType == .Interrupt and gate.IST == 0 and
+        gate.Selector == selectors.KERNEL_CODE_SELECTOR, labels.INVOCATION);
+    const nested = guard.acquire();
+    guard.release(nested);
+    verify.require(cpu.state.readFlags() & control.RFLAGS_INTERRUPT_ENABLE == 0, labels.GUARD);
+    guard.release(flags);
+    verify.require((cpu.state.readFlags() & control.RFLAGS_INTERRUPT_ENABLE) == (flags & control.RFLAGS_INTERRUPT_ENABLE), labels.GUARD);
+    var local: TSS = .{};
+    local.setRSP0(current.Stack.Top);
+    local.setIST(1, current.Stack.Top);
+    local.setIST(0, current.Stack.Base);
+    verify.require(local.RSP0 == current.Stack.Top and local.getIST(1) == current.Stack.Top and local.getIST(0) == 0 and
+        local.getIST(8) == 0, labels.TSS_DATA);
+    local.clear();
+    verify.require(local.RSP0 == 0 and local.getIST(1) == 0 and local.IOPBOffset == @sizeOf(@TypeOf(local)), labels.TSS_DATA);
+}
