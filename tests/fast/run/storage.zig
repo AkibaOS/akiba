@@ -5,6 +5,7 @@ const std = @import("std");
 const afs = @import("tests").fast.afs;
 const boot = @import("tests").fast.boot;
 const fat32 = @import("tests").fast.fat32;
+const gpt = @import("tests").fast.gpt.inspect;
 const shared = @import("shared");
 
 test "AHCI builds a single read DMA descriptor without a write flag" {
@@ -28,6 +29,26 @@ test "AHCI accepts only an identified 512 byte LBA48 disk" {
     try std.testing.expectEqual(@as(u64, 0x20000), try shared.ahci.command.identify.capacity(&identity));
     std.mem.writeInt(u16, identity[212..214], 0x5000, .little);
     try std.testing.expectError(error.UnsupportedSectorSize, shared.ahci.command.identify.capacity(&identity));
+}
+
+test "GPT verifies the handed-off AFS identity beyond table padding" {
+    try gpt.exactVolume();
+}
+
+test "GPT does not match a different disk, partition type, or span" {
+    try gpt.unrelatedVolume();
+}
+
+test "GPT refuses corrupt checksums and truncated partition bytes" {
+    try gpt.corruptedData();
+}
+
+test "GPT bounds the header and partition read window before use" {
+    try gpt.invalidLayout();
+}
+
+test "GPT refuses duplicate nonempty partition identities" {
+    try gpt.ambiguousIdentity();
 }
 
 test "AFS spans fit entirely inside the volume" {

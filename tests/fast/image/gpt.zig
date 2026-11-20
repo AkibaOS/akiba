@@ -3,8 +3,11 @@
 const std = @import("std");
 
 const constants = @import("tests").fast.constants.image.fixtures;
+const identity = @import("shared").gpt.read.identity;
 const io = @import("tests").fast.image.io;
 const strings = @import("tests").fast.strings.image.witnesses;
+
+const Volume = @import("shared").boot.types.volume.Volume;
 
 pub fn reciprocalHeaders(file: std.fs.File) !void {
     var primary: [constants.SECTOR_BYTES]u8 = undefined;
@@ -31,6 +34,7 @@ pub fn mirroredPartitionTables(file: std.fs.File) !void {
     var header: [constants.SECTOR_BYTES]u8 = undefined;
     try io.readExact(file, constants.SECTOR_BYTES, &header);
     try std.testing.expectEqual(checksum, std.mem.readInt(u32, header[constants.HEADER_TABLE_CRC..][0..4], .little));
+    try matchNative(&header, &primary);
     try io.readExact(file, constants.BACKUP_HEADER_LBA * constants.SECTOR_BYTES, &header);
     try std.testing.expectEqual(std.hash.Crc32.hash(&backup), std.mem.readInt(u32, header[constants.HEADER_TABLE_CRC..][0..4], .little));
     const esp = primary[0..constants.GPT_ENTRY_BYTES];
@@ -42,6 +46,19 @@ pub fn mirroredPartitionTables(file: std.fs.File) !void {
     try std.testing.expectEqual(constants.AFS_LAST_LBA, std.mem.readInt(u64, header[constants.HEADER_LAST_USABLE..][0..8], .little));
     try std.testing.expect(!std.mem.eql(u8, esp[constants.ENTRY_UNIQUE_GUID..][0..constants.GUID_BYTES], afs[constants.ENTRY_UNIQUE_GUID..][0..constants.GUID_BYTES]));
     try io.expectZeros(primary[2 * constants.GPT_ENTRY_BYTES ..]);
+}
+
+fn matchNative(primary: *const [constants.SECTOR_BYTES]u8, table: *const [constants.GPT_TABLE_BYTES]u8) !void {
+    const afs = table[constants.GPT_ENTRY_BYTES..][0..constants.GPT_ENTRY_BYTES];
+    const volume: Volume = .{
+        .DiskGUID = primary[constants.HEADER_DISK_GUID..][0..constants.GUID_BYTES].*,
+        .PartitionGUID = afs[constants.ENTRY_UNIQUE_GUID..][0..constants.GUID_BYTES].*,
+        .FirstLBA = constants.AFS_FIRST_LBA,
+        .LastLBA = constants.AFS_LAST_LBA,
+        .DiskLastLBA = constants.BACKUP_HEADER_LBA,
+        .BlockBytes = constants.SECTOR_BYTES,
+    };
+    try std.testing.expect(try identity.match(volume, primary, constants.BACKUP_HEADER_LBA, table));
 }
 
 fn expectHeader(sector: *const [constants.SECTOR_BYTES]u8, current: u64, alternate: u64, entries: u64) !void {
