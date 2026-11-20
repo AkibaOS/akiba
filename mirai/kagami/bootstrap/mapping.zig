@@ -2,7 +2,7 @@
 
 const common = @import("common");
 const constants = @import("mirai").kagami.constants;
-const errors = @import("mirai").kagami.errors.bootstrap;
+const errors = @import("mirai").kagami.errors.bootstrap.build;
 const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").kagami.types;
@@ -53,7 +53,7 @@ pub fn table(prepared: *const PreparedRoot, physical_address: u64) *Table {
 pub fn initializeUpperHalf(prepared: *PreparedRoot) errors.BootError!void {
     prepared.Kagami.PML4Physical = try allocateTable(prepared);
     const root = table(prepared, prepared.Kagami.PML4Physical);
-    var index: usize = constants.tables.KERNEL_PML4_START;
+    var index: usize = constants.tables.geometry.KERNEL_PML4_START;
     while (index < sizes.ENTRIES_PER_PAGE_TABLE) : (index += 1) {
         _ = try child(prepared, &root.Entries[index]);
     }

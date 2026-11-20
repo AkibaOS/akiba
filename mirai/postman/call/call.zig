@@ -11,7 +11,7 @@ const ticket = @import("mirai").postman.ticket;
 const validate = @import("mirai").postman.validate;
 
 const PostError = @import("mirai").postman.errors.transport.PostError;
-const Queue = @import("mirai").sensei.types.queue.Queue;
+const Queue = @import("mirai").sensei.types.queue.links.Queue;
 const Thread = @import("mirai").thread.types.thread.Thread;
 const View = @import("mirai").postman.types.letter.View;
 

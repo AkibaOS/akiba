@@ -8,13 +8,13 @@ const errors = @import("mirai").thread.errors.ownership;
 const guard = @import("asm").interrupts.guard;
 const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
-const limits = @import("mirai").thread.constants.user;
+const limits = @import("mirai").thread.constants.user.stack;
 const messages = @import("mirai").thread.strings.shift.messages;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const state = @import("mirai").thread.state;
 const transfer = @import("mirai").user.copy.transfer;
 const types = @import("mirai").thread.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
 const Kata = kata.types.kata.Kata;

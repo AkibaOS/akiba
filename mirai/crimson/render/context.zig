@@ -6,7 +6,7 @@ const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 
 pub fn render(context: *const Context) void {
     serial.write.printf(messages.CPU_CONTEXT_HEADER, .{});

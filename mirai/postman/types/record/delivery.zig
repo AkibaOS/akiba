@@ -2,7 +2,7 @@
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
 const Kata = @import("mirai").kata.types.kata.Kata;
-const Queue = @import("mirai").sensei.types.queue.Queue;
+const Queue = @import("mirai").sensei.types.queue.links.Queue;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 pub const Record = struct {

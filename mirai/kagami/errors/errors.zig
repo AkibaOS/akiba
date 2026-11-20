@@ -1,3 +1,3 @@
 //! Kagami Errors
 
-pub const bootstrap = @import("bootstrap.zig");
+pub const bootstrap = @import("bootstrap/bootstrap.zig");

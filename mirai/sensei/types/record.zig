@@ -1,6 +1,6 @@
 //! Scheduler Owned Thread Record
 
-const Queue = @import("mirai").sensei.types.queue.Queue;
+const Queue = @import("mirai").sensei.types.queue.links.Queue;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 pub const Record = struct {

@@ -24,14 +24,14 @@ var startup_owner: u64 = 0;
 var saw_startup: bool = false;
 
 pub fn run() !void {
-    const options: bootstrap.types.image.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = inputs.PRESSURE_PAGES };
+    const options: bootstrap.types.image.preparation.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = inputs.PRESSURE_PAGES };
     try refuse(options, labels.ROLLBACK);
     var handoff = options;
     handoff.Startup = .{ .Identity = labels.STARTUP_IDENTITY, .Parameters = &PARAMETERS };
     try refuse(handoff, labels.STARTUP_ROLLBACK);
 }
 
-fn refuse(options: bootstrap.types.image.Options, comptime label: []const u8) !void {
+fn refuse(options: bootstrap.types.image.preparation.Options, comptime label: []const u8) !void {
     const flags = guard.acquire();
     defer guard.release(flags);
     defer budget.clear();

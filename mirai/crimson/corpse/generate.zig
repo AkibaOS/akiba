@@ -4,7 +4,7 @@ const context = @import("mirai").crimson.context;
 const cpu = @import("asm").cpu;
 const types = @import("mirai").crimson.types;
 
-const Corpse = types.corpse.Corpse;
+const Corpse = types.corpse.snapshot.Corpse;
 const DebugState = types.flavor.DebugState;
 const Exception = types.exception.Exception;
 const FloatState = types.flavor.FloatState;

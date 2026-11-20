@@ -1,7 +1,7 @@
 //! Exception Structure
 
 const constants = @import("mirai").crimson.constants;
-const context = @import("mirai").crimson.types.context;
+const context = @import("mirai").crimson.types.context.frame;
 const frame = @import("mirai").crimson.types.frame;
 const kind = @import("mirai").crimson.types.kind;
 

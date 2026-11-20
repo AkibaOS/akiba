@@ -15,7 +15,7 @@ const sizes = common.constants.memory.sizes;
 const BootInfo = types.sequence.info.BootInfo;
 const Ledger = retirement.Ledger;
 const MemoryRegion = pmm.types.region.MemoryRegion;
-const Range = pmm.types.storage.Range;
+const Range = pmm.types.storage.layout.Range;
 
 pub fn pageRange(physical: u64, count: u64, limit: u64) ?Range {
     if (physical == 0 or physical & sizes.PAGE_MASK != 0 or physical >= limit or count == 0 or
@@ -24,7 +24,7 @@ pub fn pageRange(physical: u64, count: u64, limit: u64) ?Range {
     return .{ .Start = start, .End = start + count };
 }
 
-pub fn canCompact(info: *const BootInfo, raw: types.retirement.RawMap) bool {
+pub fn canCompact(info: *const BootInfo, raw: types.retirement.footprint.RawMap) bool {
     const owned = info.Retirement orelse return false;
     if (!fixedGeometry(info)) return false;
     const fixed = owned.fixed();
@@ -49,7 +49,7 @@ pub fn canCompact(info: *const BootInfo, raw: types.retirement.RawMap) bool {
     return physical == 0 and walk.exact(owned, info.PhysmapSize, .{ .Info = info, .Map = raw }, rawTable);
 }
 
-pub fn validate(info: *const BootInfo, index: ?pmm.types.storage.Index) bool {
+pub fn validate(info: *const BootInfo, index: ?pmm.types.storage.layout.Index) bool {
     const owned = info.Retirement orelse return false;
     if (!fixedGeometry(info) or !pmm.init.regions.validate(info.MemoryMap, info.PhysmapSize, &.{})) return false;
     const fixed = owned.fixed();
@@ -94,7 +94,7 @@ fn rawTable(context: anytype, page: u64) bool {
     return outsideFixedData(context.Info, page) and conversion.ownsLoaderBacking(context.Map, range) and aliases(context.Info, range);
 }
 
-fn mapWitness(node: *const Ledger, owned: types.retirement.Footprint) bool {
+fn mapWitness(node: *const Ledger, owned: types.retirement.footprint.Footprint) bool {
     return node.MapPhysical == owned.Map.Start * sizes.PAGE_SIZE and node.MapPages == owned.Tables.MapPages;
 }
 

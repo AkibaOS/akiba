@@ -13,7 +13,7 @@ const share = @import("mirai").user.memory.share;
 
 const Kata = @import("mirai").kata.types.kata.Kata;
 const Reference = @import("mirai").user.types.backing.Reference;
-const UserError = @import("mirai").user.errors.memory.UserError;
+const UserError = @import("mirai").user.errors.memory.mappings.UserError;
 
 const sizes = common.constants.memory.sizes;
 const layout = common.constants.memory.layout;

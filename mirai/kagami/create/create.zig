@@ -23,7 +23,7 @@ pub fn create() AllocationError!*Kagami {
     const kernel = state.getKernelKagami();
     if (!tables.walk.isValidTable(kernel.PML4Physical)) return AllocationError.NotInitialized;
     const kernel_pml4 = tables.walk.getPML4(kernel.PML4Physical);
-    for (kernel_pml4.Entries[constants.tables.KERNEL_PML4_START..]) |entry| {
+    for (kernel_pml4.Entries[constants.tables.geometry.KERNEL_PML4_START..]) |entry| {
         if (!entry.Present or entry.HugePage or !entry.isOwnedTable() or entry.UserAccessible or
             !tables.walk.isValidTable(entry.getPhysicalAddress())) return AllocationError.NotInitialized;
     }

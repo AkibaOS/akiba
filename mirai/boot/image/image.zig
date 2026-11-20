@@ -1,8 +1,8 @@
 //! Validated Kernel Image Manifest
 
 const common = @import("common");
-const errors = @import("mirai").kagami.errors.bootstrap;
-const image = @import("mirai").boot.types.image;
+const errors = @import("mirai").kagami.errors.bootstrap.build;
+const image = @import("mirai").boot.types.image.manifest;
 const sequence = @import("mirai").boot.types.sequence.info;
 
 const layout = common.constants.memory.layout;

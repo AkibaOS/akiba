@@ -82,7 +82,7 @@ pub fn run() !void {
         user.state.ledger.count() == baseline, labels.DYNAMIC_EXECUTION);
 }
 
-fn finish(image: bootstrap.types.image.Prepared) !u64 {
+fn finish(image: bootstrap.types.image.preparation.Prepared) !u64 {
     const identifier = try bootstrap.image.start.start(image);
     try driver.drain(identifier);
     const outcome = try kata.completion.lifetime.collect(identifier);

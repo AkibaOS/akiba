@@ -5,7 +5,7 @@ const std = @import("std");
 const boot = @import("shared").boot;
 const common = @import("common");
 const pmm = @import("mirai").pmm;
-const retirement = @import("mirai").boot.types.retirement;
+const retirement = @import("mirai").boot.types.retirement.footprint;
 
 const layout = common.constants.memory.layout;
 const memory = boot.constants.memory;
@@ -14,7 +14,7 @@ const Descriptor = boot.types.memory.UefiMemoryDescriptor;
 const MemoryRegion = pmm.types.region.MemoryRegion;
 const RawMap = retirement.RawMap;
 const RegionType = pmm.types.region.RegionType;
-const Range = pmm.types.storage.Range;
+const Range = pmm.types.storage.layout.Range;
 
 pub fn inspect(map: boot.types.memory.MemoryMapInfo, physical_limit: u64) ?RawMap {
     if (physical_limit == 0 or physical_limit > layout.PHYSMAP_MAX_SIZE or map.Entries == 0 or map.EntryCount == 0 or

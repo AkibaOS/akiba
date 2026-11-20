@@ -3,7 +3,7 @@
 const checks = if (options.GUEST_CHECKS) @import("tests").guest.mirai.kata.race else null;
 const completion = @import("mirai").kata.completion;
 const control = @import("asm").cpu.constants.control.registers;
-const errors = @import("mirai").kata.errors.completion;
+const errors = @import("mirai").kata.errors.completion.collection;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").kata.strings.messages;
 const options = @import("options");
@@ -16,7 +16,7 @@ const types = @import("mirai").kata.types;
 const CompletionError = errors.CompletionError;
 const Observer = types.observer.Observer;
 const Outcome = types.outcome.Outcome;
-const Registration = types.wait.Registration;
+const Registration = types.wait.registration.Registration;
 const SchedulingError = scheduling.SchedulingError;
 const Thread = thread.types.thread.Thread;
 

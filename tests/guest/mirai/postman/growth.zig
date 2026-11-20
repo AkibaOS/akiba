@@ -16,8 +16,8 @@ const thread = @import("mirai").thread;
 const verify = @import("tests").guest.support.verify;
 
 const Envelope = postman.types.envelope.Envelope;
-const Mailbox = postman.types.mailbox.Mailbox;
-const Queue = sensei.types.queue.Queue;
+const Mailbox = postman.types.mailbox.queues.Mailbox;
+const Queue = sensei.types.queue.links.Queue;
 const Thread = thread.types.thread.Thread;
 const LIMIT = postman.constants.limits.MAX_QUEUED_LETTERS;
 

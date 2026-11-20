@@ -26,7 +26,7 @@ pub fn run() !void {
     const identifier = marker.ID;
     try kata.destroy.destroy(marker);
     const before = pmm.state.getStatistics();
-    const options: bootstrap.types.image.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = 2 };
+    const options: bootstrap.types.image.preparation.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = 2 };
     var correct = rejects(&MALFORMED, options, error.InvalidHeader);
     var bad = options;
     bad.StackPages = 0;
@@ -60,7 +60,7 @@ pub fn run() !void {
     verify.require(correct and unchanged_ids and std.meta.eql(before, pmm.state.getStatistics()), labels.REJECT);
 }
 
-fn rejects(bytes: []const u8, options: bootstrap.types.image.Options, expected: anyerror) bool {
+fn rejects(bytes: []const u8, options: bootstrap.types.image.preparation.Options, expected: anyerror) bool {
     const image = bootstrap.image.prepare.prepare(thread.state.getCurrent().?.Owner, bytes, options) catch |failure| return failure == expected;
     bootstrap.image.abort.abort(image) catch |failure| verify.failure(failure);
     return false;

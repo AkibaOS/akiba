@@ -2,7 +2,7 @@
 
 const layout = @import("common").constants.memory.layout;
 const kagami = @import("mirai").kagami.types.kagami;
-const policy = @import("mirai").kagami.types.policy;
+const policy = @import("mirai").kagami.types.policy.cache;
 
 pub const Phase = enum {
     Empty,

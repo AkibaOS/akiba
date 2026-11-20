@@ -7,8 +7,8 @@ const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 
-const Context = types.context.Context;
-const Corpse = types.corpse.Corpse;
+const Context = types.context.frame.Context;
+const Corpse = types.corpse.snapshot.Corpse;
 
 pub fn inspect(corpse: *const Corpse) void {
     if (!corpse.isValid()) {

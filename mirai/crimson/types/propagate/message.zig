@@ -2,7 +2,7 @@
 
 const types = @import("mirai").crimson.types;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Identity = types.identity.Identity;
 
 pub const ExceptionMessage = struct {

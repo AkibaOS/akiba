@@ -7,7 +7,7 @@ const kagami = @import("mirai").kagami;
 const kata = @import("mirai").kata;
 const ledger = @import("mirai").user.state.ledger;
 const pmm = @import("mirai").pmm;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const layout = common.constants.memory.layout;
 const protection = kagami.constants.protection;

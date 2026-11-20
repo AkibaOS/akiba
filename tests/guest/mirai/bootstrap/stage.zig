@@ -17,7 +17,7 @@ const weaver = @import("weaver");
 const Kata = kata.types.kata.Kata;
 const Layout = elf.types.dynamic.Layout;
 const Plan = weaver.link.types.link.Plan;
-const Prepared = bootstrap.types.image.Prepared;
+const Prepared = bootstrap.types.image.preparation.Prepared;
 const Protection = user.types.protection.Protection;
 const ReadError = weaver.library.errors.library.ReadError;
 const Source = @import("tests").guest.types.elf.Source;
@@ -43,7 +43,7 @@ pub fn prepare(launcher: *const Kata, plan: *const Plan, first: ?*const Kata) !P
         };
         try user.memory.finalize.finalize(owner, page.Address, protection);
     }
-    const options: bootstrap.types.image.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = 1 };
+    const options: bootstrap.types.image.preparation.Options = .{ .StackBase = inputs.STACK_ADDRESS, .StackPages = 1 };
     try bootstrap.image.memory.allocateStack(owner, options);
     try bootstrap.image.memory.finalizeStack(owner, options);
     const target = try thread.user.create(owner, plan.Placement.Executable.Image.Entry, options.StackBase, sizes.PAGE_SIZE, 0);

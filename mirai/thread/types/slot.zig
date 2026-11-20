@@ -1,7 +1,7 @@
 //! Thread Descriptor And Owner Bound Runtime Storage
 
 const Observer = @import("mirai").kata.types.observer.Observer;
-const Postman = @import("mirai").postman.types.record.Record;
+const Postman = @import("mirai").postman.types.record.delivery.Record;
 const Scheduler = @import("mirai").sensei.types.record.Record;
 const Thread = @import("mirai").thread.types.thread.Thread;
 

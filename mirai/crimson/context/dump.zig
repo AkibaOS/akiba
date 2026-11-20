@@ -6,7 +6,7 @@ const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 
 pub fn dumpContext(context: *const Context) void {
     serial.write.printf(messages.DUMP_REGISTERS_GENERAL_1, .{ context.RAX, context.RBX, context.RCX, context.RDX });

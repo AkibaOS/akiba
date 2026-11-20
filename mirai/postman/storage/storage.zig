@@ -1,7 +1,7 @@
 //! Demand Backed Envelope Storage And Owner Charges
 
 const guard = @import("asm").interrupts.guard;
-const labels = @import("mirai").postman.strings.storage;
+const labels = @import("mirai").postman.strings.storage.pools;
 const limits = @import("mirai").postman.constants.limits;
 const memory = @import("mirai").memory;
 const messages = @import("mirai").postman.strings.invariants;
@@ -9,7 +9,7 @@ const pmm = @import("mirai").pmm;
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
 const EnvelopeStore = memory.types.pool.store.create(Envelope);
-const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
+const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
 const PostError = @import("mirai").postman.errors.transport.PostError;
 const Status = @import("mirai").postman.types.status.Status;
 const Zone = memory.types.zone.Zone;

@@ -2,7 +2,7 @@
 
 const kata = @import("mirai").kata;
 const transfer = @import("mirai").user.copy.transfer;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const Kata = kata.types.kata.Kata;
 const UserError = usererrors.UserError;

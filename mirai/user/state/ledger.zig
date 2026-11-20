@@ -11,7 +11,7 @@ const labels = @import("mirai").user.strings.ledger;
 const memory = @import("mirai").memory;
 const tree = common.datatypes.tree;
 const types = @import("mirai").user.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const sizes = common.constants.memory.sizes;
 const Backing = types.backing.Backing;

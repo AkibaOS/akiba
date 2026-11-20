@@ -72,7 +72,7 @@ fn afterPermissions() bool {
     return finalized;
 }
 
-fn prepare() !bootstrap.types.image.Prepared {
+fn prepare() !bootstrap.types.image.preparation.Prepared {
     return bootstrap.image.prepare.prepare(thread.state.getCurrent().?.Owner, &VALID, .{
         .StackBase = inputs.STACK_ADDRESS,
         .StackPages = 2,

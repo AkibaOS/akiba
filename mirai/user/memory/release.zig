@@ -10,7 +10,7 @@ const kata = @import("mirai").kata;
 const ledger = @import("mirai").user.state.ledger;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").user.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const Backing = types.backing.Backing;
 const Kata = kata.types.kata.Kata;

@@ -2,7 +2,7 @@
 
 const guard = @import("asm").interrupts.guard;
 const memory = @import("mirai").memory;
-const strings = @import("mirai").crimson.strings.ports;
+const strings = @import("mirai").crimson.strings.ports.report;
 const tree = @import("common").datatypes.tree;
 const types = @import("mirai").crimson.types;
 

@@ -24,7 +24,7 @@ pub fn run() !void {
     const record = user.state.ledger.find(owner, inputs.USER_ADDRESS).?;
     const bytes: [*]u8 = @ptrFromInt(common.constants.memory.layout.PHYSMAP_BASE + record.Backing.PA);
     @memset(bytes[0..common.constants.memory.sizes.PAGE_SIZE], inputs.DIRTY_BYTE);
-    const upper = &kagami.tables.walk.getPML4(root.PML4Physical).Entries[kagami.constants.tables.KERNEL_PML4_START];
+    const upper = &kagami.tables.walk.getPML4(root.PML4Physical).Entries[kagami.constants.tables.geometry.KERNEL_PML4_START];
     const saved = upper.*;
     budget.arm(0);
     upper.UserAccessible = true;

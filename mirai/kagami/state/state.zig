@@ -9,7 +9,7 @@ const types = @import("mirai").kagami.types;
 
 const indices = common.constants.paging.indices;
 const Kagami = types.kagami.Kagami;
-const Policy = types.policy.Policy;
+const Policy = types.policy.cache.Policy;
 
 var kernel_kagami: Kagami = .{};
 var current_kagami: *Kagami = &kernel_kagami;

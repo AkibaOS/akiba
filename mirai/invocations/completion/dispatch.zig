@@ -6,12 +6,12 @@ const abi = @import("mirai").invocations.types.abi;
 const arguments = @import("mirai").invocations.errors.arguments;
 const codec = @import("mirai").invocations.completion.codec;
 const copy = @import("mirai").user.copy.transfer;
-const errors = @import("mirai").kata.errors.completion;
+const errors = @import("mirai").kata.errors.completion.collection;
 const kata = @import("mirai").kata;
 
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Outcome = kata.types.outcome.Outcome;
-const Record = @import("mirai").invocations.types.completion.Record;
+const Record = @import("mirai").invocations.types.completion.record.Record;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 pub fn dispatch(current: *Thread, frame: *InterruptFrame, service: u64) void {

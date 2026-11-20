@@ -48,7 +48,7 @@ pub fn run() !void {
     verify.require(std.meta.eql(before, pmm.state.getStatistics()), labels.GROWTH_RELEASE);
 }
 
-fn prepare() !bootstrap.types.image.Prepared {
+fn prepare() !bootstrap.types.image.preparation.Prepared {
     return bootstrap.image.prepare.prepare(thread.state.getCurrent().?.Owner, &IMAGE, .{
         .StackBase = inputs.STACK_ADDRESS,
         .StackPages = inputs.COMMITTED_STACK_PAGES,

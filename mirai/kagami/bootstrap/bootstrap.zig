@@ -2,11 +2,11 @@
 
 const common = @import("common");
 const cpu = @import("asm").cpu;
-const errors = @import("mirai").kagami.errors.bootstrap;
+const errors = @import("mirai").kagami.errors.bootstrap.build;
 const guard = @import("asm").interrupts.guard;
 const image = @import("mirai").boot.image;
-const imagetypes = @import("mirai").boot.types.image;
-const limits = @import("mirai").kagami.constants.bootstrap;
+const imagetypes = @import("mirai").boot.types.image.manifest;
+const limits = @import("mirai").kagami.constants.bootstrap.limits;
 const pmm = @import("mirai").pmm;
 const sequence = @import("mirai").boot.types.sequence.info;
 const stack = @import("mirai").memory.stack;

@@ -3,7 +3,7 @@
 const inputs = @import("tests").guest.constants.sensei;
 const sensei = @import("mirai").sensei;
 
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 
 pub const WaitState = struct {
     Waiters: Queue = .{},

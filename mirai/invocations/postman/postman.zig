@@ -9,7 +9,7 @@ const limits = @import("mirai").user.constants.limits;
 const messages = @import("mirai").thread.strings.shift.messages;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
-const types = @import("mirai").invocations.types.postman;
+const types = @import("mirai").invocations.types.postman.exchange;
 
 const ArgumentError = arguments.ArgumentError;
 const Header = postman.types.letter.Header;

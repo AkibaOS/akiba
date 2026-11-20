@@ -9,7 +9,7 @@ const types = @import("mirai").kata.types;
 
 const Kata = types.kata.Kata;
 const Outcome = types.outcome.Outcome;
-const ThreadState = @import("mirai").thread.types.state.State;
+const ThreadState = @import("mirai").thread.types.state.lifecycle.State;
 
 var pulse_id: ?u64 = null;
 

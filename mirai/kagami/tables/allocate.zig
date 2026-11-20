@@ -42,11 +42,11 @@ pub fn ensureTables(kagami: *Kagami, virtual_address: u64) (AllocationError || M
     try policy.canMutate(kagami, virtual_address);
     const user_half = virtual_address <= common.constants.memory.layout.USER_SPACE_END;
     var current_physical = kagami.PML4Physical;
-    var pending_frames: [constants.bootstrap.MAX_INTERMEDIATE_TABLES]u64 = undefined;
+    var pending_frames: [constants.bootstrap.limits.MAX_INTERMEDIATE_TABLES]u64 = undefined;
     var pending_count: usize = 0;
     var first_parent: ?*Entry = null;
     var first_physical: u64 = 0;
-    var visited: [constants.bootstrap.MAX_INTERMEDIATE_TABLES]u64 = undefined;
+    var visited: [constants.bootstrap.limits.MAX_INTERMEDIATE_TABLES]u64 = undefined;
     const search = pmm.state.getState().SearchStart;
     errdefer {
         for (pending_frames[0..pending_count]) |physical_address| freeTable(kagami, physical_address);

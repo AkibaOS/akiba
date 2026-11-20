@@ -1,6 +1,6 @@
 //! Sparse Physical Range Packing Geometry
 
-const types = @import("mirai").pmm.types.storage;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub const ROLE_BITS = @bitSizeOf(u2);
 pub const PAGES_PER_BYTE = @bitSizeOf(u8) / ROLE_BITS;

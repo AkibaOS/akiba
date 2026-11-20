@@ -3,7 +3,7 @@
 const types = @import("mirai").pmm.types;
 
 const MemoryRegion = types.region.MemoryRegion;
-const Range = types.storage.Range;
+const Range = types.storage.layout.Range;
 
 pub const Source = struct {
     Regions: []const MemoryRegion,

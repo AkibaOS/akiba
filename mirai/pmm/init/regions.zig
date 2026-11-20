@@ -10,7 +10,7 @@ const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 const Eligible = types.geometry.Eligible;
 const MemoryRegion = types.region.MemoryRegion;
-const Range = types.storage.Range;
+const Range = types.storage.layout.Range;
 const Source = types.geometry.Source;
 
 pub fn validate(regions: []const MemoryRegion, physical_limit: u64, exclusions: []const Range) bool {

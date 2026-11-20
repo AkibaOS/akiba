@@ -2,8 +2,8 @@
 
 pub const behavior = @import("behavior.zig");
 pub const codes = @import("codes.zig");
-pub const context = @import("context.zig");
-pub const corpse = @import("corpse.zig");
+pub const context = @import("context/context.zig");
+pub const corpse = @import("corpse/corpse.zig");
 pub const exception = @import("exception.zig");
 pub const faults = @import("faults.zig");
 pub const flavor = @import("flavor.zig");

@@ -1,6 +1,6 @@
 //! Sparse Thread Exception Ports
 
-const strings = @import("mirai").crimson.strings.ports;
+const strings = @import("mirai").crimson.strings.ports.report;
 const types = @import("mirai").crimson.types;
 
 const Behavior = types.behavior.Behavior;

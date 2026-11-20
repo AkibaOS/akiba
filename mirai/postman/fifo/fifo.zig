@@ -4,7 +4,7 @@ const messages = @import("mirai").postman.strings.invariants;
 const storage = @import("mirai").postman.storage;
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
-const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
+const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
 
 pub fn append(mailbox: *Mailbox, envelope: *Envelope) void {
     if (!storage.owns(envelope)) @panic(messages.INVALID_ENVELOPE);

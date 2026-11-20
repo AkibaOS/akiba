@@ -6,8 +6,8 @@ const inputs = @import("tests").guest.constants.crimson;
 const labels = @import("tests").guest.strings.crimson;
 const verify = @import("tests").guest.support.verify;
 
-const Context = crimson.types.context.Context;
-const Corpse = crimson.types.corpse.Corpse;
+const Context = crimson.types.context.frame.Context;
+const Corpse = crimson.types.corpse.snapshot.Corpse;
 const Exception = crimson.types.exception.Exception;
 const Frame = crimson.types.frame.Frame;
 

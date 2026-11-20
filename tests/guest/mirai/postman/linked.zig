@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.postman;
+const abi = @import("mirai").invocations.types.postman.exchange;
 const bootstrap = @import("mirai").bootstrap;
 const completion = @import("tests").guest.mirai.invocations.completion.support;
 const copy = @import("mirai").user.copy.transfer;

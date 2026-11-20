@@ -1,6 +1,6 @@
 //! Owned Kernel Mapping Policy Type
 
-const image = @import("mirai").boot.types.image;
+const image = @import("mirai").boot.types.image.manifest;
 
 pub const Policy = struct {
     Image: image.Manifest = .{},

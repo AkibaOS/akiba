@@ -11,7 +11,7 @@ const messages = @import("mirai").kata.strings.messages;
 const tree = @import("common").datatypes.tree;
 const types = @import("mirai").kata.types;
 
-const Completion = types.completion.Completion;
+const Completion = types.completion.result.Completion;
 const RecordStore = memory.types.pool.store.create(Completion);
 const Tree = tree.types.index.Tree;
 

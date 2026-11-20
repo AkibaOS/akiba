@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const errors = @import("mirai").kata.errors.completion;
+const errors = @import("mirai").kata.errors.completion.collection;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").kata.strings.messages;
 const pending = @import("mirai").kata.completion.pending;
@@ -12,7 +12,7 @@ const storage = @import("mirai").kata.completion.storage;
 const thread = @import("mirai").thread;
 const types = @import("mirai").kata.types;
 
-const Completion = types.completion.Completion;
+const Completion = types.completion.result.Completion;
 const CompletionError = errors.CompletionError;
 const Outcome = types.outcome.Outcome;
 

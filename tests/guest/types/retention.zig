@@ -5,7 +5,7 @@ const kata = @import("mirai").kata;
 const sensei = @import("mirai").sensei;
 
 const Outcome = kata.types.outcome.Outcome;
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 
 pub const WaitResult = struct {
     Invalid: bool = false,

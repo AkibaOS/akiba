@@ -5,7 +5,7 @@ const gdt = @import("asm").gdt;
 
 const types = @import("mirai").crimson.types;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Frame = types.frame.Frame;
 
 pub fn captureFromFrame(context: *Context, frame: *const Frame) void {

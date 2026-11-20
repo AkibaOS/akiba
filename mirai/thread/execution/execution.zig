@@ -6,7 +6,7 @@ const messages = @import("mirai").thread.strings.shift.messages;
 const state = @import("mirai").thread.state;
 const types = @import("mirai").thread.types;
 
-const State = types.state.State;
+const State = types.state.lifecycle.State;
 const Thread = types.thread.Thread;
 
 pub fn admit(target: *Thread) bool {

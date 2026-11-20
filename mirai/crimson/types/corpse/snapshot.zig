@@ -1,7 +1,7 @@
 //! Corpse Structure
 
 const constants = @import("mirai").crimson.constants;
-const context = @import("mirai").crimson.types.context;
+const context = @import("mirai").crimson.types.context.frame;
 const flavor = @import("mirai").crimson.types.flavor;
 const identity = @import("mirai").crimson.types.identity;
 const kind = @import("mirai").crimson.types.kind;

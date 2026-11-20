@@ -12,7 +12,7 @@ const ownership = @import("mirai").kagami.tables.ownership;
 const pmm = @import("mirai").pmm;
 const state = @import("mirai").kagami.state;
 const types = @import("mirai").kagami.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 const walk = @import("mirai").kagami.tables.walk;
 
 const indices = common.constants.paging.indices;

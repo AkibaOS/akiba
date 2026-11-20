@@ -12,7 +12,7 @@ const tree = @import("common").datatypes.tree;
 const Backing = @import("mirai").user.types.backing.Backing;
 const BackingStore = memory.types.pool.store.create(Backing);
 const Tree = tree.types.index.Tree;
-const UserError = @import("mirai").user.errors.memory.UserError;
+const UserError = @import("mirai").user.errors.memory.mappings.UserError;
 
 var records: BackingStore = .{};
 var physicals: Tree = .{};

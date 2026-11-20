@@ -2,7 +2,7 @@
 
 const types = @import("mirai").crimson.types;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Exception = types.exception.Exception;
 const Frame = types.frame.Frame;
 

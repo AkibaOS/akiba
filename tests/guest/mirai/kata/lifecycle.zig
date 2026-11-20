@@ -8,7 +8,7 @@ const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const verify = @import("tests").guest.support.verify;
 
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 
 var waiters: Queue = .{};
 var released: bool = false;

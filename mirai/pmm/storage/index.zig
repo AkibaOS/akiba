@@ -1,7 +1,7 @@
 //! Sparse Frame Range Index And Ordered Traversal
 
 const records = @import("mirai").pmm.storage.records;
-const types = @import("mirai").pmm.types.storage;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub fn balance(first: *?*types.Frame, count: u64) ?*types.Frame {
     if (count == 0) return null;

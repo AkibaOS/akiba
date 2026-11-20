@@ -13,10 +13,10 @@ const verify = @import("tests").guest.support.verify;
 
 const sizes = common.constants.memory.sizes;
 const Backing = types.SparseBacking;
-const Frame = pmm.types.storage.Frame;
+const Frame = pmm.types.storage.layout.Frame;
 const MemoryRegion = pmm.types.region.MemoryRegion;
-const Range = pmm.types.storage.Range;
-const State = pmm.types.state.State;
+const Range = pmm.types.storage.layout.Range;
+const State = pmm.types.state.allocator.State;
 
 pub fn run() !void {
     const flags = guard.acquire();

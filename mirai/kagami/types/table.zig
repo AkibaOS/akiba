@@ -22,8 +22,8 @@ pub const Table = struct {
     }
 
     pub fn copyKernelEntries(self: *Table, source: *const Table) void {
-        var index: usize = constants.tables.KERNEL_PML4_START;
-        while (index < constants.tables.KERNEL_PML4_END) : (index += 1) {
+        var index: usize = constants.tables.geometry.KERNEL_PML4_START;
+        while (index < constants.tables.geometry.KERNEL_PML4_END) : (index += 1) {
             self.Entries[index] = source.Entries[index];
             if (self.Entries[index].Present) self.Entries[index].markShared();
         }

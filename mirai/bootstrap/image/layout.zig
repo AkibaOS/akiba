@@ -1,9 +1,9 @@
 //! Bootstrap Stack Geometry And Image Separation
 
 const common = @import("common");
-const types = @import("mirai").bootstrap.types.image;
+const types = @import("mirai").bootstrap.types.image.preparation;
 
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 const Plan = @import("shared").elf.types.image.Plan;
 const sizes = common.constants.memory.sizes;
 const address = common.constants.memory.layout;

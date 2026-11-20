@@ -5,8 +5,8 @@ const kata = @import("mirai").kata;
 const preflight = @import("mirai").bootstrap.image.preflight;
 const thread = @import("mirai").thread;
 
-const Prepared = @import("mirai").bootstrap.types.image.Prepared;
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
+const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 
 pub fn abort(image: Prepared) ImageError!void {
     const flags = guard.acquire();

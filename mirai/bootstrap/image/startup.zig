@@ -2,11 +2,11 @@
 
 const codec = @import("shared").launch.startup;
 const common = @import("common");
-const types = @import("mirai").bootstrap.types.image;
+const types = @import("mirai").bootstrap.types.image.preparation;
 const user = @import("mirai").user;
 const wire = @import("shared").launch.constants.startup;
 
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 const Kata = @import("mirai").kata.types.kata.Kata;
 const sizes = common.constants.memory.sizes;
 const address = common.constants.memory.layout;

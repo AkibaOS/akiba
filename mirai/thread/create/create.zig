@@ -15,7 +15,7 @@ const state = @import("mirai").thread.state;
 const types = @import("mirai").thread.types;
 
 const AllocationError = common.errors.memory.allocation.AllocationError;
-const Entry = types.entry.Entry;
+const Entry = types.entry.callback.Entry;
 const Kata = kata.types.kata.Kata;
 const MappingError = common.errors.memory.mapping.MappingError;
 const OwnershipError = errors.OwnershipError;

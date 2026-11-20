@@ -10,12 +10,12 @@ const kata = @import("mirai").kata;
 const ledger = @import("mirai").user.state.ledger;
 const limits = @import("mirai").user.constants.limits;
 const types = @import("mirai").user.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const layout = common.constants.memory.layout;
 const sizes = common.constants.memory.sizes;
 const Kata = kata.types.kata.Kata;
-const Plan = types.copy.Plan;
+const Plan = types.copy.plan.Plan;
 const UserError = usererrors.UserError;
 
 pub fn read(owner: *const Kata, destination: []u8, user_address: u64) UserError!void {

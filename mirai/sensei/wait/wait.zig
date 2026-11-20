@@ -13,7 +13,7 @@ const thread = @import("mirai").thread;
 const types = @import("mirai").sensei.types;
 
 const Predicate = types.predicate.Predicate;
-const Queue = types.queue.Queue;
+const Queue = types.queue.links.Queue;
 const Record = types.record.Record;
 const SchedulingError = errors.SchedulingError;
 const Thread = thread.types.thread.Thread;

@@ -4,7 +4,7 @@ const messages = @import("mirai").postman.strings.invariants;
 const thread = @import("mirai").thread;
 
 const PostError = @import("mirai").postman.errors.transport.PostError;
-const Record = @import("mirai").postman.types.record.Record;
+const Record = @import("mirai").postman.types.record.delivery.Record;
 const Thread = thread.types.thread.Thread;
 
 pub fn find(target: *const Thread) ?*Record {

@@ -8,10 +8,10 @@ const types = @import("mirai").boot.types;
 const walk = @import("mirai").boot.retirement.walk;
 
 const BootInfo = types.sequence.info.BootInfo;
-const Footprint = types.retirement.Footprint;
-const Index = pmm.types.storage.Index;
-const Range = pmm.types.storage.Range;
-const State = pmm.types.state.State;
+const Footprint = types.retirement.footprint.Footprint;
+const Index = pmm.types.storage.layout.Index;
+const Range = pmm.types.storage.layout.Range;
+const State = pmm.types.state.allocator.State;
 const access = pmm.storage.access;
 const sizes = common.constants.memory.sizes;
 

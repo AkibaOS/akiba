@@ -4,7 +4,7 @@ const checks = @import("mirai").user.state.checks;
 const common = @import("common");
 const protection = @import("mirai").kagami.constants.protection;
 const types = @import("mirai").user.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const sizes = common.constants.memory.sizes;
 const Backing = types.backing.Backing;

@@ -1,7 +1,7 @@
 //! Memory And Address Information Carried Through Early Boot
 
 const pmm = @import("mirai").pmm;
-const retirement = @import("mirai").boot.types.retirement;
+const retirement = @import("mirai").boot.types.retirement.footprint;
 
 const MemoryRegion = pmm.types.region.MemoryRegion;
 

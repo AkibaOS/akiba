@@ -14,7 +14,7 @@ const Kata = @import("mirai").kata.types.kata.Kata;
 const Template = @import("mirai").launch.types.template.Template;
 const Transaction = @import("mirai").launch.types.transaction.Transaction;
 const Tree = tree.types.index.Tree;
-const UserError = @import("mirai").user.errors.memory.UserError;
+const UserError = @import("mirai").user.errors.memory.mappings.UserError;
 
 var identities: Tree = .{};
 var next_id: u64 = 1;

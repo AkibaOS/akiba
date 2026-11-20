@@ -2,7 +2,7 @@
 
 const allocate = @import("mirai").kagami.tables.allocate;
 const common = @import("common");
-const constants = @import("mirai").kagami.constants.bootstrap;
+const constants = @import("mirai").kagami.constants.bootstrap.limits;
 const cpu = @import("asm").cpu;
 const guard = @import("asm").interrupts.guard;
 const ownership = @import("mirai").kagami.tables.ownership;

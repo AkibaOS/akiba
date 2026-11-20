@@ -2,7 +2,7 @@
 
 const ranges = @import("mirai").pmm.storage.index;
 const roles = @import("mirai").pmm.storage.roles;
-const types = @import("mirai").pmm.types.storage;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub fn read(index: types.Index, page: u64) types.Role {
     var walker = ranges.start(index, page);

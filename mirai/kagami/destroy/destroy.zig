@@ -48,7 +48,7 @@ pub fn validate(kagami: *Kagami) bool {
     defer _ = tables.ownership.reset(kagami);
     const root = tables.walk.getPML4(kagami.PML4Physical);
     const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
-    var upper: usize = constants.tables.KERNEL_PML4_START;
+    var upper: usize = constants.tables.geometry.KERNEL_PML4_START;
     while (upper < sizes.ENTRIES_PER_PAGE_TABLE) : (upper += 1) {
         const shared = root.Entries[upper];
         if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or
@@ -66,7 +66,7 @@ fn validateOwned(owner: *const Kagami, physical_address: u64, level: u8, count: 
     count.* += 1;
     if (level == 1) return true;
     const table = tables.walk.getTableFromPhysical(physical_address);
-    const entry_limit = if (level == sizes.PAGE_TABLE_LEVELS) constants.tables.USER_PML4_END else sizes.ENTRIES_PER_PAGE_TABLE;
+    const entry_limit = if (level == sizes.PAGE_TABLE_LEVELS) constants.tables.geometry.USER_PML4_END else sizes.ENTRIES_PER_PAGE_TABLE;
     for (table.Entries[0..entry_limit]) |entry| {
         if (!entry.Present) continue;
         if (entry.HugePage) {

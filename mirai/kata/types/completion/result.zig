@@ -2,7 +2,7 @@
 
 const Node = @import("common").datatypes.tree.types.node.Node;
 const Outcome = @import("mirai").kata.types.outcome.Outcome;
-const Queue = @import("mirai").sensei.types.queue.Queue;
+const Queue = @import("mirai").sensei.types.queue.links.Queue;
 
 pub const Completion = struct {
     ID: u64 = 0,

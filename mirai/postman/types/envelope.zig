@@ -4,8 +4,8 @@ const limits = @import("mirai").postman.constants.limits;
 
 const Header = @import("mirai").postman.types.letter.Header;
 const Lease = @import("mirai").postman.types.lease.Lease;
-const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
-const Record = @import("mirai").postman.types.record.Record;
+const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
+const Record = @import("mirai").postman.types.record.delivery.Record;
 const Status = @import("mirai").postman.types.status.Status;
 
 pub const Envelope = struct {

@@ -2,7 +2,7 @@
 
 const ranges = @import("mirai").pmm.storage.index;
 const roles = @import("mirai").pmm.storage.roles;
-const types = @import("mirai").pmm.types.storage;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub fn find(index: types.Index, start: u64, end: u64, count: u64, alignment: u64) ?u64 {
     const limit = @min(end, index.PhysicalPages);

@@ -1,7 +1,7 @@
 //! Exact Sparse Metadata Dry Run
 
 const common = @import("common");
-const geometry = @import("mirai").pmm.constants.storage;
+const geometry = @import("mirai").pmm.constants.storage.layout;
 const records = @import("mirai").pmm.storage.records;
 const regions = @import("mirai").pmm.init.regions;
 const types = @import("mirai").pmm.types;
@@ -11,7 +11,7 @@ const MemoryRegion = types.region.MemoryRegion;
 const Packer = types.geometry.Packer;
 const Plan = types.geometry.Plan;
 const Placement = types.geometry.Placement;
-const Range = types.storage.Range;
+const Range = types.storage.layout.Range;
 
 pub fn analyze(memory_map: []const MemoryRegion, physical_limit: u64, exclusions: []const Range) ?Plan {
     if (!regions.validate(memory_map, physical_limit, exclusions)) return null;

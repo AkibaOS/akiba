@@ -2,9 +2,9 @@
 
 const types = @import("mirai").sensei.types;
 
-var scheduler: types.state.State = .{};
+var scheduler: types.state.scheduler.State = .{};
 
-pub fn getState() *types.state.State {
+pub fn getState() *types.state.scheduler.State {
     return &scheduler;
 }
 

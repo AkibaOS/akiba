@@ -6,7 +6,7 @@ const storage = @import("mirai").pmm.storage;
 const types = @import("mirai").pmm.types;
 
 const sizes = common.constants.memory.sizes;
-const State = types.state.State;
+const State = types.state.allocator.State;
 
 var global_state: State = .{};
 
@@ -26,7 +26,7 @@ pub fn getStatistics() types.statistics.Statistics {
     return global_state.Statistics;
 }
 
-pub fn getRole(physical: u64) types.storage.Role {
+pub fn getRole(physical: u64) types.storage.layout.Role {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (physical & sizes.PAGE_MASK != 0) return .Hole;

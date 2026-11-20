@@ -3,7 +3,7 @@
 const kata = @import("mirai").kata;
 
 const Kata = kata.types.kata.Kata;
-const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
+const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
 const PostError = @import("mirai").postman.errors.transport.PostError;
 
 pub fn find(owner: *const Kata) ?*Mailbox {

@@ -2,10 +2,10 @@
 
 const common = @import("common");
 const format = @import("shared").elf.constants.format;
-const types = @import("mirai").bootstrap.types.image;
+const types = @import("mirai").bootstrap.types.image.preparation;
 const user = @import("mirai").user;
 
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 const Kata = @import("mirai").kata.types.kata.Kata;
 const Plan = @import("shared").elf.types.image.Plan;
 const sizes = common.constants.memory.sizes;

@@ -1,7 +1,7 @@
 //! Address Space Owning Kata
 
 const Kagami = @import("mirai").kagami.types.kagami.Kagami;
-const State = @import("mirai").kata.types.state.State;
+const State = @import("mirai").kata.types.state.lifecycle.State;
 
 pub const Kata = struct {
     ID: u64,

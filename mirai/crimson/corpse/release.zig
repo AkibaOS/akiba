@@ -5,7 +5,7 @@ const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;
 
-const Corpse = types.corpse.Corpse;
+const Corpse = types.corpse.snapshot.Corpse;
 
 var corpse_pool: [limits.MAX_CORPSES]Corpse = initPool();
 var corpse_in_use: [limits.MAX_CORPSES]bool = [_]bool{false} ** limits.MAX_CORPSES;

@@ -8,11 +8,11 @@ const kata = @import("mirai").kata;
 const layout = @import("mirai").bootstrap.image.layout;
 const memory = @import("mirai").bootstrap.image.memory;
 const startup = @import("mirai").bootstrap.image.startup;
-const strings = @import("mirai").bootstrap.strings.image;
+const strings = @import("mirai").bootstrap.strings.image.rollback;
 const thread = @import("mirai").thread;
-const types = @import("mirai").bootstrap.types.image;
+const types = @import("mirai").bootstrap.types.image.preparation;
 
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
 const Kata = kata.types.kata.Kata;
 
 pub fn prepare(launcher: *const Kata, bytes: []const u8, options: types.Options) ImageError!types.Prepared {

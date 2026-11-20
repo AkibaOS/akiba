@@ -13,7 +13,7 @@ const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
 
 const Thread = thread.types.thread.Thread;
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 const PAGE_SIZE = common.constants.memory.sizes.PAGE_SIZE;
 
 var sibling_ran: bool = false;

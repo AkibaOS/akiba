@@ -7,7 +7,7 @@ const types = @import("mirai").crimson.types;
 const selectors = boot.constants.gdt.selectors;
 
 const Action = types.behavior.Action;
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Frame = types.frame.Frame;
 
 pub fn raiseFromVector(vector: u8, frame: *Frame, context: *Context) Action {

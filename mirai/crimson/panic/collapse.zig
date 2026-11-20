@@ -10,7 +10,7 @@ const strings = @import("mirai").crimson.strings;
 const types = @import("mirai").crimson.types;
 
 const messages = strings.messages;
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Exception = types.exception.Exception;
 
 var collapse_in_progress: bool = false;

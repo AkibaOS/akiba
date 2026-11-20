@@ -9,7 +9,7 @@ const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const verify = @import("tests").guest.support.verify;
 
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 
 var blocked: Queue = .{};
 var target_id: u64 = 0;

@@ -23,7 +23,7 @@ const messages = strings.sequence.messages;
 const sizes = common.constants.memory.sizes;
 const status = strings.sequence.status;
 const BootInfo = types.sequence.info.BootInfo;
-const Range = pmm.types.storage.Range;
+const Range = pmm.types.storage.layout.Range;
 
 pub fn prepare(boot_info: *const BootInfo) bool {
     print.phase(status.SYSTEM_MEMORY);

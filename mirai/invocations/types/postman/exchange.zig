@@ -1,7 +1,7 @@
 //! Postman Invocation Argument And Result Types
 
 const abi = @import("mirai").invocations.types.abi;
-const strings = @import("mirai").invocations.strings.postman;
+const strings = @import("mirai").invocations.strings.postman.diagnostic;
 
 const Header = @import("mirai").postman.types.letter.Header;
 

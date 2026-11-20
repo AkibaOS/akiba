@@ -98,7 +98,7 @@ fn execute(comptime failure: u64) !void {
     verify.require(kata.completion.storage.ownerOf(image.ID) == null and !thread.state.owns(image.Thread), labels.ABORT);
 }
 
-fn startupReadonly(image: bootstrap.types.image.Prepared) bool {
+fn startupReadonly(image: bootstrap.types.image.preparation.Prepared) bool {
     const base = image.Thread.User.Argument;
     const length = inputs.STARTUP_HEADER_BYTES + labels.STARTUP_IDENTITY.len + inputs.STARTUP_PARAMETER_BYTES;
     const pages = std.math.divCeil(usize, length, inputs.PAGE_BYTES) catch unreachable;

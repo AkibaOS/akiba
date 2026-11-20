@@ -118,7 +118,7 @@ fn observable(identifier: u64) bool {
     return true;
 }
 
-fn prepare(bytes: []const u8) !bootstrap.types.image.Prepared {
+fn prepare(bytes: []const u8) !bootstrap.types.image.preparation.Prepared {
     return bootstrap.image.prepare.prepare(thread.state.getCurrent().?.Owner, bytes, .{
         .StackBase = inputs.STACK_ADDRESS,
         .StackPages = 2,

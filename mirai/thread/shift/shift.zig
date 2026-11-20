@@ -15,7 +15,7 @@ const types = @import("mirai").thread.types;
 
 const indices = common.constants.paging.indices;
 const OwnershipError = errors.OwnershipError;
-const State = types.state.State;
+const State = types.state.lifecycle.State;
 const Thread = types.thread.Thread;
 
 fn hasOwner(thread: *const Thread) bool {

@@ -9,7 +9,7 @@ const types = @import("mirai").pmm.types;
 pub fn initializeFromMemoryMap(
     memory_map: []const types.region.MemoryRegion,
     physical_limit: u64,
-    exclusions: []const types.storage.Range,
+    exclusions: []const types.storage.layout.Range,
 ) bool {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
@@ -19,6 +19,6 @@ pub fn initializeFromMemoryMap(
     return true;
 }
 
-fn directFrame(_: void, physical: u64) *types.storage.Frame {
+fn directFrame(_: void, physical: u64) *types.storage.layout.Frame {
     return @ptrFromInt(address.translate.physToVirt(physical));
 }

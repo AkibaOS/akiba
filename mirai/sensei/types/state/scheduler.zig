@@ -1,7 +1,7 @@
 //! Single CPU Scheduler State
 
 const policy = @import("mirai").sensei.constants.policy;
-const Queue = @import("mirai").sensei.types.queue.Queue;
+const Queue = @import("mirai").sensei.types.queue.links.Queue;
 const Record = @import("mirai").sensei.types.record.Record;
 
 pub const State = struct {

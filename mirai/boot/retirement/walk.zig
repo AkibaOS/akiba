@@ -1,7 +1,7 @@
 //! Inherited Table Graph Walk With An Explicit Ownership Check
 
 const common = @import("common");
-const retirement = @import("mirai").boot.types.retirement;
+const retirement = @import("mirai").boot.types.retirement.footprint;
 
 const flags = common.constants.paging.flags;
 const indices = common.constants.paging.indices;

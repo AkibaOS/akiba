@@ -2,7 +2,7 @@
 
 const finalization = @import("mirai").user.memory.finalize;
 const kata = @import("mirai").kata;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const Kata = kata.types.kata.Kata;
 const UserError = usererrors.UserError;

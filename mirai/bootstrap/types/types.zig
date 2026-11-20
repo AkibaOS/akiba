@@ -1,3 +1,3 @@
 //! Bootstrap Type Exports
 
-pub const image = @import("image.zig");
+pub const image = @import("image/image.zig");

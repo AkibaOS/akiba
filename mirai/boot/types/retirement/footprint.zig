@@ -2,7 +2,7 @@
 
 const inventory = @import("shared").boot.types.retirement;
 const memory = @import("shared").boot.types.memory;
-const storage = @import("mirai").pmm.types.storage;
+const storage = @import("mirai").pmm.types.storage.layout;
 
 pub const RawMap = struct {
     Map: memory.MemoryMapInfo,

@@ -9,8 +9,8 @@ const kata = @import("mirai").kata;
 const memory = @import("mirai").memory;
 const thread = @import("mirai").thread;
 
-const ImageError = @import("mirai").bootstrap.errors.image.ImageError;
-const Prepared = @import("mirai").bootstrap.types.image.Prepared;
+const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageError;
+const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
 const Thread = thread.types.thread.Thread;
 
 /// Keep the caller's interrupt guard until admission or destruction completes.

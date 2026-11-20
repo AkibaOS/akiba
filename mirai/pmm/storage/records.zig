@@ -1,7 +1,7 @@
 //! Packed Physical Range Record Format
 
-const geometry = @import("mirai").pmm.constants.storage;
-const types = @import("mirai").pmm.types.storage;
+const geometry = @import("mirai").pmm.constants.storage.layout;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub fn mapBytes(page_count: u64) usize {
     return @intCast((page_count + geometry.PAGES_PER_BYTE - 1) / geometry.PAGES_PER_BYTE);

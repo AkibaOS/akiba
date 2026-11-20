@@ -9,7 +9,7 @@ const pmm = @import("mirai").pmm;
 
 const Backing = @import("mirai").user.types.backing.Backing;
 const Kata = @import("mirai").kata.types.kata.Kata;
-const UserError = @import("mirai").user.errors.memory.UserError;
+const UserError = @import("mirai").user.errors.memory.mappings.UserError;
 
 pub fn map(source: *const Kata, source_address: u64, receiver: *Kata, destination: u64) UserError!void {
     const flags = guard.acquire();

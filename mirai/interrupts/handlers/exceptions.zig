@@ -21,7 +21,7 @@ export fn exception_dispatch(interrupt_frame: *InterruptFrame) void {
         user.fault(vector, interrupt_frame.ErrorCode, address, interrupt_frame.RIP, interrupt_frame.RSP);
     }
 
-    var context = crimson.types.context.Context{
+    var context = crimson.types.context.frame.Context{
         .RAX = interrupt_frame.RAX,
         .RBX = interrupt_frame.RBX,
         .RCX = interrupt_frame.RCX,

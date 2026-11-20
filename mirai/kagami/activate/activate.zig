@@ -34,7 +34,7 @@ pub fn canActivate(kagami: *const Kagami) bool {
         if (!kagami.SharesKernel) return false;
         const root = tables.walk.getPML4(kagami.PML4Physical);
         const kernel = tables.walk.getPML4(state.getKernelKagami().PML4Physical);
-        var index: usize = constants.tables.KERNEL_PML4_START;
+        var index: usize = constants.tables.geometry.KERNEL_PML4_START;
         while (index < sizes.ENTRIES_PER_PAGE_TABLE) : (index += 1) {
             const shared = root.Entries[index];
             if (!shared.Present or shared.HugePage or shared.isOwnedTable() or shared.UserAccessible or

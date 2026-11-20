@@ -18,7 +18,7 @@ const types = @import("mirai").boot.types;
 const zones = @import("mirai").memory.zone.bootstrap;
 
 const BootInfo = types.sequence.info.BootInfo;
-const Range = pmm.types.storage.Range;
+const Range = pmm.types.storage.layout.Range;
 const sizes = common.constants.memory.sizes;
 
 var completed: bool = false;
@@ -92,7 +92,7 @@ pub fn run(info: *const BootInfo) void {
     serial.printf(bootstrapwire.ROLLBACK_COMPLETE, .{});
 }
 
-fn prepare(info: *const BootInfo) kagami.errors.bootstrap.BootError!*kagami.types.prepared.PreparedRoot {
+fn prepare(info: *const BootInfo) kagami.errors.bootstrap.build.BootError!*kagami.types.prepared.PreparedRoot {
     return kagami.bootstrap.prepareObserved(info, screen.bootPulse);
 }
 
@@ -205,7 +205,7 @@ fn eligibleCount(range: Range, keep: [2]Range) u64 {
 
 fn expectedRoles(range: Range, keep: [2]Range) bool {
     for (range.Start..range.End) |page| {
-        const role: pmm.types.storage.Role = if (eligible(page, keep)) .Free else .Reserved;
+        const role: pmm.types.storage.layout.Role = if (eligible(page, keep)) .Free else .Reserved;
         if (pmm.state.getRole(page * sizes.PAGE_SIZE) != role) return false;
     }
     return true;

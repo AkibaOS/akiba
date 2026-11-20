@@ -7,7 +7,7 @@ const release = @import("mirai").user.memory.release;
 const state = @import("mirai").kata.state;
 const templates = @import("mirai").launch.templates;
 const types = @import("mirai").kata.types;
-const usererrors = @import("mirai").user.errors.memory;
+const usererrors = @import("mirai").user.errors.memory.mappings;
 
 const Kata = types.kata.Kata;
 const OwnershipError = errors.OwnershipError;

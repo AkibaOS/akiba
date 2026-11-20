@@ -208,7 +208,7 @@ fn capacity() !void {
             kata.completion.storage.ownerOf(id) == kernel.ID and matches(kata.completion.lifetime.peek(id), inputs.RECLAIMED_RESULT + index);
     }
     verify.require(retained_results and count == inputs.RETAINED_COUNT and kata.state.canReserve(), labels.CAPACITY);
-    var record: ?*kata.types.completion.Completion = null;
+    var record: ?*kata.types.completion.result.Completion = null;
     while (borrowed < inputs.RETAINED_COUNT) : (borrowed += 1) record = try kata.completion.lifetime.borrow(retained_ids[0]);
     const held = record.?.Observers;
     record.?.Observers = std.math.maxInt(usize);

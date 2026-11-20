@@ -5,7 +5,7 @@ const cpu = @import("asm").cpu;
 const context = @import("mirai").crimson.context;
 const types = @import("mirai").crimson.types;
 
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const DebugState = types.flavor.DebugState;
 const FloatState = types.flavor.FloatState;
 

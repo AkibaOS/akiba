@@ -20,10 +20,10 @@ const values = @import("tests").guest.types.postman;
 const verify = @import("tests").guest.support.verify;
 
 const Actor = values.Actor;
-const Entry = thread.types.entry.Entry;
+const Entry = thread.types.entry.callback.Entry;
 const Kata = kata.types.kata.Kata;
 
-var parked: sensei.types.queue.Queue = .{};
+var parked: sensei.types.queue.links.Queue = .{};
 
 pub fn operation(actor: *const Actor, service: u64) values.Operation {
     return .{

@@ -12,7 +12,7 @@ const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
 const verify = @import("tests").guest.support.verify;
 
-const Queue = sensei.types.queue.Queue;
+const Queue = sensei.types.queue.links.Queue;
 const Record = sensei.types.record.Record;
 const Store = memory.types.pool.store.create(Record);
 

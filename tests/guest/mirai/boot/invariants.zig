@@ -22,7 +22,7 @@ const control = cpu.constants.control.registers;
 const layout = common.constants.memory.layout;
 const msr = cpu.constants.msr.registers;
 const sizes = common.constants.memory.sizes;
-const Region = types.image.Region;
+const Region = types.image.manifest.Region;
 const TSS = types.tss.structure.TSS;
 
 pub fn run() void {

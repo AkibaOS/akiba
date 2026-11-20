@@ -1,6 +1,6 @@
 //! Registered Completion Wait Context
 
-const Completion = @import("mirai").kata.types.completion.Completion;
+const Completion = @import("mirai").kata.types.completion.result.Completion;
 const Observer = @import("mirai").kata.types.observer.Observer;
 const Thread = @import("mirai").thread.types.thread.Thread;
 

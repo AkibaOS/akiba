@@ -13,7 +13,7 @@ const state = @import("mirai").crimson.state;
 const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 const Exception = types.exception.Exception;
 const ExceptionType = types.kind.ExceptionType;
 const Frame = types.frame.Frame;

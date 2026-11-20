@@ -3,7 +3,7 @@
 const types = @import("mirai").crimson.types;
 
 const Action = types.behavior.Action;
-const Context = types.context.Context;
+const Context = types.context.frame.Context;
 
 pub const ParsedAction = struct {
     Action: Action,

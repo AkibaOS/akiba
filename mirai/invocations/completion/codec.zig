@@ -1,7 +1,7 @@
 //! Deterministic Completion Record Encoding
 
 const Outcome = @import("mirai").kata.types.outcome.Outcome;
-const Record = @import("mirai").invocations.types.completion.Record;
+const Record = @import("mirai").invocations.types.completion.record.Record;
 
 pub fn encode(outcome: Outcome) Record {
     return switch (outcome) {

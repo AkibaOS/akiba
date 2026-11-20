@@ -7,10 +7,10 @@ const storage = @import("mirai").pmm.storage;
 const types = @import("mirai").pmm.types;
 
 const sizes = common.constants.memory.sizes;
-const Frame = types.storage.Frame;
+const Frame = types.storage.layout.Frame;
 const MemoryRegion = types.region.MemoryRegion;
-const Range = types.storage.Range;
-const State = types.state.State;
+const Range = types.storage.layout.Range;
+const State = types.state.allocator.State;
 
 pub fn build(
     memory_map: []const MemoryRegion,
@@ -43,12 +43,12 @@ pub fn build(
         const frame = tail.?;
         const record = storage.records.at(frame, placement.Offset);
         record.* = .{ .StartPage = placement.Range.Start, .PageCount = placement.Range.End - placement.Range.Start };
-        const body = placement.Offset + @sizeOf(types.storage.Record);
+        const body = placement.Offset + @sizeOf(types.storage.layout.Record);
         @memset(frame.Data[body .. placement.Offset + placement.Stride], 0);
         frame.Header.EndPage = placement.Range.End;
         frame.Header.UsedBytes = placement.Offset + placement.Stride;
     }
-    const index: types.storage.Index = .{
+    const index: types.storage.layout.Index = .{
         .Root = storage.index.balance(&first, geometry.MetadataPages),
         .PhysicalPages = source.PhysicalPages,
     };
@@ -75,7 +75,7 @@ pub fn build(
     };
 }
 
-fn markMetadata(index: types.storage.Index, source: types.geometry.Source, exclusions: []const Range, count: u64) void {
+fn markMetadata(index: types.storage.layout.Index, source: types.geometry.Source, exclusions: []const Range, count: u64) void {
     var eligible: types.geometry.Eligible = .{ .Source = source, .Exclusions = exclusions };
     var remaining = count;
     while (remaining != 0) {

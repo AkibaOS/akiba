@@ -4,7 +4,7 @@ const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").kata.strings.messages;
 const types = @import("mirai").kata.types;
 
-const Completion = types.completion.Completion;
+const Completion = types.completion.result.Completion;
 
 var head: ?*Completion = null;
 var tail: ?*Completion = null;

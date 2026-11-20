@@ -18,7 +18,7 @@ pub fn releaseRange(physical: u64, page_count: u64) bool {
     return releaseFrom(state.getState(), physical, page_count);
 }
 
-pub fn releaseFrom(pmm_state: *types.state.State, physical: u64, page_count: u64) bool {
+pub fn releaseFrom(pmm_state: *types.state.allocator.State, physical: u64, page_count: u64) bool {
     const index = pmm_state.Index;
     const page = physical / sizes.PAGE_SIZE;
     if (physical & sizes.PAGE_MASK != 0 or page_count == 0 or page >= index.PhysicalPages or

@@ -5,7 +5,7 @@ const std = @import("std");
 const messages = @import("mirai").sensei.strings.messages;
 const types = @import("mirai").sensei.types;
 
-const Queue = types.queue.Queue;
+const Queue = types.queue.links.Queue;
 const Record = types.record.Record;
 
 pub fn append(queue: *Queue, record: *Record) bool {

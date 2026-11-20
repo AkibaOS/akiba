@@ -1,7 +1,7 @@
 //! Two-Bit Physical Page Roles
 
-const geometry = @import("mirai").pmm.constants.storage;
-const types = @import("mirai").pmm.types.storage;
+const geometry = @import("mirai").pmm.constants.storage.layout;
+const types = @import("mirai").pmm.types.storage.layout;
 
 pub fn read(view: types.View, page: u64) types.Role {
     const relative = page - view.Range.Start;

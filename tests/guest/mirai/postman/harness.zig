@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const abi = @import("mirai").invocations.types.abi;
-const arguments = @import("mirai").invocations.types.postman;
+const arguments = @import("mirai").invocations.types.postman.exchange;
 const constants = @import("tests").guest.constants.postman;
 const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;
@@ -144,11 +144,11 @@ pub fn descriptor(actor: *const Actor, destination: u64, capacity: u64) !void {
     try copy.write(actor.Owner, actor.Data + constants.CALL_OFFSET, std.mem.asBytes(&value));
 }
 
-pub fn mailbox(actor: *const Actor) !*postman.types.mailbox.Mailbox {
+pub fn mailbox(actor: *const Actor) !*postman.types.mailbox.queues.Mailbox {
     return postman.inbox.find(actor.Owner) orelse FixtureError.InvalidFixture;
 }
 
-pub fn record(actor: *const Actor) !*postman.types.record.Record {
+pub fn record(actor: *const Actor) !*postman.types.record.delivery.Record {
     return postman.record.find(actor.Target orelse return FixtureError.InvalidFixture) orelse FixtureError.InvalidFixture;
 }
 

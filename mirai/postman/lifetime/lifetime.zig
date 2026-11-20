@@ -7,8 +7,8 @@ const record = @import("mirai").postman.record;
 const storage = @import("mirai").postman.storage;
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
-const Mailbox = @import("mirai").postman.types.mailbox.Mailbox;
-const Record = @import("mirai").postman.types.record.Record;
+const Mailbox = @import("mirai").postman.types.mailbox.queues.Mailbox;
+const Record = @import("mirai").postman.types.record.delivery.Record;
 
 pub fn discardLetter(envelope: *Envelope) void {
     if (envelope.Status != .OneWay) @panic(messages.INVALID_ENVELOPE);

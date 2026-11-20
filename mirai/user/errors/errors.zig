@@ -1,3 +1,3 @@
 //! User Memory Errors
 
-pub const memory = @import("memory.zig");
+pub const memory = @import("memory/memory.zig");
