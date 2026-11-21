@@ -8,6 +8,7 @@ pub const HIKARI_ROOT = "hikari/hikari.zig";
 pub const HIKARI_ENTRY = "hikari/entry/entry.zig";
 pub const MIRAI_ROOT = "mirai/mirai.zig";
 pub const MIRAI_ENTRY = "mirai/entry/entry.zig";
+pub const DISPLAY_ROOT = "drivers/display/display.zig";
 pub const KEYBOARD_ROOT = "drivers/keyboard/keyboard.zig";
 pub const KEYBOARD_ENTRY = "drivers/keyboard/entry/entry.zig";
 pub const PULSE_ROOT = "pulse/pulse.zig";

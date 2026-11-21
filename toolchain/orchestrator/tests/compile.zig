@@ -48,6 +48,9 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     const keyboard = builder.createModule(.{ .root_source_file = builder.path(paths.KEYBOARD_ROOT) });
     keyboard.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
     keyboard.addImport(names.MODULE_SHARED, modules.Shared);
+    const display = builder.createModule(.{ .root_source_file = builder.path(paths.DISPLAY_ROOT) });
+    display.addImport(names.EXECUTABLE_DISPLAY, display);
+    display.addImport(names.MODULE_SHARED, modules.Shared);
     const dynamic = fixture.dynamic(builder);
     const step = builder.step(names.STEP_FAST_CHECKS, steps.FAST_CHECKS_DESCRIPTION);
     for (suites.FAST) |suite| {
@@ -62,6 +65,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
         root.addImport(names.EXECUTABLE_PULSE, supervisor);
+        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_DISPLAY)) root.addImport(names.EXECUTABLE_DISPLAY, display);
         if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_KEYBOARD)) {
             root.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
             root.addAnonymousImport(names.IMPORT_KEYBOARD_IMAGE, .{ .root_source_file = keyboard_artifact });
