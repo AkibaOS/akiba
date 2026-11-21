@@ -5,10 +5,13 @@ const std = @import("std");
 const assembly = @import("personaasm");
 const asset = @import("shared").pulse.strings.bootstrap;
 const bootstrap = @import("pulse").supervision.bootstrap;
+const drivers = @import("pulse").supervision.driver;
 const run = @import("pulse").supervision.inbox;
 
 const Status = @import("shared").persona.types.invocation.Status;
 
+const AHCI = @embedFile(asset.AHCI_IMPORT);
+export const ahci_bootstrap: [AHCI.len]u8 linksection(asset.AHCI_SECTION) = AHCI[0..AHCI.len].*;
 const WEAVER = @embedFile(asset.WEAVER_IMPORT);
 export const weaver_bootstrap: [WEAVER.len]u8 linksection(asset.WEAVER_SECTION) = WEAVER[0..WEAVER.len].*;
 
@@ -18,6 +21,7 @@ comptime {
 
 export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
     bootstrap.start();
+    drivers.ahci.start();
     run.listen();
 }
 

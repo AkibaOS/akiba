@@ -1,4 +1,5 @@
 //! Persona Entry String Exports
 
+pub const ahci = @import("ahci.zig");
 pub const pulse = @import("pulse.zig");
 pub const weaver = @import("weaver.zig");

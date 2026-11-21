@@ -4,4 +4,5 @@ pub const command = @import("command/command.zig");
 pub const constants = @import("constants/constants.zig");
 pub const discover = @import("discover/discover.zig");
 pub const errors = @import("errors/errors.zig");
+pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");

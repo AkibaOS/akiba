@@ -12,6 +12,8 @@ pub const EXECUTABLE_FONTPREVIEW = "fontpreview";
 pub const ENTRY_MIRAI = "mirai_entry";
 pub const EXECUTABLE_PULSE = "pulse";
 pub const ENTRY_PULSE = "pulse_entry";
+pub const EXECUTABLE_AHCI = "ahci";
+pub const ENTRY_AHCI = "ahci_entry";
 pub const ENTRY_WEAVER = "weaver_entry";
 pub const MODULE_PERSONA_ASSEMBLY = "personaasm";
 

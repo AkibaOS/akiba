@@ -3,6 +3,7 @@
 pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const completion = @import("completion/completion.zig");
 pub const constants = @import("constants/constants.zig");
+pub const device = @import("device/device.zig");
 pub const entry = @import("entry/entry.zig");
 pub const errors = @import("errors/errors.zig");
 pub const lifecycle = @import("lifecycle/lifecycle.zig");

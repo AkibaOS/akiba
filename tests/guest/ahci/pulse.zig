@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const authority = @import("mirai").device.ahci.authority;
 const drive = @import("tests").guest.support.drive;
 const fixture = @import("tests").guest.constants.ahci.fixture;
 const handoff = @import("mirai").bootstrap.storage.handoff;
@@ -15,6 +16,7 @@ const thread = @import("mirai").thread;
 const weaver = @import("mirai").bootstrap.weaver.handoff;
 
 const Actor = @import("tests").guest.types.postman.fixtures.Actor;
+const DeviceOperation = @import("shared").ahci.types.device.invocation.Operation;
 const Context = @import("tests").guest.types.ahci.pulse.Context;
 const Operation = @import("shared").pulse.types.boot.control.Operation;
 const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
@@ -27,7 +29,9 @@ pub fn prove(volume: Volume) !bool {
     drive.run();
     if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
     const resident = kata.state.next(pulse.Owner) orelse return false;
-    if (pulse.Owner.CanProvision or resident.CanProvision or kata.state.next(resident) != null) return false;
+    const driver = kata.state.next(resident) orelse return false;
+    if (pulse.Owner.CanProvision or resident.CanProvision or driver.CanProvision or kata.state.next(driver) != null or
+        !authority.readyFor(pulse.ID, driver.ID)) return false;
     const disk = handoff.forPulse(pulse.Owner) orelse return false;
     const address: u16 = @bitCast(disk.Location.Address);
     if (address != fixture.RELOCATED_ADDRESS or disk.Location.Port != fixture.BOOT_PORT or
@@ -62,6 +66,7 @@ fn exchange(identifier: u64) !bool {
         harness.call(&client),
         harness.call(&client),
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
+        .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
     });
     try harness.start(&client);
     try harness.waitStep(&client, 1);
@@ -74,7 +79,10 @@ fn exchange(identifier: u64) !bool {
     try harness.waitStep(&client, 3);
     const denied = try harness.resultIs(&client, 3, .InvalidCaller, 0);
     try harness.advance(&client, 3);
-    return ready and refused and denied;
+    try harness.waitStep(&client, 4);
+    const disk_denied = try harness.resultIs(&client, 4, .InvalidCaller, 0);
+    try harness.advance(&client, 4);
+    return ready and refused and denied and disk_denied;
 }
 
 fn waiting(pulse: Prepared) bool {

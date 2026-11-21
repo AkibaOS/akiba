@@ -1,5 +1,6 @@
 //! Start The First Kata From The Exact Core Pulse Unit
 
+const driver = @import("mirai").bootstrap.driver.handoff;
 const embedded = @import("shared").pulse.boot.image;
 const guard = @import("asm").interrupts.guard;
 const handoff = @import("mirai").bootstrap.storage.handoff;
@@ -25,11 +26,14 @@ pub fn start(volume: Volume) !Prepared {
     const file = try storage.unit(volume, .{ .Parents = &install.STACKS, .Unit = install.UNIT }, allocator);
     defer allocator.free(file.Bytes);
     const payload = try embedded.weaver(file.Bytes);
+    const ahci = try embedded.ahci(file.Bytes);
     const prepared = try image.prepare.prepare(kernel, file.Bytes, .{ .StackBase = stack.BASE, .StackPages = stack.PAGES });
     errdefer image.abort.abort(prepared) catch @panic(labels.ROLLBACK_FAILED);
     if (!kata.lifecycle.designatePulse(prepared.Owner)) return PulseError.DesignationRefused;
     if (!handoff.arm(prepared.Owner, file.Location, volume)) return PulseError.BootDiskHandoffRefused;
     errdefer handoff.disarm(prepared.Owner);
+    try driver.arm(prepared.Owner, ahci);
+    errdefer driver.disarm(prepared.Owner);
     try weaver.arm(prepared.Owner, payload);
     errdefer if (!weaver.disarm(prepared.ID)) @panic(labels.ROLLBACK_FAILED);
     _ = try image.start.start(prepared);

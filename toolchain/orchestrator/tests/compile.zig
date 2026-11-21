@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const ahcipath = @import("../../../shared/ahci/strings/install.zig");
 const boot = @import("boot.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
 const diskfixture = @import("../../../tests/fixtures/strings/elf/boot.zig");
@@ -18,7 +19,7 @@ const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile) void {
+pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile) void {
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);
@@ -70,6 +71,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(selector.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
     _ = stage.addCopyFile(pulse.getEmittedBin(), pulsepath.PATH);
+    _ = stage.addCopyFile(ahci.getEmittedBin(), ahcipath.PATH);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     storage.add(builder, stage);

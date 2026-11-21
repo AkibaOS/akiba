@@ -80,7 +80,7 @@ prepare-filesystem: native-build
 	fi; \
 	mkdir -- "$$stage"; \
 	cp -R -- "$(RESOURCES_DIR)/." "$$stage/"; \
-	for directory in "$$stage/EFI" "$$stage/EFI/BOOT" "$$stage/system" "$$stage/system/akiba" "$$stage/system/libraries" "$$stage/binaries"; do \
+	for directory in "$$stage/EFI" "$$stage/EFI/BOOT" "$$stage/system" "$$stage/system/akiba" "$$stage/system/drivers" "$$stage/system/libraries" "$$stage/binaries"; do \
 		if [ -L "$$directory" ] || { [ -e "$$directory" ] && [ ! -d "$$directory" ]; }; then \
 			printf 'Stage directory is not an ordinary directory: %s\n' "$$directory" >&2; \
 			exit 1; \
@@ -89,7 +89,8 @@ prepare-filesystem: native-build
 	done; \
 	cp --no-target-directory --remove-destination -- zig-out/EFI/BOOT/BOOTX64.EFI "$$stage/EFI/BOOT/BOOTX64.EFI"; \
 	cp --no-target-directory --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"
+	cp --no-target-directory --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"; \
+	cp --no-target-directory --remove-destination -- zig-out/system/drivers/ahci "$$stage/system/drivers/ahci"
 
 $(DISK_IMAGE): prepare-filesystem
 	@set -eu; \

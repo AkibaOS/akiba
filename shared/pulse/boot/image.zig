@@ -8,12 +8,20 @@ const ImageError = elf.errors.image.ImageError;
 const PayloadError = @import("shared").pulse.errors.boot.image.PayloadError;
 const Program = elf.types.format.Elf64ProgramHeader;
 
+pub fn ahci(pulse: []const u8) (ImageError || PayloadError)![]const u8 {
+    return extract(pulse, layout.AHCI_ADDRESS);
+}
+
 pub fn weaver(pulse: []const u8) (ImageError || PayloadError)![]const u8 {
+    return extract(pulse, layout.WEAVER_ADDRESS);
+}
+
+fn extract(pulse: []const u8, address: u64) (ImageError || PayloadError)![]const u8 {
     const header = try elf.read.header.read(pulse);
     const programs = try elf.read.programs.read(pulse, header);
     var found: ?usize = null;
     for (programs, 0..) |segment, index| {
-        if (!segment.isLoadable() or segment.VirtualAddress != layout.WEAVER_ADDRESS) continue;
+        if (!segment.isLoadable() or segment.VirtualAddress != address) continue;
         if (found != null or segment.Flags != elf.constants.format.SEGMENT_FLAG_READ or segment.UnitSize == 0 or
             segment.UnitSize != segment.MemorySize or segment.Offset > pulse.len or segment.UnitSize > pulse.len - segment.Offset)
             return error.InvalidBootstrapImage;

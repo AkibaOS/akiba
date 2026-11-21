@@ -17,6 +17,8 @@ pub const Service = enum(u64) {
     WaitCompletion = 11,
     CollectCompletion = 12,
     BootstrapWeaver = 14,
+    BootstrapDriver = 15,
+    Ahci = 16,
     Provision = provision.SERVICE,
 };
 

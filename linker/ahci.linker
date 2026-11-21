@@ -1,0 +1,33 @@
+/* Standalone AHCI Driver ELF */
+OUTPUT_FORMAT(elf64-x86-64)
+OUTPUT_ARCH(i386:x86-64)
+ENTRY(ahci_entry)
+AHCI_BASE = 0x400000;
+AHCI_PAGE_SIZE = 4096;
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    rodata PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+}
+SECTIONS
+{
+    .text AHCI_BASE :
+    {
+        KEEP(*(.text.ahci.entry))
+        *(.text .text.*)
+    } :text
+    .rodata ALIGN(AHCI_PAGE_SIZE) :
+    {
+        *(.rodata .rodata.* .srodata .srodata.*)
+    } :rodata
+    .data ALIGN(AHCI_PAGE_SIZE) :
+    {
+        *(.data .data.* .sdata .sdata.* .got .got.*)
+    } :data
+    .bss ALIGN(AHCI_PAGE_SIZE) (NOLOAD) :
+    {
+        *(.bss .bss.* .sbss .sbss.*) *(COMMON)
+    } :data
+    /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
+}

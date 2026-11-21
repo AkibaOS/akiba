@@ -1,5 +1,6 @@
 //! Start Pulse In Ordinary Boot On Supported Native Storage
 
+const ahci = @import("mirai").device.ahci.authority;
 const collapse = @import("mirai").crimson.panic.collapse;
 const halt = @import("asm").cpu.halt;
 const launch = @import("mirai").bootstrap.pulse.launch;
@@ -23,6 +24,7 @@ pub fn activate(info: *const BootInfo) !void {
     try scheduler.yield();
     if (!prepared.Thread.Started or prepared.Thread.Mode != .Persona) return PulseBootError.PulseDidNotEnterPersona;
     if (!weaver.readyFor(prepared.ID)) return PulseBootError.WeaverNotReady;
+    if (!ahci.ready(prepared.ID)) return PulseBootError.AhciDriverNotReady;
     print.log(messages.LINE, .{messages.PULSE_ENTERED});
     print.log(messages.LINE, .{messages.WEAVER_READY});
 }

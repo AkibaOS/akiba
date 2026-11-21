@@ -9,7 +9,8 @@ PHDRS
     text PT_LOAD FLAGS(5);
     rodata PT_LOAD FLAGS(4);
     data PT_LOAD FLAGS(6);
-    bootstrap PT_LOAD FLAGS(4);
+    weaver PT_LOAD FLAGS(4);
+    ahci PT_LOAD FLAGS(4);
 }
 SECTIONS
 {
@@ -33,6 +34,10 @@ SECTIONS
     .bootstrap.weaver 0x60000000 :
     {
         KEEP(*(.bootstrap.weaver))
-    } :bootstrap
+    } :weaver
+    .bootstrap.ahci 0x61000000 :
+    {
+        KEEP(*(.bootstrap.ahci))
+    } :ahci
     /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
 }
