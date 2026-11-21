@@ -16,6 +16,7 @@ const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
 const progress = @import("pack.zig");
 const pulsepath = @import("../../../shared/pulse/strings/install.zig");
+const services = @import("../../../tests/fixtures/strings/service.zig");
 const steps = @import("../strings/steps/descriptions.zig");
 const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
@@ -75,7 +76,8 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         .Ordinary = bootloader,
     });
     const stage = builder.addWriteFiles();
-    _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
+    _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{ .exclude_extensions = &.{services.WORLD_UNIT} });
+    _ = stage.add(services.WORLD_PATH, services.WORLD);
     _ = stage.addCopyFile(selector.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
     _ = stage.addCopyFile(pulse.getEmittedBin(), pulsepath.PATH);

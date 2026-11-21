@@ -21,8 +21,13 @@ pub fn dynamic(builder: *std.Build) Dynamic {
     const assembly = builder.createModule(.{ .root_source_file = builder.path(paths.ELF_FIXTURE_ASSEMBLY) });
     assembly.addImport(names.MODULE_FIXTURE_ASSEMBLY, assembly);
     const program = object(builder, paths.DYNAMIC_FIXTURE_ROOT, names.OBJECT_DYNAMIC_FIXTURE);
+    const fixtures = checks(builder);
     program.root_module.addImport(names.MODULE_FIXTURE_ASSEMBLY, assembly);
-    program.root_module.addImport(names.MODULE_TESTS, checks(builder));
+    program.root_module.addImport(names.MODULE_TESTS, fixtures);
+    const service = builder.createModule(.{ .root_source_file = builder.path(paths.SERVICE_FIXTURE_ROOT) });
+    service.addImport(names.MODULE_FIXTURE_ASSEMBLY, assembly);
+    service.addImport(names.MODULE_TESTS, fixtures);
+    program.root_module.addImport(names.MODULE_SERVICE_FIXTURE, service);
     const library = object(builder, paths.DYNAMIC_FIXTURE_LIBRARY, names.OBJECT_DYNAMIC_LIBRARY);
     const shared = builder.addSystemCommand(&.{ builder.graph.zig_exe, linker.LLD, linker.SHARED, linker.SYSV_HASH, linker.SONAME, names.OUTPUT_DYNAMIC_LIBRARY, linker.LINK_OPTION, linker.EAGER, linker.OUTPUT });
     const library_file = shared.addOutputFileArg(names.OUTPUT_DYNAMIC_LIBRARY);

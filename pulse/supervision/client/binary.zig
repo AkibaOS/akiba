@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const codec = @import("shared").launch.service.request;
+const defaults = @import("pulse").world.constants.defaults;
 const invoke = @import("personaasm").invoke;
 const letters = @import("shared").launch.constants.service.postman;
 const limits = @import("shared").persona.constants.postman;
@@ -32,10 +33,10 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
         .ReplyCapacity = @sizeOf(u64),
         .Metadata = @intFromPtr(&header),
     };
-    const response = invoke.call(.CallTimed, @intFromPtr(&descriptor), job.Timeout, 0, 0);
+    const response = invoke.call(.CallTimed, @intFromPtr(&descriptor), defaults.LAUNCH_TICKS, 0, 0);
     if (response.Status == @intFromEnum(Status.TimedOut) and response.Value != 0) {
         try service.terminate(response.Value);
-        if (!service.wait(response.Value, job.Timeout)) return error.ShutdownFailed;
+        if (!service.wait(response.Value, defaults.LAUNCH_TICKS)) return error.ShutdownFailed;
         try service.collect(response.Value);
     }
     if (response.Status != @intFromEnum(Status.Success) or response.Value != @sizeOf(u64) or child == 0 or

@@ -5,7 +5,9 @@ const std = @import("std");
 const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.authority;
 const drive = @import("tests").guest.support.drive;
+const events = @import("tests").fixtures.constants.service;
 const fixture = @import("tests").guest.constants.ahci.fixture;
+const halt = @import("asm").cpu.halt;
 const handoff = @import("mirai").bootstrap.storage.handoff;
 const harness = @import("tests").guest.postman.harness;
 const installed = @import("tests").guest.ahci.weaver;
@@ -14,6 +16,7 @@ const launch = @import("mirai").bootstrap.pulse.launch;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 const status = @import("shared").pulse.constants.status;
+const supervisor = @import("tests").guest.ahci.supervisor;
 const thread = @import("mirai").thread;
 const weaver = @import("mirai").bootstrap.weaver.handoff;
 
@@ -28,13 +31,23 @@ const WitnessError = @import("tests").guest.errors.ahci.witness.WitnessError;
 
 pub fn prove(volume: Volume) !bool {
     const pulse = try launch.start(volume);
+    const watchdog = sensei.state.getState().Ticks + events.JOBS * 2 * events.TIMEOUT_TICKS;
+    while (weaver.startupState(pulse.ID) == null) {
+        if (sensei.state.getState().Ticks >= watchdog) return WitnessError.ServiceStartupDeadline;
+        try sensei.run.yield();
+        if (weaver.startupState(pulse.ID) == null) halt.waitForInterrupt();
+    }
     drive.run();
-    if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID) or !weaver.startupFinished(pulse.ID)) return false;
+    if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
     const resident = kata.state.next(pulse.Owner) orelse return false;
     const driver = kata.state.next(resident) orelse return false;
     const files = kata.state.next(driver) orelse return false;
-    if (pulse.Owner.CanProvision or !resident.CanProvision or driver.CanProvision or files.CanProvision or kata.state.next(files) != null or
+    if (pulse.Owner.CanProvision or !resident.CanProvision or driver.CanProvision or files.CanProvision or
         !authority.readyFor(pulse.ID, driver.ID) or !afs.readyFor(pulse.ID, files.ID)) return false;
+    var child = kata.state.next(files);
+    while (child) |owner| : (child = kata.state.next(owner)) {
+        if (owner.CanProvision or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return false;
+    }
     const disk = handoff.forPulse(pulse.Owner) orelse return false;
     const address: u16 = @bitCast(disk.Location.Address);
     if (address != fixture.RELOCATED_ADDRESS or disk.Location.Port != fixture.BOOT_PORT or
@@ -45,7 +58,7 @@ pub fn prove(volume: Volume) !bool {
         if (failure != PulseError.NotFirstKata) return failure;
     }
 
-    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID };
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .Startup = weaver.startupFinished(pulse.ID) };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -62,7 +75,15 @@ fn monitor(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
 }
 
 fn exercise(context: *const Context) !bool {
-    return try exchange(context.PulseID) and try installed.prove(context.WeaverID);
+    if (!context.Startup) {
+        try supervisor.diagnose(context.PulseID);
+        return WitnessError.ServiceStartupFailed;
+    }
+    const exchanged = exchange(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.PulseExchangeDeadline else failure;
+    if (!exchanged) return false;
+    const launched = installed.prove(context.WeaverID) catch |failure| return if (failure == error.DriveLimit) WitnessError.InstalledLaunchDeadline else failure;
+    if (!launched) return false;
+    return supervisor.prove(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.SupervisorExerciseDeadline else failure;
 }
 
 fn exchange(identifier: u64) !bool {

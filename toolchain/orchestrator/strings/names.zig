@@ -42,6 +42,7 @@ pub const EXECUTABLE_FIRMWARE_TESTS = "firmware-tests";
 pub const EXECUTABLE_ELF_FIXTURE = "elf-fixture";
 pub const ENTRY_ELF_FIXTURE = "akiba_fixture_start";
 pub const MODULE_FIXTURE = "fixture";
+pub const MODULE_SERVICE_FIXTURE = "servicefixture";
 pub const MODULE_FIXTURE_ASSEMBLY = "fixtureasm";
 pub const IMPORT_ELF_IMAGE = "elfimage";
 pub const EXECUTABLE_PROVISION_FIXTURE = "provision-fixture";

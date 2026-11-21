@@ -5,6 +5,7 @@ const entry = @import("fixtureasm").entry;
 const inputs = @import("tests").fixtures.constants.weaver;
 const invocation = @import("fixtureasm").invocation;
 const labels = @import("tests").fixtures.strings.weaver;
+const service = @import("servicefixture");
 const types = @import("tests").fixtures.types.weaver;
 
 extern var linked_counter: u64;
@@ -15,6 +16,7 @@ comptime {
 }
 
 export fn akiba_fixture_main(argument: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn {
+    if (argument != 0 and service.recognizes(argument)) service.run(argument);
     if (argument != 0 and !verifyStartup(argument)) invocation.exit(inputs.REJECTED_STARTUP_RESULT);
     const result = linked_step();
     const startup_score = if (argument == 0) 0 else inputs.VERIFIED_STARTUP_RESULT;

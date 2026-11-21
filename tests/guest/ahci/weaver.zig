@@ -4,6 +4,7 @@ const std = @import("std");
 
 const completion = @import("tests").guest.completion.support;
 const copy = @import("mirai").user.copy.transfer;
+const events = @import("tests").fixtures.constants.service;
 const harness = @import("tests").guest.postman.harness;
 const identities = @import("tests").fixtures.strings.weaver;
 const inputs = @import("tests").fixtures.constants.weaver;
@@ -25,7 +26,7 @@ fn rejected(server: u64, missing: bool) !bool {
     try harness.install(&client, &.{harness.call(&client)});
     const before = population();
     try harness.start(&client);
-    try harness.waitStep(&client, 1);
+    try harness.waitTimedStep(&client, 1, events.TIMEOUT_TICKS);
     const header = try harness.header(&client);
     const accepted = try harness.resultIs(&client, 1, .Success, 0) and header.Sender == server and
         header.Type == (if (missing) letters.MISSING else letters.REFUSED) and header.Length == 0 and
@@ -64,7 +65,7 @@ pub fn prove(server: u64) !bool {
     collect.First = wait.First;
     try harness.install(&client, &.{ harness.call(&client), wait, collect });
     try harness.start(&client);
-    try harness.waitStep(&client, 1);
+    try harness.waitTimedStep(&client, 1, events.TIMEOUT_TICKS);
     const header = try harness.header(&client);
     if (!try harness.resultIs(&client, 1, .Success, @sizeOf(u64)) or header.Sender != server or header.Type != letters.STARTED or
         header.Length != @sizeOf(u64) or header.ReplyTicket != 0) return false;
@@ -74,7 +75,7 @@ pub fn prove(server: u64) !bool {
     defer completion.dispose(child);
     if (kata.completion.storage.ownerOf(child) != client.ID) return false;
     try harness.advance(&client, 1);
-    try harness.waitStep(&client, 2);
+    try harness.waitTimedStep(&client, 2, events.TIMEOUT_TICKS);
     const outcome = try completion.record(&client);
     if (!try harness.resultIs(&client, 2, .Success, outcomes.RECORD_BYTES) or outcome.Kind != outcomes.EXITED or
         outcome.Result != inputs.EXPECTED_RESULT) return false;
