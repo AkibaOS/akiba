@@ -7,6 +7,7 @@ const constants = @import("mirai").drivers.constants;
 const interrupts = @import("mirai").interrupts;
 const options = @import("options");
 const serial = @import("mirai").drivers.serial;
+const stream = @import("mirai").device.keyboard.stream;
 const strings = @import("mirai").drivers.strings;
 
 const messages = strings.keyboard.messages;
@@ -17,6 +18,7 @@ var last_scancode: u8 = 0;
 pub fn handler(_: u8) void {
     const scancode = io.port.readByte(ports.DATA);
     last_scancode = scancode;
+    stream.push(scancode);
     if (options.GUEST_CHECKS) cancellation.observe(scancode);
     serial.write.printf(messages.SCANCODE, .{scancode});
 }

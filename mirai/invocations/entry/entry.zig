@@ -6,6 +6,7 @@ const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
 const device = @import("mirai").invocations.device.ahci;
 const ipc = @import("mirai").invocations.postman;
+const keyboard = @import("mirai").invocations.device.keyboard;
 const lifecycle = @import("mirai").invocations.lifecycle;
 const messages = @import("mirai").thread.strings.shift.messages;
 const provision = @import("mirai").invocations.provision;
@@ -57,6 +58,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     }
     if (service == @intFromEnum(types.Service.Ahci)) {
         device.device(current, frame);
+        return;
+    }
+    if (service == @intFromEnum(types.Service.Keyboard)) {
+        keyboard.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Provision)) {

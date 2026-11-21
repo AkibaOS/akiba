@@ -23,6 +23,7 @@ pub const Service = enum(u64) {
     ReceiveActivity = 18,
     StopChild = 19,
     WaitCompletionTimed = 20,
+    Keyboard = 21,
     Provision = provision.SERVICE,
 };
 
@@ -53,4 +54,5 @@ pub const Status = enum(u64) {
     NotOwner = 18,
     TimedOut = 19,
     ChildReady = 20,
+    InputLost = 21,
 };

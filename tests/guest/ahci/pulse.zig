@@ -95,6 +95,7 @@ fn exchange(identifier: u64) !bool {
         harness.call(&client),
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
         .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
+        .{ .Service = .Keyboard },
     });
     try harness.start(&client);
     try harness.waitStep(&client, 1);
@@ -110,7 +111,10 @@ fn exchange(identifier: u64) !bool {
     try harness.waitStep(&client, 4);
     const disk_denied = try harness.resultIs(&client, 4, .InvalidCaller, 0);
     try harness.advance(&client, 4);
-    return ready and refused and denied and disk_denied;
+    try harness.waitStep(&client, 5);
+    const keyboard_denied = try harness.resultIs(&client, 5, .InvalidCaller, 0);
+    try harness.advance(&client, 5);
+    return ready and refused and denied and disk_denied and keyboard_denied;
 }
 
 fn waiting(pulse: Prepared) bool {
