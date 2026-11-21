@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const address_space = @import("common").constants.memory.layout;
 const layout = @import("shared").launch.constants.startup.record;
 const sizes = @import("common").constants.memory.sizes;
 
@@ -30,4 +31,18 @@ pub fn decode(bytes: *const [layout.HEADER_BYTES]u8, available: u64) StartupErro
     const identity = std.mem.readInt(u64, bytes[layout.IDENTITY_LENGTH..layout.PARAMETER_LENGTH], .little);
     const parameters = std.mem.readInt(u64, bytes[layout.PARAMETER_LENGTH..], .little);
     return size(identity, parameters, available);
+}
+
+pub fn supervisor(address: u64) StartupError!u64 {
+    const limit = address_space.USER_SPACE_END + 1;
+    if (address < sizes.PAGE_SIZE or address % sizes.PAGE_SIZE != 0 or address > limit - sizes.PAGE_SIZE)
+        return error.InvalidStartup;
+    const bytes: [*]const u8 = @ptrFromInt(address);
+    _ = try decode(bytes[0..layout.HEADER_BYTES], limit - address);
+    const identity = std.mem.readInt(u64, bytes[layout.IDENTITY_LENGTH..layout.PARAMETER_LENGTH], .little);
+    const parameters = std.mem.readInt(u64, bytes[layout.PARAMETER_LENGTH..layout.HEADER_BYTES], .little);
+    if (parameters < @sizeOf(u64)) return error.InvalidStartup;
+    const owner = std.mem.readInt(u64, bytes[layout.HEADER_BYTES + identity ..][0..@sizeOf(u64)], .little);
+    if (owner == 0) return error.InvalidStartup;
+    return owner;
 }

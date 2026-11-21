@@ -22,10 +22,14 @@ const WitnessError = @import("tests").guest.errors.ahci.witness.WitnessError;
 
 const IMAGE = @embedFile("dynamicimage");
 
-pub fn run() !void {
+pub fn enabled() !bool {
     var flag: [names.PHASE_VALUE.len]u8 = undefined;
-    const value = config.readValue(names.AHCI_FILE, &flag, true) orelse return;
+    const value = config.readValue(names.AHCI_FILE, &flag, true) orelse return false;
     if (!std.mem.eql(u8, value, names.PHASE_VALUE)) return WitnessError.InvalidAhciMode;
+    return true;
+}
+
+pub fn run() !void {
     const info = boot.getBootInfo() orelse return WitnessError.AhciBootVolumeMissing;
     const expected = info.Volume orelse return WitnessError.AhciBootVolumeMissing;
     const allocator = kernel.get();

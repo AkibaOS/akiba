@@ -1,0 +1,1 @@
+service "keyboard" binary="keyboard" device="keyboard" required=false restart=1

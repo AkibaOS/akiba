@@ -78,8 +78,11 @@ pub fn execute() bool {
             const owned = screen.isActive();
             defer screen.release();
             serial.printf(inputwire.GROUP, .{});
-            @call(.never_inline, guest.drivers.input.run, .{});
-            check(guest.ahci.run.run);
+            if (guest.ahci.run.enabled() catch |failure| verify.failure(failure)) {
+                check(guest.ahci.run.run);
+            } else {
+                @call(.never_inline, guest.drivers.input.run, .{});
+            }
             screen.checkpoint();
             serial.printf(markers.COMPLETE_FORMAT, .{verify.count()});
             return owned;

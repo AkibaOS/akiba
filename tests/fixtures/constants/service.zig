@@ -1,11 +1,11 @@
 //! Independent Native Supervisor Probe Protocol
 
-pub const JOBS: u64 = 6;
+pub const JOBS: u64 = 7;
 pub const STEPS: usize = 13;
 pub const TIMEOUT_TICKS: u64 = 1000;
 pub const STOP_STEPS: u64 = 3;
 pub const RECOVERY_TICKS: u64 = (STOP_STEPS + 2 * 2) * TIMEOUT_TICKS;
-pub const SHUTDOWN_TICKS: u64 = 6 * STOP_STEPS * TIMEOUT_TICKS;
+pub const SHUTDOWN_TICKS: u64 = 7 * STOP_STEPS * TIMEOUT_TICKS;
 pub const REPORT: u64 = 0x50554c530001;
 pub const SNAPSHOT: u64 = 0x50554c530002;
 pub const READY_STAGE: u64 = 2;

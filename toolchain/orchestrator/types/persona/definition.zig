@@ -5,5 +5,5 @@ pub const Definition = struct {
     Root: []const u8,
     Entry: []const u8,
     Symbol: []const u8,
-    Linker: []const u8,
+    Linker: ?[]const u8 = null,
 };

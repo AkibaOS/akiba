@@ -106,6 +106,16 @@ test "input challenge rejects prior and unsolicited IRQ evidence" {
     try std.testing.expectError(error.UnexpectedKeyboardInput, runner.session.input.observe(&challenge, ready ++ make ++ release ++ make));
 }
 
+test "installed keyboard proof requires the actual text and editing events in input order" {
+    const keys = [_]input.Key{ .{ .Name = fixtures.KEY, .Make = 0x30 }, .{ .Name = fixtures.INPUT_EDIT_KEY, .Make = 0x0e } };
+    const confirm = runner.session.input.verifyEvents;
+    try confirm(fixtures.INPUT_TEXT_EVENT ++ fixtures.INPUT_EDIT_EVENT, &keys);
+    try std.testing.expectError(error.UnexpectedKeyboardInput, confirm(fixtures.INPUT_WRONG_EVENT ++ fixtures.INPUT_EDIT_EVENT, &keys));
+    try std.testing.expectError(error.UnexpectedKeyboardInput, confirm(fixtures.INPUT_EDIT_EVENT ++ fixtures.INPUT_TEXT_EVENT, &keys));
+    try std.testing.expectError(error.UnexpectedKeyboardInput, confirm(fixtures.INPUT_TEXT_EVENT ++ fixtures.INPUT_EDIT_EVENT ++ fixtures.INPUT_EDIT_EVENT, &keys));
+    try std.testing.expectError(error.MissingInjectedInput, confirm(fixtures.INPUT_TEXT_EVENT, &keys));
+}
+
 test "snapshot job must conclude successfully and belong to this session" {
     const pending = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, fixtures.SNAPSHOT_PENDING, .{});
     defer pending.deinit();

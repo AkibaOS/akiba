@@ -31,10 +31,12 @@ pub fn listen(pulse: u64) noreturn {
                 endpoint = value;
                 break :answer letters.CONFIGURED;
             }
-            if (header.Type != letters.LAUNCH) break :answer protocol.UNSUPPORTED;
+            const driver = header.Type == letters.DRIVER;
+            if (driver and header.Sender != pulse) break :answer letters.REFUSED;
+            if (!driver and header.Type != letters.LAUNCH) break :answer protocol.UNSUPPORTED;
             const afs = endpoint orelse break :answer letters.REFUSED;
             const input = request.decode(bytes) orelse break :answer letters.REFUSED;
-            child = launch.start(afs, input, header.ReplyTicket) catch |failure|
+            child = launch.start(afs, input, header.ReplyTicket, driver) catch |failure|
                 break :answer if (failure == error.BinaryMissing or failure == error.LibraryNotFound) letters.MISSING else letters.REFUSED;
             break :answer letters.STARTED;
         };

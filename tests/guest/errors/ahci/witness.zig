@@ -3,6 +3,8 @@
 pub const WitnessError = error{
     AhciBootVolumeMissing,
     InvalidAhciMode,
+    KeyboardDriverMissing,
+    InvalidKeyboardEvent,
     PulseProbeDidNotRun,
     ServiceWorldMissing,
     ServiceStartupDeadline,

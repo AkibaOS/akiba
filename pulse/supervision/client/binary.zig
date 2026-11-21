@@ -12,6 +12,7 @@ const service = @import("pulse").supervision.client.service;
 const Call = @import("shared").persona.types.call.Call;
 const Header = @import("shared").persona.types.letter.Header;
 const Job = @import("pulse").world.types.parse.document.Job;
+const Operation = @import("shared").pulse.types.boot.driver.Operation;
 const Status = @import("shared").persona.types.invocation.Status;
 
 pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u64 {
@@ -26,7 +27,7 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
     var header: Header = undefined;
     const descriptor: Call = .{
         .Destination = weaver,
-        .Type = letters.LAUNCH,
+        .Type = if (job.Device != null) letters.DRIVER else letters.LAUNCH,
         .Request = @intFromPtr(payload.ptr),
         .RequestLength = payload.len,
         .Reply = @intFromPtr(&child),
@@ -42,5 +43,12 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
     if (response.Status != @intFromEnum(Status.Success) or response.Value != @sizeOf(u64) or child == 0 or
         header.Sender != weaver or header.Type != letters.STARTED or header.Length != @sizeOf(u64) or header.ReplyTicket != 0)
         return error.LaunchFailed;
+    if (job.Device) |device| {
+        const bound = invoke.call(.BootstrapDriver, @intFromEnum(Operation.BindDevice), child, @intFromEnum(device), 0);
+        if (bound.Status != @intFromEnum(Status.Success)) {
+            try service.stop(child, job.Timeout);
+            return error.LaunchFailed;
+        }
+    }
     return child;
 }

@@ -347,7 +347,10 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                 if (selected == .Standard and try result.standardProgress(frozen) != live.STANDARD_UNITS) return error.InvalidBootstrapEvidence;
                 if (selected == .Devices) {
                     if (try input.observe(&challenge, frozen) != .Complete) return error.MissingInjectedInput;
-                    if (session.Ahci) try result.verifyAhci(frozen);
+                    if (session.Ahci) {
+                        try result.verifyAhci(frozen);
+                        try input.verifyEvents(frozen, &keys);
+                    }
                 }
                 const assertions = std.math.cast(u32, count) orelse return error.InvalidGuestCheckCount;
                 const rollback = if (selected == .Standard) try result.rollbackWork(frozen) else null;

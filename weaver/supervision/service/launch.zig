@@ -12,11 +12,12 @@ const wire = @import("shared").launch.types.provision;
 const Channel = @import("weaver").launch.types.request.Channel;
 const Request = @import("shared").launch.types.service.request.Request;
 
-pub fn start(endpoint: u64, request: Request, ticket: u64) !u64 {
+pub fn start(endpoint: u64, request: Request, ticket: u64, driver: bool) !u64 {
     const allocator = memory.reset();
     var afs = endpoint;
     const provider = source.source(&afs);
-    const executable = (try provider.ReadFromOrigin(provider.Context, allocator, &origin.SYSTEM_BINARIES, request.Identity)) orelse return error.BinaryMissing;
+    const parents = if (driver) &origin.SYSTEM_DRIVERS else &origin.SYSTEM_BINARIES;
+    const executable = (try provider.ReadFromOrigin(provider.Context, allocator, parents, request.Identity)) orelse return error.BinaryMissing;
     defer allocator.free(executable);
     const channel: Channel = .{ .Ticket = ticket, .Context = &afs, .Invoke = provision };
     return transaction.run(allocator, provider, executable, .{

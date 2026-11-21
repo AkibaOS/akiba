@@ -4,14 +4,17 @@ const std = @import("std");
 
 const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.authority;
+const binding = @import("mirai").device.binding;
 const drive = @import("tests").guest.support.drive;
 const events = @import("tests").fixtures.constants.service;
 const fixture = @import("tests").guest.constants.ahci.fixture;
 const halt = @import("asm").cpu.halt;
 const handoff = @import("mirai").bootstrap.storage.handoff;
 const harness = @import("tests").guest.postman.harness;
+const input = @import("tests").guest.drivers.input;
 const installed = @import("tests").guest.ahci.weaver;
 const kata = @import("mirai").kata;
+const keyboard = @import("tests").guest.ahci.keyboard;
 const launch = @import("mirai").bootstrap.pulse.launch;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
@@ -58,7 +61,15 @@ pub fn prove(volume: Volume) !bool {
         if (failure != PulseError.NotFirstKata) return failure;
     }
 
-    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .Startup = weaver.startupFinished(pulse.ID) };
+    const ready = weaver.startupFinished(pulse.ID);
+    const keyboard_id = if (ready) actual: {
+        const owner = binding.owner(.Keyboard) orelse return WitnessError.KeyboardDriverMissing;
+        const target = thread.state.firstFor(owner) orelse return WitnessError.KeyboardDriverMissing;
+        if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.KeyboardDriverMissing;
+        input.run();
+        break :actual owner.ID;
+    } else 0;
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .KeyboardID = keyboard_id, .Startup = ready };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -79,6 +90,7 @@ fn exercise(context: *const Context) !bool {
         try supervisor.diagnose(context.PulseID);
         return WitnessError.ServiceStartupFailed;
     }
+    try keyboard.prove(context.PulseID, context.KeyboardID);
     const exchanged = exchange(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.PulseExchangeDeadline else failure;
     if (!exchanged) return false;
     const launched = installed.prove(context.WeaverID) catch |failure| return if (failure == error.DriveLimit) WitnessError.InstalledLaunchDeadline else failure;

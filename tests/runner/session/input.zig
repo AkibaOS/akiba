@@ -15,7 +15,8 @@ pub fn choose() types.Keys {
         const index = std.crypto.random.uintLessThan(usize, inputwire.KEY_NAMES.len);
         key.* = .{ .Name = inputwire.KEY_NAMES[index], .Make = keycodes.MAKE_CODES[index] };
     }
-    keys[keycodes.CHALLENGE_TAPS] = .{ .Name = inputwire.TERMINATOR_NAME, .Make = keycodes.TERMINATOR_MAKE };
+    keys[keycodes.CHALLENGE_TAPS] = .{ .Name = inputwire.EDITING_NAME, .Make = keycodes.EDITING_MAKE };
+    keys[keycodes.CHALLENGE_TAPS + 1] = .{ .Name = inputwire.TERMINATOR_NAME, .Make = keycodes.TERMINATOR_MAKE };
     return keys;
 }
 
@@ -43,6 +44,26 @@ pub fn observe(challenge: *types.Challenge, bytes: []const u8) !types.Action {
         .Done => if (partialScancode(bytes[challenge.Offset..])) .Waiting else .Complete,
         else => .Waiting,
     };
+}
+
+pub fn verifyEvents(bytes: []const u8, keys: []const types.Key) !void {
+    var index: usize = 0;
+    var lines = std.mem.splitScalar(u8, bytes, '\n');
+    while (lines.next()) |raw| {
+        const line = std.mem.trimEnd(u8, raw, strings.CARRIAGE_RETURN);
+        if (!std.mem.startsWith(u8, line, inputwire.EVENT_PREFIX)) continue;
+        if (lines.index == null or index >= keys.len) return error.UnexpectedKeyboardInput;
+        var columns = std.mem.splitScalar(u8, line[inputwire.EVENT_PREFIX.len..], ' ');
+        const kind = std.fmt.parseInt(u8, columns.next() orelse return error.UnexpectedKeyboardInput, 10) catch return error.UnexpectedKeyboardInput;
+        const value = std.fmt.parseInt(u32, columns.next() orelse return error.UnexpectedKeyboardInput, 10) catch return error.UnexpectedKeyboardInput;
+        if (columns.next() != null) return error.UnexpectedKeyboardInput;
+        const key = keys[index];
+        if (key.Make == keycodes.EDITING_MAKE) {
+            if (kind != keycodes.EDITING_KIND or value != keycodes.BACKSPACE_EVENT) return error.UnexpectedKeyboardInput;
+        } else if (key.Name.len != 1 or kind != keycodes.TEXT_KIND or value != key.Name[0]) return error.UnexpectedKeyboardInput;
+        index += 1;
+    }
+    if (index != keys.len) return error.MissingInjectedInput;
 }
 
 fn partialScancode(tail: []const u8) bool {

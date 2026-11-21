@@ -9,6 +9,7 @@ pub const HIKARI_ENTRY = "hikari/entry/entry.zig";
 pub const MIRAI_ROOT = "mirai/mirai.zig";
 pub const MIRAI_ENTRY = "mirai/entry/entry.zig";
 pub const KEYBOARD_ROOT = "drivers/keyboard/keyboard.zig";
+pub const KEYBOARD_ENTRY = "drivers/keyboard/entry/entry.zig";
 pub const PULSE_ROOT = "pulse/pulse.zig";
 pub const PULSE_ENTRY = "pulse/entry/entry.zig";
 pub const PULSE_LINKER = "linker/pulse.linker";

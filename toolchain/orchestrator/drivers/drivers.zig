@@ -2,3 +2,4 @@
 
 pub const afs = @import("afs.zig");
 pub const ahci = @import("ahci.zig");
+pub const keyboard = @import("keyboard.zig");

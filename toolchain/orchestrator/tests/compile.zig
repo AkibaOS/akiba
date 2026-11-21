@@ -11,6 +11,7 @@ const firmware = @import("firmware.zig");
 const fixture = @import("fixture.zig");
 const installed = @import("../../../tests/fixtures/strings/weaver.zig");
 const kernel = @import("../kernel/kernel.zig");
+const keyboardpath = @import("../../../shared/keyboard/strings/install.zig");
 const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
 const paths = @import("../strings/paths.zig");
@@ -22,7 +23,7 @@ const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile, afs: *std.Build.Step.Compile) void {
+pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile, afs: *std.Build.Step.Compile, keyboard_artifact: std.Build.LazyPath) void {
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);
@@ -61,7 +62,10 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
         root.addImport(names.EXECUTABLE_PULSE, supervisor);
-        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_KEYBOARD)) root.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
+        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_KEYBOARD)) {
+            root.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
+            root.addAnonymousImport(names.IMPORT_KEYBOARD_IMAGE, .{ .root_source_file = keyboard_artifact });
+        }
         if (std.mem.eql(u8, suite.Root, paths.WEAVER_TEST_ROOT)) {
             root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });
@@ -87,6 +91,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(pulse.getEmittedBin(), pulsepath.PATH);
     _ = stage.addCopyFile(ahci.getEmittedBin(), ahcipath.PATH);
     _ = stage.addCopyFile(afs.getEmittedBin(), afspath.PATH);
+    _ = stage.addCopyFile(keyboard_artifact, keyboardpath.PATH);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     _ = stage.addCopyFile(dynamic.Program, installed.INSTALLED_ELF);

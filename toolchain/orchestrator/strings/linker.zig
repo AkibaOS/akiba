@@ -10,3 +10,5 @@ pub const NATIVE = "--no-dynamic-linker";
 pub const LINK_OPTION = "-z";
 pub const EAGER = "now";
 pub const ENTRY = "--entry";
+pub const COLLECT_SECTIONS = "--gc-sections";
+pub const STRIP_SYMBOLS = "--strip-all";

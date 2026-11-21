@@ -5,4 +5,7 @@ pub const READY = "CHECK DEVICE INPUT READY";
 pub const READY_LINE = READY ++ "\n";
 pub const SCANCODE_PREFIX = "  Keyboard scancode 0x";
 pub const KEY_NAMES = [_][]const u8{ "b", "c", "d", "e", "f", "g", "h", "j", "k", "l", "m", "n", "p", "r", "t", "v" };
+pub const EDITING_NAME = "backspace";
 pub const TERMINATOR_NAME = "a";
+pub const EVENT_PREFIX = "  Keyboard event ";
+pub const EVENT_LINE = EVENT_PREFIX ++ "%d %d\n";

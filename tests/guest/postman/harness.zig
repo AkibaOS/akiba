@@ -46,13 +46,17 @@ pub fn sibling(actor: *const Actor, slot: usize) !Actor {
 }
 
 fn allocate(owner: *kata.types.kata.Kata, slot: usize) !Actor {
-    const actor: Actor = .{
+    return attach(.{
         .Owner = owner,
         .ID = owner.ID,
         .Code = constants.CODE_BASE + slot * constants.PAGE_BYTES,
         .Data = constants.DATA_BASE + slot * constants.PAGE_BYTES,
         .Stack = constants.STACK_BASE + slot * 2 * constants.PAGE_BYTES,
-    };
+    });
+}
+
+pub fn attach(actor: Actor) !Actor {
+    const owner = actor.Owner;
     try user.memory.allocate.allocate(owner, actor.Code);
     try user.memory.allocate.allocate(owner, actor.Data);
     try user.memory.allocate.allocate(owner, actor.Stack);
