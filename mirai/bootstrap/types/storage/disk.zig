@@ -1,10 +1,8 @@
-//! Attached Boot Disk And Owned DMA Page
+//! Scoped Boot Disk Geometry And Device Slot
 
-const sizes = @import("common").constants.memory.sizes;
+const Slot = @import("mirai").device.types.ahci.slot.Slot;
 
 pub const Disk = struct {
-    Port: u64,
-    Physical: u64,
-    Page: *[sizes.PAGE_SIZE]u8,
+    Slot: Slot,
     Sectors: u64,
 };

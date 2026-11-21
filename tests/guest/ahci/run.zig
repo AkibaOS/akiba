@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const afs = @import("shared").afs.constants.magic;
 const attachment = @import("mirai").device.ahci.attachment;
 const boot = @import("mirai").boot.sequence.state;
 const config = @import("tests").machine.config;
@@ -11,7 +12,9 @@ const names = @import("tests").phase.strings.scenario;
 const paths = @import("tests").fixtures.strings.elf.boot;
 const pulse = @import("tests").guest.ahci.pulse;
 const read = @import("mirai").bootstrap.storage.read;
+const selected = @import("mirai").device.ahci.selected;
 const verify = @import("tests").guest.support.verify;
+const wire = @import("shared").ahci.constants.command.dma;
 
 const StorageError = @import("mirai").bootstrap.errors.storage.read.StorageError;
 const Volume = @import("shared").boot.types.volume.Volume;
@@ -33,7 +36,11 @@ pub fn run() !void {
     verify.require(true, names.AHCI_VOLUME_CHECK);
     const key: u16 = @bitCast(image.Location.Address);
     try attachment.verifyDetached(image.Location);
-    verify.require(key == fixture.RELOCATED_ADDRESS and image.Location.Port == fixture.BOOT_PORT, names.AHCI_LOCATION_CHECK);
+    var first: [wire.SECTOR_BYTES]u8 = undefined;
+    try selected.execute(image.Location, .{ .Read = expected.FirstLBA }, &first);
+    try attachment.verifyDetached(image.Location);
+    verify.require(key == fixture.RELOCATED_ADDRESS and image.Location.Port == fixture.BOOT_PORT and
+        std.mem.readInt(u64, first[0..@sizeOf(u64)], .little) == afs.SIGNATURE, names.AHCI_LOCATION_CHECK);
     verify.require(std.mem.eql(u8, image.Bytes, IMAGE), names.AHCI_IMAGE_CHECK);
     verify.require(try pulse.prove(expected), names.AHCI_PULSE_CHECK);
 }
