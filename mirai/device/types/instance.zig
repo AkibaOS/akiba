@@ -1,12 +1,9 @@
 //! Kernel Device Instance And Assignment Records
 
-pub const Kind = enum(u64) { Keyboard, Framebuffer };
+const inventory = @import("shared").device.types.instance;
 
-pub const Instance = struct {
-    ID: u64,
-    Kind: Kind,
-    Location: u64,
-};
+pub const Instance = inventory.Instance;
+pub const Kind = inventory.Kind;
 
 pub const Assignment = struct {
     Owner: u64,

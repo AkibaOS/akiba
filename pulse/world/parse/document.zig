@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const catalog = @import("pulse").devices.catalog.parse;
 const grammar = @import("pulse").world.strings.grammar;
 const graph = @import("pulse").world.policy.graph;
 const schema = @import("pulse").world.strings.schema;
@@ -9,6 +10,7 @@ const syntax = @import("pulse").world.parse.syntax;
 
 const Document = @import("pulse").world.types.parse.document.Document;
 const Job = @import("pulse").world.types.parse.document.Job;
+const Kind = @import("shared").device.types.instance.Kind;
 const Node = @import("pulse").world.types.parse.syntax.Node;
 const Value = @import("pulse").world.types.parse.syntax.Value;
 const WorldError = @import("pulse").world.errors.parse.document.WorldError;
@@ -35,6 +37,8 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
     if (name.len == 0) return error.InvalidWorld;
     var dependencies: std.ArrayList([]const u8) = .empty;
     var result: Job = .{ .Name = name, .Binary = &.{}, .After = &.{} };
+    var kind: ?Kind = null;
+    var location: ?u64 = null;
     for (node.Properties) |property| {
         if (std.mem.eql(u8, property.Name, schema.BINARY)) result.Binary = try text(property.Value) else if (std.mem.eql(u8, property.Name, schema.ENABLED)) {
             result.Enabled = try boolean(property.Value);
@@ -43,14 +47,18 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
         } else if (std.mem.eql(u8, property.Name, schema.CONTROL)) {
             result.Controller = try boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.DEVICE)) {
-            const device = try text(property.Value);
-            result.Device = if (std.mem.eql(u8, device, schema.KEYBOARD)) .Keyboard else if (std.mem.eql(u8, device, schema.DISPLAY)) .Display else return error.InvalidWorld;
+            kind = catalog.kind(property.Value) catch return error.InvalidWorld;
+        } else if (std.mem.eql(u8, property.Name, schema.LOCATION)) {
+            location = try integer(allocator, property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.RESTART)) result.Restarts = try integer(allocator, property.Value) else if (std.mem.eql(u8, property.Name, schema.TIMEOUT)) {
             result.Timeout = try integer(allocator, property.Value);
             if (result.Timeout == 0) return error.InvalidWorld;
         } else return error.InvalidWorld;
     }
-    if (!validBinary(result.Binary)) return error.InvalidWorld;
+    if (kind) |class| {
+        if (result.Binary.len != 0) return error.InvalidWorld;
+        result.Device = .{ .Kind = class, .Location = location orelse return error.InvalidWorld };
+    } else if (location != null or !validBinary(result.Binary)) return error.InvalidWorld;
     for (nodes) |child| {
         if (child.Disabled or child.Parent != index) continue;
         if (child.Properties.len != 0) return error.InvalidWorld;

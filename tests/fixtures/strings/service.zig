@@ -12,8 +12,8 @@ pub const WORLD =
     \\service "missing" binary="missingprobe" required=false
     \\service "silent" binary="requestprobe" required=false timeout=20 { parameters "silent"; }
     \\service "control" binary="requestprobe" control=true { parameters "controller"; }
-    \\service "keyboard" binary="keyboard" device="keyboard" restart=1
-    \\service "display" binary="display" device="display" restart=1
+    \\service "keyboard" device="keyboard" location=1 restart=1
+    \\service "display" device="framebuffer" location=0 restart=1
 ;
 pub const FAILURE = "fail";
 pub const SILENT = "silent";

@@ -2,12 +2,14 @@
 
 const std = @import("std");
 
+const Catalog = @import("pulse").devices.types.catalog.Catalog;
 const Model = @import("pulse").supervision.types.plan.state.Model;
 const Phase = @import("shared").pulse.types.supervision.report.Phase;
 
 pub const Context = struct {
     Allocator: std.mem.Allocator,
     Plan: *Model,
+    Catalog: *const Catalog,
     PulseID: u64,
     WeaverID: u64,
     DiskID: u64,

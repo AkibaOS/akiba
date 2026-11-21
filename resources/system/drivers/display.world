@@ -1,0 +1,1 @@
+driver version=1 abi=1 protocol=1 { match "framebuffer" location=0; }

@@ -23,7 +23,7 @@ pub fn decodeAttached(bytes: []const u8) ?Attached {
 
 pub fn encode(output: []u8, identity: []const u8, parameters: []const u8) ?[]const u8 {
     const prefix = @sizeOf(u64);
-    if (output.len < prefix or !valid(identity) or identity.len > output.len - prefix or
+    if (output.len < prefix or !validIdentity(identity) or identity.len > output.len - prefix or
         parameters.len > output.len - prefix - identity.len) return null;
     const end = prefix + identity.len;
     std.mem.writeInt(u64, output[0..prefix], identity.len, .little);
@@ -39,11 +39,11 @@ pub fn decode(bytes: []const u8) ?Request {
     if (length > bytes.len - prefix) return null;
     const end = prefix + length;
     const identity = bytes[prefix..end];
-    if (!valid(identity)) return null;
+    if (!validIdentity(identity)) return null;
     return .{ .Identity = identity, .Parameters = bytes[end..] };
 }
 
-fn valid(identity: []const u8) bool {
+pub fn validIdentity(identity: []const u8) bool {
     if (identity.len == 0 or (identity.len <= 2 and std.mem.allEqual(u8, identity, '.'))) return false;
     for (identity) |byte| if (byte < ' ' or byte == '/' or byte == '\\') return false;
     return true;

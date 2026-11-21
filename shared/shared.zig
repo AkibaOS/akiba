@@ -3,6 +3,7 @@
 pub const afs = @import("afs/afs.zig");
 pub const ahci = @import("ahci/ahci.zig");
 pub const boot = @import("boot/boot.zig");
+pub const device = @import("device/device.zig");
 pub const display = @import("display/display.zig");
 pub const elf = @import("elf/elf.zig");
 pub const fat32 = @import("fat32/fat32.zig");

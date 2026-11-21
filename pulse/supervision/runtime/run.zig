@@ -1,5 +1,6 @@
 //! Load And Supervise The Installed Pulse World
 
+const catalog = @import("pulse").devices.catalog.install;
 const drive = @import("pulse").supervision.runtime.drive;
 const inbox = @import("pulse").supervision.runtime.inbox;
 const invoke = @import("personaasm").invoke;
@@ -32,7 +33,9 @@ fn run(weaver: u64, afs: u64, disk: u64) !noreturn {
     defer world.deinit();
     var plan = try policy.init(allocator, &world);
     defer policy.deinit(&plan);
-    var context: Context = .{ .Allocator = allocator, .Plan = &plan, .PulseID = owner.Value, .WeaverID = weaver, .AfsID = afs, .DiskID = disk };
+    var installed = try catalog.load(allocator, storage.client(afs));
+    defer installed.deinit();
+    var context: Context = .{ .Allocator = allocator, .Plan = &plan, .Catalog = &installed, .PulseID = owner.Value, .WeaverID = weaver, .AfsID = afs, .DiskID = disk };
     drive.run(&context) catch {
         context.Phase = .Degraded;
         policy.shutdown(&plan);

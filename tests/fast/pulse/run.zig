@@ -2,10 +2,14 @@
 
 const std = @import("std");
 
+const catalog = @import("pulse").devices.catalog;
+const drivers = @import("tests").fast.pulse.strings.drivers;
 const memory = @import("tests").fast.pulse.memory;
 const policy = @import("pulse").supervision.plan.model;
 const samples = @import("tests").fast.pulse.strings.world;
 const world = @import("pulse").world.parse.document;
+
+const Candidate = @import("pulse").devices.types.catalog.Candidate;
 
 const ALLOCATOR = std.testing.allocator;
 
@@ -102,6 +106,29 @@ test "Pulse inhibits all restarts before stopping services in reverse dependency
     policy.stopped(&state, 0);
     try std.testing.expectEqual(.Idle, std.meta.activeTag(policy.next(&state)));
     try std.testing.expect(state.Stopping);
+}
+
+test "Pulse selects a compatible driver for the actual instance and rejects an ambiguous catalog" {
+    const first = try catalog.parse.manifest(ALLOCATOR, drivers.KEYBOARD);
+    const second = try catalog.parse.manifest(ALLOCATOR, drivers.OTHER_PORT);
+    const surface = try catalog.parse.manifest(ALLOCATOR, drivers.SURFACE);
+    const entries: []const Candidate = &.{
+        .{ .Identity = drivers.BUILTIN, .Description = first },
+        .{ .Identity = drivers.FOREIGN, .Description = second },
+        .{ .Identity = drivers.WRONG, .Description = surface },
+    };
+    try std.testing.expectEqualStrings(drivers.BUILTIN, try catalog.select.choose(entries, .{ .Kind = .Keyboard, .Location = 1 }, null));
+    try std.testing.expectError(error.AmbiguousDriver, catalog.select.choose(entries, .{ .Kind = .Keyboard, .Location = 2 }, null));
+    try std.testing.expectEqualStrings(drivers.FOREIGN, try catalog.select.choose(entries, .{ .Kind = .Keyboard, .Location = 2 }, drivers.FOREIGN));
+    try std.testing.expectError(error.InvalidSelection, catalog.select.choose(entries, .{ .Kind = .Keyboard, .Location = 1 }, drivers.FOREIGN));
+    try std.testing.expectError(error.InvalidSelection, catalog.select.choose(entries, .{ .Kind = .Keyboard, .Location = 1 }, drivers.WRONG));
+    try std.testing.expectError(error.NoDriver, catalog.select.choose(entries, .{ .Kind = .Framebuffer, .Location = 1 }, null));
+}
+
+test "Pulse rejects missing incompatible and conflicting installed driver descriptions" {
+    try std.testing.expectError(error.InvalidManifest, catalog.parse.manifest(ALLOCATOR, drivers.MISSING_VERSION));
+    try std.testing.expectError(error.UnsupportedVersion, catalog.parse.manifest(ALLOCATOR, drivers.WRONG_ABI));
+    try std.testing.expectError(error.InvalidManifest, catalog.parse.manifest(ALLOCATOR, drivers.DUPLICATE_MATCH));
 }
 
 fn validDocument(allocator: std.mem.Allocator) !void {

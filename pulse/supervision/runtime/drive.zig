@@ -12,7 +12,7 @@ pub fn run(context: *Context) !void {
         switch (policy.next(context.Plan)) {
             .Start => |index| {
                 const job = context.Plan.Jobs[index];
-                const identifier = binary.start(context.Allocator, context.WeaverID, context.PulseID, job) catch |failure| {
+                const identifier = binary.start(context.Allocator, context.WeaverID, context.PulseID, job, context.Catalog) catch |failure| {
                     if (failure == error.ShutdownFailed or failure == error.CollectionFailed) return failure;
                     policy.failed(context.Plan, index);
                     continue;

@@ -4,7 +4,7 @@ const std = @import("std");
 
 const defaults = @import("pulse").world.constants.defaults;
 
-const Role = @import("shared").launch.types.device.Role;
+const Key = @import("shared").device.types.instance.Key;
 
 pub const Job = struct {
     Name: []const u8,
@@ -14,7 +14,7 @@ pub const Job = struct {
     Enabled: bool = true,
     Required: bool = true,
     Controller: bool = false,
-    Device: ?Role = null,
+    Device: ?Key = null,
     Restarts: u64 = 0,
     Timeout: u64 = defaults.TIMEOUT_TICKS,
 };

@@ -14,11 +14,16 @@ const Reply = @import("shared").afs.types.service.client.Reply;
 const Status = @import("shared").persona.types.invocation.Status;
 
 pub fn readAll(client: Client, allocator: std.mem.Allocator, path: []const u8) ClientError!?[]u8 {
+    return readWithin(client, allocator, path, std.math.maxInt(usize));
+}
+
+pub fn readWithin(client: Client, allocator: std.mem.Allocator, path: []const u8, maximum: usize) ClientError!?[]u8 {
     var encoded_size: [@sizeOf(u64)]u8 = undefined;
     const stat = try request(client, letters.STAT, path, 0, 0, &encoded_size);
     if (stat.Kind == letters.MISSING and stat.Length == 0) return null;
     if (stat.Kind != letters.SIZE or stat.Length != encoded_size.len) return error.ReadFailed;
-    const length = std.math.cast(usize, std.mem.readInt(u64, &encoded_size, .little)) orelse return error.OutOfMemory;
+    const length = std.math.cast(usize, std.mem.readInt(u64, &encoded_size, .little)) orelse return error.TooLarge;
+    if (length > maximum) return error.TooLarge;
     const bytes = try allocator.alloc(u8, length);
     errdefer allocator.free(bytes);
     var offset: usize = 0;

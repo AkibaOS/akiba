@@ -1,2 +1,2 @@
-service "keyboard" binary="keyboard" device="keyboard" required=false restart=1
-service "display" binary="display" device="display" required=false restart=1
+service "keyboard" device="keyboard" location=1 required=false restart=1
+service "display" device="framebuffer" location=0 required=false restart=1

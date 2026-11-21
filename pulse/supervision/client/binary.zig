@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const catalog = @import("pulse").devices.catalog.install;
 const codec = @import("shared").launch.service.request;
 const defaults = @import("pulse").world.constants.defaults;
 const invoke = @import("personaasm").invoke;
@@ -10,12 +11,13 @@ const limits = @import("shared").persona.constants.postman;
 const service = @import("pulse").supervision.client.service;
 
 const Call = @import("shared").persona.types.call.Call;
+const Catalog = @import("pulse").devices.types.catalog.Catalog;
 const Header = @import("shared").persona.types.letter.Header;
 const Job = @import("pulse").world.types.parse.document.Job;
 const Operation = @import("shared").pulse.types.boot.driver.Operation;
 const Status = @import("shared").persona.types.invocation.Status;
 
-pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u64 {
+pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job, installed: *const Catalog) !u64 {
     const length = std.math.add(usize, @sizeOf(u64), job.Parameters.len) catch return error.TooLarge;
     const parameters = try allocator.alloc(u8, length);
     defer allocator.free(parameters);
@@ -23,9 +25,10 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
     @memcpy(parameters[@sizeOf(u64)..], job.Parameters);
     var buffer: [limits.MAX_PAYLOAD_BYTES]u8 = undefined;
     const payload = if (job.Device) |device| attached: {
-        const selected = invoke.call(.BootstrapDriver, @intFromEnum(Operation.FindDevice), @intFromEnum(device), 0, 0);
+        const selected = invoke.call(.BootstrapDriver, @intFromEnum(Operation.LocateDevice), @intFromEnum(device.Kind), device.Location, 0);
         if (selected.Status != @intFromEnum(Status.Success) or selected.Value == 0) return error.LaunchFailed;
-        break :attached codec.encodeAttached(&buffer, selected.Value, job.Binary, parameters) orelse return error.TooLarge;
+        const identity = try catalog.matching(installed, device);
+        break :attached codec.encodeAttached(&buffer, selected.Value, identity, parameters) orelse return error.TooLarge;
     } else codec.encode(&buffer, job.Binary, parameters) orelse return error.TooLarge;
     var child: u64 = 0;
     var header: Header = undefined;
