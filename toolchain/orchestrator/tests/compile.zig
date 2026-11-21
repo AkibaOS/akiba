@@ -9,6 +9,7 @@ const diagnostics = @import("../bootloader/bootloader.zig");
 const diskfixture = @import("../../../tests/fixtures/strings/elf/boot.zig");
 const firmware = @import("firmware.zig");
 const fixture = @import("fixture.zig");
+const installed = @import("../../../tests/fixtures/strings/weaver.zig");
 const kernel = @import("../kernel/kernel.zig");
 const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
@@ -76,6 +77,8 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(afs.getEmittedBin(), afspath.PATH);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
+    _ = stage.addCopyFile(dynamic.Program, installed.INSTALLED_ELF);
+    _ = stage.addCopyFile(dynamic.Library, installed.INSTALLED_LIBRARY);
     storage.add(builder, stage);
     const image = progress.image(builder, stage, packer, paths.GUEST_IMAGE_NAME);
     const runner_options = builder.addOptions();

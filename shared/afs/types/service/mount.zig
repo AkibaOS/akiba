@@ -2,6 +2,7 @@
 
 pub const Mount = extern struct {
     PulseID: u64,
+    WeaverID: u64,
     DiskDriverID: u64,
     LastSector: u64,
 };

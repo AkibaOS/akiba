@@ -22,9 +22,10 @@ comptime {
 }
 
 export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
-    bootstrap.start();
+    const weaver = bootstrap.start();
     const ahci = drivers.ahci.start();
-    _ = drivers.afs.start(ahci);
+    const afs = drivers.afs.start(ahci);
+    bootstrap.configure(weaver, afs);
     run.listen();
 }
 

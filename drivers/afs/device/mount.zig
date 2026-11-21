@@ -27,7 +27,7 @@ pub fn parameters(address: u64) !Mount {
     if (identity != install.PATH.len or size != @sizeOf(Mount) or !std.mem.eql(u8, bytes[begin..base], install.PATH))
         return error.InvalidStartup;
     const result = std.mem.bytesToValue(Mount, bytes[base..][0..@sizeOf(Mount)]);
-    if (result.PulseID == 0 or result.DiskDriverID == 0 or result.LastSector == 0) return error.InvalidStartup;
+    if (result.PulseID == 0 or result.WeaverID == 0 or result.DiskDriverID == 0 or result.LastSector == 0) return error.InvalidStartup;
     return result;
 }
 

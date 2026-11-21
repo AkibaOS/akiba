@@ -8,6 +8,7 @@ const drive = @import("tests").guest.support.drive;
 const fixture = @import("tests").guest.constants.ahci.fixture;
 const handoff = @import("mirai").bootstrap.storage.handoff;
 const harness = @import("tests").guest.postman.harness;
+const installed = @import("tests").guest.ahci.weaver;
 const kata = @import("mirai").kata;
 const launch = @import("mirai").bootstrap.pulse.launch;
 const postman = @import("mirai").postman;
@@ -32,7 +33,7 @@ pub fn prove(volume: Volume) !bool {
     const resident = kata.state.next(pulse.Owner) orelse return false;
     const driver = kata.state.next(resident) orelse return false;
     const files = kata.state.next(driver) orelse return false;
-    if (pulse.Owner.CanProvision or resident.CanProvision or driver.CanProvision or files.CanProvision or kata.state.next(files) != null or
+    if (pulse.Owner.CanProvision or !resident.CanProvision or driver.CanProvision or files.CanProvision or kata.state.next(files) != null or
         !authority.readyFor(pulse.ID, driver.ID) or !afs.readyFor(pulse.ID, files.ID)) return false;
     const disk = handoff.forPulse(pulse.Owner) orelse return false;
     const address: u16 = @bitCast(disk.Location.Address);
@@ -44,7 +45,7 @@ pub fn prove(volume: Volume) !bool {
         if (failure != PulseError.NotFirstKata) return failure;
     }
 
-    var context: Context = .{ .PulseID = pulse.ID };
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -56,8 +57,12 @@ pub fn prove(volume: Volume) !bool {
 
 fn monitor(argument: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const context: *Context = @ptrCast(@alignCast(argument.?));
-    context.Outcome = exchange(context.PulseID);
+    context.Outcome = exercise(context);
     thread.finish.complete();
+}
+
+fn exercise(context: *const Context) !bool {
+    return try exchange(context.PulseID) and try installed.prove(context.WeaverID);
 }
 
 fn exchange(identifier: u64) !bool {

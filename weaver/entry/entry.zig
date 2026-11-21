@@ -11,8 +11,8 @@ comptime {
     _ = assembly.entry.weaver.weaver_entry;
 }
 
-export fn weaver_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
-    inbox.listen();
+export fn weaver_main(pulse: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn {
+    inbox.listen(pulse);
 }
 
 pub const panic = std.debug.FullPanic(fault);

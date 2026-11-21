@@ -30,6 +30,7 @@ fn perform(caller: *Thread, frame: *const Frame) !u64 {
     if (frame.RDX != 0 or frame.R10 != 0) return error.InvalidArgument;
     return switch (operation) {
         .Start => if (frame.RSI == 0) handoff.start(caller) else error.InvalidArgument,
+        .Grow => if (frame.RSI == 0) handoff.grow(caller) else error.InvalidArgument,
         .Confirm => confirmed: {
             try handoff.confirm(caller, frame.RSI);
             break :confirmed 0;

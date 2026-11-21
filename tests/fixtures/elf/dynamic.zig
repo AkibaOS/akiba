@@ -22,9 +22,10 @@ export fn akiba_fixture_main(argument: u64) callconv(.{ .x86_64_sysv = .{} }) no
 }
 
 fn verifyStartup(address: u64) bool {
-    if (address != inputs.STARTUP_ADDRESS) return false;
     const header: *const volatile [3]u64 = @ptrFromInt(address);
-    if (header[0] != 1 or header[1] != labels.IDENTITY.len or header[2] != inputs.PARAMETER_COUNT) return false;
+    if (header[0] != 1) return false;
+    if (header[1] == labels.INSTALLED_IDENTITY.len and header[2] == inputs.INSTALLED_PARAMETERS.len) return verifyInstalled(address);
+    if (address != inputs.STARTUP_ADDRESS or header[1] != labels.IDENTITY.len or header[2] != inputs.PARAMETER_COUNT) return false;
     const payload: [*]const volatile u8 = @ptrFromInt(address + elf.STARTUP_HEADER_BYTES);
     for (labels.IDENTITY, 0..) |expected, index| if (payload[index] != expected) return false;
     const parameters = payload + labels.IDENTITY.len;
@@ -33,6 +34,14 @@ fn verifyStartup(address: u64) bool {
     for (1..inputs.PARAMETER_COUNT - 1) |index| if (parameters[index] != inputs.PARAMETER_BYTE) return false;
     if (parameters[inputs.PARAMETER_COUNT - 1] != inputs.PARAMETER_LAST) return false;
     return mode != inputs.HOLD_PARAMETER or awaitRelease();
+}
+
+fn verifyInstalled(address: u64) bool {
+    const payload: [*]const volatile u8 = @ptrFromInt(address + elf.STARTUP_HEADER_BYTES);
+    for (labels.INSTALLED_IDENTITY, 0..) |expected, index| if (payload[index] != expected) return false;
+    const parameters = payload + labels.INSTALLED_IDENTITY.len;
+    for (inputs.INSTALLED_PARAMETERS, 0..) |expected, index| if (parameters[index] != expected) return false;
+    return true;
 }
 
 fn awaitRelease() bool {

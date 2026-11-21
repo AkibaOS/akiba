@@ -12,6 +12,7 @@ const postman = @import("mirai").postman;
 const rollback = @import("mirai").bootstrap.strings.image.rollback;
 const stack = @import("mirai").bootstrap.constants.driver.afs;
 const storage = @import("mirai").bootstrap.storage.handoff;
+const weaver = @import("mirai").bootstrap.weaver.handoff;
 
 const Image = @import("mirai").bootstrap.types.driver.image.Image;
 const Kata = kata.types.kata.Kata;
@@ -46,7 +47,13 @@ pub fn start(caller: *Thread, ahci: u64) !u64 {
     const source = pending orelse return error.InvalidState;
     if (source.PulseID != caller.Owner.ID) return error.InvalidCaller;
     if (!authority.readyFor(caller.Owner.ID, ahci)) return error.InvalidState;
-    const mount: Mount = .{ .PulseID = caller.Owner.ID, .DiskDriverID = ahci, .LastSector = disk.Volume.LastLBA - disk.Volume.FirstLBA };
+    const loader = weaver.assignedTo(caller.Owner.ID) orelse return error.InvalidState;
+    const mount: Mount = .{
+        .PulseID = caller.Owner.ID,
+        .WeaverID = loader,
+        .DiskDriverID = ahci,
+        .LastSector = disk.Volume.LastLBA - disk.Volume.FirstLBA,
+    };
     const prepared = try image.prepare.prepare(caller.Owner, source.Bytes, .{
         .StackBase = stack.BASE,
         .StackPages = stack.PAGES,

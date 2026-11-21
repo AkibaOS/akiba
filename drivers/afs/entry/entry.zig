@@ -19,7 +19,7 @@ export fn afs_main(address: u64) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     var settings = mount.parameters(address) catch inbox.stop(@intFromEnum(Status.InvalidState));
     var sectors = mount.open(&settings, &scratch) catch inbox.stop(@intFromEnum(Status.InvalidState));
     const catalog = afs.read.catalog.mount(afs.read.sectors.reader(&sectors), &scratch) catch inbox.stop(@intFromEnum(Status.InvalidState));
-    inbox.listen(&catalog, settings.PulseID, &scratch);
+    inbox.listen(&catalog, settings, &scratch);
 }
 
 pub const panic = std.debug.FullPanic(fault);

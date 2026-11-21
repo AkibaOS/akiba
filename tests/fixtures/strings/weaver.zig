@@ -1,6 +1,10 @@
 //! Linked Request Diagnostic Identity And Receipt Labels
 
 pub const IDENTITY = "request-probe.akiba";
+pub const INSTALLED_IDENTITY = "requestprobe";
+pub const MISSING_INSTALLED = "missingprobe";
+pub const INSTALLED_ELF = "system/binaries/" ++ INSTALLED_IDENTITY;
+pub const INSTALLED_LIBRARY = "system/libraries/linked.lib";
 pub const MISSING = "Persona Weaver finds no system library in the AFS catalog and never begins a draft";
 pub const ROLLBACK = "Persona Weaver aborts after two allocated pages and a real refused provisioning copy";
 pub const OWNERSHIP = "authenticated Persona Weaver replies with the linked child owned by the requester";

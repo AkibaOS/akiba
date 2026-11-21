@@ -7,10 +7,11 @@ const request = @import("afs").service.request;
 
 const Catalog = @import("shared").afs.types.reader.Catalog;
 const Header = @import("shared").persona.types.letter.Header;
+const Mount = @import("shared").afs.types.service.mount.Mount;
 const Reply = @import("afs").types.service.reply.Reply;
 const Status = @import("shared").persona.types.invocation.Status;
 
-pub fn listen(catalog: *const Catalog, pulse: u64, scratch: []u8) noreturn {
+pub fn listen(catalog: *const Catalog, settings: Mount, scratch: []u8) noreturn {
     var incoming: [limits.MAX_PAYLOAD_BYTES]u8 = undefined;
     var output: [limits.MAX_PAYLOAD_BYTES]u8 = undefined;
     var header: Header = undefined;
@@ -18,7 +19,8 @@ pub fn listen(catalog: *const Catalog, pulse: u64, scratch: []u8) noreturn {
         const arrived = invoke.call(.Receive, @intFromPtr(&incoming), incoming.len, @intFromPtr(&header), 0);
         if (arrived.Status != @intFromEnum(Status.Success)) stop(arrived.Status);
         if (header.ReplyTicket == 0) continue;
-        const response: Reply = if (header.Sender == pulse and arrived.Value == header.Length and arrived.Value <= incoming.len)
+        const response: Reply = if ((header.Sender == settings.PulseID or header.Sender == settings.WeaverID) and
+            arrived.Value == header.Length and arrived.Value <= incoming.len)
             request.respond(catalog, header.Type, incoming[0..@intCast(arrived.Value)], &output, scratch)
         else
             .{ .Kind = letters.REFUSED };
