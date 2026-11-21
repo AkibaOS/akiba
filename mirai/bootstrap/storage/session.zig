@@ -2,12 +2,12 @@
 
 const ahci = @import("shared").ahci;
 const layout = @import("common").constants.memory.layout;
-const pci = @import("mirai").bootstrap.storage.pci;
+const pci = @import("mirai").device.pci.configuration;
 const pmm = @import("mirai").pmm;
-const registers = @import("mirai").bootstrap.storage.registers;
+const registers = @import("mirai").device.ahci.registers;
 const sizes = @import("common").constants.memory.sizes;
 const transfer = @import("mirai").bootstrap.storage.transfer;
-const values = @import("mirai").bootstrap.constants.storage.registers;
+const values = @import("mirai").device.constants.ahci.registers;
 
 const Controller = ahci.types.discover.controller.Controller;
 const Disk = @import("mirai").bootstrap.types.storage.disk.Disk;

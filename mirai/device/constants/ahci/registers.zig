@@ -1,4 +1,4 @@
-//! Boot AHCI Register Window And Status Fields
+//! AHCI Register Window And Status Fields
 
 const sizes = @import("common").constants.memory.sizes;
 

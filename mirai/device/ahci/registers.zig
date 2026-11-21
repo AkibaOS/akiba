@@ -1,11 +1,18 @@
-//! Boot AHCI MMIO And Port Drain
+//! Checked AHCI MMIO And Port Drain
 
 const cpu = @import("asm").cpu;
-const limits = @import("mirai").bootstrap.constants.storage.limits;
+const limits = @import("mirai").device.constants.ahci.limits;
 const portspec = @import("shared").ahci.discover.port;
-const values = @import("mirai").bootstrap.constants.storage.registers;
+const values = @import("mirai").device.constants.ahci.registers;
 
-const StorageError = @import("mirai").bootstrap.errors.storage.read.StorageError;
+const AttachmentError = @import("mirai").device.errors.ahci.attachment.AttachmentError;
+
+pub fn detached(sata: u64) bool {
+    const engine = values.START | values.RECEIVE_FIS | values.RUNNING_COMMAND | values.RUNNING_FIS;
+    return read(sata, values.COMMAND) & engine == 0 and read(sata, values.ISSUE) == 0 and read(sata, values.ACTIVE) == 0 and
+        read(sata, values.LIST) == 0 and read(sata, values.LIST_HIGH) == 0 and
+        read(sata, values.FIS) == 0 and read(sata, values.FIS_HIGH) == 0;
+}
 
 pub fn stop(sata: u64) bool {
     write(sata, values.COMMAND, read(sata, values.COMMAND) & ~values.START);
@@ -14,22 +21,22 @@ pub fn stop(sata: u64) bool {
     return waitClear(sata, values.COMMAND, values.RUNNING_FIS);
 }
 
-pub fn ports(controller: u64) StorageError!u32 {
+pub fn ports(controller: u64) AttachmentError!u32 {
     const count = (read(controller, values.CAP) & values.PORT_NUMBER_MASK) + 1;
-    if (count > values.MAPPED_PORTS) return StorageError.UnsupportedAhciController;
+    if (count > values.MAPPED_PORTS) return AttachmentError.UnsupportedAhciController;
     const valid = (@as(u32, 1) << @as(u5, @intCast(count))) - 1;
     const implemented = read(controller, values.PORTS);
-    if (implemented & ~valid != 0) return StorageError.UnsupportedAhciController;
+    if (implemented & ~valid != 0) return AttachmentError.UnsupportedAhciController;
     return implemented;
 }
 
-pub fn diskPort(controller: u64, index: u5) StorageError!?u64 {
-    if (index >= values.MAPPED_PORTS) return StorageError.UnsupportedAhciPort;
+pub fn diskPort(controller: u64, index: u5) AttachmentError!?u64 {
+    if (index >= values.MAPPED_PORTS) return AttachmentError.UnsupportedAhciPort;
     const sata = controller + values.PORT_BASE + @as(u64, index) * values.PORT_STRIDE;
     return switch (portspec.classify(read(sata, values.LINK), read(sata, values.SIGNATURE))) {
         .Empty, .PacketDevice => null,
         .AtaDisk => sata,
-        .Unverifiable => StorageError.UnsupportedAhciPort,
+        .Unverifiable => AttachmentError.UnsupportedAhciPort,
     };
 }
 

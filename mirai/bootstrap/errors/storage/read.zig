@@ -11,6 +11,4 @@ pub const StorageError = error{
     BootUnitMissing,
     ImageTooLarge,
     InvalidSectorBuffer,
-    UnsupportedAhciController,
-    UnsupportedAhciPort,
 };

@@ -1,16 +1,14 @@
 //! Select And Revalidate One Native Bootstrap Disk
 
-const std = @import("std");
-
 const ahci = @import("shared").ahci;
+const attachment = @import("mirai").device.ahci.attachment;
 const guard = @import("asm").interrupts.guard;
 const identity = @import("mirai").bootstrap.storage.identity;
 const layout = @import("common").constants.memory.layout;
-const pci = @import("mirai").bootstrap.storage.pci;
+const pci = @import("mirai").device.pci.configuration;
 const physmap = @import("mirai").kagami.tables.physmap;
-const registers = @import("mirai").bootstrap.storage.registers;
+const registers = @import("mirai").device.ahci.registers;
 const session = @import("mirai").bootstrap.storage.session;
-const values = @import("mirai").bootstrap.constants.storage.registers;
 
 const Controller = ahci.types.discover.controller.Controller;
 const DiscoverError = ahci.errors.discover.selection.DiscoverError;
@@ -39,7 +37,7 @@ fn find(context: *anyopaque, device: Controller) !?u8 {
     var reclaimable = true;
     defer if (reclaimable) physmap.restoreDevicePage(alias);
     const aperture = layout.PHYSMAP_BASE + device.Bar;
-    var pending = try readyPorts(aperture);
+    var pending = try attachment.readyPorts(aperture);
     var selected: ?u8 = null;
     while (pending != 0) {
         const index: u5 = @intCast(@ctz(pending));
@@ -58,16 +56,8 @@ fn reopen(location: Location, lease: *Lease) !void {
     var reclaimable = true;
     defer if (reclaimable) physmap.restoreDevicePage(alias);
     const aperture = layout.PHYSMAP_BASE + device.Bar;
-    const index = std.math.cast(u5, location.Port) orelse return StorageError.BootDeviceChanged;
-    if ((try readyPorts(aperture)) & (@as(u32, 1) << index) == 0) return StorageError.BootDeviceChanged;
-    const port = (try registers.diskPort(aperture, index)) orelse return StorageError.BootDeviceChanged;
+    const port = try attachment.exactPort(aperture, location.Port);
     if (!try session.withDisk(device, aperture, port, &reclaimable, lease, verifyAndRead)) return StorageError.BootDeviceChanged;
-}
-
-fn readyPorts(aperture: u64) StorageError!u32 {
-    if (registers.read(aperture, values.GHC) & values.AHCI_ENABLE == 0 or registers.read(aperture, values.CAP2) & values.BIOS_HANDOFF != 0)
-        return StorageError.UnsupportedAhciController;
-    return registers.ports(aperture);
 }
 
 fn verifyCandidate(context: *anyopaque, disk: *Disk) !bool {

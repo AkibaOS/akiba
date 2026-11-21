@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const attachment = @import("mirai").device.ahci.attachment;
 const boot = @import("mirai").boot.sequence.state;
 const config = @import("tests").machine.config;
 const fixture = @import("tests").guest.constants.ahci.fixture;
@@ -31,6 +32,7 @@ pub fn run() !void {
     verify.require(true, names.AHCI_CHECK);
     verify.require(true, names.AHCI_VOLUME_CHECK);
     const key: u16 = @bitCast(image.Location.Address);
+    try attachment.verifyDetached(image.Location);
     verify.require(key == fixture.RELOCATED_ADDRESS and image.Location.Port == fixture.BOOT_PORT, names.AHCI_LOCATION_CHECK);
     verify.require(std.mem.eql(u8, image.Bytes, IMAGE), names.AHCI_IMAGE_CHECK);
     verify.require(try pulse.prove(expected), names.AHCI_PULSE_CHECK);

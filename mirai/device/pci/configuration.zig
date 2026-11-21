@@ -1,8 +1,8 @@
-//! Bootstrap PCI Configuration Access At A Discovered Address
+//! Scoped PCI Configuration Port Access
 
 const fields = @import("shared").ahci.constants.discover.pci;
 const port = @import("asm").io.port;
-const values = @import("mirai").bootstrap.constants.storage.pci;
+const values = @import("mirai").device.constants.pci.configuration;
 
 const Address = @import("shared").ahci.types.discover.configuration.Address;
 const Source = @import("shared").ahci.types.discover.configuration.Source;

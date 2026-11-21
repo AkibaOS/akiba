@@ -3,6 +3,7 @@
 pub const boot = @import("boot/boot.zig");
 pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const crimson = @import("crimson/crimson.zig");
+pub const device = @import("device/device.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const interrupts = @import("interrupts/interrupts.zig");
 pub const invocations = @import("invocations/invocations.zig");

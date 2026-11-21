@@ -4,9 +4,9 @@ const std = @import("std");
 
 const ahci = @import("shared").ahci;
 const cpu = @import("asm").cpu;
-const registers = @import("mirai").bootstrap.storage.registers;
+const registers = @import("mirai").device.ahci.registers;
 const sizes = @import("common").constants.memory.sizes;
-const values = @import("mirai").bootstrap.constants.storage.registers;
+const values = @import("mirai").device.constants.ahci.registers;
 
 const CommandError = ahci.errors.command.transfer.CommandError;
 const Disk = @import("mirai").bootstrap.types.storage.disk.Disk;
