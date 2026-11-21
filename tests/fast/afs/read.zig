@@ -7,6 +7,7 @@ const constants = @import("tests").fast.constants.storage;
 const device = @import("tests").fast.afs.device;
 const errors = @import("shared").afs.errors.read.transfers;
 const operations = @import("shared").afs.read.unit;
+const range = @import("shared").afs.read.range;
 const volume = @import("shared").afs.types.volume;
 
 pub fn exactAndPartialSpans() !void {
@@ -73,6 +74,30 @@ pub fn fragmentedUnitReads() !void {
     try std.testing.expectEqual(@as(u64, 5), storage.Reads[0].Cell);
     try std.testing.expectEqual(@as(u64, 1), storage.Reads[1].Cell);
     try std.testing.expectEqual(@as(u64, 2), storage.Reads[2].Cell);
+}
+
+pub fn fragmentedRanges() !void {
+    var storage = device.create();
+    const reader = device.createReader(&storage);
+    var unit = catalog.UnitRecord{};
+    unit.DataChannel.LogicalSize = constants.CELL_SIZE + constants.PARTIAL_BYTES;
+    unit.DataChannel.PhysicalSize = 2 * constants.CELL_SIZE;
+    unit.DataChannel.TotalCells = 2;
+    unit.DataChannel.Spans[0] = .{ .StartCell = 5, .CellCount = 1 };
+    unit.DataChannel.Spans[1] = .{ .StartCell = 1, .CellCount = 1 };
+    var scratch: [constants.CELL_SIZE]u8 = undefined;
+    var guarded = [_]u8{constants.GUARD_BYTE} ** (3 * constants.PARTIAL_BYTES);
+    const offset = constants.CELL_SIZE - constants.PARTIAL_BYTES;
+    try std.testing.expectEqual(@as(usize, 2 * constants.PARTIAL_BYTES), try range.unit(&reader, &unit, offset, &guarded, &scratch));
+    try std.testing.expectEqualSlices(u8, &([_]u8{0x66} ** constants.PARTIAL_BYTES ++ [_]u8{0x22} ** constants.PARTIAL_BYTES ++ [_]u8{constants.GUARD_BYTE} ** constants.PARTIAL_BYTES), &guarded);
+    try std.testing.expectEqual(@as(usize, 2), storage.ReadCount);
+    try std.testing.expectEqual(@as(u64, 5), storage.Reads[0].Cell);
+    try std.testing.expectEqual(@as(u64, 1), storage.Reads[1].Cell);
+    try std.testing.expectEqual(@as(usize, 0), try range.unit(&reader, &unit, unit.DataChannel.LogicalSize, &guarded, &scratch));
+    try std.testing.expectError(error.InvalidOffset, range.unit(&reader, &unit, unit.DataChannel.LogicalSize + 1, &guarded, &scratch));
+    unit.DataChannel.Spans[1] = .{};
+    try std.testing.expectError(error.InvalidSpan, range.unit(&reader, &unit, 0, &guarded, &scratch));
+    try std.testing.expectEqual(@as(usize, 2), storage.ReadCount);
 }
 
 pub fn incompleteInlineChannels() !void {

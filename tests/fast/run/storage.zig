@@ -174,6 +174,10 @@ test "AFS fragmented unit reads follow data spans and logical size" {
     try afs.read.fragmentedUnitReads();
 }
 
+test "AFS ranged reads cross fragmented spans and stop at the logical Unit end" {
+    try afs.read.fragmentedRanges();
+}
+
 test "AFS inline reads return partial data but complete units reject gaps" {
     try afs.read.incompleteInlineChannels();
 }
