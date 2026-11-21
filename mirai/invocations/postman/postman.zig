@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const arguments = @import("mirai").invocations.errors.arguments;
 const copy = @import("mirai").user.copy.transfer;
 const limits = @import("mirai").user.constants.limits;
@@ -12,7 +12,7 @@ const sensei = @import("mirai").sensei;
 const types = @import("mirai").invocations.types.postman.exchange;
 
 const ArgumentError = arguments.ArgumentError;
-const Header = postman.types.letter.Header;
+const Header = @import("shared").persona.types.letter.Header;
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Result = types.Result;
 const Thread = @import("mirai").thread.types.thread.Thread;

@@ -6,6 +6,7 @@ const labels = @import("tests").guest.strings.postman.witnesses;
 const postman = @import("mirai").postman;
 const types = @import("tests").guest.types.postman.fixtures;
 const verify = @import("tests").guest.support.verify;
+const wire = @import("shared").persona.constants.postman;
 
 const Operation = types.Operation;
 
@@ -32,7 +33,7 @@ fn copiedLetters() !void {
         harness.send(&sender, receiver.ID, constants.SECOND_TYPE, constants.REPLACEMENT.len),
         harness.send(&sender, receiver.ID, constants.LETTER_TYPE, 0),
         harness.send(&sender, constants.INVALID_PEER, constants.LETTER_TYPE, constants.REQUEST.len),
-        harness.send(&sender, receiver.ID, constants.LETTER_TYPE, postman.constants.limits.MAX_PAYLOAD_BYTES + 1),
+        harness.send(&sender, receiver.ID, constants.LETTER_TYPE, wire.MAX_PAYLOAD_BYTES + 1),
         invalid,
     });
     try harness.start(&receiver);

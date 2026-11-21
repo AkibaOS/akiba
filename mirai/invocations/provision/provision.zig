@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const copy = @import("mirai").user.copy.transfer;
 const pages = @import("mirai").launch.draft.pages;
 const publish = @import("mirai").launch.draft.publish;

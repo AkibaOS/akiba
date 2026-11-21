@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const arguments = @import("mirai").invocations.errors.arguments;
 const codec = @import("mirai").invocations.completion.codec;
 const copy = @import("mirai").user.copy.transfer;

@@ -10,14 +10,15 @@ const fixture = @import("fixture.zig");
 const kernel = @import("../kernel/kernel.zig");
 const menu = @import("menu.zig");
 const names = @import("../strings/names.zig");
-const progress = @import("pack.zig");
 const paths = @import("../strings/paths.zig");
+const progress = @import("pack.zig");
+const pulsepath = @import("../../../shared/pulse/strings/install.zig");
 const steps = @import("../strings/steps/descriptions.zig");
 const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile) void {
+pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile) void {
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);
@@ -68,6 +69,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyDirectory(builder.path(paths.RESOURCES_ROOT), paths.DIRECTORY_ROOT, .{});
     _ = stage.addCopyFile(selector.getEmittedBin(), paths.HIKARI_OUTPUT);
     _ = stage.addCopyFile(ordinary.getEmittedBin(), paths.MIRAI_OUTPUT);
+    _ = stage.addCopyFile(pulse.getEmittedBin(), pulsepath.PATH);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     storage.add(builder, stage);

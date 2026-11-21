@@ -12,9 +12,10 @@ const postman = @import("mirai").postman;
 const postmanwire = @import("tests").fixtures.constants.postman;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
+const wire = @import("shared").persona.constants.postman;
 
-var payload: [postman.constants.limits.MAX_PAYLOAD_BYTES]u8 = undefined;
-var received: [postman.constants.limits.MAX_PAYLOAD_BYTES]u8 = undefined;
+var payload: [wire.MAX_PAYLOAD_BYTES]u8 = undefined;
+var received: [wire.MAX_PAYLOAD_BYTES]u8 = undefined;
 
 pub fn run() !void {
     defer budget.clear();

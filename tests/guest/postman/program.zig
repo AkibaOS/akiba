@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const constants = @import("tests").guest.constants.postman.transport;
 const types = @import("tests").guest.types.postman.fixtures;
 

@@ -1,6 +1,6 @@
 //! Persona Receive Output Safety And Receiver Wake Regressions
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const constants = @import("tests").guest.constants.postman.transport;
 const harness = @import("tests").guest.postman.harness;
 const labels = @import("tests").guest.strings.postman.witnesses;

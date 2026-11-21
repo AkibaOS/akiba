@@ -10,6 +10,9 @@ pub const EXECUTABLE_MIRAI = "mirai";
 pub const EXECUTABLE_MKAFSDISK = "mkafsdisk";
 pub const EXECUTABLE_FONTPREVIEW = "fontpreview";
 pub const ENTRY_MIRAI = "mirai_entry";
+pub const EXECUTABLE_PULSE = "pulse";
+pub const ENTRY_PULSE = "pulse_entry";
+pub const MODULE_PERSONA_ASSEMBLY = "personaasm";
 
 pub const IMPORT_FONT = "font";
 pub const MODULE_TESTS = "tests";

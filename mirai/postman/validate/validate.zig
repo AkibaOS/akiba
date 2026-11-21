@@ -5,6 +5,7 @@ const limits = @import("mirai").postman.constants.limits;
 const sensei = @import("mirai").sensei;
 const state = @import("mirai").postman.state;
 const thread = @import("mirai").thread;
+const wire = @import("shared").persona.constants.postman;
 
 const PostError = @import("mirai").postman.errors.transport.PostError;
 const Thread = thread.types.thread.Thread;
@@ -28,5 +29,5 @@ pub fn current(target: *Thread) PostError!void {
 }
 
 pub fn payload(bytes: []const u8) PostError!void {
-    if (bytes.len > limits.MAX_PAYLOAD_BYTES) return PostError.TooLarge;
+    if (bytes.len > wire.MAX_PAYLOAD_BYTES) return PostError.TooLarge;
 }

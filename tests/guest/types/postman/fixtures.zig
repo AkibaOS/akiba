@@ -1,6 +1,6 @@
 //! Persona Postman Regression Types
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const constants = @import("tests").guest.constants.postman.transport;
 const kata = @import("mirai").kata;
 const thread = @import("mirai").thread;

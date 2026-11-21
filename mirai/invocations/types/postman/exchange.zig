@@ -1,9 +1,9 @@
 //! Postman Invocation Argument And Result Types
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const strings = @import("mirai").invocations.strings.postman.diagnostic;
 
-const Header = @import("mirai").postman.types.letter.Header;
+const Header = @import("shared").persona.types.letter.Header;
 
 pub const Call = extern struct {
     Destination: u64,

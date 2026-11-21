@@ -10,7 +10,7 @@ const provision = @import("mirai").invocations.provision;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
-const types = @import("mirai").invocations.types.abi;
+const types = @import("shared").persona.types.invocation;
 
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const abi = @import("mirai").invocations.types.abi;
+const abi = @import("shared").persona.types.invocation;
 const arguments = @import("mirai").invocations.types.postman.exchange;
 const constants = @import("tests").guest.constants.postman.transport;
 const copy = @import("mirai").user.copy.transfer;
@@ -21,7 +21,7 @@ const user = @import("mirai").user;
 
 const Actor = types.Actor;
 const FixtureError = types.FixtureError;
-const Header = postman.types.letter.Header;
+const Header = @import("shared").persona.types.letter.Header;
 const InvocationResult = types.InvocationResult;
 const Operation = types.Operation;
 const Resources = types.Resources;
@@ -132,11 +132,15 @@ pub fn input(actor: *const Actor, bytes: []const u8) !void {
 }
 
 pub fn descriptor(actor: *const Actor, destination: u64, capacity: u64) !void {
+    return descriptorFor(actor, destination, postmanwire.CALL_TYPE, constants.REQUEST.len, capacity);
+}
+
+pub fn descriptorFor(actor: *const Actor, destination: u64, letter_type: u64, length: u64, capacity: u64) !void {
     const value: arguments.Call = .{
         .Destination = destination,
-        .Type = postmanwire.CALL_TYPE,
+        .Type = letter_type,
         .Request = actor.Data + constants.INPUT_OFFSET,
-        .RequestLength = constants.REQUEST.len,
+        .RequestLength = length,
         .Reply = actor.Data + constants.OUTPUT_OFFSET,
         .ReplyCapacity = capacity,
         .Metadata = actor.Data + constants.HEADER_OFFSET,

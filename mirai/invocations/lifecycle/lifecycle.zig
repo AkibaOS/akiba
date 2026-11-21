@@ -2,7 +2,7 @@
 
 const kata = @import("mirai").kata;
 const thread = @import("mirai").thread;
-const types = @import("mirai").invocations.types.abi;
+const types = @import("shared").persona.types.invocation;
 
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 

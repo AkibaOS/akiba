@@ -1,0 +1,33 @@
+/* Standalone Pulse Bootstrap ELF */
+OUTPUT_FORMAT(elf64-x86-64)
+OUTPUT_ARCH(i386:x86-64)
+ENTRY(pulse_entry)
+PULSE_BASE = 0x400000;
+PULSE_PAGE_SIZE = 4096;
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    rodata PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+}
+SECTIONS
+{
+    .text PULSE_BASE :
+    {
+        KEEP(*(.text.pulse.entry))
+        *(.text .text.*)
+    } :text
+    .rodata ALIGN(PULSE_PAGE_SIZE) :
+    {
+        *(.rodata .rodata.* .srodata .srodata.*)
+    } :rodata
+    .data ALIGN(PULSE_PAGE_SIZE) :
+    {
+        *(.data .data.* .sdata .sdata.* .got .got.*)
+    } :data
+    .bss ALIGN(PULSE_PAGE_SIZE) (NOLOAD) :
+    {
+        *(.bss .bss.* .sbss .sbss.*) *(COMMON)
+    } :data
+    /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
+}

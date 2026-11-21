@@ -14,28 +14,34 @@ const Epoch = @import("tests").runner.types.host.Epoch;
 const Scenario = @import("tests").phase.types.scenario.Scenario;
 const Selection = @import("tests").phase.types.boot.frame.Selection;
 
-test "AHCI evidence requires the native boot reader's exact packed ELF witness" {
+test "AHCI evidence requires the installed Pulse to run in Persona" {
     const primary = fixtures.AHCI_HEADER;
     const volume = fixtures.AHCI_VOLUME;
     const location = fixtures.AHCI_LOCATION;
     const image = fixtures.AHCI_IMAGE;
+    const pulse = fixtures.AHCI_PULSE;
     const lf = fixtures.LF;
     const crlf = fixtures.CRLF;
     const prefix = primary ++ lf ++ volume ++ lf ++ location ++ lf;
-    try result.verifyAhci(prefix ++ image ++ lf);
-    try result.verifyAhci(primary ++ crlf ++ volume ++ crlf ++ location ++ crlf ++ image ++ crlf);
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ lf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ location ++ lf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ primary ++ lf ++ location ++ lf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf ++ volume ++ lf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(image ++ lf ++ prefix));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ fixtures.AHCI_PREFIX ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ image ++ crlf ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ crlf ++ prefix ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ crlf ++ prefix ++ image ++ lf));
-    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ location ++ crlf ++ image ++ lf));
+    const bytes = prefix ++ image ++ lf;
+    const suffix = image ++ lf ++ pulse ++ lf;
+    try result.verifyAhci(bytes ++ pulse ++ lf);
+    try result.verifyAhci(primary ++ crlf ++ volume ++ crlf ++ location ++ crlf ++ image ++ crlf ++ pulse ++ crlf);
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(bytes));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ volume ++ lf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ location ++ lf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ lf ++ primary ++ lf ++ location ++ lf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ lf ++ location ++ lf ++ volume ++ lf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(image ++ lf ++ prefix ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ pulse ++ lf ++ image ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(bytes ++ fixtures.AHCI_PREFIX ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(bytes ++ pulse ++ crlf ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(primary ++ crlf ++ bytes ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(volume ++ crlf ++ bytes ++ pulse ++ lf));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(prefix ++ location ++ crlf ++ suffix));
+    try std.testing.expectError(error.MissingAhciEvidence, result.verifyAhci(bytes ++ image ++ crlf ++ pulse ++ lf));
 }
 
 test "a boot selector acknowledgement binds the exact role and epoch" {

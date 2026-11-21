@@ -5,11 +5,12 @@ const std = @import("std");
 const paths = @import("../strings/paths.zig");
 const steps = @import("../strings/steps/descriptions.zig");
 
-pub fn add(builder: *std.Build, bootloader: *std.Build.Step, kernel: *std.Build.Step, disk: *std.Build.Step) void {
+pub fn add(builder: *std.Build, bootloader: *std.Build.Step, kernel: *std.Build.Step, disk: *std.Build.Step, pulse: *std.Build.Step) void {
     const all = builder.step(steps.ALL, steps.ALL_DESCRIPTION);
     all.dependOn(bootloader);
     all.dependOn(kernel);
     all.dependOn(disk);
+    all.dependOn(pulse);
     builder.default_step = all;
 
     const clean = builder.step(steps.CLEAN, steps.CLEAN_DESCRIPTION);

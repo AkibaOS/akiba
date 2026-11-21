@@ -345,6 +345,10 @@ test "The boot volume record refuses invalid identity and geometry" {
     try boot.volume.invalidIdentityAndGeometry();
 }
 
+test "Pulse installs as one extensionless Unit under the system Akiba Stack" {
+    try boot.pulse.standalone();
+}
+
 test "BootParams initialization stamps the header and zeroes the handoff" {
     try boot.params.initializedHandoff();
 }

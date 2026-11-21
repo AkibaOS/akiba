@@ -6,6 +6,7 @@ const limits = @import("mirai").postman.constants.limits;
 const memory = @import("mirai").memory;
 const messages = @import("mirai").postman.strings.invariants;
 const pmm = @import("mirai").pmm;
+const wire = @import("shared").persona.constants.postman;
 
 const Envelope = @import("mirai").postman.types.envelope.Envelope;
 const EnvelopeStore = memory.types.pool.store.create(Envelope);
@@ -22,7 +23,7 @@ pub fn initialize() bool {
     defer guard.release(flags);
     if (payloads != null) return true;
     records.init(labels.ENVELOPES) catch return false;
-    payloads = memory.zone.create.create(labels.PAYLOADS, limits.MAX_PAYLOAD_BYTES) catch {
+    payloads = memory.zone.create.create(labels.PAYLOADS, wire.MAX_PAYLOAD_BYTES) catch {
         if (!records.deinit()) @panic(messages.INVALID_ENVELOPE);
         return false;
     };
@@ -43,7 +44,7 @@ pub fn reserve(source: *Mailbox, destination: *Mailbox, status: Status, letter_t
     const flags = guard.acquire();
     defer guard.release(flags);
     if (destination.Closed) return PostError.Closed;
-    if (payload.len > limits.MAX_PAYLOAD_BYTES) return PostError.TooLarge;
+    if (payload.len > wire.MAX_PAYLOAD_BYTES) return PostError.TooLarge;
     if (status != .OneWay and status != .Queued) return PostError.InvalidState;
     if (destination.Queued >= limits.MAX_QUEUED_LETTERS or destination.Held >= limits.MAX_HELD_LETTERS or
         source.Outgoing >= limits.MAX_OUTGOING_LETTERS) return PostError.Full;
@@ -53,7 +54,7 @@ pub fn reserve(source: *Mailbox, destination: *Mailbox, status: Status, letter_t
     const envelope = records.reserve() catch return PostError.NoResources;
     errdefer discard(envelope);
     const allocation = memory.zone.alloc.zallocZeroed(zone) catch return PostError.NoResources;
-    const bytes: *[limits.MAX_PAYLOAD_BYTES]u8 = @ptrCast(allocation);
+    const bytes: *[wire.MAX_PAYLOAD_BYTES]u8 = @ptrCast(allocation);
     envelope.* = .{
         .Status = status,
         .Source = source,

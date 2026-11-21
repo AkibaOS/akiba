@@ -3,5 +3,6 @@
 pub const WitnessError = error{
     AhciBootVolumeMissing,
     InvalidAhciMode,
+    PulseProbeDidNotRun,
     UnexpectedBootUnit,
 };

@@ -88,7 +88,8 @@ prepare-filesystem: native-build
 		mkdir -p -- "$$directory"; \
 	done; \
 	cp --remove-destination -- zig-out/EFI/BOOT/BOOTX64.EFI "$$stage/EFI/BOOT/BOOTX64.EFI"; \
-	cp --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"
+	cp --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"; \
+	cp --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"
 
 $(DISK_IMAGE): prepare-filesystem
 	@set -eu; \

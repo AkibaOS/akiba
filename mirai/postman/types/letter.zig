@@ -1,11 +1,6 @@
 //! Copied Letter Views
 
-pub const Header = extern struct {
-    Sender: u64,
-    Type: u64,
-    Length: u64,
-    ReplyTicket: u64,
-};
+const Header = @import("shared").persona.types.letter.Header;
 
 pub const View = struct {
     Header: Header,

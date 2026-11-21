@@ -8,6 +8,7 @@ const fixture = @import("tests").guest.constants.ahci.fixture;
 const kernel = @import("mirai").memory.allocator.native;
 const names = @import("tests").phase.strings.scenario;
 const paths = @import("tests").fixtures.strings.elf.boot;
+const pulse = @import("tests").guest.ahci.pulse;
 const read = @import("mirai").bootstrap.storage.read;
 const verify = @import("tests").guest.support.verify;
 
@@ -32,6 +33,7 @@ pub fn run() !void {
     const key: u16 = @bitCast(image.Location.Address);
     verify.require(key == fixture.RELOCATED_ADDRESS and image.Location.Port == fixture.BOOT_PORT, names.AHCI_LOCATION_CHECK);
     verify.require(std.mem.eql(u8, image.Bytes, IMAGE), names.AHCI_IMAGE_CHECK);
+    verify.require(try pulse.prove(expected), names.AHCI_PULSE_CHECK);
 }
 
 fn expectMissing(volume: Volume, allocator: std.mem.Allocator) !void {

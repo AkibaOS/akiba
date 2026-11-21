@@ -2,6 +2,7 @@
 
 pub const HIKARI_DESCRIPTION = "Build Hikari bootloader";
 pub const MIRAI_DESCRIPTION = "Build Mirai kernel";
+pub const PULSE_DESCRIPTION = "Build the standalone Pulse ELF";
 pub const MKAFSDISK_DESCRIPTION = "Build mkafsdisk tool";
 pub const ALL = "all";
 pub const ALL_DESCRIPTION = "Build everything";
