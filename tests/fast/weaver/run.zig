@@ -156,6 +156,25 @@ test "Weaver places the exact executable snapshot and its libraries without page
     try verifyPlacement(ALLOCATOR);
 }
 
+test "Weaver chooses separate image biases from installed ELF sizes and reservations" {
+    var graph = try layoutGraph(ALLOCATOR);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    const reserved: weaver.image.types.layout.Interval = .{ .Start = 4 * inputs.PAGE_BYTES, .End = 12 * inputs.PAGE_BYTES };
+    var placement = try weaver.image.place.place(ALLOCATOR, &graph, null, policy, &.{reserved});
+    defer placement.deinit();
+    try std.testing.expectEqual(@as(u64, 6), placement.Pages);
+    try std.testing.expectEqual(@as(usize, 2), placement.Libraries.len);
+    var end = reserved.End;
+    try std.testing.expect(placement.Executable.Image.Ranges[0].Start >= end);
+    end = placement.Executable.Image.Ranges[placement.Executable.Image.Ranges.len - 1].End;
+    for (placement.Libraries) |library| {
+        try std.testing.expect(library.Image.Ranges[0].Start >= end);
+        try std.testing.expectEqual(@as(u64, 0), library.Bias % inputs.PAGE_BYTES);
+        end = library.Image.Ranges[library.Image.Ranges.len - 1].End;
+    }
+}
+
 test "Weaver rejects cross-image page collisions even when the images' bytes do not overlap" {
     var graph = try layoutGraph(ALLOCATOR);
     defer graph.deinit();

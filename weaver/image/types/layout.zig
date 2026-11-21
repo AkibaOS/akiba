@@ -15,6 +15,11 @@ pub const Interval = struct {
     End: u64,
 };
 
+pub const Shape = struct {
+    Span: Interval,
+    Alignment: u64,
+};
+
 pub const Placement = struct {
     Allocator: std.mem.Allocator,
     Executable: Layout,

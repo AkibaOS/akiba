@@ -7,7 +7,7 @@ const Cache = @import("weaver").launch.types.cache.state.Cache;
 const Policy = @import("shared").elf.types.image.Policy;
 
 pub const Options = struct {
-    Biases: image.Biases,
+    Biases: ?image.Biases = null,
     Policy: Policy,
     StackBase: u64,
     StackPages: u64,
