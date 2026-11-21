@@ -1,5 +1,6 @@
 //! Controlled Persona Mode Invocation Dispatch
 
+const bootstrap = @import("mirai").invocations.bootstrap;
 const completion = @import("mirai").invocations.completion;
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
@@ -37,6 +38,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     }
     if (service >= @intFromEnum(types.Service.ObserveCompletion) and service <= @intFromEnum(types.Service.CollectCompletion)) {
         completion.dispatch.dispatch(current, frame, service);
+        return;
+    }
+    if (service == @intFromEnum(types.Service.BootstrapWeaver)) {
+        bootstrap.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Provision)) {

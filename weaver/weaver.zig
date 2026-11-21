@@ -5,3 +5,4 @@ pub const launch = @import("launch/launch.zig");
 pub const library = @import("library/library.zig");
 pub const link = @import("link/link.zig");
 pub const stage = @import("stage/stage.zig");
+pub const supervision = @import("supervision/supervision.zig");

@@ -3,4 +3,5 @@
 pub const PulseBootError = error{
     BootVolumeMissing,
     PulseDidNotEnterPersona,
+    WeaverNotReady,
 };

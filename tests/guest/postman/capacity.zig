@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const arguments = @import("mirai").invocations.types.postman.exchange;
+const arguments = @import("shared").persona.types.call;
 const budget = @import("tests").guest.support.allocation;
 const copy = @import("mirai").user.copy.transfer;
 const harness = @import("tests").guest.postman.harness;

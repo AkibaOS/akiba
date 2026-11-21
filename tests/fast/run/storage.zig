@@ -358,6 +358,18 @@ test "Pulse installs as one extensionless Unit under the system Akiba Stack" {
     try boot.pulse.standalone();
 }
 
+test "Pulse carries the exact raw Weaver bytes in one read-only load segment" {
+    try boot.embedded.exactPayload();
+}
+
+test "Pulse refuses missing, ambiguous, writable, zero-filled and truncated bootstrap payloads" {
+    try boot.embedded.rejectedPayloads();
+}
+
+test "Pulse requires every Weaver payload page to be exclusive to its load segment" {
+    try boot.embedded.exclusivePages();
+}
+
 test "Boot transport recognizes only the complete terminal SATA path" {
     try boot.transport.completePaths();
 }

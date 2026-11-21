@@ -215,17 +215,22 @@ test "ordinary handoff refuses diagnostic output even with a ready marker" {
 
 test "ordinary boot proves the correct Pulse disposition in its own serial epoch" {
     const started = fixtures.ORDINARY_PULSE ++ fixtures.LF;
+    const weaver = fixtures.ORDINARY_WEAVER ++ fixtures.CRLF;
     const skipped = fixtures.ORDINARY_PULSE_SKIPPED ++ fixtures.CRLF;
     const ready = fixtures.MISSING;
-    try result.verifyOrdinaryPulse(started ++ ready, true);
+    try result.verifyOrdinaryPulse(started ++ weaver ++ ready, true);
     try result.verifyOrdinaryPulse(skipped ++ ready, false);
     try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ ready, true));
     try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(skipped ++ ready, true));
-    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ ready, false));
-    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(ready ++ started, true));
-    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ started ++ ready, true));
-    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ skipped ++ ready, true));
-    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(fixtures.AHCI_PREFIX ++ started ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(skipped ++ weaver ++ ready, false));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ weaver ++ ready, false));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(ready ++ started ++ weaver, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(weaver ++ started ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ started ++ weaver ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ weaver ++ weaver ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ skipped ++ weaver ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(fixtures.AHCI_PREFIX ++ started ++ weaver ++ ready, true));
 }
 
 test "phase frames encode four Mirai choices with an explicit nonzero epoch" {

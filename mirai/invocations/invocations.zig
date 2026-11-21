@@ -1,5 +1,6 @@
 //! Controlled Persona Mode Kernel Invocations
 
+pub const bootstrap = @import("bootstrap/bootstrap.zig");
 pub const completion = @import("completion/completion.zig");
 pub const constants = @import("constants/constants.zig");
 pub const entry = @import("entry/entry.zig");

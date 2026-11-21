@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const abi = @import("shared").persona.types.invocation;
-const arguments = @import("mirai").invocations.types.postman.exchange;
+const arguments = @import("shared").persona.types.call;
 const constants = @import("tests").guest.constants.postman.transport;
 const copy = @import("mirai").user.copy.transfer;
 const guard = @import("asm").interrupts.guard;

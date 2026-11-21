@@ -3,15 +3,21 @@
 const std = @import("std");
 
 const assembly = @import("personaasm");
+const asset = @import("shared").pulse.strings.bootstrap;
+const bootstrap = @import("pulse").supervision.bootstrap;
 const run = @import("pulse").supervision.inbox;
 
 const Status = @import("shared").persona.types.invocation.Status;
 
+const WEAVER = @embedFile(asset.WEAVER_IMPORT);
+export const weaver_bootstrap: [WEAVER.len]u8 linksection(asset.WEAVER_SECTION) = WEAVER[0..WEAVER.len].*;
+
 comptime {
-    _ = assembly.entry.pulse_entry;
+    _ = assembly.entry.pulse.pulse_entry;
 }
 
 export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
+    bootstrap.start();
     run.listen();
 }
 

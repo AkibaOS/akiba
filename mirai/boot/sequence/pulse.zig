@@ -7,6 +7,7 @@ const messages = @import("mirai").boot.strings.sequence.messages;
 const print = @import("mirai").boot.sequence.print;
 const scheduler = @import("mirai").sensei.run;
 const status = @import("mirai").boot.strings.sequence.status;
+const weaver = @import("mirai").bootstrap.weaver.handoff;
 
 const BootInfo = @import("mirai").boot.types.sequence.info.BootInfo;
 const PulseBootError = @import("mirai").boot.errors.sequence.pulse.PulseBootError;
@@ -21,7 +22,9 @@ pub fn activate(info: *const BootInfo) !void {
     const prepared = try launch.start(volume);
     try scheduler.yield();
     if (!prepared.Thread.Started or prepared.Thread.Mode != .Persona) return PulseBootError.PulseDidNotEnterPersona;
+    if (!weaver.readyFor(prepared.ID)) return PulseBootError.WeaverNotReady;
     print.log(messages.LINE, .{messages.PULSE_ENTERED});
+    print.log(messages.LINE, .{messages.WEAVER_READY});
 }
 
 pub fn fail(failure: anyerror) noreturn {

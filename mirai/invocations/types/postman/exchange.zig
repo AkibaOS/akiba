@@ -5,15 +5,7 @@ const strings = @import("mirai").invocations.strings.postman.diagnostic;
 
 const Header = @import("shared").persona.types.letter.Header;
 
-pub const Call = extern struct {
-    Destination: u64,
-    Type: u64,
-    Request: u64,
-    RequestLength: u64,
-    Reply: u64,
-    ReplyCapacity: u64,
-    Metadata: u64,
-};
+const Call = @import("shared").persona.types.call.Call;
 
 pub const Result = struct {
     Status: abi.Status = .Success,

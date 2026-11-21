@@ -1,5 +1,6 @@
 //! Boot Handoff Regression Exports
 
+pub const embedded = @import("embedded.zig");
 pub const params = @import("params.zig");
 pub const pulse = @import("pulse.zig");
 pub const transport = @import("transport.zig");

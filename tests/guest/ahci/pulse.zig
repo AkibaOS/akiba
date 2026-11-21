@@ -8,9 +8,11 @@ const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 const status = @import("shared").pulse.constants.status;
 const thread = @import("mirai").thread;
+const weaver = @import("mirai").bootstrap.weaver.handoff;
 
 const Actor = @import("tests").guest.types.postman.fixtures.Actor;
 const Context = @import("tests").guest.types.ahci.pulse.Context;
+const Operation = @import("shared").pulse.types.boot.control.Operation;
 const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
 const PulseError = @import("mirai").bootstrap.errors.pulse.launch.PulseError;
 const Volume = @import("shared").boot.types.volume.Volume;
@@ -19,7 +21,9 @@ const WitnessError = @import("tests").guest.errors.ahci.witness.WitnessError;
 pub fn prove(volume: Volume) !bool {
     const pulse = try launch.start(volume);
     drive.run();
-    if (kata.state.first() != pulse.Owner or !waiting(pulse)) return false;
+    if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
+    const resident = kata.state.next(pulse.Owner) orelse return false;
+    if (pulse.Owner.CanProvision or resident.CanProvision or kata.state.next(resident) != null) return false;
     if (launch.start(volume)) |_| {
         return false;
     } else |failure| {
@@ -46,7 +50,11 @@ fn exchange(identifier: u64) !bool {
     var client = try harness.create();
     defer harness.dispose(client.ID);
     try harness.descriptorFor(&client, identifier, status.QUERY, 0, 0);
-    try harness.install(&client, &.{ harness.call(&client), harness.call(&client) });
+    try harness.install(&client, &.{
+        harness.call(&client),
+        harness.call(&client),
+        .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
+    });
     try harness.start(&client);
     try harness.waitStep(&client, 1);
     const ready = try replyIs(&client, 1, identifier, status.READY);
@@ -55,7 +63,10 @@ fn exchange(identifier: u64) !bool {
     try harness.waitStep(&client, 2);
     const refused = try replyIs(&client, 2, identifier, status.UNSUPPORTED);
     try harness.advance(&client, 2);
-    return ready and refused;
+    try harness.waitStep(&client, 3);
+    const denied = try harness.resultIs(&client, 3, .InvalidCaller, 0);
+    try harness.advance(&client, 3);
+    return ready and refused and denied;
 }
 
 fn waiting(pulse: Prepared) bool {

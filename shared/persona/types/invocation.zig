@@ -16,6 +16,7 @@ pub const Service = enum(u64) {
     ObserveCompletion = 10,
     WaitCompletion = 11,
     CollectCompletion = 12,
+    BootstrapWeaver = 14,
     Provision = provision.SERVICE,
 };
 

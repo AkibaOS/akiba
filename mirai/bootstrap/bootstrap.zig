@@ -7,3 +7,4 @@ pub const pulse = @import("pulse/pulse.zig");
 pub const storage = @import("storage/storage.zig");
 pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");
+pub const weaver = @import("weaver/weaver.zig");

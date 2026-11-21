@@ -49,8 +49,12 @@ pub fn verifyOrdinaryPulse(bytes: []const u8, expected: bool) !void {
     const ready = (uniqueLine(bytes, strings.READY) catch return invalid) orelse return invalid;
     const started = uniqueLine(bytes, strings.ORDINARY_PULSE) catch return invalid;
     const skipped = uniqueLine(bytes, strings.ORDINARY_PULSE_SKIPPED) catch return invalid;
+    const weaver = uniqueLine(bytes, strings.ORDINARY_WEAVER) catch return invalid;
     const selected = if (expected) started else skipped;
     if (selected == null or selected.? >= ready or (if (expected) skipped != null else started != null)) return invalid;
+    if (expected) {
+        if (weaver == null or weaver.? <= selected.? or weaver.? >= ready) return invalid;
+    } else if (weaver != null) return invalid;
 }
 
 pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {

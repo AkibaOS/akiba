@@ -12,6 +12,7 @@ const sensei = @import("mirai").sensei;
 const types = @import("mirai").invocations.types.postman.exchange;
 
 const ArgumentError = arguments.ArgumentError;
+const Call = @import("shared").persona.types.call.Call;
 const Header = @import("shared").persona.types.letter.Header;
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Result = types.Result;
@@ -86,7 +87,7 @@ fn receive(current: *Thread, frame: *const InterruptFrame) !Result {
 }
 
 fn call(current: *Thread, frame: *const InterruptFrame) !Result {
-    var descriptor: types.Call = undefined;
+    var descriptor: Call = undefined;
     try copy.read(current.Owner, std.mem.asBytes(&descriptor), frame.RDI);
     try validateOutput(current, descriptor.Reply, @intCast(@min(descriptor.ReplyCapacity, limits.MAX_COPY_BYTES)), descriptor.Metadata);
     var bytes: [limits.MAX_COPY_BYTES]u8 = undefined;
