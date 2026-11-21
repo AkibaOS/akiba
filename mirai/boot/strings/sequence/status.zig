@@ -13,4 +13,5 @@ pub const ERROR_MEMORY = "System Memory Initialization Failed";
 pub const ERROR_RETIREMENT = "Loader Memory Retirement Refused";
 pub const ERROR_SERVICES = "System Services Failed to Start";
 pub const ERROR_PULSE = "Pulse Startup Failed";
+pub const ERROR_PULSE_MISSING = "Akiba's Pulse is missing. System is dying.";
 pub const ERROR_HALTED = "Akiba Startup Failed";

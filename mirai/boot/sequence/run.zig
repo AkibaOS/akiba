@@ -96,11 +96,7 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
         haltOnFailure();
     }
     if (!options.GUEST_CHECKS) {
-        pulse.activate(info) catch |failure| {
-            print.log(messages.PULSE_FAILED, .{@errorName(failure)});
-            print.fail(status.ERROR_PULSE);
-            halt.haltLoop();
-        };
+        pulse.activate(info) catch |failure| pulse.fail(failure);
     }
     const diagnostic_screen = if (options.GUEST_CHECKS) checks.execute() else false;
     if (diagnostic_screen) {
