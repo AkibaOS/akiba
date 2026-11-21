@@ -9,4 +9,5 @@ pub const ReadError = error{
     InvalidVolumeHeader,
     InvalidCatalog,
     InvalidIdentity,
+    MissingStack,
 };

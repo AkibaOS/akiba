@@ -42,16 +42,22 @@ pub fn mount(reader: BlockReader, scratch: []u8) ReadError!Catalog {
     return .{ .Reader = bounded, .Index = index, .Span = volume.IndexSpan };
 }
 
-pub fn open(catalog: *const Catalog, parents: []const []const u8, name: []const u8, scratch: []u8) ReadError!?Unit {
+pub fn stack(catalog: *const Catalog, parents: []const []const u8, scratch: []u8) ReadError!?u32 {
     var parent_id = afs.constants.nodes.ORIGIN_STACK;
     var wide: [@as(afs.types.btree.records.IndexKey, undefined).Identity.len]u16 = undefined;
     for (parents) |component| {
         const identity = try widen(component, &wide);
         const leaf = (try findLeaf(catalog, parent_id, identity, scratch)) orelse return null;
-        const stack = search.searchLeafForStack(leaf.ptr, catalog.Index.NodeSize, descriptor(leaf).RecordCount, parent_id, identity) orelse return null;
-        if (stack.NodeId < afs.constants.nodes.FIRST_USER or stack.NodeId == parent_id) return error.InvalidCatalog;
-        parent_id = stack.NodeId;
+        const record = search.searchLeafForStack(leaf.ptr, catalog.Index.NodeSize, descriptor(leaf).RecordCount, parent_id, identity) orelse return null;
+        if (record.NodeId < afs.constants.nodes.FIRST_USER or record.NodeId == parent_id) return error.InvalidCatalog;
+        parent_id = record.NodeId;
     }
+    return parent_id;
+}
+
+pub fn open(catalog: *const Catalog, parents: []const []const u8, name: []const u8, scratch: []u8) ReadError!?Unit {
+    const parent_id = (try stack(catalog, parents, scratch)) orelse return null;
+    var wide: [@as(afs.types.btree.records.IndexKey, undefined).Identity.len]u16 = undefined;
     const identity = try widen(name, &wide);
     const leaf = (try findLeaf(catalog, parent_id, identity, scratch)) orelse return null;
     const unit = search.searchLeafForUnit(leaf.ptr, catalog.Index.NodeSize, descriptor(leaf).RecordCount, parent_id, identity) orelse return null;

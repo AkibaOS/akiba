@@ -36,6 +36,7 @@ pub fn moderateCatalogIsReadThroughProductionSearch() !void {
     try expectAllocation(&image, 1, constants.MODERATE_USED_CELLS);
     var occupied: [constants.MODERATE_USED_CELLS]bool = @splat(false);
     const nested = (try lookup.findRecord(afs.types.catalog.StackRecord, &image, capacity.ORIGIN_ID, strings.NESTED_IDENTITY)) orelse return error.TestExpectedEqual;
+    try expectStackListing(&image);
     for (0..constants.MODERATE_UNITS) |index| {
         var identity: [constants.MODERATE_NAME_BYTES]u8 = undefined;
         fixture.identity(index, &identity);
@@ -48,6 +49,23 @@ pub fn moderateCatalogIsReadThroughProductionSearch() !void {
     try expectUnit(&image, &boot, &inputs.BOOTLOADER_BYTES, constants.MODERATE_DATA_START, &occupied);
     for (occupied[constants.MODERATE_DATA_START..]) |allocated| try std.testing.expect(allocated);
     try fixture.expectOwnedEntries(temporary.dir, true, true);
+}
+
+fn expectStackListing(image: *types.AFSImage) !void {
+    var cell: [inputs.CELL_BYTES]u8 = undefined;
+    const catalog = try afs.read.catalog.mount(io.reader(image), &cell);
+    const nested: []const []const u8 = &.{strings.NESTED_IDENTITY};
+    const ordinals = [_]usize{ 0, constants.MODERATE_UNITS / 2, constants.MODERATE_UNITS - 1 };
+    for (ordinals) |ordinal| {
+        const entry = (try afs.read.list.child(&catalog, nested, ordinal, &cell)) orelse return error.TestUnexpectedResult;
+        var identity: [constants.MODERATE_NAME_BYTES]u8 = undefined;
+        fixture.identity(ordinal, &identity);
+        try std.testing.expectEqual(.Unit, entry.Kind);
+        try std.testing.expectEqual(identity.len, entry.Length);
+        for (identity, entry.Identity[0..entry.Length]) |expected, actual| try std.testing.expectEqual(@as(u16, expected), actual);
+    }
+    try std.testing.expect(try afs.read.list.child(&catalog, nested, constants.MODERATE_UNITS, &cell) == null);
+    try std.testing.expectError(error.MissingStack, afs.read.list.child(&catalog, &.{strings.MUTABLE_IDENTITY}, 0, &cell));
 }
 
 pub fn emittedDeepTreeUsesProductionSharedRouting() !void {
