@@ -2,6 +2,7 @@
 
 const cpu = @import("asm").cpu;
 const limits = @import("mirai").bootstrap.constants.storage.limits;
+const portspec = @import("shared").ahci.discover.port;
 const values = @import("mirai").bootstrap.constants.storage.registers;
 
 const StorageError = @import("mirai").bootstrap.errors.storage.read.StorageError;
@@ -25,12 +26,11 @@ pub fn ports(controller: u64) StorageError!u32 {
 pub fn diskPort(controller: u64, index: u5) StorageError!?u64 {
     if (index >= values.MAPPED_PORTS) return StorageError.UnsupportedAhciPort;
     const sata = controller + values.PORT_BASE + @as(u64, index) * values.PORT_STRIDE;
-    const link = read(sata, values.LINK);
-    const presence = link & values.LINK_PRESENT_MASK;
-    if (presence == 0) return null;
-    if (presence != values.LINK_PRESENT or link & values.LINK_ACTIVE_MASK != values.LINK_ACTIVE or read(sata, values.SIGNATURE) != values.ATA_SIGNATURE)
-        return StorageError.UnsupportedAhciPort;
-    return sata;
+    return switch (portspec.classify(read(sata, values.LINK), read(sata, values.SIGNATURE))) {
+        .Empty, .PacketDevice => null,
+        .AtaDisk => sata,
+        .Unverifiable => StorageError.UnsupportedAhciPort,
+    };
 }
 
 pub fn waitClear(base: u64, register: u64, mask: u32) bool {

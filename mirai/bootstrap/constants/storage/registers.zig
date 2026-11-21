@@ -27,11 +27,6 @@ pub const SATA_ERROR = 0x30;
 pub const ACTIVE = 0x34;
 pub const ISSUE = 0x38;
 
-pub const ATA_SIGNATURE: u32 = 0x00000101;
-pub const LINK_PRESENT: u32 = 3;
-pub const LINK_PRESENT_MASK: u32 = 0xf;
-pub const LINK_ACTIVE: u32 = 0x100;
-pub const LINK_ACTIVE_MASK: u32 = 0xf00;
 pub const START: u32 = 1;
 pub const RECEIVE_FIS: u32 = 1 << 4;
 pub const RUNNING_FIS: u32 = 1 << 14;

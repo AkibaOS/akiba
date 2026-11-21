@@ -7,6 +7,7 @@ const ahci = @import("tests").fast.ahci.discover;
 const boot = @import("tests").fast.boot;
 const fat32 = @import("tests").fast.fat32;
 const gpt = @import("tests").fast.gpt.inspect;
+const ports = @import("tests").fast.ahci.port;
 const sectors = @import("tests").fast.gpt.source;
 const shared = @import("shared");
 
@@ -39,6 +40,14 @@ test "AHCI discovery follows PCI class across buses and valid multifunction slot
 
 test "AHCI discovery refuses unconfigured and unsupported PCI apertures" {
     try ahci.refusesResources();
+}
+
+test "AHCI distinguishes a ready ATA disk from a known packet device" {
+    try ports.knownKinds();
+}
+
+test "AHCI keeps present but unready or unknown ports unverifiable" {
+    try ports.unverifiable();
 }
 
 test "AHCI selection refuses a duplicate or a later unverifiable candidate" {
