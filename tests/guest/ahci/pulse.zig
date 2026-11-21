@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.authority;
 const drive = @import("tests").guest.support.drive;
 const fixture = @import("tests").guest.constants.ahci.fixture;
@@ -30,8 +31,9 @@ pub fn prove(volume: Volume) !bool {
     if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
     const resident = kata.state.next(pulse.Owner) orelse return false;
     const driver = kata.state.next(resident) orelse return false;
-    if (pulse.Owner.CanProvision or resident.CanProvision or driver.CanProvision or kata.state.next(driver) != null or
-        !authority.readyFor(pulse.ID, driver.ID)) return false;
+    const files = kata.state.next(driver) orelse return false;
+    if (pulse.Owner.CanProvision or resident.CanProvision or driver.CanProvision or files.CanProvision or kata.state.next(files) != null or
+        !authority.readyFor(pulse.ID, driver.ID) or !afs.readyFor(pulse.ID, files.ID)) return false;
     const disk = handoff.forPulse(pulse.Owner) orelse return false;
     const address: u16 = @bitCast(disk.Location.Address);
     if (address != fixture.RELOCATED_ADDRESS or disk.Location.Port != fixture.BOOT_PORT or

@@ -7,4 +7,5 @@ pub const Grant = struct {
     Disk: Handoff,
     Verified: bool = false,
     Confirmed: bool = false,
+    AfsID: ?u64 = null,
 };

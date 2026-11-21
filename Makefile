@@ -90,7 +90,8 @@ prepare-filesystem: native-build
 	cp --no-target-directory --remove-destination -- zig-out/EFI/BOOT/BOOTX64.EFI "$$stage/EFI/BOOT/BOOTX64.EFI"; \
 	cp --no-target-directory --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"; \
 	cp --no-target-directory --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/ahci "$$stage/system/drivers/ahci"
+	cp --no-target-directory --remove-destination -- zig-out/system/drivers/ahci "$$stage/system/drivers/ahci"; \
+	cp --no-target-directory --remove-destination -- zig-out/system/drivers/afs "$$stage/system/drivers/afs"
 
 $(DISK_IMAGE): prepare-filesystem
 	@set -eu; \

@@ -20,7 +20,7 @@ pub fn listen(description: Description) noreturn {
         const arrived = invoke.call(.Receive, @intFromPtr(&request), request.len, @intFromPtr(&header), 0);
         if (arrived.Status != @intFromEnum(Status.Success)) stop(arrived.Status);
         if (header.ReplyTicket == 0) continue;
-        const accepted = header.Sender == description.PulseID and header.Type == protocol.READ and
+        const accepted = (header.Sender == description.PulseID or disk.accepts(header.Sender)) and header.Type == protocol.READ and
             header.Length == @sizeOf(u64) and arrived.Value == @sizeOf(u64) and
             read(description, std.mem.readInt(u64, request[0..@sizeOf(u64)], .little), &output);
         const reply = if (accepted)

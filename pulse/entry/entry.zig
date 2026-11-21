@@ -10,6 +10,8 @@ const run = @import("pulse").supervision.inbox;
 
 const Status = @import("shared").persona.types.invocation.Status;
 
+const AFS = @embedFile(asset.AFS_IMPORT);
+export const afs_bootstrap: [AFS.len]u8 linksection(asset.AFS_SECTION) = AFS[0..AFS.len].*;
 const AHCI = @embedFile(asset.AHCI_IMPORT);
 export const ahci_bootstrap: [AHCI.len]u8 linksection(asset.AHCI_SECTION) = AHCI[0..AHCI.len].*;
 const WEAVER = @embedFile(asset.WEAVER_IMPORT);
@@ -21,7 +23,8 @@ comptime {
 
 export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
     bootstrap.start();
-    drivers.ahci.start();
+    const ahci = drivers.ahci.start();
+    _ = drivers.afs.start(ahci);
     run.listen();
 }
 

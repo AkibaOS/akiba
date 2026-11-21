@@ -8,5 +8,6 @@ pub const catalog = @import("catalog.zig");
 pub const extents = @import("extents.zig");
 pub const read = @import("read/read.zig");
 pub const reader = @import("reader.zig");
+pub const service = @import("service/service.zig");
 pub const timestamp = @import("timestamp.zig");
 pub const volume = @import("volume.zig");

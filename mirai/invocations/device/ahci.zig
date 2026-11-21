@@ -3,11 +3,9 @@
 const std = @import("std");
 
 const authority = @import("mirai").device.ahci.authority;
-const bootstrap = @import("mirai").bootstrap.driver.handoff;
 const copy = @import("mirai").user.copy.transfer;
 const wire = @import("shared").ahci.constants.command.dma;
 
-const BootOperation = @import("shared").pulse.types.boot.driver.Operation;
 const Command = @import("shared").ahci.types.command.operation.Operation;
 const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Grant = @import("mirai").device.types.ahci.grant.Grant;
@@ -15,26 +13,9 @@ const Operation = @import("shared").ahci.types.device.invocation.Operation;
 const Status = @import("shared").persona.types.invocation.Status;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
-pub fn start(caller: *Thread, frame: *Frame) void {
-    const value = startup(caller, frame) catch |failure| return respond(frame, status(failure), 0);
-    respond(frame, .Success, value);
-}
-
 pub fn device(caller: *Thread, frame: *Frame) void {
     perform(caller, frame) catch |failure| return respond(frame, status(failure), 0);
     respond(frame, .Success, 0);
-}
-
-fn startup(caller: *Thread, frame: *const Frame) !u64 {
-    const operation = std.enums.fromInt(BootOperation, frame.RDI) orelse return error.InvalidArgument;
-    if (frame.RDX != 0 or frame.R10 != 0) return error.InvalidArgument;
-    return switch (operation) {
-        .StartAhci => if (frame.RSI == 0) bootstrap.startAhci(caller) else error.InvalidArgument,
-        .ConfirmAhci => confirmed: {
-            try bootstrap.confirmAhci(caller, frame.RSI);
-            break :confirmed 0;
-        },
-    };
 }
 
 fn perform(caller: *Thread, frame: *const Frame) !void {
@@ -49,6 +30,7 @@ fn perform(caller: *Thread, frame: *const Frame) !void {
         .Identify => try transfer(caller, grant, .Identify, frame.RSI),
         .Read => try transfer(caller, grant, .{ .Read = frame.RSI }, frame.RDX),
         .Confirm => try authority.confirmDisk(grant),
+        .CheckClient => try authority.checkClient(grant, frame.RSI),
     }
 }
 

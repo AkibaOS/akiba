@@ -74,6 +74,26 @@ pub fn readyFor(pulse: u64, driver: u64) bool {
     return record.Confirmed and usable(record, pulse, driver);
 }
 
+pub fn bindAfs(pulse: u64, driver: u64, owner: *const Kata) !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const record = if (assigned) |*current| current else return error.InvalidState;
+    if (!record.Confirmed or !usable(record.*, pulse, driver) or record.AfsID != null or
+        !kata.state.owns(owner) or owner.Permanent or owner.State != .Born) return error.InvalidState;
+    record.AfsID = owner.ID;
+}
+
+pub fn unbindAfs(owner: *const Kata) void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const record = if (assigned) |*current| current else return;
+    if (record.AfsID == owner.ID and owner.State == .Born) record.AfsID = null;
+}
+
+pub fn checkClient(record: *const Grant, peer: u64) !void {
+    if (record.AfsID != peer and record.Disk.PulseID != peer) return error.InvalidCaller;
+}
+
 pub fn ready(pulse: u64) bool {
     const flags = guard.acquire();
     defer guard.release(flags);

@@ -13,13 +13,14 @@ const Header = @import("shared").persona.types.letter.Header;
 const Operation = @import("shared").pulse.types.boot.driver.Operation;
 const Status = @import("shared").persona.types.invocation.Status;
 
-pub fn start() void {
+pub fn start() u64 {
     const launched = invoke.call(.BootstrapDriver, @intFromEnum(Operation.StartAhci), 0, 0, 0);
     if (launched.Status != @intFromEnum(Status.Success)) pulse.stop(launched.Status);
     if (launched.Value == 0) pulse.stop(@intFromEnum(Status.InvalidState));
     if (!firstSector(launched.Value)) pulse.stop(@intFromEnum(Status.InvalidReply));
     const confirmed = invoke.call(.BootstrapDriver, @intFromEnum(Operation.ConfirmAhci), launched.Value, 0, 0);
     if (confirmed.Status != @intFromEnum(Status.Success)) pulse.stop(confirmed.Status);
+    return launched.Value;
 }
 
 fn firstSector(driver: u64) bool {

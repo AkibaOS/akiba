@@ -42,11 +42,11 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         return;
     }
     if (service == @intFromEnum(types.Service.BootstrapWeaver)) {
-        bootstrap.dispatch(current, frame);
+        bootstrap.weaver.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.BootstrapDriver)) {
-        device.start(current, frame);
+        bootstrap.driver.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Ahci)) {

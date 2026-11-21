@@ -11,6 +11,7 @@ PHDRS
     data PT_LOAD FLAGS(6);
     weaver PT_LOAD FLAGS(4);
     ahci PT_LOAD FLAGS(4);
+    afs PT_LOAD FLAGS(4);
 }
 SECTIONS
 {
@@ -39,5 +40,9 @@ SECTIONS
     {
         KEEP(*(.bootstrap.ahci))
     } :ahci
+    .bootstrap.afs 0x62000000 :
+    {
+        KEEP(*(.bootstrap.afs))
+    } :afs
     /DISCARD/ : { *(.comment .note .note.* .eh_frame .eh_frame.* .eh_frame_hdr) }
 }

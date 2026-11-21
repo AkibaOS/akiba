@@ -10,7 +10,7 @@ const persona = @import("../persona/persona.zig");
 const steps = @import("../strings/steps/descriptions.zig");
 const types = @import("../types/modules/dependencies.zig");
 
-pub fn artifact(builder: *std.Build, modules: types.Modules, weaver: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile) *std.Build.Step.Compile {
+pub fn artifact(builder: *std.Build, modules: types.Modules, weaver: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile, afs: *std.Build.Step.Compile) *std.Build.Step.Compile {
     const executable = persona.compile.artifact(builder, modules, .{
         .Name = names.EXECUTABLE_PULSE,
         .Root = paths.PULSE_ROOT,
@@ -20,6 +20,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, weaver: *std.Build.
     });
     executable.root_module.addAnonymousImport(asset.WEAVER_IMPORT, .{ .root_source_file = weaver.getEmittedBin() });
     executable.root_module.addAnonymousImport(asset.AHCI_IMPORT, .{ .root_source_file = ahci.getEmittedBin() });
+    executable.root_module.addAnonymousImport(asset.AFS_IMPORT, .{ .root_source_file = afs.getEmittedBin() });
     return executable;
 }
 

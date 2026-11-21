@@ -8,6 +8,10 @@ const ImageError = elf.errors.image.ImageError;
 const PayloadError = @import("shared").pulse.errors.boot.image.PayloadError;
 const Program = elf.types.format.Elf64ProgramHeader;
 
+pub fn afs(pulse: []const u8) (ImageError || PayloadError)![]const u8 {
+    return extract(pulse, layout.AFS_ADDRESS);
+}
+
 pub fn ahci(pulse: []const u8) (ImageError || PayloadError)![]const u8 {
     return extract(pulse, layout.AHCI_ADDRESS);
 }

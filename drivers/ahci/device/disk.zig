@@ -25,6 +25,11 @@ pub fn verify() !Description {
     return description;
 }
 
+pub fn accepts(peer: u64) bool {
+    call(.CheckClient, peer, 0) catch return false;
+    return true;
+}
+
 pub fn readSector(lba: u64, block: []u8) DiskError!void {
     if (block.len != wire.SECTOR_BYTES) return DiskError.InvalidSectorBuffer;
     try call(.Read, lba, @intFromPtr(block.ptr));
