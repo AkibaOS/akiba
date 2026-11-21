@@ -8,6 +8,7 @@ pub const fat32 = @import("fat32/fat32.zig");
 pub const font = @import("font/font.zig");
 pub const gpt = @import("gpt/gpt.zig");
 pub const graphics = @import("graphics/graphics.zig");
+pub const keyboard = @import("keyboard/keyboard.zig");
 pub const launch = @import("launch/launch.zig");
 pub const persona = @import("persona/persona.zig");
 pub const pulse = @import("pulse/pulse.zig");

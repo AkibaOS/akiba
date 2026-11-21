@@ -44,6 +44,9 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     tool.addImport(names.MODULE_SHARED, modules.Shared);
     tool.addImport(names.MODULE_UTILS, modules.Utils);
     checks.addImport(names.EXECUTABLE_MKAFSDISK, tool);
+    const keyboard = builder.createModule(.{ .root_source_file = builder.path(paths.KEYBOARD_ROOT) });
+    keyboard.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
+    keyboard.addImport(names.MODULE_SHARED, modules.Shared);
     const dynamic = fixture.dynamic(builder);
     const step = builder.step(names.STEP_FAST_CHECKS, steps.FAST_CHECKS_DESCRIPTION);
     for (suites.FAST) |suite| {
@@ -58,6 +61,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
         root.addImport(names.EXECUTABLE_PULSE, supervisor);
+        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_KEYBOARD)) root.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
         if (std.mem.eql(u8, suite.Root, paths.WEAVER_TEST_ROOT)) {
             root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });

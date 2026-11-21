@@ -10,6 +10,7 @@ pub const EXECUTABLE_MIRAI = "mirai";
 pub const EXECUTABLE_MKAFSDISK = "mkafsdisk";
 pub const EXECUTABLE_FONTPREVIEW = "fontpreview";
 pub const ENTRY_MIRAI = "mirai_entry";
+pub const EXECUTABLE_KEYBOARD = "keyboard";
 pub const EXECUTABLE_PULSE = "pulse";
 pub const ENTRY_PULSE = "pulse_entry";
 pub const EXECUTABLE_AFS = "afs";

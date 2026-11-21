@@ -14,5 +14,6 @@ pub const FAST = [_]Suite{
     .{ .Name = "elf", .Root = "tests/fast/elf/run.zig" },
     .{ .Name = "weaver", .Root = paths.WEAVER_TEST_ROOT },
     .{ .Name = "pulse", .Root = "tests/fast/pulse/run.zig" },
+    .{ .Name = "keyboard", .Root = "tests/fast/keyboard/run.zig" },
 };
 pub const EXECUTABLE = "tests-{s}";

@@ -1,0 +1,31 @@
+//! Set 1 Keyboard Wire Codes
+
+pub const BREAK_MASK: u8 = 0x80;
+pub const EXTENDED: u8 = 0xe0;
+pub const PAUSE_PREFIX: u8 = 0xe1;
+pub const PAUSE_TAIL = [_]u8{ 0x1d, 0x45, 0xe1, 0x9d, 0xc5 };
+pub const ESCAPE: u8 = 0x01;
+pub const BACKSPACE: u8 = 0x0e;
+pub const TAB: u8 = 0x0f;
+pub const ENTER: u8 = 0x1c;
+pub const CONTROL: u8 = 0x1d;
+pub const LEFT_SHIFT: u8 = 0x2a;
+pub const RIGHT_SHIFT: u8 = 0x36;
+pub const ALT: u8 = 0x38;
+pub const SPACE: u8 = 0x39;
+pub const CAPS_LOCK: u8 = 0x3a;
+pub const HOME: u8 = 0x47;
+pub const UP: u8 = 0x48;
+pub const PAGE_UP: u8 = 0x49;
+pub const LEFT: u8 = 0x4b;
+pub const RIGHT: u8 = 0x4d;
+pub const END: u8 = 0x4f;
+pub const DOWN: u8 = 0x50;
+pub const PAGE_DOWN: u8 = 0x51;
+pub const INSERT: u8 = 0x52;
+pub const DELETE: u8 = 0x53;
+pub const NUMBER_ROW: u8 = 0x02;
+pub const TOP_ROW: u8 = 0x10;
+pub const MIDDLE_ROW: u8 = 0x1e;
+pub const BACKSLASH: u8 = 0x2b;
+pub const BOTTOM_ROW: u8 = 0x2c;
