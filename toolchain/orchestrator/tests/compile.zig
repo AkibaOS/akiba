@@ -33,6 +33,11 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     weaver.addImport(names.MODULE_SHARED, modules.Shared);
     weaver.addImport(names.MODULE_UTILS, modules.Utils);
     checks.addImport(names.MODULE_WEAVER, weaver);
+    const supervisor = builder.createModule(.{ .root_source_file = builder.path(paths.PULSE_ROOT) });
+    supervisor.addImport(names.EXECUTABLE_PULSE, supervisor);
+    supervisor.addImport(names.MODULE_SHARED, modules.Shared);
+    supervisor.addImport(names.MODULE_COMMON, modules.Common);
+    checks.addImport(names.EXECUTABLE_PULSE, supervisor);
     const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });
     tool.addImport(names.EXECUTABLE_MKAFSDISK, tool);
     tool.addImport(names.MODULE_SHARED, modules.Shared);
@@ -51,6 +56,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_SHARED, modules.Shared);
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
+        root.addImport(names.EXECUTABLE_PULSE, supervisor);
         if (std.mem.eql(u8, suite.Root, paths.WEAVER_TEST_ROOT)) {
             root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });

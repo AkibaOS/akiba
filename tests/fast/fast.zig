@@ -11,6 +11,7 @@ pub const font = @import("font/font.zig");
 pub const gpt = @import("gpt/gpt.zig");
 pub const graphics = @import("graphics/graphics.zig");
 pub const image = @import("image/image.zig");
+pub const pulse = @import("pulse/pulse.zig");
 pub const raster = @import("raster/raster.zig");
 pub const runner = @import("runner/runner.zig");
 pub const screen = @import("screen/screen.zig");
