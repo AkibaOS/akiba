@@ -1,6 +1,10 @@
 //! Prove The Installed Pulse Runs As The First Persona Kata
 
+const std = @import("std");
+
 const drive = @import("tests").guest.support.drive;
+const fixture = @import("tests").guest.constants.ahci.fixture;
+const handoff = @import("mirai").bootstrap.storage.handoff;
 const harness = @import("tests").guest.postman.harness;
 const kata = @import("mirai").kata;
 const launch = @import("mirai").bootstrap.pulse.launch;
@@ -24,6 +28,10 @@ pub fn prove(volume: Volume) !bool {
     if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
     const resident = kata.state.next(pulse.Owner) orelse return false;
     if (pulse.Owner.CanProvision or resident.CanProvision or kata.state.next(resident) != null) return false;
+    const disk = handoff.forPulse(pulse.Owner) orelse return false;
+    const address: u16 = @bitCast(disk.Location.Address);
+    if (address != fixture.RELOCATED_ADDRESS or disk.Location.Port != fixture.BOOT_PORT or
+        !std.meta.eql(disk.Volume, volume) or handoff.forPulse(resident) != null) return false;
     if (launch.start(volume)) |_| {
         return false;
     } else |failure| {

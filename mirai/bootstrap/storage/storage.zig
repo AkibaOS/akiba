@@ -1,5 +1,6 @@
 //! Boot Only Storage Exports
 
+pub const handoff = @import("handoff.zig");
 pub const identity = @import("identity.zig");
 pub const pci = @import("pci.zig");
 pub const read = @import("read.zig");

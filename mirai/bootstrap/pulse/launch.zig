@@ -2,6 +2,7 @@
 
 const embedded = @import("shared").pulse.boot.image;
 const guard = @import("asm").interrupts.guard;
+const handoff = @import("mirai").bootstrap.storage.handoff;
 const image = @import("mirai").bootstrap.image;
 const install = @import("shared").pulse.strings.install;
 const kata = @import("mirai").kata;
@@ -27,6 +28,8 @@ pub fn start(volume: Volume) !Prepared {
     const prepared = try image.prepare.prepare(kernel, file.Bytes, .{ .StackBase = stack.BASE, .StackPages = stack.PAGES });
     errdefer image.abort.abort(prepared) catch @panic(labels.ROLLBACK_FAILED);
     if (!kata.lifecycle.designatePulse(prepared.Owner)) return PulseError.DesignationRefused;
+    if (!handoff.arm(prepared.Owner, file.Location, volume)) return PulseError.BootDiskHandoffRefused;
+    errdefer handoff.disarm(prepared.Owner);
     try weaver.arm(prepared.Owner, payload);
     errdefer if (!weaver.disarm(prepared.ID)) @panic(labels.ROLLBACK_FAILED);
     _ = try image.start.start(prepared);
