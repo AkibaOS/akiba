@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const policy = @import("pulse").supervision.plan.model;
 const samples = @import("tests").fast.pulse.strings.world;
 const world = @import("pulse").world.parse.document;
 
@@ -51,6 +52,50 @@ test "Pulse recognizes World Unicode whitespace, line boundaries and the optiona
 
 test "Pulse releases every partially parsed World allocation on refusal" {
     try std.testing.checkAllAllocationFailures(ALLOCATOR, validDocument, .{});
+}
+
+test "Pulse waits for readiness, stops dependents and applies the configured restart budget" {
+    var document = try world.parse(ALLOCATOR, samples.VALID);
+    defer document.deinit();
+    var state = try policy.init(ALLOCATOR, &document);
+    defer policy.deinit(&state);
+    try std.testing.expectEqual(.Start, std.meta.activeTag(policy.next(&state)));
+    try policy.started(&state, 0, 10);
+    try std.testing.expectEqual(.Idle, std.meta.activeTag(policy.next(&state)));
+    try policy.ready(&state, 0);
+    try std.testing.expectEqual(@as(usize, 1), policy.next(&state).Start);
+    try policy.started(&state, 1, 11);
+    try policy.ready(&state, 1);
+    try std.testing.expect(policy.died(&state, 10));
+    try std.testing.expectEqual(@as(usize, 1), policy.next(&state).Stop);
+    policy.stopped(&state, 1);
+    try std.testing.expectEqual(@as(usize, 0), policy.next(&state).Start);
+    try policy.started(&state, 0, 12);
+    try policy.ready(&state, 0);
+    try std.testing.expectEqual(@as(usize, 1), policy.next(&state).Start);
+    try policy.started(&state, 1, 13);
+    try policy.ready(&state, 1);
+    try std.testing.expect(policy.died(&state, 12));
+    policy.stopped(&state, policy.next(&state).Stop);
+    try std.testing.expectEqual(.Idle, std.meta.activeTag(policy.next(&state)));
+}
+
+test "Pulse inhibits all restarts before stopping services in reverse dependency order" {
+    var document = try world.parse(ALLOCATOR, samples.VALID);
+    defer document.deinit();
+    var state = try policy.init(ALLOCATOR, &document);
+    defer policy.deinit(&state);
+    try policy.started(&state, 0, 10);
+    try policy.ready(&state, 0);
+    try policy.started(&state, 1, 11);
+    try policy.ready(&state, 1);
+    policy.shutdown(&state);
+    try std.testing.expectEqual(@as(usize, 1), policy.next(&state).Stop);
+    policy.stopped(&state, 1);
+    try std.testing.expectEqual(@as(usize, 0), policy.next(&state).Stop);
+    policy.stopped(&state, 0);
+    try std.testing.expectEqual(.Idle, std.meta.activeTag(policy.next(&state)));
+    try std.testing.expect(state.Stopping);
 }
 
 fn validDocument(allocator: std.mem.Allocator) !void {
