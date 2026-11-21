@@ -4,6 +4,7 @@ pub const CODE_BASE: u64 = 0x400000;
 pub const DATA_BASE: u64 = 0x500000;
 pub const STACK_BASE: u64 = 0x800000;
 pub const PAGE_BYTES: usize = 4096;
+pub const DEADLINE_TICKS: u64 = 20;
 pub const MAX_STEPS: usize = 16;
 pub const GROWTH_PAIRS: usize = 17;
 pub const RESULT_OFFSET: u64 = 16;

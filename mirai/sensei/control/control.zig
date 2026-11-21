@@ -1,6 +1,7 @@
 //! Scheduler Admission And Withdrawal
 
 const clock = @import("mirai").sensei.clock;
+const deadline = @import("mirai").sensei.deadline;
 const errors = @import("mirai").sensei.errors.scheduling;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").sensei.strings.messages;
@@ -70,6 +71,7 @@ pub fn detach(target: *Thread) SchedulingError!void {
     if (record.Queue) |owner| {
         if (!queue.remove(owner, record)) @panic(messages.INVALID_QUEUE);
     }
+    deadline.cancel(record);
     thread.execution.change(target, .Stopped);
     thread.state.notifyInactive(target);
     target.Managed = false;

@@ -3,6 +3,7 @@
 const fifo = @import("mirai").postman.fifo;
 const guard = @import("asm").interrupts.guard;
 const inbox = @import("mirai").postman.inbox;
+const lifetime = @import("mirai").postman.lifetime;
 const notification = @import("mirai").postman.notification;
 const record = @import("mirai").postman.record;
 const state = @import("mirai").postman.state;
@@ -72,6 +73,17 @@ pub fn peek(client: *Thread) PostError!View {
         },
         .Free, .OneWay => return PostError.InvalidState,
     }
+}
+
+pub fn cancel(client: *Thread) PostError!u64 {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    try validate.current(client);
+    const entry = record.find(client) orelse return PostError.InvalidState;
+    const pending = entry.Pending orelse return PostError.InvalidState;
+    const published = pending.PublishedChild;
+    lifetime.cancelClient(pending);
+    return published;
 }
 
 pub fn consume(client: *Thread) PostError!void {

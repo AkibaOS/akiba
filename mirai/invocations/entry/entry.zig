@@ -33,7 +33,7 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
     frame.RFLAGS = (frame.RFLAGS & constants.USER_FLAGS_MASK) | constants.USER_FLAGS_REQUIRED;
     const service = frame.RAX;
-    if (service >= @intFromEnum(types.Service.Send) and service <= @intFromEnum(types.Service.Close)) {
+    if ((service >= @intFromEnum(types.Service.Send) and service <= @intFromEnum(types.Service.Close)) or service == @intFromEnum(types.Service.CallTimed)) {
         ipc.dispatch(current, frame, service);
         return;
     }

@@ -33,7 +33,8 @@ pub fn release(record: *Record) bool {
     const scheduler = state.getState();
     const target = thread.state.fromScheduler(record) orelse return false;
     if (record == scheduler.Idle or record.Thread != target or record.Queue != null or record.Next != null or
-        record.Previous != null or scheduler.RegisteredCount == 0) return false;
+        record.Previous != null or record.Deadline != null or record.DeadlinePrevious != null or
+        record.DeadlineNext != null or scheduler.RegisteredCount == 0) return false;
     record.* = .{};
     scheduler.RegisteredCount -= 1;
     return true;

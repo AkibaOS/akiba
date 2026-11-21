@@ -59,7 +59,9 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
         },
         .Start => {
             const fields = try input(types.Start, current, frame.RDX);
-            return publish.start(draft, fields.Entry, fields.StackBase, fields.StackLength, fields.Startup);
+            const child = try publish.start(draft, fields.Entry, fields.StackBase, fields.StackLength, fields.Startup);
+            envelope.PublishedChild = child;
+            return child;
         },
         .Retain => return templates.retain(draft, frame.RDX),
         .Attach => {

@@ -1,5 +1,6 @@
 //! Time Slice Accounting
 
+const deadline = @import("mirai").sensei.deadline;
 const registry = @import("mirai").sensei.registry;
 const state = @import("mirai").sensei.state;
 
@@ -7,6 +8,7 @@ pub fn tick() void {
     const scheduler = state.getState();
     if (!scheduler.Initialized) return;
     scheduler.Ticks +%= 1;
+    deadline.tick();
     if (registry.current() == scheduler.Idle) {
         if (scheduler.Ready.Head != null) scheduler.Pending = true;
         return;

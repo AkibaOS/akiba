@@ -33,7 +33,7 @@ fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !Result 
     return switch (service) {
         @intFromEnum(abi.Service.Send) => send(current, frame),
         @intFromEnum(abi.Service.Receive) => receive(current, frame),
-        @intFromEnum(abi.Service.Call) => call(current, frame),
+        @intFromEnum(abi.Service.Call), @intFromEnum(abi.Service.CallTimed) => call(current, frame),
         @intFromEnum(abi.Service.Reply) => reply(current, frame),
         @intFromEnum(abi.Service.CollectReply) => collect(current, frame),
         @intFromEnum(abi.Service.Close) => close(current),
@@ -87,6 +87,9 @@ fn receive(current: *Thread, frame: *const InterruptFrame) !Result {
 }
 
 fn call(current: *Thread, frame: *const InterruptFrame) !Result {
+    const timed = frame.RAX == @intFromEnum(abi.Service.CallTimed);
+    if (timed and (frame.RSI == 0 or frame.RDX != 0 or frame.R10 != 0 or frame.RSI > std.math.maxInt(u64) - sensei.state.getState().Ticks))
+        return error.InvalidArgument;
     var descriptor: Call = undefined;
     try copy.read(current.Owner, std.mem.asBytes(&descriptor), frame.RDI);
     try validateOutput(current, descriptor.Reply, @intCast(@min(descriptor.ReplyCapacity, limits.MAX_COPY_BYTES)), descriptor.Metadata);
@@ -94,7 +97,10 @@ fn call(current: *Thread, frame: *const InterruptFrame) !Result {
     const contents = try readPayload(current, descriptor.Request, descriptor.RequestLength, &bytes);
     const preferred = try postman.call.begin(current, descriptor.Destination, descriptor.Type, contents);
     const waiters = try postman.call.queue(current);
-    try sensei.wait.blockFromInvocation(waiters, postman.call.ready, @ptrCast(current), preferred);
+    if (timed) {
+        if (!try sensei.wait.blockFromInvocationUntil(waiters, postman.call.ready, @ptrCast(current), preferred, frame.RSI))
+            return .{ .Status = .TimedOut, .Value = try postman.call.cancel(current) };
+    } else try sensei.wait.blockFromInvocation(waiters, postman.call.ready, @ptrCast(current), preferred);
     const view = try postman.call.peek(current);
     const result = try deliver(current, descriptor.Reply, descriptor.ReplyCapacity, descriptor.Metadata, view);
     if (result.Status == .Success) try postman.call.consume(current);
@@ -123,6 +129,7 @@ fn close(current: *Thread) !Result {
 fn status(failure: anyerror) abi.Status {
     return switch (failure) {
         error.NotInitialized => .NotInitialized,
+        error.InvalidArgument => .InvalidArgument,
         error.InvalidThread, error.UnsafeContext => .InvalidCaller,
         error.CopyTooLarge, error.TooLarge => .TooLarge,
         error.Full => .Full,

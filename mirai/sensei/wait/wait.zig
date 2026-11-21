@@ -2,6 +2,7 @@
 
 const control = @import("asm").cpu.constants.control.registers;
 const cpu = @import("asm").cpu.state;
+const deadline = @import("mirai").sensei.deadline;
 const errors = @import("mirai").sensei.errors.scheduling;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").sensei.strings.messages;
@@ -21,7 +22,7 @@ const Thread = thread.types.thread.Thread;
 fn block(waiters: *Queue, predicate: Predicate, context: ?*anyopaque, current: *Record, preferred: ?*Thread) void {
     const target = current.Thread orelse @panic(messages.INVALID_STATE);
     var handoff = preferred;
-    while (!predicate(context)) {
+    while (!predicate(context) and !current.TimedOut) {
         if (!queue.append(waiters, current)) @panic(messages.INVALID_QUEUE);
         run.rescheduleTo(true, handoff);
         if (registry.current() != current or thread.state.getCurrent() != target or
@@ -54,6 +55,14 @@ pub fn blockFromInvocation(waiters: *Queue, predicate: Predicate, context: ?*any
     if (!thread.state.owns(target) or !target.Managed or target.Status != .Running or target.Mode != .Persona or
         current.Queue != null or current.Next != null or current.Previous != null) return SchedulingError.InvalidState;
     block(waiters, predicate, context, current, preferred);
+}
+
+pub fn blockFromInvocationUntil(waiters: *Queue, predicate: Predicate, context: ?*anyopaque, preferred: ?*Thread, ticks: u64) !bool {
+    const current = registry.current() orelse return SchedulingError.InvalidState;
+    try deadline.arm(current, ticks);
+    defer deadline.cancel(current);
+    try blockFromInvocation(waiters, predicate, context, preferred);
+    return !current.TimedOut and predicate(context);
 }
 
 fn makeReady(record: *Record) bool {

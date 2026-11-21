@@ -3,6 +3,7 @@
 pub const clock = @import("clock/clock.zig");
 pub const constants = @import("constants/constants.zig");
 pub const control = @import("control/control.zig");
+pub const deadline = @import("deadline/deadline.zig");
 pub const errors = @import("errors/errors.zig");
 pub const idle = @import("idle/idle.zig");
 pub const interrupts = @import("interrupts/interrupts.zig");

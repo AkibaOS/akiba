@@ -24,6 +24,7 @@ pub const Envelope = struct {
     Receiver: ?*Record = null,
     Ticket: u64 = 0,
     Lease: ?Lease = null,
+    PublishedChild: u64 = 0,
     Header: Header = .{ .Sender = 0, .Type = 0, .Length = 0, .ReplyTicket = 0 },
     Payload: *[wire.MAX_PAYLOAD_BYTES]u8,
 };

@@ -8,4 +8,8 @@ pub const Record = struct {
     Next: ?*Record = null,
     Previous: ?*Record = null,
     Queue: ?*Queue = null,
+    Deadline: ?u64 = null,
+    DeadlinePrevious: ?*Record = null,
+    DeadlineNext: ?*Record = null,
+    TimedOut: bool = false,
 };
