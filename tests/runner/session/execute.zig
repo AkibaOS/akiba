@@ -61,7 +61,7 @@ pub fn run(unattended: bool, ahci: bool) !void {
     var failure: ?anyerror = if (outcome) |_| null else |reason| reason;
     const cleanup = close(&session, failure == null);
     if (session.OperatorExit and failure == null) {
-        verifyOrdinaryExit(&inputs, session.SerialStart) catch |reason| {
+        verifyOrdinaryExit(&inputs, session.SerialStart, session.Ahci) catch |reason| {
             failure = reason;
             session.Stage = .Ordinary;
         };
@@ -292,6 +292,7 @@ fn bootOrdinary(inputs: *const types.Paths, session: *types.Session, log: *const
         const bytes = try serial.read(PAGE, evidence);
         defer PAGE.free(bytes);
         if (try result.ordinaryReady(bytes)) {
+            try result.verifyOrdinaryPulse(bytes, session.Ahci);
             std.debug.print(strings.ORDINARY_READY, .{});
             try protocol.superviseOrdinary(PAGE, connection, evidence);
             session.OperatorExit = true;
@@ -473,12 +474,13 @@ fn close(session: *types.Session, require_quit_reply: bool) !void {
     if (require_quit_reply) if (quit_error) |failure| return failure;
 }
 
-fn verifyOrdinaryExit(inputs: *const types.Paths, offset: u64) !void {
+fn verifyOrdinaryExit(inputs: *const types.Paths, offset: u64, ahci: bool) !void {
     const log = try std.fs.cwd().openFile(inputs.Serial, .{});
     defer log.close();
     const bytes = try serial.read(PAGE, .{ .File = &log, .Start = offset });
     defer PAGE.free(bytes);
     if (!try result.ordinaryReady(bytes)) return error.OrdinaryEvidenceLost;
+    try result.verifyOrdinaryPulse(bytes, ahci);
 }
 
 fn failedEvidence(allocator: Allocator, inputs: *const types.Paths, offset: u64) ?[]u8 {

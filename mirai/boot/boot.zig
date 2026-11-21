@@ -2,6 +2,7 @@
 
 pub const constants = @import("constants/constants.zig");
 pub const early = @import("early/early.zig");
+pub const errors = @import("errors/errors.zig");
 pub const gdt = @import("gdt/gdt.zig");
 pub const image = @import("image/image.zig");
 pub const regions = @import("regions/regions.zig");

@@ -212,6 +212,7 @@ fn launch(image_handle: efi.types.base.Handle, system_table: *efi.types.services
     boot_params.Splash = splash.getState().*;
     boot_params.Retirement = page_setup.retirementInventory();
     boot_params.Volume = afs_partition.Volume;
+    boot_params.Transport = @intFromEnum(afs_partition.Transport);
     handoff.exit(startup, image_handle) catch {
         if (startup.ExitAttempted) {
             interrupts.disableInterrupts();

@@ -349,6 +349,18 @@ test "Pulse installs as one extensionless Unit under the system Akiba Stack" {
     try boot.pulse.standalone();
 }
 
+test "Boot transport recognizes only the complete terminal SATA path" {
+    try boot.transport.completePaths();
+}
+
+test "Boot transport refuses malformed and incomplete firmware paths" {
+    try boot.transport.malformedPaths();
+}
+
+test "BootParams retain the transport tag independently of an optional volume identity" {
+    try boot.transport.wireTag();
+}
+
 test "BootParams initialization stamps the header and zeroes the handoff" {
     try boot.params.initializedHandoff();
 }

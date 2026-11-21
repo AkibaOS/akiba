@@ -38,3 +38,6 @@ pub const IDT_SETUP = "Installing hardware interrupt gates and remapping PIC\n";
 pub const TIMER_SETUP = "Configuring PIT timer and registering IRQ0\n";
 pub const KEYBOARD_SETUP = "Registering keyboard handler on IRQ1\n";
 pub const INTERRUPTS_ENABLED = "  Interrupts enabled (timer + keyboard)\n";
+pub const PULSE_ENTERED = "Pulse entered Persona during ordinary boot";
+pub const PULSE_SKIPPED = "Native Pulse skipped: unsupported boot transport";
+pub const PULSE_FAILED = "Pulse startup failed: %s\n";

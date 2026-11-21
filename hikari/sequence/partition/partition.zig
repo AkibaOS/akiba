@@ -5,6 +5,7 @@ const std = @import("std");
 const efi = @import("hikari").efi;
 const errors = @import("hikari").sequence.errors.partition.discovery;
 const parser = @import("hikari").disk.types.parser;
+const transport = @import("hikari").disk.device.transport;
 const types = @import("hikari").sequence.types.partition.discovery;
 
 const Discovery = types.Discovery;
@@ -50,7 +51,11 @@ fn scan(state: *Discovery, handles: []const efi.types.base.Handle) DiscoveryErro
         };
         const found = if (parsed) match(&state.Parser) else null;
         if (!state.Parser.deinitialize()) return DiscoveryError.ReleaseFailed;
-        if (found) |info| return info;
+        if (found) |info| {
+            var selected = info;
+            selected.Transport = transport.fromHandle(services, handle);
+            return selected;
+        }
     }
     return null;
 }

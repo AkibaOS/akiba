@@ -37,7 +37,7 @@ pub const TREE_THREAD = THREAD_DESCRIPTOR ++ THREAD_KEY ++ THREAD_RECORD ++ [_]u
 pub const TREE_SHORT_THREAD = THREAD_DESCRIPTOR ++ THREAD_KEY ++ [_]u8{ 3, 0, 0, 0, 7, 0, 0, 0 } ++ [_]u8{ 16, 0 };
 
 pub const BOOT_MAGIC: u64 = 0x494152494d424b41;
-pub const BOOT_VERSION: u32 = 4;
+pub const BOOT_VERSION: u32 = 5;
 pub const FAT_SECTOR_BYTES: usize = 512;
 pub const FAT_SIGNATURE_OFFSET: usize = 510;
 pub const FAT_VOLUME_OFFSET: usize = 67;

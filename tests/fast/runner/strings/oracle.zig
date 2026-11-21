@@ -8,6 +8,9 @@ pub const AHCI_PULSE = "CHECK PASS Pulse starts from its installed ELF and answe
 pub const AHCI_PREFIX = "other ";
 pub const LF = "\n";
 pub const CRLF = "\r\n";
+pub const ORDINARY_PULSE = "Pulse entered Persona during ordinary boot";
+pub const ORDINARY_PULSE_SKIPPED = "Native Pulse skipped: unsupported boot transport";
+pub const ORDINARY_PULSE_FAILED = "Pulse startup failed: BootUnitMissing\n";
 
 pub const VALID = "AKIBA_GUEST_CHECKS_BEGIN\nCHECK GROUP test\nCHECK PASS one\nAKIBA_GUEST_CHECKS_COMPLETE 1\nAkiba Ready\n";
 pub const PENDING = "AKIBA_GUEST_CHECKS_BEGIN\nCHECK PASS one\n";

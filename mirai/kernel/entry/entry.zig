@@ -96,6 +96,7 @@ fn snapshot(params: *const BootParams) ?BootInfo {
         .BootStackTop = kernel.StackTop,
         .BootStackSize = kernel.StackSize,
         .Volume = if (volume.isValid()) volume else null,
+        .Transport = boot.types.transport.Transport.fromWire(params.Transport) orelse return null,
     };
     if (!retirement.aliases(&info, map_range)) return null;
     const raw = regions.convert.inspect(map, coverage) orelse return null;

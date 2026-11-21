@@ -33,7 +33,8 @@ pub fn cancelledCount(bytes: []const u8) !usize {
 }
 
 pub fn ordinaryReady(bytes: []const u8) !bool {
-    if (failedBeforeSelection(bytes)) return error.NormalBootFailed;
+    if (failedBeforeSelection(bytes) or std.mem.indexOf(u8, bytes, strings.ORDINARY_PULSE_FAILED) != null)
+        return error.NormalBootFailed;
     if (std.mem.indexOf(u8, bytes, markers.BEGIN) != null or
         std.mem.indexOf(u8, bytes, firmwarewire.BEGIN) != null or
         std.mem.indexOf(u8, bytes, markers.COMPLETE) != null or
@@ -41,6 +42,15 @@ pub fn ordinaryReady(bytes: []const u8) !bool {
         std.mem.indexOf(u8, bytes, firmwarewire.COMPLETE) != null or
         std.mem.indexOf(u8, bytes, markers.PASS) != null) return error.UnexpectedDiagnosticBoot;
     return try uniqueLine(bytes, strings.READY) != null;
+}
+
+pub fn verifyOrdinaryPulse(bytes: []const u8, expected: bool) !void {
+    const invalid = error.InvalidOrdinaryPulseEvidence;
+    const ready = (uniqueLine(bytes, strings.READY) catch return invalid) orelse return invalid;
+    const started = uniqueLine(bytes, strings.ORDINARY_PULSE) catch return invalid;
+    const skipped = uniqueLine(bytes, strings.ORDINARY_PULSE_SKIPPED) catch return invalid;
+    const selected = if (expected) started else skipped;
+    if (selected == null or selected.? >= ready or (if (expected) skipped != null else started != null)) return invalid;
 }
 
 pub fn evaluate(bytes: []const u8, scenario: Scenario) !?usize {

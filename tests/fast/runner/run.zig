@@ -210,6 +210,22 @@ test "ordinary handoff refuses diagnostic output even with a ready marker" {
     try std.testing.expectError(error.UnexpectedDiagnosticBoot, result.ordinaryReady(fixtures.VALID));
     try std.testing.expectError(error.UnexpectedDiagnosticBoot, result.ordinaryReady(fixtures.FIRMWARE_VALID));
     try std.testing.expectError(error.NormalBootFailed, result.ordinaryReady(fixtures.PANIC));
+    try std.testing.expectError(error.NormalBootFailed, result.ordinaryReady(fixtures.ORDINARY_PULSE_FAILED));
+}
+
+test "ordinary boot proves the correct Pulse disposition in its own serial epoch" {
+    const started = fixtures.ORDINARY_PULSE ++ fixtures.LF;
+    const skipped = fixtures.ORDINARY_PULSE_SKIPPED ++ fixtures.CRLF;
+    const ready = fixtures.MISSING;
+    try result.verifyOrdinaryPulse(started ++ ready, true);
+    try result.verifyOrdinaryPulse(skipped ++ ready, false);
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(skipped ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ ready, false));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(ready ++ started, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ started ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(started ++ skipped ++ ready, true));
+    try std.testing.expectError(error.InvalidOrdinaryPulseEvidence, result.verifyOrdinaryPulse(fixtures.AHCI_PREFIX ++ started ++ ready, true));
 }
 
 test "phase frames encode four Mirai choices with an explicit nonzero epoch" {

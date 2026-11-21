@@ -11,6 +11,7 @@ const splash = @import("shared").splash;
 const volume = @import("shared").boot.types.volume;
 
 const constants = @import("shared").boot.constants;
+const Transport = @import("shared").boot.types.transport.Transport;
 
 pub const BootParams = extern struct {
     Magic: u64,
@@ -25,6 +26,7 @@ pub const BootParams = extern struct {
     BootTime: u64,
     Retirement: retirement.Inventory,
     Volume: volume.Volume,
+    Transport: u32,
 
     Reserved: [constants.params.RESERVED_SIZE]u8,
 
@@ -40,6 +42,6 @@ pub const BootParams = extern struct {
     pub fn isValid(self: *const BootParams) bool {
         return self.Magic == constants.params.MAGIC and
             self.Version == constants.params.VERSION and
-            self.Size == @sizeOf(BootParams);
+            self.Size == @sizeOf(BootParams) and Transport.fromWire(self.Transport) != null;
     }
 };

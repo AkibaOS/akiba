@@ -12,6 +12,7 @@ const memory = @import("mirai").boot.sequence.memory;
 const options = @import("options");
 const postman = @import("mirai").postman;
 const print = @import("mirai").boot.sequence.print;
+const pulse = @import("mirai").boot.sequence.pulse;
 const registers = @import("asm").cpu.state;
 const rootchecks = if (options.GUEST_CHECKS) @import("tests").guest.support.root else null;
 const selector = if (options.GUEST_CHECKS) @import("tests").guest.support.selector else null;
@@ -93,6 +94,13 @@ fn continueBoot(context: *const anyopaque) callconv(.{ .x86_64_sysv = .{} }) nor
     if (!interrupts.execute()) {
         print.fail(status.ERROR_SERVICES);
         haltOnFailure();
+    }
+    if (!options.GUEST_CHECKS) {
+        pulse.activate(info) catch |failure| {
+            print.log(messages.PULSE_FAILED, .{@errorName(failure)});
+            print.fail(status.ERROR_PULSE);
+            halt.haltLoop();
+        };
     }
     const diagnostic_screen = if (options.GUEST_CHECKS) checks.execute() else false;
     if (diagnostic_screen) {

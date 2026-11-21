@@ -4,6 +4,7 @@ const pmm = @import("mirai").pmm;
 const retirement = @import("mirai").boot.types.retirement.footprint;
 
 const MemoryRegion = pmm.types.region.MemoryRegion;
+const Transport = @import("shared").boot.types.transport.Transport;
 const Volume = @import("shared").boot.types.volume.Volume;
 
 pub const BootInfo = struct {
@@ -22,4 +23,5 @@ pub const BootInfo = struct {
     BootStackTop: u64,
     BootStackSize: u64,
     Volume: ?Volume = null,
+    Transport: Transport = .Unknown,
 };
