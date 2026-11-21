@@ -1,7 +1,7 @@
 //! Queue Actual IRQ Bytes For The Bound Keyboard Driver
 
-const binding = @import("mirai").device.binding;
 const guard = @import("asm").interrupts.guard;
+const instances = @import("mirai").device.instance.registry;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 
@@ -11,11 +11,19 @@ const Stream = @import("mirai").device.types.keyboard.stream.Stream;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 var stream: Stream = .{};
+var device: ?u64 = null;
+
+pub fn attach(identifier: u64) void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    device = identifier;
+}
 
 pub fn push(byte: u8) void {
     const flags = guard.acquire();
     defer guard.release(flags);
-    const owner = binding.owner(.Keyboard) orelse return;
+    const identifier = device orelse return;
+    const owner = instances.assignedOwner(identifier) orelse return;
     select(owner.ID);
     if (stream.Count == stream.Bytes.len) {
         stream.Lost = true;
@@ -29,15 +37,16 @@ pub fn push(byte: u8) void {
     }
 }
 
-pub fn check(caller: *Thread) !void {
+pub fn check(caller: *Thread, handle: u64) !void {
     try postman.validate.current(caller);
-    if (binding.owner(.Keyboard) != caller.Owner) return error.InvalidCaller;
+    const target = instances.resolve(caller.Owner, handle) orelse return error.InvalidCaller;
+    if (target.Kind != .Keyboard or target.ID != device) return error.InvalidTarget;
 }
 
-pub fn next(caller: *Thread) !Result {
+pub fn next(caller: *Thread, handle: u64) !Result {
     const flags = guard.acquire();
     defer guard.release(flags);
-    try check(caller);
+    try check(caller, handle);
     select(caller.Owner.ID);
     const waiters = try postman.receive.queue(caller);
     try sensei.wait.blockFromInvocation(waiters, ready, @ptrCast(caller), null);

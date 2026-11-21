@@ -13,7 +13,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules) std.Build.LazyPath 
         .Name = names.EXECUTABLE_KEYBOARD,
         .Root = paths.KEYBOARD_ROOT,
         .Entry = paths.KEYBOARD_ENTRY,
-        .Symbol = names.ENTRY_KEYBOARD,
+        .Symbol = names.ENTRY_PERSONA,
     });
 }
 

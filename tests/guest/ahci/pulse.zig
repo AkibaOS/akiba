@@ -116,7 +116,7 @@ fn exchange(identifier: u64) !bool {
         harness.call(&client),
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
         .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
-        .{ .Service = .Keyboard },
+        .{ .Service = .Device },
         .{ .Service = .Display },
     });
     try harness.start(&client);

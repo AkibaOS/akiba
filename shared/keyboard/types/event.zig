@@ -1,36 +1,8 @@
-//! Normalized Keyboard Text And Editing Events
+//! Internal View Of The Keyboard Protocol Contract
 
-pub const Kind = enum(u8) { Text, Key };
+const wire = @import("sdk").keyboard.types.event;
 
-pub const Key = enum(u32) {
-    Escape,
-    Backspace,
-    Tab,
-    Enter,
-    Home,
-    End,
-    Left,
-    Right,
-    Up,
-    Down,
-    Insert,
-    Delete,
-    PageUp,
-    PageDown,
-    Pause,
-};
-
-pub const Modifiers = packed struct(u8) {
-    Shift: bool = false,
-    Control: bool = false,
-    Alt: bool = false,
-    CapsLock: bool = false,
-    Reserved: u4 = 0,
-};
-
-pub const Event = extern struct {
-    Kind: Kind,
-    Modifiers: Modifiers = .{},
-    Reserved: u16 = 0,
-    Value: u32,
-};
+pub const Event = wire.Event;
+pub const Key = wire.Key;
+pub const Kind = wire.Kind;
+pub const Modifiers = wire.Modifiers;

@@ -11,12 +11,14 @@ const service = @import("shared").pulse.constants.supervision.protocol;
 
 const Event = @import("shared").keyboard.types.event.Event;
 const Header = @import("shared").persona.types.letter.Header;
-const Operation = @import("shared").keyboard.types.operation.Operation;
+const Operation = @import("shared").device.types.operation.Operation;
 const Queue = @import("keyboard").types.service.queue.Queue;
 const State = @import("keyboard").types.input.state.State;
 const Status = @import("shared").persona.types.invocation.Status;
 
 pub fn listen(supervisor: u64) noreturn {
+    const assignment = invoke.call(.Device, @intFromEnum(Operation.Lease), 0, 0, 0);
+    if (assignment.Status != @intFromEnum(Status.Success)) stop(assignment.Status);
     var pending: Queue = .{};
     var decoder: State = .{};
     var active = false;
@@ -24,7 +26,7 @@ pub fn listen(supervisor: u64) noreturn {
     var header: Header = undefined;
     while (true) {
         if (active) {
-            const next = invoke.call(.Keyboard, @intFromEnum(Operation.Next), 0, 0, 0);
+            const next = invoke.call(.Device, @intFromEnum(Operation.StreamNext), assignment.Value, 0, 0);
             switch (next.Status) {
                 @intFromEnum(Status.Success) => {
                     if (next.Value > std.math.maxInt(u8)) stop(@intFromEnum(Status.InvalidState));
@@ -49,7 +51,7 @@ pub fn listen(supervisor: u64) noreturn {
         if (header.Sender == supervisor and header.Length == 0 and arrived.Value == 0) {
             switch (header.Type) {
                 service.SERVICE_QUERY => {
-                    const result = invoke.call(.Keyboard, @intFromEnum(Operation.Check), 0, 0, 0);
+                    const result = invoke.call(.Device, @intFromEnum(Operation.StreamProbe), assignment.Value, 0, 0);
                     if (result.Status == @intFromEnum(Status.Success)) {
                         active = true;
                         kind = service.SERVICE_READY;

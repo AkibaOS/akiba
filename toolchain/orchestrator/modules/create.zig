@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const names = @import("../strings/names.zig");
+const native = @import("../persona/native.zig");
 const paths = @import("../strings/paths.zig");
 const types = @import("../types/modules/dependencies.zig");
 
@@ -18,11 +19,15 @@ pub fn create(builder: *std.Build) types.Modules {
     utils.addImport(names.MODULE_COMMON, common);
     utils.addImport(names.MODULE_UTILS, utils);
 
+    const sdk = builder.createModule(.{ .root_source_file = builder.path(paths.SDK_ROOT) });
+    sdk.addImport(names.MODULE_SDK, sdk);
+
     const shared = builder.createModule(.{
         .root_source_file = builder.path(paths.SHARED_ROOT),
     });
     shared.addImport(names.MODULE_COMMON, common);
     shared.addImport(names.MODULE_SHARED, shared);
+    shared.addImport(names.MODULE_SDK, sdk);
     shared.addImport(names.MODULE_UTILS, utils);
     shared.addAnonymousImport(names.IMPORT_FONT, .{ .root_source_file = builder.path(paths.FONT_RESOURCE) });
 
@@ -37,5 +42,6 @@ pub fn create(builder: *std.Build) types.Modules {
         .Shared = shared,
         .Assembly = assembly,
         .Utils = utils,
+        .PersonaStartup = native.artifact(builder, common),
     };
 }

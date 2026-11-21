@@ -61,6 +61,15 @@ pub fn retire(identifier: u64) void {
     entry.Assignment = null;
 }
 
+pub fn handleFor(owner: *const Kata) ?u64 {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    if (!state.owns(owner) or !live(owner)) return null;
+    const entry = heldBy(owner.ID) orelse return null;
+    const assignment = entry.Assignment.?;
+    return if (assignment.Committed) assignment.Handle else null;
+}
+
 pub fn resolve(owner: *const Kata, handle: u64) ?Instance {
     const flags = guard.acquire();
     defer guard.release(flags);

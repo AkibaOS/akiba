@@ -1,18 +1,20 @@
-//! Invocation Register ABI Types
+//! Internal Invocation Register ABI Types
 
 const provision = @import("shared").launch.constants.provision;
 
+const Native = @import("sdk").persona.types.invocation.Service;
+
 pub const Service = enum(u64) {
-    Query = 0,
-    Yield = 1,
-    Send = 2,
-    Receive = 3,
-    Call = 4,
-    Reply = 5,
-    CollectReply = 6,
-    Close = 7,
-    FinishThread = 8,
-    Exit = 9,
+    Query = @intFromEnum(Native.Query),
+    Yield = @intFromEnum(Native.Yield),
+    Send = @intFromEnum(Native.Send),
+    Receive = @intFromEnum(Native.Receive),
+    Call = @intFromEnum(Native.Call),
+    Reply = @intFromEnum(Native.Reply),
+    CollectReply = @intFromEnum(Native.CollectReply),
+    Close = @intFromEnum(Native.Close),
+    FinishThread = @intFromEnum(Native.FinishThread),
+    Exit = @intFromEnum(Native.Exit),
     ObserveCompletion = 10,
     WaitCompletion = 11,
     CollectCompletion = 12,
@@ -23,8 +25,8 @@ pub const Service = enum(u64) {
     ReceiveActivity = 18,
     StopChild = 19,
     WaitCompletionTimed = 20,
-    Keyboard = 21,
     Display = 22,
+    Device = @intFromEnum(Native.Device),
     Provision = provision.SERVICE,
 };
 
@@ -33,27 +35,4 @@ pub const Query = enum(u64) {
     Kata = 1,
 };
 
-pub const Status = enum(u64) {
-    Success = 0,
-    Unsupported = 1,
-    InvalidArgument = 2,
-    InvalidCaller = 3,
-    InvalidAddress = 4,
-    TooLarge = 5,
-    Full = 6,
-    NoResources = 7,
-    InvalidPeer = 8,
-    Closed = 9,
-    Busy = 10,
-    InvalidReply = 11,
-    PeerGone = 12,
-    WouldBlock = 13,
-    BufferTooSmall = 14,
-    InvalidState = 15,
-    NotInitialized = 16,
-    InvalidTarget = 17,
-    NotOwner = 18,
-    TimedOut = 19,
-    ChildReady = 20,
-    InputLost = 21,
-};
+pub const Status = @import("sdk").persona.types.invocation.Status;

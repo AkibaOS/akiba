@@ -1,8 +1,3 @@
-//! Postman Copied Letter Header
+//! Internal View Of The Postman Letter Contract
 
-pub const Header = extern struct {
-    Sender: u64,
-    Type: u64,
-    Length: u64,
-    ReplyTicket: u64,
-};
+pub const Header = @import("sdk").persona.types.letter.Header;

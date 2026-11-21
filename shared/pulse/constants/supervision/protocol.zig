@@ -1,10 +1,12 @@
-//! Private Service Supervision Letters
+//! Service Supervision And Private Pulse Control Letters
+
+const wire = @import("sdk").persona.constants.postman;
 
 pub const REPORT: u64 = 0x50554c530001;
 pub const SNAPSHOT: u64 = 0x50554c530002;
 pub const SHUTDOWN: u64 = 0x50554c530003;
-pub const SERVICE_QUERY: u64 = 0x50554c530004;
-pub const SERVICE_READY: u64 = 0x50554c530005;
-pub const SERVICE_STOP: u64 = 0x50554c530006;
-pub const SERVICE_STOPPED: u64 = 0x50554c530007;
-pub const REFUSED: u64 = 0x50554c530008;
+pub const SERVICE_QUERY = wire.SERVICE_QUERY;
+pub const SERVICE_READY = wire.SERVICE_READY;
+pub const SERVICE_STOP = wire.SERVICE_STOP;
+pub const SERVICE_STOPPED = wire.SERVICE_STOPPED;
+pub const REFUSED = wire.REFUSED;

@@ -7,4 +7,5 @@ pub const Modules = struct {
     Shared: *std.Build.Module,
     Assembly: *std.Build.Module,
     Utils: *std.Build.Module,
+    PersonaStartup: std.Build.LazyPath,
 };

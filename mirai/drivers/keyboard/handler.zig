@@ -26,7 +26,7 @@ pub fn handler(_: u8) void {
 
 pub fn register() void {
     interrupts.handlers.hardware.registerHandler(ports.IRQ, &handler);
-    _ = instances.register(.Keyboard, ports.IRQ) orelse @panic(presentation.REGISTRY_FULL);
+    stream.attach(instances.register(.Keyboard, ports.IRQ) orelse @panic(presentation.REGISTRY_FULL));
     interrupts.pic.mask.enableIRQ(ports.IRQ);
 }
 

@@ -7,6 +7,7 @@ const disk = @import("../disk/disk.zig");
 const drivers = @import("../drivers/drivers.zig");
 const kernel = @import("../kernel/kernel.zig");
 const modules = @import("../modules/modules.zig");
+const native = @import("../persona/native.zig");
 const preview = @import("../preview/preview.zig");
 const pulse = @import("../pulse/pulse.zig");
 const steps = @import("../steps/steps.zig");
@@ -15,6 +16,7 @@ const weaver = @import("../weaver/weaver.zig");
 
 pub fn build(builder: *std.Build) void {
     const module_set = modules.create.create(builder);
+    native.exportSdk(builder, module_set.PersonaStartup);
     const bootloader_artifact = bootloader.compile.artifact(builder, module_set, false);
     const disk_artifact = disk.compile.artifact(builder, module_set);
     const bootloader_step = bootloader.compile.install(builder, bootloader_artifact);

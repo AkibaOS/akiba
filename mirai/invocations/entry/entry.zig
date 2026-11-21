@@ -7,10 +7,10 @@ const cpu = @import("asm").cpu;
 const device = @import("mirai").invocations.device.ahci;
 const display = @import("mirai").invocations.device.display;
 const ipc = @import("mirai").invocations.postman;
-const keyboard = @import("mirai").invocations.device.keyboard;
 const lifecycle = @import("mirai").invocations.lifecycle;
 const messages = @import("mirai").thread.strings.shift.messages;
 const provision = @import("mirai").invocations.provision;
+const resource = @import("mirai").invocations.device.resource;
 const selectors = @import("mirai").boot.constants.gdt.selectors;
 const sensei = @import("mirai").sensei;
 const thread = @import("mirai").thread;
@@ -61,8 +61,8 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         device.device(current, frame);
         return;
     }
-    if (service == @intFromEnum(types.Service.Keyboard)) {
-        keyboard.dispatch(current, frame);
+    if (service == @intFromEnum(types.Service.Device)) {
+        resource.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Display)) {

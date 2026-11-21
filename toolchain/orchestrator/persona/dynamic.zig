@@ -4,6 +4,7 @@ const std = @import("std");
 
 const compile = @import("compile.zig");
 const linker = @import("../strings/linker.zig");
+const names = @import("../strings/names.zig");
 const types = @import("../types/modules/dependencies.zig");
 
 const Definition = @import("../types/persona/definition.zig").Definition;
@@ -33,5 +34,6 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, definition: Definit
     });
     const executable = link.addOutputFileArg(definition.Name);
     link.addFileArg(object.getEmittedBin());
+    if (std.mem.eql(u8, definition.Symbol, names.ENTRY_PERSONA)) link.addFileArg(modules.PersonaStartup);
     return executable;
 }
