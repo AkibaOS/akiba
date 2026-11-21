@@ -30,7 +30,7 @@ pub fn dispatch(caller: *Thread, frame: *Frame) void {
 
 fn perform(caller: *Thread, frame: *const Frame) !u64 {
     const operation = std.enums.fromInt(Operation, frame.RDI) orelse return error.InvalidArgument;
-    if (frame.R10 != 0 or (operation != .BindDevice and frame.RDX != 0)) return error.InvalidArgument;
+    if (frame.R10 != 0 or frame.RDX != 0) return error.InvalidArgument;
     return switch (operation) {
         .StartAhci => if (frame.RSI == 0) ahci.startAhci(caller) else error.InvalidArgument,
         .ConfirmAhci => confirmed: {
@@ -42,11 +42,10 @@ fn perform(caller: *Thread, frame: *const Frame) !u64 {
             try afs.confirm(caller, frame.RSI);
             break :confirmed 0;
         },
-        .BindDevice => bound: {
+        .FindDevice => found: {
             if (storage.forPulse(caller.Owner) == null) return error.InvalidCaller;
-            const role = std.enums.fromInt(Role, frame.RDX) orelse return error.InvalidArgument;
-            try binding.assign(caller.Owner.ID, frame.RSI, role);
-            break :bound 0;
+            const role = std.enums.fromInt(Role, frame.RSI) orelse return error.InvalidArgument;
+            break :found binding.find(role) orelse return error.InvalidTarget;
         },
     };
 }

@@ -13,6 +13,7 @@ pub const PROVISION_DUPLICATE = "a second Begin on the same live call cannot rep
 pub const PROVISION_THREAD = "a sibling of the granted receiver cannot provision using its live ticket";
 pub const PROVISION_DISCARD = "explicit Abort and reply without publication reclaim the provisional child";
 pub const PROVISION_DISCONNECT = "requester death discards the pending child and invalidates launch on that call";
+pub const PROVISION_DEADLINE = "an expired call cannot provision before its requester resumes and releases the device reservation";
 pub const PROVISION_PAGE = "the granted provisioner allocates an owned page inside its live call draft";
 pub const PROVISION_COPY = "an invalid provisioner address cannot copy partial bytes into the child";
 pub const PROVISION_PUBLISH = "staged launch refuses unsealed memory and commits the valid ELF only once";

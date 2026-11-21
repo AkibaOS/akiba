@@ -1,10 +1,14 @@
 //! Real Persona Request Ownership For Unpublished Launches
 
 const constants = @import("tests").guest.constants.postman.transport;
+const guard = @import("asm").interrupts.guard;
+const hardware = @import("mirai").device.instance.registry;
 const harness = @import("tests").guest.postman.harness;
 const kata = @import("mirai").kata;
 const labels = @import("tests").guest.strings.postman.witnesses;
 const mirai = @import("mirai");
+const ports = @import("mirai").drivers.constants.keyboard.ports;
+const sensei = @import("mirai").sensei;
 const types = @import("tests").guest.types.postman.fixtures;
 const user = @import("mirai").user;
 const verify = @import("tests").guest.support.verify;
@@ -16,6 +20,7 @@ const Operation = types.Operation;
 pub fn run() !void {
     try abortAndReply();
     try requesterGone();
+    try expiredAssignment();
 }
 
 fn abortAndReply() !void {
@@ -99,6 +104,49 @@ fn requesterGone() !void {
     try next(&server, 4);
     verify.require(allocated and gone(child) and draft(&server) == null and try harness.resultIs(&server, 4, .PeerGone, 0) and
         before > client_pages and user.state.ledger.count() == before - client_pages - 1, labels.PROVISION_DISCONNECT);
+}
+
+fn expiredAssignment() !void {
+    var server = try harness.create();
+    defer harness.dispose(server.ID);
+    var client = try harness.create();
+    defer harness.dispose(client.ID);
+    grant(&server);
+    try harness.descriptor(&client, server.ID, constants.OUTPUT_BYTES);
+    var call = harness.call(&client);
+    call.Service = .CallTimed;
+    call.Second = constants.DEADLINE_TICKS;
+    try harness.install(&client, &.{call});
+    var allocate = command(&server, constants.PROVISION_ALLOCATE, true);
+    allocate.Third = constants.DATA_BASE;
+    try harness.install(&server, &.{ harness.receive(&server, constants.OUTPUT_BYTES), command(&server, constants.PROVISION_BEGIN, true), allocate });
+    try harness.start(&server);
+    try harness.waitBlocked(&server);
+    try harness.start(&client);
+    try harness.waitStep(&server, 1);
+    try next(&server, 2);
+    const child = draft(&server) orelse return error.InvalidFixture;
+    const identifier = child.ID;
+    const device = hardware.find(.Keyboard, ports.IRQ) orelse return error.InvalidFixture;
+    const previous = try hardware.reserve(device, child);
+    try expireBeforeSender(&server, &client);
+    try harness.waitStep(&server, 3);
+    try harness.waitTimedStep(&client, 1, constants.DEADLINE_TICKS);
+    const replacement = try kata.create.create();
+    defer kata.destroy.destroy(replacement) catch @panic(labels.CLEANUP_FAILED);
+    const handle = try hardware.reserve(device, replacement);
+    verify.require(try harness.resultIs(&server, 3, .PeerGone, 0) and try harness.resultIs(&client, 1, .TimedOut, 0) and
+        gone(identifier) and draft(&server) == null and handle != previous, labels.PROVISION_DEADLINE);
+}
+
+fn expireBeforeSender(server: *const Actor, client: *const Actor) !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const schedule = sensei.registry.find(client.Target.?) orelse return error.InvalidFixture;
+    const until = schedule.Deadline orelse return error.InvalidFixture;
+    try harness.advance(server, 2);
+    sensei.deadline.expire(until);
+    sensei.run.rescheduleTo(false, server.Target);
 }
 
 fn grant(actor: *const Actor) void {

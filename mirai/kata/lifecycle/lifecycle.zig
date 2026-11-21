@@ -3,6 +3,7 @@
 const completion = @import("mirai").kata.completion;
 const constants = @import("mirai").kata.constants.pool;
 const guard = @import("asm").interrupts.guard;
+const instances = @import("mirai").device.instance.registry;
 const messages = @import("mirai").kata.strings.messages;
 const state = @import("mirai").kata.state;
 const types = @import("mirai").kata.types;
@@ -76,6 +77,7 @@ pub fn die(owner: *Kata, outcome: Outcome) void {
     if (!state.owns(owner) or owner.Permanent or owner.State == .Born or owner.State == .Dead or
         !completion.lifetime.commit(owner.ID, outcome)) @panic(messages.INVALID_COMPLETION);
     owner.State = .Dead;
+    instances.retire(owner.ID);
     if (pulse_id == owner.ID) @panic(messages.PULSE_EXIT);
     completion.storage.adopt(owner.ID, pulse_id orelse constants.KERNEL_ID);
 }

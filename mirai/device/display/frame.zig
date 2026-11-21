@@ -6,7 +6,10 @@ const binding = @import("mirai").device.binding;
 const copy = @import("mirai").user.copy.transfer;
 const geometry = @import("shared").display.geometry.rectangle;
 const guard = @import("asm").interrupts.guard;
+const instances = @import("mirai").device.instance.registry;
 const limits = @import("mirai").user.constants.limits;
+const locations = @import("mirai").device.constants.instance;
+const messages = @import("mirai").device.strings.instance;
 const postman = @import("mirai").postman;
 
 const Framebuffer = @import("shared").boot.types.framebuffer.FramebufferInfo;
@@ -19,7 +22,9 @@ var framebuffer: ?Framebuffer = null;
 pub fn adopt(descriptor: Framebuffer) void {
     const flags = guard.acquire();
     defer guard.release(flags);
-    if (framebuffer == null and descriptor.isValid()) framebuffer = descriptor;
+    if (framebuffer != null or !descriptor.isValid()) return;
+    _ = instances.register(.Framebuffer, locations.FIRMWARE_SURFACE) orelse @panic(messages.REGISTRY_FULL);
+    framebuffer = descriptor;
 }
 
 pub fn check(caller: *Thread) !void {

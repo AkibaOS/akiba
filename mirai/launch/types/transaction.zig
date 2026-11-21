@@ -6,6 +6,7 @@ const Template = @import("mirai").launch.types.template.Template;
 pub const Transaction = struct {
     Child: ?*Kata,
     Server: *Kata,
+    Attached: bool = false,
     LoadingPages: u64 = 0,
     Pending: ?*Template = null,
 };

@@ -4,8 +4,11 @@ const std = @import("std");
 
 const abi = @import("shared").persona.types.invocation;
 const copy = @import("mirai").user.copy.transfer;
+const letters = @import("shared").launch.constants.service.postman;
+const messages = @import("mirai").launch.strings.transaction;
 const pages = @import("mirai").launch.draft.pages;
 const publish = @import("mirai").launch.draft.publish;
+const reply = @import("mirai").postman.reply;
 const request = @import("mirai").launch.request.lease;
 const templates = @import("mirai").launch.templates;
 const types = @import("shared").launch.types.provision;
@@ -59,8 +62,13 @@ fn perform(current: *Thread, frame: *const Frame) !u64 {
         },
         .Start => {
             const fields = try input(types.Start, current, frame.RDX);
+            const attached = draft.Attached;
             const child = try publish.start(draft, fields.Entry, fields.StackBase, fields.StackLength, fields.Startup);
-            envelope.PublishedChild = child;
+            if (attached) {
+                var payload: [@sizeOf(u64)]u8 = undefined;
+                std.mem.writeInt(u64, &payload, child, .little);
+                reply.send(current, frame.RDI, letters.STARTED, &payload) catch @panic(messages.COMMITTED_REPLY);
+            } else envelope.PublishedChild = child;
             return child;
         },
         .Retain => return templates.retain(draft, frame.RDX),
@@ -92,7 +100,7 @@ fn status(failure: anyerror) abi.Status {
         error.InvalidUserRange, error.InvalidAddress, error.AddressNotAligned, error.NotOwned, error.InvalidOwnedMapping, error.InvalidPhysmap => .InvalidAddress,
         error.CopyTooLarge => .TooLarge,
         error.InvalidReply => .InvalidReply,
-        error.InvalidTemplateHandle => .InvalidTarget,
+        error.InvalidTarget, error.InvalidTemplateHandle => .InvalidTarget,
         error.PeerGone => .PeerGone,
         error.Busy => .Busy,
         error.OutOfMemory, error.NoResources, error.CapacityReached, error.PageTableAllocationFailed => .NoResources,

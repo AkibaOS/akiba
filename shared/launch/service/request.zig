@@ -2,7 +2,24 @@
 
 const std = @import("std");
 
+const Attached = @import("shared").launch.types.service.request.Attached;
 const Request = @import("shared").launch.types.service.request.Request;
+
+pub fn encodeAttached(output: []u8, identifier: u64, identity: []const u8, parameters: []const u8) ?[]const u8 {
+    const prefix = @sizeOf(u64);
+    if (identifier == 0 or output.len < prefix) return null;
+    const payload = encode(output[prefix..], identity, parameters) orelse return null;
+    std.mem.writeInt(u64, output[0..prefix], identifier, .little);
+    return output[0 .. prefix + payload.len];
+}
+
+pub fn decodeAttached(bytes: []const u8) ?Attached {
+    const prefix = @sizeOf(u64);
+    if (bytes.len < prefix) return null;
+    const identifier = std.mem.readInt(u64, bytes[0..prefix], .little);
+    if (identifier == 0) return null;
+    return .{ .Instance = identifier, .Binary = decode(bytes[prefix..]) orelse return null };
+}
 
 pub fn encode(output: []u8, identity: []const u8, parameters: []const u8) ?[]const u8 {
     const prefix = @sizeOf(u64);

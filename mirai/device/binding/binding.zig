@@ -1,34 +1,19 @@
-//! Bind Installed Device Roles To Live Owned Katas
+//! Resolve Legacy Device Roles Against The Instance Registry
 
-const std = @import("std");
+const instances = @import("mirai").device.instance.registry;
+const locations = @import("mirai").device.constants.instance;
+const ports = @import("mirai").drivers.constants.keyboard.ports;
 
-const guard = @import("asm").interrupts.guard;
-const kata = @import("mirai").kata;
-
-const Kata = kata.types.kata.Kata;
+const Kata = @import("mirai").kata.types.kata.Kata;
 const Role = @import("shared").launch.types.device.Role;
 
-var bindings: [std.enums.values(Role).len]?u64 = @splat(null);
-
-pub fn assign(launcher: u64, identifier: u64, role: Role) !void {
-    const flags = guard.acquire();
-    defer guard.release(flags);
-    const child = kata.state.findByID(identifier) orelse return error.InvalidTarget;
-    if (identifier == launcher or child.Permanent or child.CanProvision or !active(child)) return error.InvalidTarget;
-    if (kata.completion.storage.ownerOf(identifier) != launcher) return error.NotOwner;
-    if (owner(role) != null) return error.AlreadyBound;
-    for (bindings) |bound| if (bound == identifier) return error.AlreadyBound;
-    bindings[@intFromEnum(role)] = identifier;
+pub fn find(role: Role) ?u64 {
+    return switch (role) {
+        .Keyboard => instances.find(.Keyboard, ports.IRQ),
+        .Display => instances.find(.Framebuffer, locations.FIRMWARE_SURFACE),
+    };
 }
 
 pub fn owner(role: Role) ?*Kata {
-    const flags = guard.acquire();
-    defer guard.release(flags);
-    const identifier = bindings[@intFromEnum(role)] orelse return null;
-    const child = kata.state.findByID(identifier) orelse return null;
-    return if (active(child)) child else null;
-}
-
-fn active(child: *const Kata) bool {
-    return child.State == .Alive or child.State == .Sleeping;
+    return instances.assignedOwner(find(role) orelse return null);
 }

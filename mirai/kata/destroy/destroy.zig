@@ -2,6 +2,7 @@
 
 const errors = @import("mirai").kata.errors.ownership;
 const guard = @import("asm").interrupts.guard;
+const instances = @import("mirai").device.instance.registry;
 const kagami = @import("mirai").kagami;
 const release = @import("mirai").user.memory.release;
 const state = @import("mirai").kata.state;
@@ -33,6 +34,7 @@ pub fn destroy(owner: *Kata) (OwnershipError || UserError)!void {
         return OwnershipError.InvalidState;
     }
     owner.AddressSpace = null;
+    instances.retire(owner.ID);
     state.notifyRelease(owner);
     if (!state.release(owner)) return OwnershipError.InvalidState;
 }

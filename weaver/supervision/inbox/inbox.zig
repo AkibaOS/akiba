@@ -35,9 +35,10 @@ pub fn listen(pulse: u64) noreturn {
             if (driver and header.Sender != pulse) break :answer letters.REFUSED;
             if (!driver and header.Type != letters.LAUNCH) break :answer protocol.UNSUPPORTED;
             const afs = endpoint orelse break :answer letters.REFUSED;
-            const input = request.decode(bytes) orelse break :answer letters.REFUSED;
+            const input = if (driver) (request.decodeAttached(bytes) orelse break :answer letters.REFUSED).Binary else request.decode(bytes) orelse break :answer letters.REFUSED;
             child = launch.start(afs, input, header.ReplyTicket, driver) catch |failure|
                 break :answer if (failure == error.BinaryMissing or failure == error.LibraryNotFound) letters.MISSING else letters.REFUSED;
+            if (driver) continue;
             break :answer letters.STARTED;
         };
         const replied = invoke.call(.Reply, header.ReplyTicket, if (child == 0) 0 else @intFromPtr(&child), if (child == 0) 0 else @sizeOf(u64), kind);

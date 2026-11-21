@@ -22,7 +22,11 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
     std.mem.writeInt(u64, parameters[0..@sizeOf(u64)], pulse, .little);
     @memcpy(parameters[@sizeOf(u64)..], job.Parameters);
     var buffer: [limits.MAX_PAYLOAD_BYTES]u8 = undefined;
-    const payload = codec.encode(&buffer, job.Binary, parameters) orelse return error.TooLarge;
+    const payload = if (job.Device) |device| attached: {
+        const selected = invoke.call(.BootstrapDriver, @intFromEnum(Operation.FindDevice), @intFromEnum(device), 0, 0);
+        if (selected.Status != @intFromEnum(Status.Success) or selected.Value == 0) return error.LaunchFailed;
+        break :attached codec.encodeAttached(&buffer, selected.Value, job.Binary, parameters) orelse return error.TooLarge;
+    } else codec.encode(&buffer, job.Binary, parameters) orelse return error.TooLarge;
     var child: u64 = 0;
     var header: Header = undefined;
     const descriptor: Call = .{
@@ -43,12 +47,5 @@ pub fn start(allocator: std.mem.Allocator, weaver: u64, pulse: u64, job: Job) !u
     if (response.Status != @intFromEnum(Status.Success) or response.Value != @sizeOf(u64) or child == 0 or
         header.Sender != weaver or header.Type != letters.STARTED or header.Length != @sizeOf(u64) or header.ReplyTicket != 0)
         return error.LaunchFailed;
-    if (job.Device) |device| {
-        const bound = invoke.call(.BootstrapDriver, @intFromEnum(Operation.BindDevice), child, @intFromEnum(device), 0);
-        if (bound.Status != @intFromEnum(Status.Success)) {
-            try service.stop(child, job.Timeout);
-            return error.LaunchFailed;
-        }
-    }
     return child;
 }

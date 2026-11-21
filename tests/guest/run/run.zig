@@ -78,6 +78,7 @@ pub fn execute() bool {
             const owned = screen.isActive();
             defer screen.release();
             serial.printf(inputwire.GROUP, .{});
+            check(guest.drivers.instances.run);
             if (guest.ahci.run.enabled() catch |failure| verify.failure(failure)) {
                 check(guest.ahci.run.run);
             } else {

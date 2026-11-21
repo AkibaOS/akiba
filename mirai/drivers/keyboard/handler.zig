@@ -1,11 +1,12 @@
 //! Keyboard IRQ Handler
 
 const cancellation = if (options.GUEST_CHECKS) @import("tests").guest.support.cancellation else null;
-const io = @import("asm").io;
-
 const constants = @import("mirai").drivers.constants;
+const instances = @import("mirai").device.instance.registry;
 const interrupts = @import("mirai").interrupts;
+const io = @import("asm").io;
 const options = @import("options");
+const presentation = @import("mirai").device.strings.instance;
 const serial = @import("mirai").drivers.serial;
 const stream = @import("mirai").device.keyboard.stream;
 const strings = @import("mirai").drivers.strings;
@@ -25,6 +26,7 @@ pub fn handler(_: u8) void {
 
 pub fn register() void {
     interrupts.handlers.hardware.registerHandler(ports.IRQ, &handler);
+    _ = instances.register(.Keyboard, ports.IRQ) orelse @panic(presentation.REGISTRY_FULL);
     interrupts.pic.mask.enableIRQ(ports.IRQ);
 }
 

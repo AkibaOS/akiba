@@ -1,6 +1,7 @@
 //! Validate And Publish One Completed Provisioning Draft
 
 const bootstrap = @import("mirai").bootstrap;
+const instances = @import("mirai").device.instance.registry;
 const messages = @import("mirai").launch.strings.transaction;
 const pages = @import("mirai").launch.draft.pages;
 const templates = @import("mirai").launch.templates;
@@ -20,6 +21,7 @@ pub fn start(draft: *Transaction, entry: u64, stack_base: u64, stack_length: u64
         .Thread = initial,
         .ThreadGeneration = thread.state.generation(initial).?,
     });
+    if (draft.Attached) instances.commit(identifier);
     templates.commit(draft);
     draft.Child = null;
     return identifier;
