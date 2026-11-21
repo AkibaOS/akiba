@@ -5,6 +5,7 @@ const std = @import("std");
 const boot = @import("shared").boot;
 const common = @import("common");
 const cpu = @import("asm").cpu;
+const display = @import("mirai").device.display.frame;
 const early = @import("mirai").boot.early;
 const halt = @import("asm").cpu.halt;
 const options = @import("options");
@@ -36,6 +37,7 @@ pub fn main(boot_params: *const BootParams) noreturn {
     sequence.state.setBootInfo(&info);
     var framebuffer = boot_params.Framebuffer;
     framebuffer.Base = info.FramebufferAddress;
+    display.adopt(framebuffer);
     if (options.GUEST_CHECKS) screen.bind(framebuffer);
     _ = splash.adopt(framebuffer, boot_params.Splash);
     sequence.run.execute(sequence.state.getBootInfo().?);

@@ -92,7 +92,8 @@ prepare-filesystem: native-build
 	cp --no-target-directory --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"; \
 	cp --no-target-directory --remove-destination -- zig-out/system/drivers/ahci "$$stage/system/drivers/ahci"; \
 	cp --no-target-directory --remove-destination -- zig-out/system/drivers/afs "$$stage/system/drivers/afs"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/keyboard "$$stage/system/drivers/keyboard"
+	cp --no-target-directory --remove-destination -- zig-out/system/drivers/keyboard "$$stage/system/drivers/keyboard"; \
+	cp --no-target-directory --remove-destination -- zig-out/system/drivers/display "$$stage/system/drivers/display"
 
 $(DISK_IMAGE): prepare-filesystem
 	@set -eu; \

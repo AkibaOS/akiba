@@ -5,6 +5,7 @@ const std = @import("std");
 const checkpoint = @import("tests").runner.machine.checkpoint;
 const datefields = @import("tests").phase.constants.date.format;
 const datecode = @import("tests").phase.date;
+const display = @import("tests").runner.session.display;
 const graph = @import("tests").runner.machine.graph;
 const image = @import("tests").runner.machine.image;
 const input = @import("tests").runner.session.input;
@@ -137,7 +138,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
             try restore(inputs, session, &log);
         }
         const evidence: types.Epoch = .{ .File = &log, .Start = session.SerialStart };
-        const outcome = runPhase(session, evidence, selected, selector, endpoints, seed + index, build_date, !unattended) catch |failure| {
+        const outcome = runPhase(session, evidence, inputs.Run, selected, selector, endpoints, seed + index, build_date, !unattended) catch |failure| {
             if (!recovery.local(session.Stage, failure)) return failure;
             try failPhase(session, evidence, selected, failure);
             continue;
@@ -165,7 +166,7 @@ fn execute(allocator: Allocator, inputs: *const types.Paths, session: *types.Ses
     session.Stage = .Complete;
 }
 
-fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, selector: std.net.Stream, endpoints: types.Endpoints, epoch: u64, build_date: [datefields.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
+fn runPhase(session: *types.Session, evidence: types.Epoch, directory: []const u8, selected: Scenario, selector: std.net.Stream, endpoints: types.Endpoints, epoch: u64, build_date: [datefields.DATE_BYTES]u8, interactive: bool) !types.PhaseResult {
     const connection = &session.Control.?;
     var timer = try std.time.Timer.start();
     session.Stage = .Select;
@@ -187,7 +188,7 @@ fn runPhase(session: *types.Session, evidence: types.Epoch, selected: Scenario, 
     });
     var channel: types.CancelChannel = .{ .Stream = stream, .Epoch = epoch };
     session.Stage = .Checks;
-    return completed(session, evidence, selected, &timer, if (interactive and (selected == .Standard or firmware)) &channel else null);
+    return completed(session, evidence, directory, selected, &timer, if (interactive and (selected == .Standard or firmware)) &channel else null);
 }
 
 fn beginRole(session: *types.Session, selector: std.net.Stream, evidence: types.Epoch, timer: *std.time.Timer, selection: BootSelection) !void {
@@ -303,7 +304,7 @@ fn bootOrdinary(inputs: *const types.Paths, session: *types.Session, log: *const
     return error.OrdinaryBootTimeout;
 }
 
-fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario, timer: *std.time.Timer, cancellation: ?*types.CancelChannel) !types.PhaseResult {
+fn completed(session: *types.Session, evidence: types.Epoch, directory: []const u8, selected: Scenario, timer: *std.time.Timer, cancellation: ?*types.CancelChannel) !types.PhaseResult {
     const connection = &session.Control.?;
     const keys = if (selected == .Devices) input.choose() else undefined;
     var challenge: keyboard.Challenge = .{ .Keys = &keys };
@@ -350,6 +351,7 @@ fn completed(session: *types.Session, evidence: types.Epoch, selected: Scenario,
                     if (session.Ahci) {
                         try result.verifyAhci(frozen);
                         try input.verifyEvents(frozen, &keys);
+                        try display.capture(PAGE, connection, directory, frozen);
                     }
                 }
                 const assertions = std.math.cast(u32, count) orelse return error.InvalidGuestCheckCount;

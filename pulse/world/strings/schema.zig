@@ -7,6 +7,7 @@ pub const REQUIRED = "required";
 pub const CONTROL = "control";
 pub const DEVICE = "device";
 pub const KEYBOARD = "keyboard";
+pub const DISPLAY = "display";
 pub const RESTART = "restart";
 pub const TIMEOUT = "timeout";
 pub const AFTER = "after";

@@ -5,6 +5,7 @@ const completion = @import("mirai").invocations.completion;
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
 const device = @import("mirai").invocations.device.ahci;
+const display = @import("mirai").invocations.device.display;
 const ipc = @import("mirai").invocations.postman;
 const keyboard = @import("mirai").invocations.device.keyboard;
 const lifecycle = @import("mirai").invocations.lifecycle;
@@ -62,6 +63,10 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     }
     if (service == @intFromEnum(types.Service.Keyboard)) {
         keyboard.dispatch(current, frame);
+        return;
+    }
+    if (service == @intFromEnum(types.Service.Display)) {
+        display.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Provision)) {

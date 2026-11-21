@@ -3,6 +3,7 @@
 pub const action = @import("action/action.zig");
 pub const boot = @import("boot/boot.zig");
 pub const date = @import("date/date.zig");
+pub const display = @import("display.zig");
 pub const firmware = @import("firmware.zig");
 pub const input = @import("input.zig");
 pub const live = @import("live/live.zig");

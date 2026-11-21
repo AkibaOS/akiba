@@ -7,6 +7,7 @@ const ahcipath = @import("../../../shared/ahci/strings/install.zig");
 const boot = @import("boot.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
 const diskfixture = @import("../../../tests/fixtures/strings/elf/boot.zig");
+const displaypath = @import("../../../shared/display/strings/install.zig");
 const firmware = @import("firmware.zig");
 const fixture = @import("fixture.zig");
 const installed = @import("../../../tests/fixtures/strings/weaver.zig");
@@ -23,7 +24,7 @@ const storage = @import("storage.zig");
 const suites = @import("../strings/suites.zig");
 const types = @import("../types/types.zig");
 
-pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile, afs: *std.Build.Step.Compile, keyboard_artifact: std.Build.LazyPath) void {
+pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, bootloader: *std.Build.Step.Compile, ordinary: *std.Build.Step.Compile, packer: *std.Build.Step.Compile, pulse: *std.Build.Step.Compile, ahci: *std.Build.Step.Compile, afs: *std.Build.Step.Compile, keyboard_artifact: std.Build.LazyPath, display_artifact: std.Build.LazyPath) void {
     const checks = builder.createModule(.{ .root_source_file = builder.path(paths.TESTS_ROOT) });
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);
@@ -65,7 +66,10 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
         root.addImport(names.EXECUTABLE_PULSE, supervisor);
-        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_DISPLAY)) root.addImport(names.EXECUTABLE_DISPLAY, display);
+        if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_DISPLAY)) {
+            root.addImport(names.EXECUTABLE_DISPLAY, display);
+            root.addAnonymousImport(names.IMPORT_DISPLAY_IMAGE, .{ .root_source_file = display_artifact });
+        }
         if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_KEYBOARD)) {
             root.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
             root.addAnonymousImport(names.IMPORT_KEYBOARD_IMAGE, .{ .root_source_file = keyboard_artifact });
@@ -96,6 +100,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(ahci.getEmittedBin(), ahcipath.PATH);
     _ = stage.addCopyFile(afs.getEmittedBin(), afspath.PATH);
     _ = stage.addCopyFile(keyboard_artifact, keyboardpath.PATH);
+    _ = stage.addCopyFile(display_artifact, displaypath.PATH);
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     _ = stage.addCopyFile(dynamic.Program, installed.INSTALLED_ELF);

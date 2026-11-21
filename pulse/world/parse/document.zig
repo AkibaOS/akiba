@@ -44,8 +44,7 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
             result.Controller = try boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.DEVICE)) {
             const device = try text(property.Value);
-            if (!std.mem.eql(u8, device, schema.KEYBOARD)) return error.InvalidWorld;
-            result.Device = .Keyboard;
+            result.Device = if (std.mem.eql(u8, device, schema.KEYBOARD)) .Keyboard else if (std.mem.eql(u8, device, schema.DISPLAY)) .Display else return error.InvalidWorld;
         } else if (std.mem.eql(u8, property.Name, schema.RESTART)) result.Restarts = try integer(allocator, property.Value) else if (std.mem.eql(u8, property.Name, schema.TIMEOUT)) {
             result.Timeout = try integer(allocator, property.Value);
             if (result.Timeout == 0) return error.InvalidWorld;

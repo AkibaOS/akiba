@@ -24,6 +24,7 @@ pub const Service = enum(u64) {
     StopChild = 19,
     WaitCompletionTimed = 20,
     Keyboard = 21,
+    Display = 22,
     Provision = provision.SERVICE,
 };
 

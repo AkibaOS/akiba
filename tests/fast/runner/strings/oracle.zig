@@ -57,6 +57,7 @@ pub const INPUT_TEXT_EVENT = "  Keyboard event 0 98\r\n";
 pub const INPUT_EDIT_EVENT = "  Keyboard event 1 1\n";
 pub const INPUT_EDIT_KEY = "backspace";
 pub const INPUT_WRONG_EVENT = "  Keyboard event 0 99\n";
+pub const DISPLAY_HEADER = "P6\n8 14\n255\n";
 pub const SNAPSHOT_ID = "cold";
 pub const OTHER_JOB = "other";
 pub const SNAPSHOT_PENDING = "[{\"id\":\"cold\",\"status\":\"running\"}]";

@@ -2,6 +2,7 @@
 
 pub const bootstrap = @import("bootstrap.zig");
 pub const date = @import("date/date.zig");
+pub const display = @import("display.zig");
 pub const firmware = @import("firmware.zig");
 pub const groups = @import("groups.zig");
 pub const input = @import("input.zig");

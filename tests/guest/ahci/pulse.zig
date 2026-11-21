@@ -5,6 +5,7 @@ const std = @import("std");
 const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.authority;
 const binding = @import("mirai").device.binding;
+const display = @import("tests").guest.ahci.display;
 const drive = @import("tests").guest.support.drive;
 const events = @import("tests").fixtures.constants.service;
 const fixture = @import("tests").guest.constants.ahci.fixture;
@@ -69,7 +70,13 @@ pub fn prove(volume: Volume) !bool {
         input.run();
         break :actual owner.ID;
     } else 0;
-    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .KeyboardID = keyboard_id, .Startup = ready };
+    const display_id = if (ready) actual: {
+        const owner = binding.owner(.Display) orelse return WitnessError.DisplayDriverMissing;
+        const target = thread.state.firstFor(owner) orelse return WitnessError.DisplayDriverMissing;
+        if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.DisplayDriverMissing;
+        break :actual owner.ID;
+    } else 0;
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .KeyboardID = keyboard_id, .DisplayID = display_id, .Startup = ready };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -95,7 +102,9 @@ fn exercise(context: *const Context) !bool {
     if (!exchanged) return false;
     const launched = installed.prove(context.WeaverID) catch |failure| return if (failure == error.DriveLimit) WitnessError.InstalledLaunchDeadline else failure;
     if (!launched) return false;
-    return supervisor.prove(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.SupervisorExerciseDeadline else failure;
+    try display.prove(context.PulseID, context.DisplayID);
+    const supervised = supervisor.prove(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.SupervisorExerciseDeadline else failure;
+    return supervised and binding.owner(.Display) == null and binding.owner(.Keyboard) == null;
 }
 
 fn exchange(identifier: u64) !bool {
@@ -108,6 +117,7 @@ fn exchange(identifier: u64) !bool {
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
         .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
         .{ .Service = .Keyboard },
+        .{ .Service = .Display },
     });
     try harness.start(&client);
     try harness.waitStep(&client, 1);
@@ -126,7 +136,10 @@ fn exchange(identifier: u64) !bool {
     try harness.waitStep(&client, 5);
     const keyboard_denied = try harness.resultIs(&client, 5, .InvalidCaller, 0);
     try harness.advance(&client, 5);
-    return ready and refused and denied and disk_denied and keyboard_denied;
+    try harness.waitStep(&client, 6);
+    const display_denied = try harness.resultIs(&client, 6, .InvalidCaller, 0);
+    try harness.advance(&client, 6);
+    return ready and refused and denied and disk_denied and keyboard_denied and display_denied;
 }
 
 fn waiting(pulse: Prepared) bool {

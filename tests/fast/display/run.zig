@@ -3,12 +3,17 @@
 const std = @import("std");
 
 const display = @import("shared").display;
+const installed = @import("tests").fast.weaver.installed;
 const pixels = @import("display").raster.row;
 
 const Mode = display.types.mode.Mode;
 const Rectangle = display.types.rectangle.Rectangle;
 
 const MODE: Mode = .{ .Width = 8, .Height = 4, .Stride = 12, .Format = .BGR };
+
+test "Weaver plans the exact installed display ELF and its relocations" {
+    try installed.prove(@embedFile("displayimage"));
+}
 
 test "display rectangles reject zero areas and every edge crossing" {
     const box: Rectangle = .{ .X = 2, .Y = 1, .Width = 3, .Height = 2 };

@@ -20,6 +20,8 @@ pub fn local(stage: Stage, reason: anyerror) bool {
             error.InvalidGuestCheckCount,
             error.InvalidBootstrapEvidence,
             error.InvalidDiagnosticDisplay,
+            error.InvalidDisplayScanout,
+            error.DisplayPixelsMismatch,
             error.UnexpectedBootstrapSweep,
             error.UnexpectedKeyboardInput,
             error.MissingInjectedInput,

@@ -4,6 +4,7 @@ const std = @import("std");
 
 const boot = @import("tests").phase.boot;
 const fixtures = @import("tests").fast.runner.strings.oracle;
+const display = @import("tests").phase.constants.display;
 const input = @import("tests").runner.types.input;
 const labels = @import("tests").phase.strings.scenario;
 const phase = @import("tests").fast.runner.phase;
@@ -114,6 +115,21 @@ test "installed keyboard proof requires the actual text and editing events in in
     try std.testing.expectError(error.UnexpectedKeyboardInput, confirm(fixtures.INPUT_EDIT_EVENT ++ fixtures.INPUT_TEXT_EVENT, &keys));
     try std.testing.expectError(error.UnexpectedKeyboardInput, confirm(fixtures.INPUT_TEXT_EVENT ++ fixtures.INPUT_EDIT_EVENT ++ fixtures.INPUT_EDIT_EVENT, &keys));
     try std.testing.expectError(error.MissingInjectedInput, confirm(fixtures.INPUT_TEXT_EVENT, &keys));
+}
+
+test "native display proof checks the expected patch, edges and complete scanout length" {
+    const width = 8;
+    const height = 14;
+    var bytes = fixtures.DISPLAY_HEADER.* ++ [_]u8{0x20} ** (width * height * display.RGB_BYTES);
+    const offset = fixtures.DISPLAY_HEADER.len + (display.TOP * width + width - display.WIDTH) * display.RGB_BYTES;
+    for (display.PATTERN, 0..) |row, index| {
+        const start = offset + index * width * display.RGB_BYTES;
+        @memcpy(bytes[start..][0 .. display.WIDTH * display.RGB_BYTES], std.mem.asBytes(&row));
+    }
+    try runner.session.display.verify(&bytes);
+    try std.testing.expectError(error.InvalidDisplayScanout, runner.session.display.verify(bytes[0 .. bytes.len - 1]));
+    bytes[offset + (display.WIDTH - 1) * display.RGB_BYTES] = 0xff;
+    try std.testing.expectError(error.DisplayPixelsMismatch, runner.session.display.verify(&bytes));
 }
 
 test "snapshot job must conclude successfully and belong to this session" {
