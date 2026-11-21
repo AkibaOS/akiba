@@ -47,6 +47,8 @@ pub fn release(id: u64) bool {
     }
     pending.remove(record);
     record.Reclaimed = true;
+    var waiter = record.Waiters.Head;
+    while (waiter) |waiting| : (waiter = waiting.Next) sensei.deadline.completed(waiting);
     _ = sensei.wait.wakeAll(&record.Waiters) catch @panic(messages.INVALID_OBSERVER);
     if (state.findByID(record.OwnerID)) |owner| {
         if (postman.inbox.find(owner)) |mailbox| postman.notification.receivers(mailbox);

@@ -66,12 +66,36 @@ pub fn grow(caller: *Thread) !u64 {
     defer guard.release(flags);
     try postman.validate.current(caller);
     const state = if (handoff) |*current| current else return HandoffError.InvalidCaller;
-    if (state.WeaverID != caller.Owner.ID or !caller.Owner.CanProvision) return HandoffError.InvalidCaller;
-    const address = state.HeapEnd;
+    const extent = if (state.WeaverID == caller.Owner.ID and caller.Owner.CanProvision)
+        &state.HeapEnd
+    else if (state.PulseID == caller.Owner.ID)
+        &state.PulseHeapEnd
+    else
+        return HandoffError.InvalidCaller;
+    const address = extent.*;
     if (address > stack.BASE - 2 * sizes.PAGE_SIZE) return error.OutOfMemory;
     try user.memory.allocate.allocate(caller.Owner, address);
-    state.HeapEnd += sizes.PAGE_SIZE;
+    extent.* += sizes.PAGE_SIZE;
     return address;
+}
+
+pub fn reportStartup(caller: *Thread, ready: bool) !void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const state = try owned(caller);
+    if (state.Startup != null) return HandoffError.InvalidState;
+    state.Startup = ready;
+}
+
+pub fn startupState(identifier: u64) ?bool {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const state = handoff orelse return null;
+    return if (state.PulseID == identifier) state.Startup else null;
+}
+
+pub fn startupFinished(identifier: u64) bool {
+    return startupState(identifier) orelse false;
 }
 
 pub fn assignedTo(identifier: u64) ?u64 {

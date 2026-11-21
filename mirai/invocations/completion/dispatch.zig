@@ -8,6 +8,7 @@ const codec = @import("mirai").invocations.completion.codec;
 const copy = @import("mirai").user.copy.transfer;
 const errors = @import("mirai").kata.errors.completion.collection;
 const kata = @import("mirai").kata;
+const sensei = @import("mirai").sensei;
 
 const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
 const Outcome = kata.types.outcome.Outcome;
@@ -20,22 +21,24 @@ pub fn dispatch(current: *Thread, frame: *InterruptFrame, service: u64) void {
         frame.RDX = @sizeOf(Record);
         return;
     }
-    handle(current, frame, service) catch |failure| {
+    const completed = handle(current, frame, service) catch |failure| {
         frame.RAX = @intFromEnum(status(failure));
         frame.RDX = 0;
         return;
     };
-    frame.RAX = @intFromEnum(abi.Status.Success);
-    frame.RDX = @sizeOf(Record);
+    frame.RAX = @intFromEnum(if (completed) abi.Status.Success else abi.Status.TimedOut);
+    frame.RDX = if (completed) @sizeOf(Record) else 0;
 }
 
-fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !void {
+fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !bool {
     if (!copy.validate(current.Owner, frame.RSI, @sizeOf(Record), true)) return arguments.ArgumentError.InvalidAddress;
-    if (service == @intFromEnum(abi.Service.WaitCompletion)) {
-        const outcome = try kata.wait.waitFromInvocation(frame.RDI);
+    const timed = service == @intFromEnum(abi.Service.WaitCompletionTimed);
+    if (timed and (frame.R10 == 0 or frame.R10 > std.math.maxInt(u64) - sensei.state.getState().Ticks)) return error.InvalidArgument;
+    if (service == @intFromEnum(abi.Service.WaitCompletion) or timed) {
+        const outcome = (try kata.wait.waitFromInvocationTimed(frame.RDI, if (timed) frame.R10 else 0)) orelse return false;
         defer kata.wait.releaseFromInvocation(frame.RDI);
         try deliver(current, frame.RSI, outcome);
-        return;
+        return true;
     }
     if (service != @intFromEnum(abi.Service.ObserveCompletion) and
         service != @intFromEnum(abi.Service.CollectCompletion)) return error.Unsupported;
@@ -46,6 +49,7 @@ fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !void {
     const outcome = kata.completion.lifetime.observed(frame.RDI) orelse return errors.CompletionError.NotReady;
     try deliver(current, frame.RSI, outcome);
     if (collect) _ = try kata.completion.lifetime.collect(frame.RDI);
+    return true;
 }
 
 fn deliver(current: *Thread, address: u64, outcome: Outcome) !void {
@@ -56,6 +60,7 @@ fn deliver(current: *Thread, address: u64, outcome: Outcome) !void {
 fn status(failure: anyerror) abi.Status {
     return switch (failure) {
         error.NotInitialized => .NotInitialized,
+        error.InvalidArgument => .InvalidArgument,
         error.InvalidCaller, error.UnsafeContext, error.InvalidOwner => .InvalidCaller,
         error.InvalidTarget => .InvalidTarget,
         error.NotOwner => .NotOwner,

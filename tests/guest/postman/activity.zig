@@ -12,8 +12,33 @@ const outcomes = @import("tests").guest.constants.completion.outcomes;
 const Operation = @import("tests").guest.types.postman.fixtures.Operation;
 
 pub fn run() !void {
+    try timedCompletion();
     try stopped();
     try finished();
+}
+
+fn timedCompletion() !void {
+    var client = try harness.create();
+    defer harness.dispose(client.ID);
+    var wait = completion.operation(&client, outcomes.WAIT);
+    wait.Service = .WaitCompletionTimed;
+    wait.ServiceValue = null;
+    wait.First = .{ .Indirect = client.Data + inputs.TICKET_OFFSET };
+    wait.LetterType = inputs.DEADLINE_TICKS;
+    try harness.install(&client, &.{ .{ .Service = .Query }, wait });
+    try harness.start(&client);
+    try harness.waitStep(&client, 1);
+    var child = try harness.child(&client);
+    defer completion.dispose(child.ID);
+    try harness.install(&child, &.{.{ .Service = .Query }});
+    try harness.start(&child);
+    try harness.waitStep(&child, 1);
+    try copy.write(client.Owner, client.Data + inputs.TICKET_OFFSET, std.mem.asBytes(&child.ID));
+    try harness.advance(&client, 1);
+    try harness.waitTimedStep(&client, 2, inputs.DEADLINE_TICKS);
+    const record = kata.completion.storage.find(child.ID) orelse return error.InvalidFixture;
+    try harness.check(try harness.resultIs(&client, 2, .TimedOut, 0) and record.Observers == 0 and record.Waiters.Count == 0);
+    try harness.advance(&client, 2);
 }
 
 fn stopped() !void {

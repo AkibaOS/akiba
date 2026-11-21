@@ -7,6 +7,7 @@ const asset = @import("shared").pulse.strings.bootstrap;
 const bootstrap = @import("pulse").supervision.bootstrap;
 const drivers = @import("pulse").supervision.driver;
 const run = @import("pulse").supervision.inbox;
+const runtime = @import("pulse").supervision.runtime.run;
 
 const Status = @import("shared").persona.types.invocation.Status;
 
@@ -26,7 +27,7 @@ export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const ahci = drivers.ahci.start();
     const afs = drivers.afs.start(ahci);
     bootstrap.configure(weaver, afs);
-    run.listen();
+    runtime.start(weaver, afs, ahci);
 }
 
 pub const panic = std.debug.FullPanic(fault);

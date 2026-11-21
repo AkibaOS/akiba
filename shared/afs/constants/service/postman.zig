@@ -1,5 +1,6 @@
 //! Private Read Only AFS Service Letters
 
+pub const TIMEOUT_TICKS: u64 = 1000;
 pub const PATH_SEPARATOR = '/';
 
 pub const LIST: u64 = 0x414653000001;

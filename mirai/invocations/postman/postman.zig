@@ -82,12 +82,10 @@ fn receive(current: *Thread, frame: *const InterruptFrame) !Result {
         if (!try sensei.wait.blockFromInvocationUntil(waiters, predicate, @ptrCast(current), null, frame.R10)) return .{ .Status = .TimedOut };
     } else try sensei.wait.blockFromInvocation(waiters, predicate, @ptrCast(current), null);
     errdefer _ = sensei.wait.wakeOldest(waiters) catch @panic(messages.INVALID_CONTEXT);
-    const view = postman.receive.peek(current) catch |failure| {
-        if (activity and failure == error.WouldBlock) {
-            if (kata.completion.storage.readyFor(current.Owner.ID)) |identifier| return .{ .Status = .ChildReady, .Value = identifier };
-        }
-        return failure;
-    };
+    if (activity) {
+        if (kata.completion.storage.readyFor(current.Owner.ID)) |identifier| return .{ .Status = .ChildReady, .Value = identifier };
+    }
+    const view = try postman.receive.peek(current);
     const result = try deliver(current, frame.RDI, frame.RSI, frame.RDX, view);
     if (result.Status == .Success) {
         try postman.receive.consume(current);

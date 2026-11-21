@@ -23,6 +23,11 @@ pub fn activate(info: *const BootInfo) !void {
     const volume = info.Volume orelse return PulseBootError.BootVolumeMissing;
     const prepared = try launch.start(volume);
     try scheduler.yield();
+    while (weaver.startupState(prepared.ID) == null) {
+        try scheduler.yield();
+        if (weaver.startupState(prepared.ID) == null) halt.waitForInterrupt();
+    }
+    if (!weaver.startupFinished(prepared.ID)) return PulseBootError.ServiceStartupFailed;
     if (!prepared.Thread.Started or prepared.Thread.Mode != .Persona) return PulseBootError.PulseDidNotEnterPersona;
     if (!weaver.readyFor(prepared.ID)) return PulseBootError.WeaverNotReady;
     if (!ahci.ready(prepared.ID)) return PulseBootError.AhciDriverNotReady;

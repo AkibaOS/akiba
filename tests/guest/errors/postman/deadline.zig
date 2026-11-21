@@ -1,7 +1,8 @@
 //! Timed Postman Guest Assertion Failures
 
 pub const DeadlineError = error{
-    DeadlineDidNotWake,
+    CallDriveLimit,
+    ActivityDriveLimit,
     InvalidDeadlineWinner,
     RetainedDeadline,
     UnexpectedTimeoutResult,

@@ -10,6 +10,8 @@ pub const Job = struct {
     Parameters: []const u8 = &.{},
     After: []const []const u8,
     Enabled: bool = true,
+    Required: bool = true,
+    Controller: bool = false,
     Restarts: u64 = 0,
     Timeout: u64 = defaults.TIMEOUT_TICKS,
 };

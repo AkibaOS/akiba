@@ -29,7 +29,7 @@ const WitnessError = @import("tests").guest.errors.ahci.witness.WitnessError;
 pub fn prove(volume: Volume) !bool {
     const pulse = try launch.start(volume);
     drive.run();
-    if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID)) return false;
+    if (kata.state.first() != pulse.Owner or !waiting(pulse) or !weaver.readyFor(pulse.ID) or !weaver.startupFinished(pulse.ID)) return false;
     const resident = kata.state.next(pulse.Owner) orelse return false;
     const driver = kata.state.next(resident) orelse return false;
     const files = kata.state.next(driver) orelse return false;

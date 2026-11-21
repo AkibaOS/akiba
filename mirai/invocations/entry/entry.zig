@@ -37,7 +37,9 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
         ipc.dispatch(current, frame, service);
         return;
     }
-    if (service >= @intFromEnum(types.Service.ObserveCompletion) and service <= @intFromEnum(types.Service.CollectCompletion)) {
+    if ((service >= @intFromEnum(types.Service.ObserveCompletion) and service <= @intFromEnum(types.Service.CollectCompletion)) or
+        service == @intFromEnum(types.Service.WaitCompletionTimed))
+    {
         completion.dispatch.dispatch(current, frame, service);
         return;
     }

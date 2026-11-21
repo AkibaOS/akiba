@@ -22,6 +22,7 @@ pub const Service = enum(u64) {
     CallTimed = 17,
     ReceiveActivity = 18,
     StopChild = 19,
+    WaitCompletionTimed = 20,
     Provision = provision.SERVICE,
 };
 

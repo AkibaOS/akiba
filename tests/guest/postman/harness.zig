@@ -11,11 +11,13 @@ const kata = @import("mirai").kata;
 const limits = @import("tests").guest.constants.guest;
 const postman = @import("mirai").postman;
 const postmanwire = @import("tests").fixtures.constants.postman;
+const print = @import("mirai").boot.sequence.print;
 const program = @import("tests").guest.postman.program;
 const sensei = @import("mirai").sensei;
 const strings = @import("tests").guest.strings.postman.witnesses;
 const support = @import("tests").guest.sensei.support;
 const thread = @import("mirai").thread;
+const timing = @import("tests").guest.strings.postman.deadline;
 const types = @import("tests").guest.types.postman.fixtures;
 const user = @import("mirai").user;
 
@@ -83,6 +85,21 @@ pub fn waitStep(actor: *const Actor, step: u64) !void {
         if (progress >= step) return;
         try sensei.run.yield();
     }
+    return FixtureError.DriveLimit;
+}
+
+pub fn waitTimedStep(actor: *const Actor, step: u64, ticks: u64) !void {
+    const until = sensei.state.getState().Ticks + ticks + 2 * sensei.constants.policy.QUANTUM_TICKS;
+    while (sensei.state.getState().Ticks <= until) {
+        var progress: u64 = 0;
+        try copy.read(actor.Owner, std.mem.asBytes(&progress), actor.Data + @sizeOf(u64));
+        if (progress >= step) return;
+        try sensei.run.yield();
+    }
+    const scheduled = sensei.registry.find(actor.Target.?) orelse return FixtureError.DriveLimit;
+    var progress: u64 = 0;
+    try copy.read(actor.Owner, std.mem.asBytes(&progress), actor.Data + @sizeOf(u64));
+    print.log(timing.WAIT, .{ sensei.state.getState().Ticks, until, scheduled.Deadline orelse 0, @as(u64, if (scheduled.TimedOut) 1 else 0), @intFromEnum(actor.Target.?.Status), progress });
     return FixtureError.DriveLimit;
 }
 

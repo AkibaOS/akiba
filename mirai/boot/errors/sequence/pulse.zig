@@ -5,5 +5,6 @@ pub const PulseBootError = error{
     AhciDriverNotReady,
     BootVolumeMissing,
     PulseDidNotEnterPersona,
+    ServiceStartupFailed,
     WeaverNotReady,
 };

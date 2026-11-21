@@ -35,5 +35,10 @@ fn perform(caller: *Thread, frame: *const Frame) !u64 {
             try handoff.confirm(caller, frame.RSI);
             break :confirmed 0;
         },
+        .StartupReady, .StartupFailed => reported: {
+            if (frame.RSI != 0) return error.InvalidArgument;
+            try handoff.reportStartup(caller, operation == .StartupReady);
+            break :reported 0;
+        },
     };
 }

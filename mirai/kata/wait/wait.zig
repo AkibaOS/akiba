@@ -102,7 +102,11 @@ pub fn waitFor(id: u64) (CompletionError || SchedulingError)!Outcome {
     return outcome;
 }
 
-pub fn waitFromInvocation(id: u64) (CompletionError || SchedulingError)!Outcome {
+pub fn waitFromInvocation(id: u64) !Outcome {
+    return (try waitFromInvocationTimed(id, 0)) orelse @panic(messages.INVALID_OBSERVER);
+}
+
+pub fn waitFromInvocationTimed(id: u64, ticks: u64) !?Outcome {
     const previous_flags = guard.acquire();
     defer guard.release(previous_flags);
     const scheduler = sensei.state.getState();
@@ -114,7 +118,12 @@ pub fn waitFromInvocation(id: u64) (CompletionError || SchedulingError)!Outcome 
     const registration = try register(current, id);
     errdefer unregister(registration.Observer);
     if (options.GUEST_CHECKS) checks.registered(id);
-    try sensei.wait.blockFromInvocation(&registration.Completion.Waiters, ready, @ptrCast(registration.Observer), null);
+    if (ticks != 0) {
+        if (!try sensei.wait.blockFromInvocationUntil(&registration.Completion.Waiters, ready, @ptrCast(registration.Observer), null, ticks)) {
+            unregister(registration.Observer);
+            return null;
+        }
+    } else try sensei.wait.blockFromInvocation(&registration.Completion.Waiters, ready, @ptrCast(registration.Observer), null);
     return observed(registration);
 }
 

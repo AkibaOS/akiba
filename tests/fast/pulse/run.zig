@@ -2,11 +2,16 @@
 
 const std = @import("std");
 
+const memory = @import("tests").fast.pulse.memory;
 const policy = @import("pulse").supervision.plan.model;
 const samples = @import("tests").fast.pulse.strings.world;
 const world = @import("pulse").world.parse.document;
 
 const ALLOCATOR = std.testing.allocator;
+
+test "Persona scratch memory reuses a freed tail without requiring new mapped pages" {
+    try memory.reusesFreedTail();
+}
 
 test "Pulse reads the World dialect and orders jobs only after full validation" {
     var result = try world.parse(ALLOCATOR, samples.VALID);
@@ -17,6 +22,7 @@ test "Pulse reads the World dialect and orders jobs only after full validation" 
     try std.testing.expectEqualStrings(samples.PROVIDER, result.Jobs[0].Parameters);
     try std.testing.expectEqual(@as(u64, 1), result.Jobs[0].Restarts);
     try std.testing.expect(result.Jobs[0].Enabled);
+    try std.testing.expect(!result.Jobs[0].Required and result.Jobs[0].Controller);
     try std.testing.expectEqualStrings(samples.CONSUMER, result.Jobs[1].Name);
     try std.testing.expectEqualStrings(samples.PROVIDER, result.Jobs[1].After[0]);
 }

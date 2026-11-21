@@ -8,4 +8,6 @@ pub const State = struct {
     WeaverID: ?u64 = null,
     Confirmed: bool = false,
     HeapEnd: u64 = memory.BASE,
+    PulseHeapEnd: u64 = memory.BASE,
+    Startup: ?bool = null,
 };

@@ -2,7 +2,7 @@
 
 pub const VALID =
     \\// System services
-    \\(system)service "provider" binary="old" binary = #"serviceprobe"# restart=1 enabled=true {
+    \\(system)service "provider" binary="old" binary = #"serviceprobe"# restart=1 enabled=true required=false control=true {
     \\    parameters (text)"provider";
     \\}
     \\service "consumer" binary="serviceprobe" { after "provider"; parameters "consumer"; }

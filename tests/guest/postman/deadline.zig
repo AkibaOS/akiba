@@ -11,7 +11,6 @@ const postman = @import("mirai").postman;
 const print = @import("mirai").boot.sequence.print;
 const sensei = @import("mirai").sensei;
 
-const Actor = @import("tests").guest.types.postman.fixtures.Actor;
 const DeadlineError = @import("tests").guest.errors.postman.deadline.DeadlineError;
 const InvocationResult = @import("tests").guest.types.postman.fixtures.InvocationResult;
 
@@ -64,17 +63,6 @@ fn answered() !void {
     try harness.advance(&server, 2);
 }
 
-fn waitTimeout(actor: *const Actor) !void {
-    const until = sensei.state.getState().Ticks + inputs.DEADLINE_TICKS + 2 * sensei.constants.policy.QUANTUM_TICKS;
-    while (sensei.state.getState().Ticks <= until) {
-        var step: u64 = 0;
-        try copy.read(actor.Owner, std.mem.asBytes(&step), actor.Data + @sizeOf(u64));
-        if (step >= 1) return;
-        try sensei.run.yield();
-    }
-    return DeadlineError.DeadlineDidNotWake;
-}
-
 fn expires(comptime delivered: bool) !void {
     var client = try harness.create();
     defer harness.dispose(client.ID);
@@ -96,7 +84,7 @@ fn expires(comptime delivered: bool) !void {
     }
     try harness.start(&client);
     if (delivered) try harness.waitStep(&server, 1);
-    try waitTimeout(&client);
+    try harness.waitTimedStep(&client, 1, inputs.DEADLINE_TICKS);
     if (!try harness.resultIs(&client, 1, .TimedOut, 0)) {
         var result: InvocationResult = undefined;
         try copy.read(client.Owner, std.mem.asBytes(&result), client.Data + inputs.RESULT_OFFSET);

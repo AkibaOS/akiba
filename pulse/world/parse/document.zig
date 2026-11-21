@@ -37,8 +37,11 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
     var result: Job = .{ .Name = name, .Binary = &.{}, .After = &.{} };
     for (node.Properties) |property| {
         if (std.mem.eql(u8, property.Name, schema.BINARY)) result.Binary = try text(property.Value) else if (std.mem.eql(u8, property.Name, schema.ENABLED)) {
-            if (property.Value.Quoted) return error.InvalidWorld;
-            result.Enabled = if (std.mem.eql(u8, property.Value.Text, grammar.TRUE)) true else if (std.mem.eql(u8, property.Value.Text, grammar.FALSE)) false else return error.InvalidWorld;
+            result.Enabled = try boolean(property.Value);
+        } else if (std.mem.eql(u8, property.Name, schema.REQUIRED)) {
+            result.Required = try boolean(property.Value);
+        } else if (std.mem.eql(u8, property.Name, schema.CONTROL)) {
+            result.Controller = try boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.RESTART)) result.Restarts = try integer(allocator, property.Value) else if (std.mem.eql(u8, property.Name, schema.TIMEOUT)) {
             result.Timeout = try integer(allocator, property.Value);
             if (result.Timeout == 0) return error.InvalidWorld;
@@ -66,6 +69,13 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
 fn text(value: Value) WorldError![]const u8 {
     if (!value.Quoted) return error.InvalidWorld;
     return value.Text;
+}
+
+fn boolean(value: Value) WorldError!bool {
+    if (value.Quoted) return error.InvalidWorld;
+    if (std.mem.eql(u8, value.Text, grammar.TRUE)) return true;
+    if (std.mem.eql(u8, value.Text, grammar.FALSE)) return false;
+    return error.InvalidWorld;
 }
 
 fn integer(allocator: std.mem.Allocator, value: Value) WorldError!u64 {
