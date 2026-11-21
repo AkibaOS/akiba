@@ -1,5 +1,6 @@
 //! Postman Guest Regression Exports
 
+pub const activity = @import("activity.zig");
 pub const call = @import("call.zig");
 pub const capacity = @import("capacity.zig");
 pub const deadline = @import("deadline.zig");

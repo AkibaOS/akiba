@@ -6,6 +6,7 @@ const errors = @import("mirai").kata.errors.completion.collection;
 const guard = @import("asm").interrupts.guard;
 const messages = @import("mirai").kata.strings.messages;
 const pending = @import("mirai").kata.completion.pending;
+const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 const state = @import("mirai").kata.state;
 const storage = @import("mirai").kata.completion.storage;
@@ -47,6 +48,9 @@ pub fn release(id: u64) bool {
     pending.remove(record);
     record.Reclaimed = true;
     _ = sensei.wait.wakeAll(&record.Waiters) catch @panic(messages.INVALID_OBSERVER);
+    if (state.findByID(record.OwnerID)) |owner| {
+        if (postman.inbox.find(owner)) |mailbox| postman.notification.receivers(mailbox);
+    }
     return true;
 }
 

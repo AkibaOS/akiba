@@ -3,6 +3,7 @@
 const fifo = @import("mirai").postman.fifo;
 const guard = @import("asm").interrupts.guard;
 const inbox = @import("mirai").postman.inbox;
+const kata = @import("mirai").kata;
 const record = @import("mirai").postman.record;
 const state = @import("mirai").postman.state;
 const storage = @import("mirai").postman.storage;
@@ -36,6 +37,14 @@ pub fn ready(context: ?*anyopaque) bool {
     if (entry.Serving != null) return true;
     const mailbox = inbox.find(receiver.Owner) orelse return true;
     return mailbox.Closed or mailbox.Head != null;
+}
+
+pub fn activity(context: ?*anyopaque) bool {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    if (ready(context)) return true;
+    const receiver: *Thread = @ptrCast(@alignCast(context orelse return true));
+    return kata.completion.storage.readyFor(receiver.Owner.ID) != null;
 }
 
 pub fn peek(receiver: *Thread) PostError!View {

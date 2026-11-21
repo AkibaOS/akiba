@@ -26,6 +26,7 @@ fn execute(_: ?*anyopaque) callconv(.{ .x86_64_sysv = .{} }) noreturn {
     scenarios.capacity.run() catch |failure| verify.failure(failure);
     scenarios.duplex.run() catch |failure| verify.failure(failure);
     scenarios.deadline.run() catch |failure| verify.failure(failure);
+    scenarios.activity.run() catch |failure| verify.failure(failure);
     scenarios.shutdown.run() catch |failure| verify.failure(failure);
     scenarios.growth.run() catch |failure| verify.failure(failure);
     finished = true;

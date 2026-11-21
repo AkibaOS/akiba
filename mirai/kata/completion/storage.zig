@@ -58,6 +58,18 @@ pub fn ownerOf(id: u64) ?u64 {
     return record.OwnerID;
 }
 
+pub fn readyFor(owner_id: u64) ?u64 {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    var current = tree.lookup.lowerBound(&owners, ownerKey(owner_id, constants.KERNEL_ID));
+    while (current) |node| : (current = tree.lookup.next(node)) {
+        const record: *Completion = @fieldParentPtr(fields.COMPLETION_OWNER, node);
+        if (record.OwnerID != owner_id) break;
+        if (record.Published and record.Reclaimed and !record.Collected and record.Outcome != null) return record.ID;
+    }
+    return null;
+}
+
 pub fn adopt(previous_owner: u64, new_owner: u64) void {
     const flags = guard.acquire();
     defer guard.release(flags);

@@ -32,6 +32,12 @@ pub fn create() !Actor {
     return allocate(owner, 0);
 }
 
+pub fn child(actor: *const Actor) !Actor {
+    const owner = try kata.create.createFor(actor.Owner);
+    errdefer dispose(owner.ID);
+    return allocate(owner, 0);
+}
+
 pub fn sibling(actor: *const Actor, slot: usize) !Actor {
     if (slot == 0 or slot > 2) return FixtureError.InvalidFixture;
     return allocate(actor.Owner, slot);

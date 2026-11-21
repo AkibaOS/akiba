@@ -5,6 +5,7 @@ const std = @import("std");
 const abi = @import("shared").persona.types.invocation;
 const arguments = @import("mirai").invocations.errors.arguments;
 const copy = @import("mirai").user.copy.transfer;
+const kata = @import("mirai").kata;
 const limits = @import("mirai").user.constants.limits;
 const messages = @import("mirai").thread.strings.shift.messages;
 const postman = @import("mirai").postman;
@@ -32,7 +33,7 @@ pub fn dispatch(current: *Thread, frame: *InterruptFrame, service: u64) void {
 fn handle(current: *Thread, frame: *const InterruptFrame, service: u64) !Result {
     return switch (service) {
         @intFromEnum(abi.Service.Send) => send(current, frame),
-        @intFromEnum(abi.Service.Receive) => receive(current, frame),
+        @intFromEnum(abi.Service.Receive), @intFromEnum(abi.Service.ReceiveActivity) => receive(current, frame),
         @intFromEnum(abi.Service.Call), @intFromEnum(abi.Service.CallTimed) => call(current, frame),
         @intFromEnum(abi.Service.Reply) => reply(current, frame),
         @intFromEnum(abi.Service.CollectReply) => collect(current, frame),
@@ -72,11 +73,21 @@ fn send(current: *Thread, frame: *const InterruptFrame) !Result {
 }
 
 fn receive(current: *Thread, frame: *const InterruptFrame) !Result {
+    const activity = frame.RAX == @intFromEnum(abi.Service.ReceiveActivity);
+    if (activity and frame.R10 > std.math.maxInt(u64) - sensei.state.getState().Ticks) return error.InvalidArgument;
     try validateOutput(current, frame.RDI, @intCast(@min(frame.RSI, limits.MAX_COPY_BYTES)), frame.RDX);
     const waiters = try postman.receive.queue(current);
-    try sensei.wait.blockFromInvocation(waiters, postman.receive.ready, @ptrCast(current), null);
+    const predicate: sensei.types.predicate.Predicate = if (activity) postman.receive.activity else postman.receive.ready;
+    if (activity and frame.R10 != 0) {
+        if (!try sensei.wait.blockFromInvocationUntil(waiters, predicate, @ptrCast(current), null, frame.R10)) return .{ .Status = .TimedOut };
+    } else try sensei.wait.blockFromInvocation(waiters, predicate, @ptrCast(current), null);
     errdefer _ = sensei.wait.wakeOldest(waiters) catch @panic(messages.INVALID_CONTEXT);
-    const view = try postman.receive.peek(current);
+    const view = postman.receive.peek(current) catch |failure| {
+        if (activity and failure == error.WouldBlock) {
+            if (kata.completion.storage.readyFor(current.Owner.ID)) |identifier| return .{ .Status = .ChildReady, .Value = identifier };
+        }
+        return failure;
+    };
     const result = try deliver(current, frame.RDI, frame.RSI, frame.RDX, view);
     if (result.Status == .Success) {
         try postman.receive.consume(current);

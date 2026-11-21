@@ -20,6 +20,8 @@ pub const Service = enum(u64) {
     BootstrapDriver = 15,
     Ahci = 16,
     CallTimed = 17,
+    ReceiveActivity = 18,
+    StopChild = 19,
     Provision = provision.SERVICE,
 };
 
@@ -49,4 +51,5 @@ pub const Status = enum(u64) {
     InvalidTarget = 17,
     NotOwner = 18,
     TimedOut = 19,
+    ChildReady = 20,
 };

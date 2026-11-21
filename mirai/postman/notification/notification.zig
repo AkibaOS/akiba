@@ -9,10 +9,13 @@ const Record = @import("mirai").postman.types.record.delivery.Record;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 pub fn receiver(mailbox: *Mailbox) ?*Thread {
+    if (mailbox.Receivers.Head) |record| deadline.completed(record);
     return wait.wakeOldest(&mailbox.Receivers) catch @panic(messages.INVALID_WAITERS);
 }
 
 pub fn receivers(mailbox: *Mailbox) void {
+    var current = mailbox.Receivers.Head;
+    while (current) |record| : (current = record.Next) deadline.completed(record);
     if (mailbox.Receivers.Head == null) return;
     _ = wait.wakeAll(&mailbox.Receivers) catch @panic(messages.INVALID_WAITERS);
 }

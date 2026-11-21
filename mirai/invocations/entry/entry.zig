@@ -28,17 +28,21 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     if (frame.CS != (@as(u64, selectors.USER_CODE_SELECTOR) | selectors.RING_3) or
         frame.SS != (@as(u64, selectors.USER_DATA_SELECTOR) | selectors.RING_3))
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
-    lifecycle.dispatch(frame);
+    lifecycle.current.dispatch(frame);
     if (!thread.user.validReturn(current, frame.RIP, frame.RSP))
         thread.user.fault(constants.INVALID_RETURN_VECTOR, 0, frame.RIP, frame.RIP, frame.RSP);
     frame.RFLAGS = (frame.RFLAGS & constants.USER_FLAGS_MASK) | constants.USER_FLAGS_REQUIRED;
     const service = frame.RAX;
-    if ((service >= @intFromEnum(types.Service.Send) and service <= @intFromEnum(types.Service.Close)) or service == @intFromEnum(types.Service.CallTimed)) {
+    if ((service >= @intFromEnum(types.Service.Send) and service <= @intFromEnum(types.Service.Close)) or service == @intFromEnum(types.Service.CallTimed) or service == @intFromEnum(types.Service.ReceiveActivity)) {
         ipc.dispatch(current, frame, service);
         return;
     }
     if (service >= @intFromEnum(types.Service.ObserveCompletion) and service <= @intFromEnum(types.Service.CollectCompletion)) {
         completion.dispatch.dispatch(current, frame, service);
+        return;
+    }
+    if (service == @intFromEnum(types.Service.StopChild)) {
+        lifecycle.child.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.BootstrapWeaver)) {
