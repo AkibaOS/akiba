@@ -6,7 +6,7 @@ const afs = @import("shared").afs;
 const elf = @import("shared").elf;
 const library = @import("weaver").library;
 const location = @import("weaver").library.strings.location;
-const separators = @import("utils").path.constants.separators;
+const separators = @import("shared").location.constants.separators;
 
 const Library = library.types.library.Library;
 const LibraryError = library.errors.library.LibraryError;
