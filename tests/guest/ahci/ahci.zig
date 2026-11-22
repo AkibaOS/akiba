@@ -1,5 +1,6 @@
 //! Native Boot Reader Diagnostic Exports
 
+pub const bundle = @import("bundle.zig");
 pub const display = @import("display.zig");
 pub const keyboard = @import("keyboard.zig");
 pub const pulse = @import("pulse.zig");

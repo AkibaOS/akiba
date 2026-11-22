@@ -2,6 +2,7 @@
 
 pub const afs = @import("afs/afs.zig");
 pub const ahci = @import("ahci/ahci.zig");
+pub const bundle = @import("bundle/bundle.zig");
 pub const foundation = @import("foundation/foundation.zig");
 pub const gpt = @import("gpt/gpt.zig");
 pub const image = @import("image/image.zig");

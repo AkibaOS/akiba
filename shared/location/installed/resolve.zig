@@ -33,20 +33,26 @@ pub fn bundleName(out: []u8, id: []const u8, kind: Kind) ![]const u8 {
 
 pub fn memberPath(out: []u8, scope: Scope, id: []const u8, member: Member) ![]const u8 {
     if (!validIdentity(id)) return error.InvalidIdentity;
-    const root = switch (scope) {
-        .SystemBinary => paths.SYSTEM_BINARIES,
-        .UserBinary => paths.BINARIES,
-        .SystemDriver => paths.SYSTEM_DRIVERS,
-    };
-    const kind: Kind = if (scope == .SystemDriver) .Driver else .Binary;
     const unit = switch (member) {
         .Manifest => paths.MANIFEST_UNIT,
         .Binary => paths.BINARY_UNIT,
     };
-    return std.fmt.bufPrint(out, format.MEMBER, .{ root, id, suffix(kind), unit });
+    return std.fmt.bufPrint(out, format.MEMBER, .{ scopePath(scope), id, suffix(scopeKind(scope)), unit });
 }
 
-fn suffix(kind: Kind) []const u8 {
+pub fn scopePath(scope: Scope) []const u8 {
+    return switch (scope) {
+        .SystemBinary => paths.SYSTEM_BINARIES,
+        .UserBinary => paths.BINARIES,
+        .SystemDriver => paths.SYSTEM_DRIVERS,
+    };
+}
+
+pub fn scopeKind(scope: Scope) Kind {
+    return if (scope == .SystemDriver) .Driver else .Binary;
+}
+
+pub fn suffix(kind: Kind) []const u8 {
     return switch (kind) {
         .Binary => paths.BUNDLE_SUFFIX,
         .Driver => paths.DRIVER_SUFFIX,

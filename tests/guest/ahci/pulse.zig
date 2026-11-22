@@ -4,6 +4,7 @@ const std = @import("std");
 
 const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.storage;
+const bundle = @import("tests").guest.ahci.bundle;
 const display = @import("tests").guest.ahci.display;
 const drive = @import("tests").guest.support.drive;
 const events = @import("tests").fixtures.constants.service;
@@ -80,7 +81,7 @@ pub fn prove(volume: Volume) !bool {
         if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.DisplayDriverMissing;
         break :actual owner.ID;
     } else 0;
-    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .DiskID = driver.ID, .KeyboardID = keyboard_id, .DisplayID = display_id, .Startup = ready };
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .DiskID = driver.ID, .AfsID = files.ID, .KeyboardID = keyboard_id, .DisplayID = display_id, .Startup = ready };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -101,6 +102,7 @@ fn exercise(context: *const Context) !bool {
         try supervisor.diagnose(context.PulseID);
         return WitnessError.ServiceStartupFailed;
     }
+    try bundle.prove(context.PulseID, context.AfsID);
     try keyboard.prove(context.PulseID, context.KeyboardID);
     const exchanged = exchange(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.PulseExchangeDeadline else failure;
     if (!exchanged) return false;

@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const boot = @import("boot.zig");
+const bundles = @import("../../../tests/fixtures/strings/bundle.zig");
 const diagnostics = @import("../bootloader/bootloader.zig");
 const diskfixture = @import("../../../tests/fixtures/strings/elf/boot.zig");
 const firmware = @import("firmware.zig");
@@ -74,6 +75,9 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
             root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });
         }
+        if (std.mem.eql(u8, suite.Root, paths.BUNDLE_TEST_ROOT)) {
+            root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
+        }
         const executable_name = builder.fmt(suites.EXECUTABLE, .{suite.Name});
         const tests = builder.addTest(.{ .name = executable_name, .root_module = root, .use_llvm = true });
         const run = builder.addRunArtifact(tests);
@@ -97,6 +101,8 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     _ = stage.addCopyFile(guest.getEmittedBin(), paths.GUEST_OUTPUT);
     _ = stage.addCopyFile(dynamic.Program, diskfixture.PATH);
     _ = stage.addCopyFile(dynamic.Program, installed.INSTALLED_ELF);
+    _ = stage.addCopyFile(dynamic.Program, bundles.CHECK_BINARY);
+    _ = stage.add(bundles.CHECK_MANIFEST, bundles.DESCRIPTOR);
     _ = stage.addCopyFile(dynamic.Library, installed.INSTALLED_LIBRARY);
     storage.add(builder, stage);
     const image = progress.image(builder, stage, packer, paths.GUEST_IMAGE_NAME);

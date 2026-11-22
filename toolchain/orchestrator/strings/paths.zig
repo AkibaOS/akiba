@@ -44,6 +44,7 @@ pub const INSTALL_MANIFEST = "install.list";
 pub const CACHE_DIRECTORY = ".zig-cache";
 pub const CACHE_OBJECT_DIRECTORY = "o";
 pub const TESTS_ROOT = "tests/tests.zig";
+pub const BUNDLE_TEST_ROOT = "tests/fast/bundle/run.zig";
 pub const TEST_ASSEMBLY_ROOT = "asm/tests/tests.zig";
 pub const GUEST_OUTPUT = installed.DIAGNOSTIC_MIRAI_PATH;
 pub const RUNNER_ROOT = "tests/runner/entry/entry.zig";

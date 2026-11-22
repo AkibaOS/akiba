@@ -17,5 +17,6 @@ pub const FAST = [_]Suite{
     .{ .Name = "keyboard", .Root = "tests/fast/keyboard/run.zig" },
     .{ .Name = "display", .Root = "tests/fast/display/run.zig" },
     .{ .Name = "world", .Root = "tests/fast/world/run.zig" },
+    .{ .Name = "bundle", .Root = paths.BUNDLE_TEST_ROOT },
 };
 pub const EXECUTABLE = "tests-{s}";

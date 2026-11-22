@@ -9,6 +9,8 @@ const limits = @import("shared").persona.constants.postman;
 const Call = @import("shared").persona.types.call.Call;
 const Client = @import("shared").afs.types.service.client.Client;
 const ClientError = @import("shared").afs.errors.service.client.ClientError;
+const Entry = @import("shared").afs.types.read.list.Entry;
+const EntryKind = @import("shared").afs.types.read.list.Kind;
 const Header = @import("shared").persona.types.letter.Header;
 const Reply = @import("shared").afs.types.service.client.Reply;
 const Status = @import("shared").persona.types.invocation.Status;
@@ -18,11 +20,7 @@ pub fn readAll(client: Client, allocator: std.mem.Allocator, path: []const u8) C
 }
 
 pub fn readWithin(client: Client, allocator: std.mem.Allocator, path: []const u8, maximum: usize) ClientError!?[]u8 {
-    var encoded_size: [@sizeOf(u64)]u8 = undefined;
-    const stat = try request(client, letters.STAT, path, 0, 0, &encoded_size);
-    if (stat.Kind == letters.MISSING and stat.Length == 0) return null;
-    if (stat.Kind != letters.SIZE or stat.Length != encoded_size.len) return error.ReadFailed;
-    const length = std.math.cast(usize, std.mem.readInt(u64, &encoded_size, .little)) orelse return error.TooLarge;
+    const length = std.math.cast(usize, (try stat(client, path)) orelse return null) orelse return error.TooLarge;
     if (length > maximum) return error.TooLarge;
     const bytes = try allocator.alloc(u8, length);
     errdefer allocator.free(bytes);
@@ -34,6 +32,27 @@ pub fn readWithin(client: Client, allocator: std.mem.Allocator, path: []const u8
         offset += count;
     }
     return bytes;
+}
+
+pub fn stat(client: Client, path: []const u8) ClientError!?u64 {
+    var encoded: [@sizeOf(u64)]u8 = undefined;
+    const reply = try request(client, letters.STAT, path, 0, 0, &encoded);
+    if (reply.Kind == letters.MISSING and reply.Length == 0) return null;
+    if (reply.Kind != letters.SIZE or reply.Length != encoded.len) return error.ReadFailed;
+    return std.mem.readInt(u64, &encoded, .little);
+}
+
+pub fn list(client: Client, path: []const u8, index: u64) (ClientError || error{MissingStack})!?Entry {
+    var encoded: [@sizeOf(Entry)]u8 = undefined;
+    const reply = try request(client, letters.LIST, path, index, 0, &encoded);
+    if (reply.Kind == letters.MISSING and reply.Length == 0) return error.MissingStack;
+    if (reply.Kind == letters.END and reply.Length == 0) return null;
+    if (reply.Kind != letters.ENTRY or reply.Length != encoded.len) return error.ReadFailed;
+    const raw = std.mem.readInt(u16, encoded[@offsetOf(Entry, "Kind")..][0..@sizeOf(u16)], .little);
+    if (raw != @intFromEnum(EntryKind.Stack) and raw != @intFromEnum(EntryKind.Unit)) return error.ReadFailed;
+    const entry = std.mem.bytesToValue(Entry, &encoded);
+    if (entry.Length == 0 or entry.Length > entry.Identity.len) return error.ReadFailed;
+    return entry;
 }
 
 pub fn request(client: Client, operation: u64, path: []const u8, offset: u64, count: u64, output: []u8) ClientError!Reply {

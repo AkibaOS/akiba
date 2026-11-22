@@ -3,6 +3,7 @@
 pub const afs = @import("afs/afs.zig");
 pub const ahci = @import("ahci/ahci.zig");
 pub const boot = @import("boot/boot.zig");
+pub const bundle = @import("bundle/bundle.zig");
 pub const common = @import("common/common.zig");
 pub const constants = @import("constants/constants.zig");
 pub const elf = @import("elf/elf.zig");
