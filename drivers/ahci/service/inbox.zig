@@ -24,6 +24,7 @@ pub fn listen(description: Description) noreturn {
         const accepted = (header.Sender == description.PulseID or disk.accepts(header.Sender)) and header.Type == protocol.READ and
             header.Length == @sizeOf(u64) and arrived.Value == @sizeOf(u64) and
             read(description, std.mem.readInt(u64, request[0..@sizeOf(u64)], .little), &output);
+        if (!disk.available()) stop(@intFromEnum(Status.InvalidState));
         const supervised = header.Sender == description.PulseID and header.Length == 0 and arrived.Value == 0;
         const closing = supervised and header.Type == service.SERVICE_STOP;
         const kind = if (accepted) protocol.SECTOR else if (closing) service.SERVICE_STOPPED else if (supervised and header.Type == service.SERVICE_QUERY) service.SERVICE_READY else protocol.REFUSED;

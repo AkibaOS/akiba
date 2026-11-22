@@ -17,3 +17,5 @@ pub const REBOUND_DISK = "the secondary disk rebinds without interrupting the pr
 pub const STALE_DISK = "an old block handle is refused while the new assignment reads the secondary disk";
 pub const BLOCKED_CONTROLLER = "an unavailable controller refuses reassignment while another controller remains usable";
 pub const DISK_CLEANUP = "secondary disk fixture could not discard its unpublished Kata";
+pub const READ_REFUSAL = "a refused out-of-range block request does not retire a healthy driver";
+pub const UNAVAILABLE_READY = "an unavailable AHCI assignment cannot acknowledge service readiness";

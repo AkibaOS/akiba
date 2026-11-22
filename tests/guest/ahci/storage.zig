@@ -31,7 +31,7 @@ pub fn prove(pulse: u64, primary: u64) !void {
     const identifier = secondary.ID;
     const previous = instances.handleFor(secondary) orelse return error.SecondaryDriverMissing;
     var client = try harness.attach(.{ .Owner = kata.state.findByID(pulse).?, .ID = pulse, .Code = fixture.CODE, .Data = fixture.DATA, .Stack = fixture.STACK });
-    try harness.install(&client, &([_]Operation{harness.call(&client)} ** 7));
+    try harness.install(&client, &([_]Operation{harness.call(&client)} ** 10));
     try read(&client, primary, 1, false);
     try read(&client, identifier, 2, true);
     verify.require(primary != identifier, labels.TWO_DISKS);
@@ -50,6 +50,13 @@ pub fn prove(pulse: u64, primary: u64) !void {
                 try read(&client, primary, 5, false);
                 try read(&client, replacement.ID, 6, true);
                 verify.require(handle != previous, labels.REBOUND_DISK);
+                const outside: u64 = fixture.LAST - fixture.FIRST + 1;
+                try harness.input(&client, std.mem.asBytes(&outside));
+                try harness.descriptorFor(&client, replacement.ID, protocol.READ, @sizeOf(u64), 0);
+                try harness.advance(&client, 6);
+                try expect(&client, replacement.ID, 7, protocol.REFUSED, 0);
+                try read(&client, replacement.ID, 8, true);
+                verify.require(true, labels.READ_REFUSAL);
                 const location = try codec.decode(fixture.LOCATION);
                 try attachment.verifyDetached(location);
                 quarantine.retain(location.Address);
@@ -58,9 +65,13 @@ pub fn prove(pulse: u64, primary: u64) !void {
                 if (instances.reserve(device, pending)) |_| return error.UnavailableDiskRebound else |failure| {
                     if (failure != error.InvalidTarget) return failure;
                 }
-                try read(&client, primary, 7, false);
+                try read(&client, primary, 9, false);
                 verify.require(true, labels.BLOCKED_CONTROLLER);
-                try harness.advance(&client, 7);
+                try harness.descriptorFor(&client, replacement.ID, service.SERVICE_QUERY, 0, 0);
+                try harness.advance(&client, 9);
+                try harness.waitTimedStep(&client, 10, timing.TIMEOUT_TICKS);
+                verify.require(try harness.resultIs(&client, 10, .PeerGone, 0), labels.UNAVAILABLE_READY);
+                try harness.advance(&client, 10);
                 return;
             }
         }

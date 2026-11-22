@@ -38,6 +38,11 @@ pub fn verify() !Description {
     return description;
 }
 
+pub fn available() bool {
+    const lease = invoke.call(.Device, @intFromEnum(Operation.Lease), 0, 0, 0);
+    return handle != 0 and lease.Status == @intFromEnum(Status.Success) and lease.Value == handle;
+}
+
 pub fn accepts(peer: u64) bool {
     call(.BlockClient, peer) catch return false;
     return true;
