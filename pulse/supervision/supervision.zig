@@ -7,5 +7,4 @@ pub const inbox = @import("inbox/inbox.zig");
 pub const memory = @import("memory/memory.zig");
 pub const plan = @import("plan/plan.zig");
 pub const runtime = @import("runtime/runtime.zig");
-pub const strings = @import("strings/strings.zig");
 pub const types = @import("types/types.zig");

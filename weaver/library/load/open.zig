@@ -5,7 +5,7 @@ const std = @import("std");
 const afs = @import("shared").afs;
 const elf = @import("shared").elf;
 const library = @import("weaver").library;
-const location = @import("weaver").library.strings.location;
+const location = @import("shared").location.strings.installed.paths;
 const separators = @import("shared").location.constants.separators;
 
 const Library = library.types.library.Library;
@@ -15,7 +15,7 @@ const Source = library.types.source.Source;
 
 pub fn open(allocator: std.mem.Allocator, source: Source, name: []const u8) LibraryError!Library {
     try checkName(name);
-    const bytes = (try source.ReadFromOrigin(source.Context, allocator, &location.SYSTEM_LIBRARIES, name)) orelse return error.LibraryNotFound;
+    const bytes = (try source.ReadFromOrigin(source.Context, allocator, &location.SYSTEM_LIBRARY_PARTS, name)) orelse return error.LibraryNotFound;
     errdefer allocator.free(bytes);
     const metadata = try elf.read.dynamic.read(bytes);
     const identity = try checkIdentity(metadata, name);

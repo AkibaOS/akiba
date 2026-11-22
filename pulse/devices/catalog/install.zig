@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const install = @import("shared").device.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 const letters = @import("shared").afs.constants.service.postman;
 const limits = @import("pulse").devices.constants.catalog.limits;
 const parse = @import("pulse").devices.catalog.parse;
@@ -24,10 +24,10 @@ pub fn load(allocator: std.mem.Allocator, client: Client) !Catalog {
     const files = try directory(owned, client);
     var candidates: std.ArrayList(Candidate) = .empty;
     for (files) |file| {
-        if (!std.mem.endsWith(u8, file, install.COMPANION)) continue;
-        const identity = file[0 .. file.len - install.COMPANION.len];
+        if (!std.mem.endsWith(u8, file, install.FLAT_DRIVER_COMPANION)) continue;
+        const identity = file[0 .. file.len - install.FLAT_DRIVER_COMPANION.len];
         if (!unit.validIdentity(identity) or !contains(files, identity)) continue;
-        const path = try std.fmt.allocPrint(owned, install.UNIT_FORMAT, .{file});
+        const path = try std.fmt.allocPrint(owned, install.FLAT_DRIVER_FORMAT, .{file});
         const bytes = afs.service.client.readWithin(client, owned, path, limits.MAX_DESCRIPTION_BYTES) catch |failure| {
             if (failure == error.TooLarge) continue;
             return failure;
@@ -38,7 +38,7 @@ pub fn load(allocator: std.mem.Allocator, client: Client) !Catalog {
         };
         try candidates.append(owned, .{ .Identity = identity, .Description = description });
     }
-    const overrides = try afs.service.client.readWithin(client, owned, install.OVERRIDES, limits.MAX_DESCRIPTION_BYTES);
+    const overrides = try afs.service.client.readWithin(client, owned, install.FLAT_DRIVER_WORLD, limits.MAX_DESCRIPTION_BYTES);
     const preferences = if (overrides) |bytes| try policy.read(owned, bytes) else &.{};
     return .{ .Arena = arena, .Candidates = try candidates.toOwnedSlice(owned), .Preferences = preferences };
 }
@@ -51,7 +51,7 @@ fn directory(allocator: std.mem.Allocator, client: Client) ![][]const u8 {
     var names: std.ArrayList([]const u8) = .empty;
     for (0..limits.MAX_DIRECTORY_ENTRIES + 1) |index| {
         var entry: Entry = undefined;
-        const reply = try afs.service.client.request(client, letters.LIST, install.DIRECTORY, index, 0, std.mem.asBytes(&entry));
+        const reply = try afs.service.client.request(client, letters.LIST, install.SYSTEM_DRIVERS, index, 0, std.mem.asBytes(&entry));
         if (reply.Kind == letters.END and reply.Length == 0) return names.toOwnedSlice(allocator);
         if (reply.Kind != letters.ENTRY or reply.Length != @sizeOf(Entry) or entry.Length > entry.Identity.len or index == limits.MAX_DIRECTORY_ENTRIES) return error.InvalidCatalog;
         if (entry.Kind == .Unit) try names.append(allocator, try std.unicode.utf16LeToUtf8Alloc(allocator, entry.Identity[0..entry.Length]));

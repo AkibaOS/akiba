@@ -3,7 +3,7 @@
 const invoke = @import("personaasm").invoke;
 const layout = @import("weaver").supervision.constants.service.layout;
 const memory = @import("weaver").memory.arena;
-const origin = @import("weaver").supervision.strings.origin;
+const origin = @import("shared").location.strings.installed.paths;
 const policy = @import("common").constants.memory;
 const source = @import("weaver").library.ipc.source;
 const transaction = @import("weaver").launch.transaction.run;
@@ -16,7 +16,7 @@ pub fn start(endpoint: u64, request: Request, ticket: u64, driver: bool) !u64 {
     const allocator = memory.reset();
     var afs = endpoint;
     const provider = source.source(&afs);
-    const parents = if (driver) &origin.SYSTEM_DRIVERS else &origin.SYSTEM_BINARIES;
+    const parents = if (driver) &origin.SYSTEM_DRIVER_PARTS else &origin.SYSTEM_BINARY_PARTS;
     const executable = (try provider.ReadFromOrigin(provider.Context, allocator, parents, request.Identity)) orelse return error.BinaryMissing;
     defer allocator.free(executable);
     const channel: Channel = .{ .Ticket = ticket, .Context = &afs, .Invoke = provision };

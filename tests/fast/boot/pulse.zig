@@ -3,11 +3,11 @@
 const std = @import("std");
 
 const expected = @import("tests").fast.strings.boot.pulse;
-const install = @import("shared").pulse.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 
 pub fn standalone() !void {
-    try std.testing.expectEqual(expected.STACKS.len, install.STACKS.len);
-    for (expected.STACKS, install.STACKS) |wanted, actual| try std.testing.expectEqualStrings(wanted, actual);
-    try std.testing.expectEqualStrings(expected.UNIT, install.UNIT);
-    try std.testing.expectEqualStrings(expected.PATH, install.PATH);
+    try std.testing.expectEqual(expected.STACKS.len, install.CORE_PARTS.len);
+    for (expected.STACKS, install.CORE_PARTS) |wanted, actual| try std.testing.expectEqualStrings(wanted, actual);
+    try std.testing.expectEqualStrings(expected.UNIT, install.FLAT_PULSE_UNIT);
+    try std.testing.expectEqualStrings(expected.PATH, install.FLAT_PULSE_PATH);
 }

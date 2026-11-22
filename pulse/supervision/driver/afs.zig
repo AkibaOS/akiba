@@ -4,7 +4,7 @@ const std = @import("std");
 
 const afs = @import("shared").afs;
 const elf = @import("shared").elf;
-const install = @import("shared").afs.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 const invoke = @import("personaasm").invoke;
 const letters = @import("shared").afs.constants.service.postman;
 const limits = @import("shared").persona.constants.postman;
@@ -28,9 +28,9 @@ pub fn start(ahci: u64) u64 {
 fn verify(driver: u64) bool {
     if (!listed(driver)) return false;
     var size: [@sizeOf(u64)]u8 = undefined;
-    if (!request(driver, letters.STAT, letters.SIZE, install.PATH, 0, 0, &size)) return false;
+    if (!request(driver, letters.STAT, letters.SIZE, install.FLAT_AFS_PATH, 0, 0, &size)) return false;
     var bytes: [@sizeOf(elf.types.format.Elf64Header)]u8 = undefined;
-    if (std.mem.readInt(u64, &size, .little) < bytes.len or !request(driver, letters.READ, letters.DATA, install.PATH, 0, bytes.len, &bytes)) return false;
+    if (std.mem.readInt(u64, &size, .little) < bytes.len or !request(driver, letters.READ, letters.DATA, install.FLAT_AFS_PATH, 0, bytes.len, &bytes)) return false;
     const image = elf.read.header.read(&bytes) catch return false;
     return image.isExecutable() and image.isX8664();
 }
@@ -39,9 +39,9 @@ fn listed(driver: u64) bool {
     var ordinal: u64 = 0;
     while (true) : (ordinal += 1) {
         var entry: Entry = undefined;
-        if (!request(driver, letters.LIST, letters.ENTRY, install.STACK, ordinal, 0, std.mem.asBytes(&entry))) return false;
-        if (entry.Kind == .Unit and entry.Length == install.UNIT.len) {
-            for (install.UNIT, entry.Identity[0..entry.Length]) |expected, actual| {
+        if (!request(driver, letters.LIST, letters.ENTRY, install.SYSTEM_DRIVERS, ordinal, 0, std.mem.asBytes(&entry))) return false;
+        if (entry.Kind == .Unit and entry.Length == install.FLAT_AFS_UNIT.len) {
+            for (install.FLAT_AFS_UNIT, entry.Identity[0..entry.Length]) |expected, actual| {
                 if (expected != actual) break;
             } else return true;
         }

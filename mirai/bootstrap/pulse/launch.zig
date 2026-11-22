@@ -6,7 +6,7 @@ const embedded = @import("shared").pulse.boot.image;
 const guard = @import("asm").interrupts.guard;
 const handoff = @import("mirai").bootstrap.storage.handoff;
 const image = @import("mirai").bootstrap.image;
-const install = @import("shared").pulse.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 const kata = @import("mirai").kata;
 const labels = @import("mirai").bootstrap.strings.image.rollback;
 const memory = @import("mirai").memory.allocator.native;
@@ -24,7 +24,7 @@ pub fn start(volume: Volume) !Prepared {
     const kernel = kata.state.getKernel() orelse return PulseError.KernelOwnerMissing;
     if (kata.state.first() != null) return PulseError.NotFirstKata;
     const allocator = memory.get();
-    const file = try storage.unit(volume, .{ .Parents = &install.STACKS, .Unit = install.UNIT }, allocator);
+    const file = try storage.unit(volume, .{ .Parents = &install.CORE_PARTS, .Unit = install.FLAT_PULSE_UNIT }, allocator);
     defer allocator.free(file.Bytes);
     const payload = try embedded.weaver(file.Bytes);
     const ahci = try embedded.ahci(file.Bytes);

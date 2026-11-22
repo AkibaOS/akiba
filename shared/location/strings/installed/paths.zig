@@ -1,0 +1,39 @@
+//! Installed Namespaces And Exact Boot Locations
+
+pub const SYSTEM = "system";
+pub const CORE = "akiba";
+pub const BINARIES = "binaries";
+pub const DRIVERS = "drivers";
+pub const LIBRARIES = "libraries";
+pub const WORLD = "world";
+pub const SYSTEM_CORE = SYSTEM ++ "/" ++ CORE;
+pub const SYSTEM_BINARIES = SYSTEM ++ "/" ++ BINARIES;
+pub const SYSTEM_DRIVERS = SYSTEM ++ "/" ++ DRIVERS;
+pub const SYSTEM_LIBRARIES = SYSTEM ++ "/" ++ LIBRARIES;
+pub const SYSTEM_WORLD = SYSTEM ++ "/" ++ WORLD;
+pub const CORE_PARTS = [_][]const u8{ SYSTEM, CORE };
+pub const SYSTEM_BINARY_PARTS = [_][]const u8{ SYSTEM, BINARIES };
+pub const SYSTEM_DRIVER_PARTS = [_][]const u8{ SYSTEM, DRIVERS };
+pub const SYSTEM_LIBRARY_PARTS = [_][]const u8{ SYSTEM, LIBRARIES };
+pub const PULSE_UNIT = "pulse.init";
+pub const PULSE_PATH = SYSTEM_CORE ++ "/" ++ PULSE_UNIT;
+pub const MIRAI_UNIT = "mirai.kernel";
+pub const MIRAI_PATH = SYSTEM_CORE ++ "/" ++ MIRAI_UNIT;
+pub const DIAGNOSTIC_MIRAI_PATH = "tests/" ++ MIRAI_PATH;
+pub const PULSE_WORLD = SYSTEM_WORLD ++ "/pulse.world";
+pub const BUNDLE_SUFFIX = ".akiba";
+pub const DRIVER_SUFFIX = ".driver";
+pub const LIBRARY_SUFFIX = ".lib";
+pub const MANIFEST_UNIT = "bundle.world";
+pub const BINARY_UNIT = "binary";
+
+pub const FLAT_PULSE_UNIT = "pulse";
+pub const FLAT_PULSE_PATH = SYSTEM_CORE ++ "/" ++ FLAT_PULSE_UNIT;
+pub const FLAT_AFS_UNIT = "afs";
+pub const FLAT_AFS_PATH = SYSTEM_DRIVERS ++ "/" ++ FLAT_AFS_UNIT;
+pub const FLAT_AHCI_PATH = SYSTEM_DRIVERS ++ "/ahci";
+pub const FLAT_DISPLAY_PATH = SYSTEM_DRIVERS ++ "/display";
+pub const FLAT_KEYBOARD_PATH = SYSTEM_DRIVERS ++ "/keyboard";
+pub const FLAT_DRIVER_WORLD = SYSTEM_WORLD ++ "/drivers.world";
+pub const FLAT_DRIVER_COMPANION = ".world";
+pub const FLAT_DRIVER_FORMAT = SYSTEM_DRIVERS ++ "/{s}";

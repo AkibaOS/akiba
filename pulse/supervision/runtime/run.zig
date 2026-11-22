@@ -5,8 +5,8 @@ const drive = @import("pulse").supervision.runtime.drive;
 const inbox = @import("pulse").supervision.runtime.inbox;
 const invoke = @import("personaasm").invoke;
 const memory = @import("pulse").supervision.memory;
-const names = @import("pulse").supervision.strings.world;
 const parser = @import("pulse").world.parse.document;
+const paths = @import("shared").location.strings.installed.paths;
 const policy = @import("pulse").supervision.plan.model;
 const pulse = @import("pulse").supervision.inbox;
 const storage = @import("pulse").supervision.client.storage;
@@ -27,7 +27,7 @@ fn run(weaver: u64, afs: u64, disk: u64) !noreturn {
     const owner = invoke.call(.Query, @intFromEnum(Query.Kata), 0, 0, 0);
     if (owner.Status != @intFromEnum(Status.Success) or owner.Value == 0) return error.InvalidOwner;
     const allocator = memory.allocator();
-    const source = try storage.read(afs, allocator, names.PATH);
+    const source = try storage.read(afs, allocator, paths.PULSE_WORLD);
     defer allocator.free(source);
     var world = try parser.parse(allocator, source);
     defer world.deinit();

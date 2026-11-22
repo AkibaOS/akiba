@@ -8,6 +8,7 @@ const elf = @import("shared").elf;
 const fixturetext = @import("tests").fixtures.strings.elf.identities;
 const inputs = @import("tests").fixtures.constants.elf.layout;
 const kata = @import("mirai").kata;
+const paths = @import("shared").location.strings.installed.paths;
 const sizes = @import("common").constants.memory.sizes;
 const thread = @import("mirai").thread;
 const user = @import("mirai").user;
@@ -57,7 +58,7 @@ pub fn access(source: *const Source) weaver.library.types.source.Source {
 
 fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) ReadError!?[]u8 {
     const source: *const Source = @ptrCast(@alignCast(context));
-    const expected = weaver.library.strings.location.SYSTEM_LIBRARIES;
+    const expected = paths.SYSTEM_LIBRARY_PARTS;
     if (!std.mem.eql(u8, name, fixturetext.DYNAMIC_SOURCE) or parent.len != expected.len) return null;
     for (parent, expected) |actual, component| if (!std.mem.eql(u8, actual, component)) return null;
     return try allocator.dupe(u8, source.Library orelse return null);

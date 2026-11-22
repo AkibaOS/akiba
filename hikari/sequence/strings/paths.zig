@@ -1,4 +1,6 @@
 //! Hikari Resource Locations
 
-pub const KERNEL_LOCATION = "/system/akiba/mirai.kernel";
-pub const DIAGNOSTIC_KERNEL_LOCATION = "/tests/system/akiba/mirai.kernel";
+const installed = @import("shared").location.strings.installed.paths;
+
+pub const KERNEL_LOCATION = "/" ++ installed.MIRAI_PATH;
+pub const DIAGNOSTIC_KERNEL_LOCATION = "/" ++ installed.DIAGNOSTIC_MIRAI_PATH;

@@ -1,5 +1,7 @@
 //! Build Paths
 
+const installed = @import("../../../shared/location/strings/installed/paths.zig");
+
 pub const COMMON_ROOT = "common/common.zig";
 pub const SHARED_ROOT = "shared/shared.zig";
 pub const ASSEMBLY_ROOT = "asm/asm.zig";
@@ -36,14 +38,14 @@ pub const FONTPREVIEW_ENTRY = "toolchain/fontpreview/entry/entry.zig";
 pub const FONT_RESOURCE = "resources/system/fonts/Hikari.ttf";
 pub const LINKER_SCRIPT = "linker/mirai.linker";
 pub const HIKARI_OUTPUT = "EFI/BOOT/BOOTX64.EFI";
-pub const MIRAI_OUTPUT = "system/akiba/mirai.kernel";
+pub const MIRAI_OUTPUT = installed.MIRAI_PATH;
 pub const OUTPUT_DIRECTORY = "zig-out";
 pub const INSTALL_MANIFEST = "install.list";
 pub const CACHE_DIRECTORY = ".zig-cache";
 pub const CACHE_OBJECT_DIRECTORY = "o";
 pub const TESTS_ROOT = "tests/tests.zig";
 pub const TEST_ASSEMBLY_ROOT = "asm/tests/tests.zig";
-pub const GUEST_OUTPUT = "tests/system/akiba/mirai.kernel";
+pub const GUEST_OUTPUT = installed.DIAGNOSTIC_MIRAI_PATH;
 pub const RUNNER_ROOT = "tests/runner/entry/entry.zig";
 pub const RESOURCES_ROOT = "resources";
 pub const DIRECTORY_ROOT = "";

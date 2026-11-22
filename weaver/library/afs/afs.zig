@@ -4,7 +4,7 @@ const std = @import("std");
 
 const afs = @import("shared").afs;
 const library = @import("weaver").library;
-const location = library.strings.location;
+const location = @import("shared").location.strings.installed.paths;
 
 const Catalog = afs.types.reader.Catalog;
 const ReadError = library.errors.library.ReadError;
@@ -15,7 +15,7 @@ pub fn source(catalog: *const Catalog) Source {
 }
 
 fn read(context: *const anyopaque, allocator: std.mem.Allocator, parent: []const []const u8, name: []const u8) ReadError!?[]u8 {
-    const expected = location.SYSTEM_LIBRARIES;
+    const expected = location.SYSTEM_LIBRARY_PARTS;
     if (parent.len != expected.len) return null;
     for (parent, expected) |actual, component| if (!std.mem.eql(u8, actual, component)) return null;
     const catalog: *const Catalog = @ptrCast(@alignCast(context));

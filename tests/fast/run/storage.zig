@@ -11,6 +11,14 @@ const ports = @import("tests").fast.ahci.port;
 const sectors = @import("tests").fast.gpt.source;
 const shared = @import("shared");
 
+test "installed bundle and init paths use exact distinct namespaces" {
+    try boot.installation.names();
+}
+
+test "installed logical identities cannot alias deployed filenames or paths" {
+    try boot.installation.rejectsAliases();
+}
+
 test "AHCI builds a single read DMA descriptor without a write flag" {
     var page: [4096]u8 = undefined;
     try shared.ahci.command.encode.prepare(&page, 0x100000, .{ .Read = 0x123456789abc });

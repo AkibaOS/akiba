@@ -5,7 +5,7 @@ const std = @import("std");
 const authority = @import("mirai").device.ahci.storage;
 const guard = @import("asm").interrupts.guard;
 const image = @import("mirai").bootstrap.image;
-const install = @import("shared").afs.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 const kata = @import("mirai").kata;
 const memory = @import("mirai").memory.allocator.native;
 const postman = @import("mirai").postman;
@@ -57,7 +57,7 @@ pub fn start(caller: *Thread, ahci: u64) !u64 {
     const prepared = try image.prepare.prepare(caller.Owner, source.Bytes, .{
         .StackBase = stack.BASE,
         .StackPages = stack.PAGES,
-        .Startup = .{ .Identity = install.PATH, .Parameters = std.mem.asBytes(&mount) },
+        .Startup = .{ .Identity = install.FLAT_AFS_PATH, .Parameters = std.mem.asBytes(&mount) },
     });
     errdefer image.abort.abort(prepared) catch @panic(rollback.ROLLBACK_FAILED);
     try authority.bindAfs(caller.Owner.ID, ahci, prepared.Owner);

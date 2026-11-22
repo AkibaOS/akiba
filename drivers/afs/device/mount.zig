@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const install = @import("shared").afs.strings.install;
+const install = @import("shared").location.strings.installed.paths;
 const invoke = @import("personaasm").invoke;
 const protocol = @import("shared").ahci.constants.device.postman;
 const record = @import("shared").launch.constants.startup.record;
@@ -23,8 +23,8 @@ pub fn parameters(address: u64) !Mount {
     const identity = std.mem.readInt(u64, bytes[record.IDENTITY_LENGTH..record.PARAMETER_LENGTH], .little);
     const size = std.mem.readInt(u64, bytes[record.PARAMETER_LENGTH..record.HEADER_BYTES], .little);
     const begin = record.HEADER_BYTES;
-    const base = begin + install.PATH.len;
-    if (identity != install.PATH.len or size != @sizeOf(Mount) or !std.mem.eql(u8, bytes[begin..base], install.PATH))
+    const base = begin + install.FLAT_AFS_PATH.len;
+    if (identity != install.FLAT_AFS_PATH.len or size != @sizeOf(Mount) or !std.mem.eql(u8, bytes[begin..base], install.FLAT_AFS_PATH))
         return error.InvalidStartup;
     const result = std.mem.bytesToValue(Mount, bytes[base..][0..@sizeOf(Mount)]);
     if (result.PulseID == 0 or result.WeaverID == 0 or result.DiskDriverID == 0 or result.LastSector == 0) return error.InvalidStartup;
