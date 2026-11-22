@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const assembly = @import("personaasm");
 const asset = @import("shared").pulse.strings.bootstrap;
 const bootstrap = @import("pulse").supervision.bootstrap;
 const drivers = @import("pulse").supervision.driver;
@@ -18,11 +17,7 @@ export const ahci_bootstrap: [AHCI.len]u8 linksection(asset.AHCI_SECTION) = AHCI
 const WEAVER = @embedFile(asset.WEAVER_IMPORT);
 export const weaver_bootstrap: [WEAVER.len]u8 linksection(asset.WEAVER_SECTION) = WEAVER[0..WEAVER.len].*;
 
-comptime {
-    _ = assembly.entry.pulse.pulse_entry;
-}
-
-export fn pulse_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
+export fn persona_main() callconv(.{ .x86_64_sysv = .{} }) noreturn {
     const weaver = bootstrap.start();
     const ahci = drivers.ahci.start();
     const afs = drivers.afs.start(ahci);

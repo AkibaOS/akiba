@@ -18,14 +18,12 @@ pub const IMPORT_KEYBOARD_IMAGE = "keyboardimage";
 pub const ENTRY_PERSONA = "persona_entry";
 pub const MODULE_SDK = "sdk";
 pub const STEP_SDK = "sdk";
+pub const STEP_PERSONA = "persona";
 pub const OBJECT_PERSONA = "persona";
 pub const SDK_DESCRIPTION = "Install the native Persona SDK and its common startup object";
 pub const EXECUTABLE_PULSE = "pulse";
-pub const ENTRY_PULSE = "pulse_entry";
 pub const EXECUTABLE_AFS = "afs";
-pub const ENTRY_AFS = "afs_entry";
 pub const EXECUTABLE_AHCI = "ahci";
-pub const ENTRY_WEAVER = "weaver_entry";
 pub const MODULE_PERSONA_ASSEMBLY = "personaasm";
 
 pub const IMPORT_FONT = "font";

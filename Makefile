@@ -87,13 +87,22 @@ prepare-filesystem: native-build
 		fi; \
 		mkdir -p -- "$$directory"; \
 	done; \
-	cp --no-target-directory --remove-destination -- zig-out/EFI/BOOT/BOOTX64.EFI "$$stage/EFI/BOOT/BOOTX64.EFI"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/akiba/mirai.kernel "$$stage/system/akiba/mirai.kernel"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/akiba/pulse "$$stage/system/akiba/pulse"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/ahci "$$stage/system/drivers/ahci"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/afs "$$stage/system/drivers/afs"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/keyboard "$$stage/system/drivers/keyboard"; \
-	cp --no-target-directory --remove-destination -- zig-out/system/drivers/display "$$stage/system/drivers/display"
+	while IFS= read -r relative; do \
+		directory="$$stage"; \
+		remaining="$$relative"; \
+		while [ "$$remaining" != "$${remaining#*/}" ]; do \
+			component="$${remaining%%/*}"; \
+			remaining="$${remaining#*/}"; \
+			case "$$component" in ''|'.'|'..') printf 'Invalid installed artifact: %s\n' "$$relative" >&2; exit 1;; esac; \
+			directory="$$directory/$$component"; \
+			if [ -L "$$directory" ] || { [ -e "$$directory" ] && [ ! -d "$$directory" ]; }; then \
+				printf 'Stage directory is not an ordinary directory: %s\n' "$$directory" >&2; exit 1; \
+			fi; \
+			mkdir -p -- "$$directory"; \
+		done; \
+		case "$$remaining" in ''|'.'|'..') printf 'Invalid installed artifact: %s\n' "$$relative" >&2; exit 1;; esac; \
+		cp --no-target-directory --remove-destination -- "zig-out/$$relative" "$$stage/$$relative"; \
+	done < zig-out/install.list
 
 $(DISK_IMAGE): prepare-filesystem
 	@set -eu; \

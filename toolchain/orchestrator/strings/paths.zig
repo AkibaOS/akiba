@@ -38,6 +38,7 @@ pub const LINKER_SCRIPT = "linker/mirai.linker";
 pub const HIKARI_OUTPUT = "EFI/BOOT/BOOTX64.EFI";
 pub const MIRAI_OUTPUT = "system/akiba/mirai.kernel";
 pub const OUTPUT_DIRECTORY = "zig-out";
+pub const INSTALL_MANIFEST = "install.list";
 pub const CACHE_DIRECTORY = ".zig-cache";
 pub const CACHE_OBJECT_DIRECTORY = "o";
 pub const TESTS_ROOT = "tests/tests.zig";

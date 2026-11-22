@@ -29,11 +29,11 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, definition: Definit
         linker.LINK_OPTION,
         linker.EAGER,
         linker.ENTRY,
-        definition.Symbol,
+        names.ENTRY_PERSONA,
         linker.OUTPUT,
     });
     const executable = link.addOutputFileArg(definition.Name);
     link.addFileArg(object.getEmittedBin());
-    if (std.mem.eql(u8, definition.Symbol, names.ENTRY_PERSONA)) link.addFileArg(modules.PersonaStartup);
+    link.addFileArg(modules.PersonaStartup);
     return executable;
 }

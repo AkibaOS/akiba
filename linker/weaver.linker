@@ -1,7 +1,7 @@
 /* Standalone Weaver Bootstrap ELF */
 OUTPUT_FORMAT(elf64-x86-64)
 OUTPUT_ARCH(i386:x86-64)
-ENTRY(weaver_entry)
+ENTRY(persona_entry)
 WEAVER_BASE = 0x400000;
 WEAVER_PAGE_SIZE = 4096;
 PHDRS
@@ -14,7 +14,7 @@ SECTIONS
 {
     .text WEAVER_BASE :
     {
-        KEEP(*(.text.weaver.entry))
+        KEEP(*(.text.persona.entry))
         *(.text .text.*)
     } :text
     .rodata ALIGN(WEAVER_PAGE_SIZE) :
