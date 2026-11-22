@@ -17,4 +17,5 @@ pub const Scan = struct {
     Prefix: [fields.PREFIX_BYTES]u8 = undefined,
     Offset: usize = 0,
     Match: State = .Missing,
+    Discover: bool = false,
 };

@@ -32,6 +32,7 @@ pub fn finish(scan: *const Scan) VerifyError!bool {
     if (scan.Remaining != 0 or scan.Offset != 0) return error.InvalidTable;
     if (scan.CRC.final() != scan.Window.TableCRC) return error.TableChecksum;
     if (scan.Match == .Ambiguous) return error.AmbiguousPartition;
+    if (scan.Discover and scan.Match == .Mismatch) return error.InvalidTable;
     return scan.Match == .Matched;
 }
 
@@ -39,6 +40,10 @@ fn observe(scan: *Scan) void {
     const entry = &scan.Prefix;
     const kind = entry[fields.TYPE_OFFSET..][0..bounds.GUID_BYTES];
     const guid = entry[fields.IDENTITY_OFFSET..][0..bounds.GUID_BYTES];
+    if (scan.Discover) {
+        discover(scan, kind, guid);
+        return;
+    }
     if (std.mem.allEqual(u8, kind, 0) or !std.mem.eql(u8, guid, &scan.Volume.PartitionGUID)) return;
     if (scan.Match != .Missing) {
         scan.Match = .Ambiguous;
@@ -49,4 +54,22 @@ fn observe(scan: *Scan) void {
     const matches = first >= scan.Window.FirstUsableLBA and last <= scan.Window.LastUsableLBA and
         first == scan.Volume.FirstLBA and last == scan.Volume.LastLBA and std.mem.eql(u8, kind, &fields.AFS_TYPE_GUID);
     scan.Match = if (matches) .Matched else .Mismatch;
+}
+
+fn discover(scan: *Scan, kind: []const u8, guid: []const u8) void {
+    if (!std.mem.eql(u8, kind, &fields.AFS_TYPE_GUID)) return;
+    if (scan.Match != .Missing) {
+        scan.Match = .Ambiguous;
+        return;
+    }
+    const first = std.mem.readInt(u64, scan.Prefix[fields.FIRST_OFFSET..][0..@sizeOf(u64)], .little);
+    const last = std.mem.readInt(u64, scan.Prefix[fields.LAST_OFFSET..][0..@sizeOf(u64)], .little);
+    if (first < scan.Window.FirstUsableLBA or first > last or last > scan.Window.LastUsableLBA or std.mem.allEqual(u8, guid, 0)) {
+        scan.Match = .Mismatch;
+        return;
+    }
+    scan.Volume.PartitionGUID = guid[0..bounds.GUID_BYTES].*;
+    scan.Volume.FirstLBA = first;
+    scan.Volume.LastLBA = last;
+    scan.Match = .Matched;
 }

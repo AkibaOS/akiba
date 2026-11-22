@@ -11,6 +11,30 @@ const Source = @import("tests").fast.types.gpt.source.Source;
 const Volume = shared.boot.types.volume.Volume;
 const identity = shared.gpt.read.identity;
 
+pub fn discoversVolume() !void {
+    var disk = wideFixture();
+    const last = layout.ENTRY_BYTES * (layout.STREAM_ENTRY_COUNT - 1);
+    @memcpy(disk.Table[last..][0..layout.ENTRY_PREFIX_BYTES], disk.Table[0..layout.ENTRY_PREFIX_BYTES]);
+    @memset(disk.Table[0..layout.ENTRY_PREFIX_BYTES], 0);
+    fixture.seal(&disk, layout.STREAM_TABLE_BYTES);
+    var source: Source = .{ .Disk = &disk };
+    try std.testing.expectEqualDeep(fixture.volume(), (try discover(&source)).?);
+    try expectWindow(&source);
+    source.Count = 0;
+    @memcpy(disk.Table[0..layout.ENTRY_PREFIX_BYTES], disk.Table[last..][0..layout.ENTRY_PREFIX_BYTES]);
+    disk.Table[16] ^= 1;
+    fixture.seal(&disk, layout.STREAM_TABLE_BYTES);
+    try std.testing.expectError(error.AmbiguousPartition, discover(&source));
+    source.Count = 0;
+    disk.Table[layout.STREAM_TABLE_BYTES - 1] ^= 1;
+    try std.testing.expectError(error.TableChecksum, discover(&source));
+}
+
+fn discover(source: *Source) !?Volume {
+    var scratch: [layout.BLOCK_BYTES]u8 = undefined;
+    return shared.gpt.read.select.firstAfs(.{ .Context = source, .Read = read, .BlockBytes = layout.BLOCK_BYTES, .LastLBA = layout.DISK_LAST_LBA }, &scratch);
+}
+
 pub fn splitEntry() !void {
     var disk = wideFixture();
     const last = layout.ENTRY_BYTES * (layout.STREAM_ENTRY_COUNT - 1);

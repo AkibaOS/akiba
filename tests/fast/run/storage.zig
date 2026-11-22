@@ -90,6 +90,10 @@ test "GPT refuses duplicate nonempty partition identities" {
     try gpt.ambiguousIdentity();
 }
 
+test "GPT discovers one complete AFS partition and refuses ambiguity or a bad table" {
+    try sectors.discoversVolume();
+}
+
 test "GPT gathers a selected partition entry across sector boundaries" {
     try sectors.splitEntry();
 }
