@@ -29,7 +29,6 @@ pub fn placeStartup(plan: *const Plan, options: types.Options, top: u64, length:
     const lower = options.StackBase - sizes.PAGE_SIZE;
     const upper = top + sizes.PAGE_SIZE;
     var cursor = sizes.PAGE_SIZE;
-    // The validated ELF plan supplies sorted, page-aligned intervals.
     for (plan.Ranges) |range| {
         if (fit(cursor, range.Start, lower, upper, length)) |start| return .{ .Start = start, .End = start + length };
         cursor = @max(cursor, range.End);

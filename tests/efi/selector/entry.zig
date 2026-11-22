@@ -30,7 +30,6 @@ fn start(services: *efi.types.services.boot.BootServices, parent: efi.types.base
     if (!uart.send(services, ports.COM4, &acknowledgement)) return discard(services, child, status.DEVICE_ERROR);
     var exit_bytes: usize = 0;
     const result = services.StartImage(child, &exit_bytes, null);
-    // UEFI unloads an application when it exits. None of our successful roles returns.
     return if (result == status.SUCCESS) status.LOAD_ERROR else result;
 }
 

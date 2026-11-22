@@ -13,7 +13,6 @@ const ImageError = @import("mirai").bootstrap.errors.image.preparation.ImageErro
 const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
 const Thread = thread.types.thread.Thread;
 
-/// Keep the caller's interrupt guard until admission or destruction completes.
 pub fn check(image: Prepared) ImageError!*Thread {
     std.debug.assert(cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE == 0);
     const owner = image.Owner;

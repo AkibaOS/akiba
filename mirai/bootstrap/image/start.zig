@@ -7,7 +7,6 @@ const sensei = @import("mirai").sensei;
 const LaunchError = @import("mirai").bootstrap.errors.image.preparation.LaunchError;
 const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
 
-/// A refused start leaves the prepared image available for retry or abort.
 pub fn start(image: Prepared) LaunchError!u64 {
     const flags = guard.acquire();
     defer guard.release(flags);

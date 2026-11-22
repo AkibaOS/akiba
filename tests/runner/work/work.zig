@@ -19,7 +19,6 @@ pub fn settle(tally: *Work, selected: Scenario, count: u32) void {
 }
 
 pub fn retain(tally: *Work, selected: Scenario, count: u32) void {
-    // Leave unverified work in the plan, even if the estimate was exhausted.
     tally.addPlan((count +| 1) -| budget(selected));
     tally.credit(count);
 }

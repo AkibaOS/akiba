@@ -26,7 +26,6 @@ pub const Progress = struct {
     pub fn update(self: *Progress, written: u32, total: u32) void {
         if (!self.Terminal) return;
         const now = if (self.Timer) |*timer| timer.read() else 0;
-        // Every short-pack update is cheap; only the middle of larger packs is coalesced.
         if (total > limits.SHORT_PACK_UNITS and written > 1 and written < total and now - self.LastDraw < limits.REFRESH_NS) return;
         var buffer: [limits.PROGRESS_BYTES]u8 = undefined;
         const line = std.fmt.bufPrint(&buffer, messages.LIVE_PACKING, .{ written, total, self.Name }) catch return;

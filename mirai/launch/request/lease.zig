@@ -21,7 +21,6 @@ const PostError = postman.errors.transport.PostError;
 const Thread = @import("mirai").thread.types.thread.Thread;
 const Transaction = @import("mirai").launch.types.transaction.Transaction;
 
-/// The guard must remain held while the caller uses the delivery and its draft.
 pub fn active(server: *Thread, ticket: u64) (PostError || error{InvalidCaller})!*Envelope {
     std.debug.assert(cpu.readFlags() & control.RFLAGS_INTERRUPT_ENABLE == 0);
     try postman.validate.current(server);

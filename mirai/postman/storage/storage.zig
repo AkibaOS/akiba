@@ -87,7 +87,6 @@ pub fn detachSource(envelope: *Envelope) void {
     envelope.SourceNext = null;
 }
 
-/// The caller keeps the interrupt guard while invalidating the delivered call.
 pub fn revokeLease(envelope: *Envelope) void {
     const lease = envelope.Lease orelse return;
     envelope.Lease = null;
