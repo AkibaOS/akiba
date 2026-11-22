@@ -12,6 +12,7 @@ pub const EXECUTABLE_FONTPREVIEW = "fontpreview";
 pub const ENTRY_MIRAI = "mirai_entry";
 pub const EXECUTABLE_DISPLAY = "display";
 pub const IMPORT_DISPLAY_IMAGE = "displayimage";
+pub const IMPORT_AHCI_IMAGE = "ahciimage";
 pub const EXECUTABLE_KEYBOARD = "keyboard";
 pub const IMPORT_KEYBOARD_IMAGE = "keyboardimage";
 pub const ENTRY_PERSONA = "persona_entry";

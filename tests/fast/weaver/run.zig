@@ -17,6 +17,24 @@ const ALLOCATOR = std.testing.allocator;
 const SYSTEM = [_][]const u8{ "system", "libraries" };
 const INSTALLED = [_][]const u8{"libraries"};
 
+test "Weaver loads the exact fixed AHCI ELF without rebasing it or accepting overlaps" {
+    const actual = @embedFile("ahciimage");
+    const catalog: Catalog = .{ .Units = &.{} };
+    var graph = try weaver.library.load.collect.collect(ALLOCATOR, .{ .Context = &catalog, .ReadFromOrigin = Catalog.read }, actual);
+    defer graph.deinit();
+    const policy: elf.types.image.Policy = .{ .MinimumAddress = inputs.PAGE_BYTES, .MaximumAddress = inputs.USER_END, .MaximumPages = inputs.MAXIMUM_PAGES };
+    var placement = try weaver.image.place.place(ALLOCATOR, &graph, null, policy, &.{});
+    defer placement.deinit();
+    try std.testing.expectEqual(@as(usize, 0), graph.Libraries.len);
+    try std.testing.expectEqual(@as(u64, 0), placement.Executable.Bias);
+    try std.testing.expectEqual((try elf.read.header.read(actual)).Entry, placement.Executable.Image.Entry);
+    var linked = try weaver.link.plan.plan(ALLOCATOR, &placement);
+    defer linked.deinit();
+    const span = placement.Executable.Image.Ranges[0];
+    try std.testing.expectError(error.AddressOverlap, weaver.image.place.place(ALLOCATOR, &graph, null, policy, &.{.{ .Start = span.Start, .End = span.End }}));
+    try std.testing.expectError(error.InvalidPlacement, weaver.image.place.place(ALLOCATOR, &graph, .{ .Executable = inputs.PAGE_BYTES, .Libraries = &.{} }, policy, &.{}));
+}
+
 test "Weaver resolves a native library through a real writer produced AFS catalog" {
     try afs.installed(@embedFile("dynamicimage"), @embedFile("dynamiclibrary"));
 }

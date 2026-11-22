@@ -23,8 +23,10 @@ pub fn place(allocator: std.mem.Allocator, graph: *const Graph, biases: ?Biases,
     defer intervals.deinit(allocator);
     try intervals.appendSlice(allocator, reserved);
 
-    const initial = if (biases) |specified| specified.Executable else try fit(graph.Executable, policy.MinimumAddress, policy, reserved);
-    var executable = try elf.validate.dynamic.parse(allocator, graph.Executable, initial, .Executable, policy);
+    const absolute = (try elf.read.header.read(graph.Executable)).isExecutable();
+    if (absolute) if (biases) |specified| if (specified.Executable != 0) return error.InvalidPlacement;
+    const initial = if (absolute) 0 else if (biases) |specified| specified.Executable else try fit(graph.Executable, policy.MinimumAddress, policy, reserved);
+    var executable = if (absolute) try fixed(allocator, graph.Executable, policy) else try elf.validate.dynamic.parse(allocator, graph.Executable, initial, .Executable, policy);
     errdefer executable.Image.deinit();
     try addImage(allocator, &intervals, &executable);
     var remaining = policy.MaximumPages - executable.Image.Pages;
@@ -51,6 +53,16 @@ pub fn place(allocator: std.mem.Allocator, graph: *const Graph, biases: ?Biases,
         .Graph = graph,
         .Libraries = libraries,
         .Pages = policy.MaximumPages - remaining,
+    };
+}
+
+fn fixed(allocator: std.mem.Allocator, data: []const u8, policy: Policy) LayoutError!Layout {
+    return .{
+        .Image = try elf.validate.image.parse(allocator, data, policy),
+        .Metadata = .{ .Entries = &.{}, .Strings = &.{}, .Symbols = &.{}, .Relocations = &.{}, .ProcedureRelocations = &.{} },
+        .Bias = 0,
+        .Policy = policy,
+        .Relro = null,
     };
 }
 

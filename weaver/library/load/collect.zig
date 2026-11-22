@@ -15,6 +15,12 @@ const Source = library.types.source.Source;
 pub fn collect(allocator: std.mem.Allocator, source: Source, executable: []const u8) LibraryError!Graph {
     const bytes = try allocator.dupe(u8, executable);
     errdefer allocator.free(bytes);
+    if ((try elf.read.header.read(bytes)).isExecutable()) return .{
+        .Allocator = allocator,
+        .Executable = bytes,
+        .Libraries = try allocator.alloc(Library, 0),
+        .Names = .empty,
+    };
     const metadata = try elf.read.dynamic.read(bytes);
     var libraries: std.ArrayList(Library) = .empty;
     defer libraries.deinit(allocator);

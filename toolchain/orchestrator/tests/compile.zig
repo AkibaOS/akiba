@@ -75,6 +75,7 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
             root.addAnonymousImport(names.IMPORT_KEYBOARD_IMAGE, .{ .root_source_file = keyboard_artifact });
         }
         if (std.mem.eql(u8, suite.Root, paths.WEAVER_TEST_ROOT)) {
+            root.addAnonymousImport(names.IMPORT_AHCI_IMAGE, .{ .root_source_file = ahci.getEmittedBin() });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_IMAGE, .{ .root_source_file = dynamic.Program });
             root.addAnonymousImport(names.IMPORT_DYNAMIC_LIBRARY, .{ .root_source_file = dynamic.Library });
         }
