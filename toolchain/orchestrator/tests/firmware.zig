@@ -16,7 +16,6 @@ pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules
     checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
-    checks.addImport(names.MODULE_UTILS, modules.Utils);
     const root = builder.createModule(.{
         .root_source_file = builder.path(paths.FIRMWARE_TEST_ROOT),
         .target = target,

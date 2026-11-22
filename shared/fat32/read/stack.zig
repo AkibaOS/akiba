@@ -1,9 +1,8 @@
 //! FAT32 Stack Operations
 
 const constants = @import("shared").fat32.constants;
+const text = @import("common").text;
 const types = @import("shared").fat32.types;
-
-const text = @import("utils").text;
 
 const StackEntry = types.entry.StackEntry;
 

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.memory.fixtures;

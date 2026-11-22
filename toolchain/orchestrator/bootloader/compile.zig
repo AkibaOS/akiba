@@ -16,7 +16,6 @@ pub fn module(builder: *std.Build, modules: types.Modules, target: ?std.Build.Re
     root.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
     root.addImport(names.MODULE_COMMON, modules.Common);
     root.addImport(names.MODULE_SHARED, modules.Shared);
-    root.addImport(names.MODULE_UTILS, modules.Utils);
     root.addImport(names.EXECUTABLE_HIKARI, root);
     const options = builder.addOptions();
     options.addOption(bool, names.OPTION_DIAGNOSTIC_LOADER, diagnostics);
@@ -37,7 +36,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, diagnostics: bool) 
         .optimize = .ReleaseSafe,
     });
     root.addImport(names.EXECUTABLE_HIKARI, hikari);
-    root.addImport(names.MODULE_UTILS, modules.Utils);
+    root.addImport(names.MODULE_COMPILER, modules.Compiler);
     return builder.addExecutable(.{
         .name = names.EXECUTABLE_HIKARI,
         .root_module = root,

@@ -7,7 +7,7 @@ const common = @import("common");
 const constants = @import("hikari").sequence.constants.memory;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").sequence.errors;
-const math = @import("utils").math;
+const math = @import("common").math;
 const types = @import("hikari").sequence.types;
 
 const Allocation = efi.types.pages.claims.Allocation;

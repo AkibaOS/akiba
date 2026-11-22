@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const constants = @import("mirai").crimson.constants;
-const text = @import("utils").text;
+const text = @import("common").text;
 const types = @import("mirai").crimson.types;
 
 const limits = constants.limits;

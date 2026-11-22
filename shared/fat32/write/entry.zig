@@ -2,7 +2,7 @@
 
 const constants = @import("shared").fat32.constants;
 const strings = @import("shared").fat32.strings.identity;
-const text = @import("utils").text;
+const text = @import("common").text;
 const types = @import("shared").fat32.types;
 
 const ParsedIdentity = types.identity.ParsedIdentity;

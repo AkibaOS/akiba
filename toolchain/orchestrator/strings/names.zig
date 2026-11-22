@@ -3,7 +3,7 @@
 pub const MODULE_COMMON = "common";
 pub const MODULE_SHARED = "shared";
 pub const MODULE_ASSEMBLY = "asm";
-pub const MODULE_UTILS = "utils";
+pub const MODULE_COMPILER = "compiler";
 pub const MODULE_WEAVER = "weaver";
 pub const EXECUTABLE_HIKARI = "hikari";
 pub const EXECUTABLE_MIRAI = "mirai";

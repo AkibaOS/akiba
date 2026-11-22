@@ -1,6 +1,6 @@
 //! Cold Physical Memory Manager Setup
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const emission = @import("mirai").pmm.init.emission;
 const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").pmm.state;

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const boot = @import("shared").boot;
 const common = @import("common");
 const control = @import("asm").cpu.constants.control.registers;

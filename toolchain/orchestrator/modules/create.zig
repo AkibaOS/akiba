@@ -13,11 +13,10 @@ pub fn create(builder: *std.Build) types.Modules {
     });
     common.addImport(names.MODULE_COMMON, common);
 
-    const utils = builder.createModule(.{
-        .root_source_file = builder.path(paths.UTILS_ROOT),
+    const compiler = builder.createModule(.{
+        .root_source_file = builder.path(paths.COMPILER_ROOT),
     });
-    utils.addImport(names.MODULE_COMMON, common);
-    utils.addImport(names.MODULE_UTILS, utils);
+    compiler.addImport(names.MODULE_COMPILER, compiler);
 
     const sdk = builder.createModule(.{ .root_source_file = builder.path(paths.SDK_ROOT) });
     sdk.addImport(names.MODULE_SDK, sdk);
@@ -28,7 +27,6 @@ pub fn create(builder: *std.Build) types.Modules {
     shared.addImport(names.MODULE_COMMON, common);
     shared.addImport(names.MODULE_SHARED, shared);
     shared.addImport(names.MODULE_SDK, sdk);
-    shared.addImport(names.MODULE_UTILS, utils);
     shared.addAnonymousImport(names.IMPORT_FONT, .{ .root_source_file = builder.path(paths.FONT_RESOURCE) });
 
     const assembly = builder.createModule(.{
@@ -41,7 +39,7 @@ pub fn create(builder: *std.Build) types.Modules {
         .Common = common,
         .Shared = shared,
         .Assembly = assembly,
-        .Utils = utils,
+        .Compiler = compiler,
         .PersonaStartup = native.artifact(builder, common),
     };
 }

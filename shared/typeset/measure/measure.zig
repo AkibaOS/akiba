@@ -5,7 +5,7 @@ const std = @import("std");
 const font = @import("shared").font;
 const raster = @import("shared").raster;
 const typeset = @import("shared").typeset;
-const utf8 = @import("utils").text.utf8;
+const utf8 = @import("common").text.utf8;
 
 const Face = font.types.face.font.Face;
 const FontError = font.errors.font.FontError;

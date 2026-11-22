@@ -6,7 +6,7 @@ const Suite = @import("../types/suite.zig").Suite;
 
 pub const FAST = [_]Suite{
     .{ .Name = "common", .Root = "tests/fast/common/run.zig" },
-    .{ .Name = "utils", .Root = "tests/fast/utils/run.zig" },
+    .{ .Name = "foundation", .Root = "tests/fast/foundation/run.zig" },
     .{ .Name = "storage", .Root = "tests/fast/run/storage.zig" },
     .{ .Name = "render", .Root = "tests/fast/run/render.zig" },
     .{ .Name = "runner", .Root = "tests/fast/runner/run.zig" },

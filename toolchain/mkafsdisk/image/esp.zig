@@ -6,7 +6,7 @@ const backend = @import("mkafsdisk").image.io;
 const constants = @import("mkafsdisk").constants;
 const errors = @import("mkafsdisk").errors;
 const fat32 = @import("shared").fat32;
-const math = @import("utils").math;
+const math = @import("common").math;
 const strings = @import("mkafsdisk").strings;
 const types = @import("mkafsdisk").types;
 

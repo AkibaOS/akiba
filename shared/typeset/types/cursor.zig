@@ -6,7 +6,7 @@ const common = @import("common");
 const font = @import("shared").font;
 const raster = @import("shared").raster;
 const typeset = @import("shared").typeset;
-const utf8 = @import("utils").text.utf8;
+const utf8 = @import("common").text.utf8;
 
 const CoordinateError = raster.errors.raster.CoordinateError;
 const Face = font.types.face.font.Face;

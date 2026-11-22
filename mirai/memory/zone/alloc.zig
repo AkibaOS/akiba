@@ -1,12 +1,12 @@
 //! Zone Allocation
 
-const address = @import("utils").address;
-const bits = @import("utils").bits;
+const address = @import("common").memory;
+const bits = @import("common").bitmap;
 const bootstrap = @import("mirai").memory.zone.bootstrap;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const limits = @import("mirai").memory.constants.zone.limits;
-const math = @import("utils").math;
+const math = @import("common").math;
 const pages = @import("mirai").memory.zone.page;
 const pmm = @import("mirai").pmm;
 const types = @import("mirai").memory.types;

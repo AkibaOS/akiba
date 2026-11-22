@@ -31,7 +31,6 @@ pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules
     module.addImport(names.MODULE_COMMON, modules.Common);
     module.addImport(names.MODULE_SHARED, modules.Shared);
     module.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
-    module.addImport(names.MODULE_UTILS, modules.Utils);
     module.addImport(names.EXECUTABLE_MIRAI, module);
     const options = builder.addOptions();
     options.addOption(bool, names.OPTION_GUEST_CHECKS, guest_checks);
@@ -43,7 +42,6 @@ pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules
         checks.addImport(names.MODULE_COMMON, modules.Common);
         checks.addImport(names.MODULE_SHARED, modules.Shared);
         checks.addImport(names.MODULE_ASSEMBLY, modules.Assembly);
-        checks.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.EXECUTABLE_HIKARI, hikari);
         checks.addImport(names.EXECUTABLE_MIRAI, module);
         checks.addAnonymousImport(names.IMPORT_ELF_IMAGE, .{ .root_source_file = fixture.artifact(builder).getEmittedBin() });
@@ -54,7 +52,6 @@ pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules
         weaver.addImport(names.MODULE_WEAVER, weaver);
         weaver.addImport(names.MODULE_COMMON, modules.Common);
         weaver.addImport(names.MODULE_SHARED, modules.Shared);
-        weaver.addImport(names.MODULE_UTILS, modules.Utils);
         checks.addImport(names.MODULE_WEAVER, weaver);
         checks.addAnonymousImport(names.IMPORT_WEAVER_FIXTURE, .{ .root_source_file = fixture.weaverRequest(builder, modules, weaver, dynamic).getEmittedBin() });
         const probes = builder.createModule(.{
@@ -78,7 +75,7 @@ pub fn artifact(builder: *std.Build, modules: types.modules.dependencies.Modules
         .red_zone = false,
     });
     root.addImport(names.EXECUTABLE_MIRAI, module);
-    root.addImport(names.MODULE_UTILS, modules.Utils);
+    root.addImport(names.MODULE_COMPILER, modules.Compiler);
     const executable = builder.addExecutable(.{
         .name = if (guest_checks) names.EXECUTABLE_GUEST else names.EXECUTABLE_MIRAI,
         .root_module = root,

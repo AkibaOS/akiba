@@ -1,6 +1,6 @@
 //! Contiguous And Aligned Physical First-Fit Allocation
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;
 const state = @import("mirai").pmm.state;

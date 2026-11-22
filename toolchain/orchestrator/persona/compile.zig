@@ -17,7 +17,6 @@ pub fn module(builder: *std.Build, modules: types.Modules, definition: Definitio
     const binary = builder.createModule(.{ .root_source_file = builder.path(definition.Root) });
     binary.addImport(definition.Name, binary);
     binary.addImport(names.MODULE_COMMON, modules.Common);
-    binary.addImport(names.MODULE_UTILS, modules.Utils);
     binary.addImport(names.MODULE_SHARED, modules.Shared);
     binary.addImport(names.MODULE_PERSONA_ASSEMBLY, assembly);
     const root = builder.createModule(.{

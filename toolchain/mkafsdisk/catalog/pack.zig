@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-const separators = @import("utils").path.constants.separators;
+const separators = @import("shared").location.constants.separators;
 const tool = @import("mkafsdisk");
 
 const Entry = tool.types.catalog.entry.Entry;

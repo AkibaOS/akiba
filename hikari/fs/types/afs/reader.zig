@@ -4,9 +4,9 @@ const afs = @import("shared").afs;
 const disk = @import("hikari").disk;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
-const text = @import("utils").text;
+const locations = @import("shared").location;
+const text = @import("common").text;
 const types = @import("hikari").fs.types;
-const utils = @import("utils");
 
 const BTree = types.afs.btree.BTree;
 const BTreeHeaderRecord = afs.types.btree.records.HeaderRecord;
@@ -98,7 +98,7 @@ pub const Reader = struct {
     pub fn openLocation(self: *Reader, path: []const u8) ReadError!UnitRecord {
         if (self.CellSize == 0) return ReadError.ReadFailed;
         var current_node_id: u32 = constants.nodes.ORIGIN_STACK;
-        var iterator = utils.path.types.iterator.LocationIterator.init(path);
+        var iterator = locations.types.iterator.LocationIterator.init(path);
         while (iterator.next()) |component| {
             var identity_utf16: [@as(afs.types.btree.records.IndexKey, undefined).Identity.len]u16 = undefined;
             if (component.len == 0 or component.len > identity_utf16.len) return ReadError.InvalidIdentity;

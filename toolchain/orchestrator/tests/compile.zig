@@ -27,12 +27,10 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     checks.addImport(names.MODULE_TESTS, checks);
     checks.addImport(names.MODULE_COMMON, modules.Common);
     checks.addImport(names.MODULE_SHARED, modules.Shared);
-    checks.addImport(names.MODULE_UTILS, modules.Utils);
     const weaver = builder.createModule(.{ .root_source_file = builder.path(paths.WEAVER_ROOT) });
     weaver.addImport(names.MODULE_WEAVER, weaver);
     weaver.addImport(names.MODULE_COMMON, modules.Common);
     weaver.addImport(names.MODULE_SHARED, modules.Shared);
-    weaver.addImport(names.MODULE_UTILS, modules.Utils);
     checks.addImport(names.MODULE_WEAVER, weaver);
     const supervisor = builder.createModule(.{ .root_source_file = builder.path(paths.PULSE_ROOT) });
     supervisor.addImport(names.EXECUTABLE_PULSE, supervisor);
@@ -41,8 +39,8 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
     checks.addImport(names.EXECUTABLE_PULSE, supervisor);
     const tool = builder.createModule(.{ .root_source_file = builder.path(paths.MKAFSDISK_ROOT) });
     tool.addImport(names.EXECUTABLE_MKAFSDISK, tool);
+    tool.addImport(names.MODULE_COMMON, modules.Common);
     tool.addImport(names.MODULE_SHARED, modules.Shared);
-    tool.addImport(names.MODULE_UTILS, modules.Utils);
     checks.addImport(names.EXECUTABLE_MKAFSDISK, tool);
     const keyboard = builder.createModule(.{ .root_source_file = builder.path(paths.KEYBOARD_ROOT) });
     keyboard.addImport(names.EXECUTABLE_KEYBOARD, keyboard);
@@ -61,7 +59,6 @@ pub fn add(builder: *std.Build, modules: types.modules.dependencies.Modules, boo
         root.addImport(names.MODULE_TESTS, checks);
         root.addImport(names.MODULE_COMMON, modules.Common);
         root.addImport(names.MODULE_SHARED, modules.Shared);
-        root.addImport(names.MODULE_UTILS, modules.Utils);
         root.addImport(names.MODULE_WEAVER, weaver);
         root.addImport(names.EXECUTABLE_PULSE, supervisor);
         if (std.mem.eql(u8, suite.Name, names.EXECUTABLE_DISPLAY)) {

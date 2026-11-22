@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const force = @import("utils").analysis.force;
+const force = @import("compiler").force;
 const mirai = @import("mirai");
 
 comptime {

@@ -3,11 +3,11 @@
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
 const guard = @import("asm").interrupts.guard;
-const math = @import("utils").math;
+const math = @import("common").math;
 const page = @import("mirai").memory.zone.page;
 const pmm = @import("mirai").pmm;
 const strings = @import("mirai").memory.strings;
-const text = @import("utils").text;
+const text = @import("common").text;
 const types = @import("mirai").memory.types;
 
 const labels = strings.zone.labels;

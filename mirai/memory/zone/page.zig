@@ -1,6 +1,6 @@
 //! Zone Page Payload And List Membership
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const common = @import("common");
 const fields = @import("mirai").memory.strings.zone.fields;
 const tree = @import("common").datatypes.tree;

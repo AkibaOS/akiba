@@ -6,7 +6,7 @@ const afs = @import("shared").afs;
 const bounds = afs.read.bounds;
 const limits = afs.constants.sizes;
 const search = afs.btree.search;
-const separators = @import("utils").path.constants.separators;
+const separators = @import("shared").location.constants.separators;
 
 const BlockReader = afs.types.block.BlockReader;
 const Catalog = afs.types.reader.Catalog;

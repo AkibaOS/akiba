@@ -5,8 +5,8 @@ const bootstrap = @import("mirai").memory.zone.bootstrap;
 const common = @import("common");
 const constants = @import("mirai").memory.constants;
 const guard = @import("asm").interrupts.guard;
-const math = @import("utils").math;
-const text = @import("utils").text;
+const math = @import("common").math;
+const text = @import("common").text;
 const types = @import("mirai").memory.types;
 
 const limits = constants.zone.limits;

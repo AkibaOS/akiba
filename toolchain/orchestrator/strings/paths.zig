@@ -3,7 +3,7 @@
 pub const COMMON_ROOT = "common/common.zig";
 pub const SHARED_ROOT = "shared/shared.zig";
 pub const ASSEMBLY_ROOT = "asm/asm.zig";
-pub const UTILS_ROOT = "utils/utils.zig";
+pub const COMPILER_ROOT = "toolchain/compiler/compiler.zig";
 pub const HIKARI_ROOT = "hikari/hikari.zig";
 pub const HIKARI_ENTRY = "hikari/entry/entry.zig";
 pub const MIRAI_ROOT = "mirai/mirai.zig";

@@ -4,7 +4,7 @@ const std = @import("std");
 
 const budget = @import("tests").guest.support.allocation;
 const common = @import("common");
-const decompose = @import("utils").address.decompose;
+const decompose = @import("common").paging.decompose;
 const guard = @import("asm").interrupts.guard;
 const inputs = @import("tests").guest.constants.memory.fixtures;
 const kagami = @import("mirai").kagami;

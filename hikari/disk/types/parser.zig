@@ -3,10 +3,9 @@
 const std = @import("std");
 
 const constants = @import("hikari").disk.constants;
-const crc = @import("utils").crc;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").disk.errors;
-const math = @import("utils").math;
+const math = @import("common").math;
 const types = @import("hikari").disk.types;
 
 const MediaSnapshot = types.media.MediaSnapshot;
@@ -50,7 +49,7 @@ pub const Parser = struct {
 
         const stored_header_crc = header.HeaderCRC32;
         header.HeaderCRC32 = 0;
-        const calculated_header_crc = crc.checksum.calculate(header_bytes[0..header.HeaderSize]);
+        const calculated_header_crc = std.hash.Crc32.hash(header_bytes[0..header.HeaderSize]);
         header.HeaderCRC32 = stored_header_crc;
         if (calculated_header_crc != stored_header_crc) {
             return ParseError.InvalidHeaderCRC;
@@ -82,7 +81,7 @@ pub const Parser = struct {
         const entries = self.Scratch.Data[0..self.Scratch.Size];
         if (!media.read(checked_header.PartitionEntriesLBA, entries)) return ParseError.ReadFailed;
 
-        const calculated_entries_crc = crc.checksum.calculate(entries[0..entries_total_size]);
+        const calculated_entries_crc = std.hash.Crc32.hash(entries[0..entries_total_size]);
         if (calculated_entries_crc != checked_header.PartitionEntriesCRC32) return ParseError.InvalidEntriesCRC;
 
         self.Media = media;

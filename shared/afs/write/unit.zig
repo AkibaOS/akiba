@@ -4,7 +4,7 @@ const std = @import("std");
 
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
-const math = @import("utils").math;
+const math = @import("common").math;
 const types = @import("shared").afs.types;
 
 const BlockWriter = types.block.BlockWriter;

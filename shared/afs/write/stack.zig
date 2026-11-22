@@ -2,7 +2,7 @@
 
 const constants = @import("shared").afs.constants;
 const errors = @import("shared").afs.errors;
-const separators = @import("utils").path.constants.separators;
+const separators = @import("shared").location.constants.separators;
 const types = @import("shared").afs.types;
 
 const ChannelInfo = types.volume.ChannelInfo;

@@ -1,8 +1,7 @@
 //! Splash Handoff State
 
 const splash = @import("shared").splash;
-
-const text = @import("utils").text.ascii;
+const text = @import("common").text.ascii;
 
 const limits = splash.constants.limits;
 

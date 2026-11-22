@@ -8,7 +8,6 @@ const block = @import("hikari").efi.types.block;
 const boot = @import("hikari").efi.types.services.boot;
 const constants = @import("tests").guest.constants.acquisition;
 const convention = @import("hikari").efi.constants.convention;
-const crc = @import("utils").crc.checksum;
 const guids = @import("hikari").efi.constants.guids;
 const labels = @import("tests").guest.strings.acquisition;
 const memory = @import("hikari").efi.types.memory;
@@ -103,7 +102,7 @@ pub fn writeU64(bytes: []u8, offset: usize, value: u64) void {
 pub fn sealHeader() void {
     const header = headerBytes();
     writeU32(header, 16, 0);
-    writeU32(header, 16, crc.calculate(header[0..constants.HEADER_BYTES]));
+    writeU32(header, 16, std.hash.Crc32.hash(header[0..constants.HEADER_BYTES]));
 }
 
 pub fn encodeGPT() void {
@@ -127,7 +126,7 @@ pub fn encodeGPT() void {
     writeU64(header, 72, constants.TABLE_LBA);
     writeU32(header, 80, constants.ENTRY_COUNT);
     writeU32(header, 84, constants.ENTRY_BYTES);
-    writeU32(header, 88, crc.calculate(table[0..constants.TABLE_BYTES]));
+    writeU32(header, 88, std.hash.Crc32.hash(table[0..constants.TABLE_BYTES]));
     sealHeader();
 }
 
@@ -153,7 +152,7 @@ pub fn encodeExpandedGPT(block_size: u32, count: u32) void {
     writeU64(header, 72, constants.TABLE_LBA);
     writeU32(header, 80, count);
     writeU32(header, 84, constants.ENTRY_BYTES);
-    writeU32(header, 88, crc.calculate(table[0..table_size]));
+    writeU32(header, 88, std.hash.Crc32.hash(table[0..table_size]));
     sealHeader();
 }
 

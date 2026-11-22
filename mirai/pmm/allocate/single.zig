@@ -1,6 +1,6 @@
 //! Single Page Next-Fit Allocation
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const checks = if (options.GUEST_CHECKS) @import("tests").guest.support.allocation else null;
 const common = @import("common");
 const guard = @import("asm").interrupts.guard;

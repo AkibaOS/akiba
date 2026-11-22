@@ -5,8 +5,8 @@ const std = @import("std");
 const efi = @import("hikari").efi;
 const errors = @import("hikari").fs.errors;
 const fat32 = @import("shared").fat32;
+const locations = @import("shared").location;
 const types = @import("hikari").fs.types;
-const utils = @import("utils");
 
 const AllocatedBuffer = types.fat32.buffer.AllocatedBuffer;
 const BootSector = fat32.types.boot.BootSector;
@@ -203,7 +203,7 @@ pub const Reader = struct {
         try self.ensureReady();
         var current_cluster = self.OriginCluster;
         var is_stack = true;
-        var iterator = utils.path.types.iterator.LocationIterator.init(location);
+        var iterator = locations.types.iterator.LocationIterator.init(location);
         var last_entry: ?StackEntry = null;
         while (iterator.next()) |component| {
             if (!is_stack) return ReadError.NotAStack;

@@ -1,6 +1,6 @@
 //! AFS Allocation Map
 
-const bits = @import("utils").bits;
+const bits = @import("common").bitmap;
 const errors = @import("shared").afs.errors;
 
 const AllocationError = errors.allocate.AllocationError;

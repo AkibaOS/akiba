@@ -2,14 +2,14 @@
 
 const std = @import("std");
 
-const address = @import("utils").address;
+const address = @import("common").paging;
 const common = @import("common");
 const constants = @import("hikari").paging.constants;
 const control = @import("asm").cpu.control;
 const cpuid = @import("asm").cpu.cpuid;
 const efi = @import("hikari").efi;
 const errors = @import("hikari").paging.errors;
-const math = @import("utils").math;
+const math = @import("common").math;
 const msr = @import("asm").cpu.msr;
 const registers = @import("asm").cpu.constants.control.registers;
 const retirement = @import("shared").boot.types.retirement;

@@ -1,6 +1,6 @@
 //! Page Table Entry Type
 
-const address = @import("utils").address;
+const address = @import("common").memory;
 const ownership = @import("mirai").kagami.constants.ownership;
 
 pub const Entry = packed struct {

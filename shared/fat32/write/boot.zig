@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const constants = @import("shared").fat32.constants;
-const math = @import("utils").math;
+const math = @import("common").math;
 const strings = @import("shared").fat32.strings.identity;
 const types = @import("shared").fat32.types;
 

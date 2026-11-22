@@ -3,11 +3,8 @@
 const std = @import("std");
 
 const afs = @import("shared").afs;
-
 const constants = @import("mkafsdisk").constants;
 const strings = @import("mkafsdisk").strings;
-
-const crc = @import("utils").crc;
 
 const disk = constants.disk;
 const gpt = constants.gpt;
@@ -45,7 +42,7 @@ pub fn writeGpt(
     writePartitionEntry(&partition_entries, 0, &gpt.ESP_TYPE_GUID, &gpt.ESP_UNIQUE_GUID, esp_start, esp_end, names.ESP_PARTITION_NAME);
     writePartitionEntry(&partition_entries, 1, &afs.constants.magic.PARTITION_TYPE_GUID, &gpt.AFS_UNIQUE_GUID, afs_start, afs_end, names.AFS_PARTITION_NAME);
 
-    const entries_crc = crc.checksum.calculate(&partition_entries);
+    const entries_crc = std.hash.Crc32.hash(&partition_entries);
 
     var header: [disk.SECTOR_SIZE]u8 = [_]u8{0} ** disk.SECTOR_SIZE;
     @memcpy(header[gpt.HEADER_OFFSET_SIGNATURE..][0..8], names.GPT_SIGNATURE);
@@ -61,7 +58,7 @@ pub fn writeGpt(
     std.mem.writeInt(u32, header[gpt.HEADER_OFFSET_ENTRY_SIZE..][0..@sizeOf(u32)], gpt.PARTITION_ENTRY_SIZE, .little);
     std.mem.writeInt(u32, header[gpt.HEADER_OFFSET_ENTRIES_CRC..][0..@sizeOf(u32)], entries_crc, .little);
 
-    const header_crc = crc.checksum.calculate(header[0..gpt.HEADER_SIZE]);
+    const header_crc = std.hash.Crc32.hash(header[0..gpt.HEADER_SIZE]);
     std.mem.writeInt(u32, header[gpt.HEADER_OFFSET_HEADER_CRC..][0..@sizeOf(u32)], header_crc, .little);
 
     try file.seekTo(disk.SECTOR_SIZE);
@@ -78,7 +75,7 @@ pub fn writeGpt(
     std.mem.writeInt(u64, backup_header[gpt.HEADER_OFFSET_BACKUP_LBA..][0..@sizeOf(u64)], gpt.HEADER_LBA, .little);
     std.mem.writeInt(u64, backup_header[gpt.HEADER_OFFSET_ENTRIES_LBA..][0..@sizeOf(u64)], backup_entries_lba, .little);
     std.mem.writeInt(u32, backup_header[gpt.HEADER_OFFSET_HEADER_CRC..][0..@sizeOf(u32)], 0, .little);
-    const backup_crc = crc.checksum.calculate(backup_header[0..gpt.HEADER_SIZE]);
+    const backup_crc = std.hash.Crc32.hash(backup_header[0..gpt.HEADER_SIZE]);
     std.mem.writeInt(u32, backup_header[gpt.HEADER_OFFSET_HEADER_CRC..][0..@sizeOf(u32)], backup_crc, .little);
 
     try file.seekTo(@as(u64, total_sectors - 1) * disk.SECTOR_SIZE);
