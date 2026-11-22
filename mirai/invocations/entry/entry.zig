@@ -5,7 +5,6 @@ const completion = @import("mirai").invocations.completion;
 const constants = @import("mirai").invocations.constants.abi;
 const cpu = @import("asm").cpu;
 const device = @import("mirai").invocations.device.ahci;
-const display = @import("mirai").invocations.device.display;
 const ipc = @import("mirai").invocations.postman;
 const lifecycle = @import("mirai").invocations.lifecycle;
 const messages = @import("mirai").thread.strings.shift.messages;
@@ -63,10 +62,6 @@ export fn invocation_dispatch(frame: *InterruptFrame) void {
     }
     if (service == @intFromEnum(types.Service.Device)) {
         resource.dispatch(current, frame);
-        return;
-    }
-    if (service == @intFromEnum(types.Service.Display)) {
-        display.dispatch(current, frame);
         return;
     }
     if (service == @intFromEnum(types.Service.Provision)) {

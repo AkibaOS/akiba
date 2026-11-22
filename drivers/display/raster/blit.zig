@@ -9,12 +9,12 @@ const limits = @import("shared").persona.constants.postman;
 const pixels = @import("display").raster.row;
 
 const Mode = @import("shared").display.types.mode.Mode;
-const Operation = @import("shared").display.types.operation.Operation;
+const Operation = @import("shared").device.types.operation.Operation;
 const Rectangle = @import("shared").display.types.rectangle.Rectangle;
-const Row = @import("shared").display.types.operation.Row;
+const Row = @import("shared").display.types.row.Row;
 const Status = @import("shared").persona.types.invocation.Status;
 
-pub fn present(mode: Mode, payload: []const u8) bool {
+pub fn present(handle: u64, mode: Mode, payload: []const u8) bool {
     const header_bytes = @sizeOf(Rectangle);
     if (payload.len < header_bytes) return false;
     const box = std.mem.bytesToValue(Rectangle, payload[0..header_bytes]);
@@ -30,7 +30,7 @@ pub fn present(mode: Mode, payload: []const u8) bool {
             const bytes = count * format.RGB_BYTES;
             if (!pixels.pack(mode.Format, payload[offset..][0..bytes], output[0..count])) return false;
             const row: Row = .{ .X = box.X + column, .Y = box.Y + @as(u32, @intCast(line)), .Width = count, .Pixels = @intFromPtr(&output) };
-            const result = invoke.call(.Display, @intFromEnum(Operation.PresentRow), @intFromPtr(&row), 0, 0);
+            const result = invoke.call(.Device, @intFromEnum(Operation.SurfaceRow), handle, @intFromPtr(&row), 0);
             if (result.Status != @intFromEnum(Status.Success)) return false;
             offset += bytes;
             column += count;

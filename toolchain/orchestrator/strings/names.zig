@@ -11,7 +11,6 @@ pub const EXECUTABLE_MKAFSDISK = "mkafsdisk";
 pub const EXECUTABLE_FONTPREVIEW = "fontpreview";
 pub const ENTRY_MIRAI = "mirai_entry";
 pub const EXECUTABLE_DISPLAY = "display";
-pub const ENTRY_DISPLAY = "display_entry";
 pub const IMPORT_DISPLAY_IMAGE = "displayimage";
 pub const EXECUTABLE_KEYBOARD = "keyboard";
 pub const IMPORT_KEYBOARD_IMAGE = "keyboardimage";

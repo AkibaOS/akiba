@@ -8,10 +8,12 @@ const service = @import("shared").pulse.constants.supervision.protocol;
 
 const Header = @import("shared").persona.types.letter.Header;
 const Mode = @import("shared").display.types.mode.Mode;
-const Operation = @import("shared").display.types.operation.Operation;
+const Operation = @import("shared").device.types.operation.Operation;
 const Status = @import("shared").persona.types.invocation.Status;
 
 pub fn listen(supervisor: u64) noreturn {
+    const assignment = invoke.call(.Device, @intFromEnum(Operation.Lease), 0, 0, 0);
+    if (assignment.Status != @intFromEnum(Status.Success)) stop(assignment.Status);
     var mode: ?Mode = null;
     var payload: [limits.MAX_PAYLOAD_BYTES]u8 = undefined;
     var header: Header = undefined;
@@ -27,7 +29,7 @@ pub fn listen(supervisor: u64) noreturn {
             const bytes = payload[0..@intCast(received.Value)];
             switch (header.Type) {
                 service.SERVICE_QUERY => if (bytes.len == 0) {
-                    mode = describe();
+                    mode = describe(assignment.Value);
                     if (mode != null) kind = service.SERVICE_READY;
                 },
                 service.SERVICE_STOP => if (bytes.len == 0) {
@@ -42,7 +44,7 @@ pub fn listen(supervisor: u64) noreturn {
                     }
                 },
                 protocol.PRESENT => if (mode) |current| {
-                    if (blit.present(current, bytes)) kind = protocol.PRESENTED;
+                    if (blit.present(assignment.Value, current, bytes)) kind = protocol.PRESENTED;
                 },
                 else => {},
             }
@@ -56,9 +58,9 @@ pub fn listen(supervisor: u64) noreturn {
     }
 }
 
-fn describe() ?Mode {
+fn describe(handle: u64) ?Mode {
     var mode: Mode = undefined;
-    const result = invoke.call(.Display, @intFromEnum(Operation.Describe), @intFromPtr(&mode), 0, 0);
+    const result = invoke.call(.Device, @intFromEnum(Operation.SurfaceDescribe), handle, @intFromPtr(&mode), 0);
     return if (result.Status == @intFromEnum(Status.Success) and mode.isValid()) mode else null;
 }
 

@@ -2,7 +2,6 @@
 
 const std = @import("std");
 
-const binding = @import("mirai").device.binding;
 const copy = @import("mirai").user.copy.transfer;
 const geometry = @import("shared").display.geometry.rectangle;
 const guard = @import("asm").interrupts.guard;
@@ -14,33 +13,36 @@ const postman = @import("mirai").postman;
 
 const Framebuffer = @import("shared").boot.types.framebuffer.FramebufferInfo;
 const Mode = @import("shared").display.types.mode.Mode;
-const Row = @import("shared").display.types.operation.Row;
+const Row = @import("shared").display.types.row.Row;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
 var framebuffer: ?Framebuffer = null;
+var surface: ?u64 = null;
 
 pub fn adopt(descriptor: Framebuffer) void {
     const flags = guard.acquire();
     defer guard.release(flags);
     if (framebuffer != null or !descriptor.isValid()) return;
-    _ = instances.register(.Framebuffer, locations.FIRMWARE_SURFACE) orelse @panic(messages.REGISTRY_FULL);
+    surface = instances.register(.Framebuffer, locations.FIRMWARE_SURFACE) orelse @panic(messages.REGISTRY_FULL);
     framebuffer = descriptor;
 }
 
-pub fn check(caller: *Thread) !void {
+pub fn check(caller: *Thread, handle: u64) !void {
     try postman.validate.current(caller);
-    if (binding.owner(.Display) != caller.Owner) return error.InvalidCaller;
+    const target = instances.resolve(caller.Owner, handle) orelse return error.InvalidCaller;
+    if (target.Kind != .Framebuffer or target.ID != surface) return error.InvalidTarget;
 }
 
-pub fn mode() !Mode {
+pub fn mode(caller: *Thread, handle: u64) !Mode {
+    try check(caller, handle);
     const current = framebuffer orelse return error.NotInitialized;
     return describe(current);
 }
 
-pub fn present(caller: *Thread, row: Row) !void {
+pub fn present(caller: *Thread, handle: u64, row: Row) !void {
     const flags = guard.acquire();
     defer guard.release(flags);
-    try check(caller);
+    try check(caller, handle);
     const current = framebuffer orelse return error.NotInitialized;
     if (row.Reserved != 0 or row.Width > limits.MAX_COPY_BYTES / @sizeOf(u32)) return error.InvalidArgument;
     const offset = geometry.rowOffset(describe(current), row.X, row.Y, row.Width, @intCast(current.Size / @sizeOf(u32))) orelse return error.InvalidArgument;

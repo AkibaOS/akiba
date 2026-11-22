@@ -1,48 +1,26 @@
-//! Dispatch Private Display Mode And Row Calls
+//! Copy Assigned Surface Mode And Row Invocation Data
 
 const std = @import("std");
 
 const copy = @import("mirai").user.copy.transfer;
-const frame = @import("mirai").device.display.frame;
+const surface = @import("mirai").device.display.frame;
 
-const InterruptFrame = @import("mirai").interrupts.types.frame.InterruptFrame;
-const Operation = @import("shared").display.types.operation.Operation;
-const Row = @import("shared").display.types.operation.Row;
-const Status = @import("shared").persona.types.invocation.Status;
+const Operation = @import("shared").device.types.operation.Operation;
+const Row = @import("shared").display.types.row.Row;
 const Thread = @import("mirai").thread.types.thread.Thread;
 
-pub fn dispatch(caller: *Thread, registers: *InterruptFrame) void {
-    perform(caller, registers) catch |failure| {
-        registers.RAX = @intFromEnum(status(failure));
-        registers.RDX = 0;
-        return;
-    };
-    registers.RAX = @intFromEnum(Status.Success);
-    registers.RDX = 0;
-}
-
-fn perform(caller: *Thread, registers: *const InterruptFrame) !void {
-    try frame.check(caller);
-    if (registers.RDX != 0 or registers.R10 != 0) return error.InvalidArgument;
-    switch (std.enums.fromInt(Operation, registers.RDI) orelse return error.InvalidArgument) {
-        .Describe => {
-            const info = try frame.mode();
-            try copy.write(caller.Owner, registers.RSI, std.mem.asBytes(&info));
+pub fn perform(caller: *Thread, operation: Operation, handle: u64, address: u64) !void {
+    try surface.check(caller, handle);
+    switch (operation) {
+        .SurfaceDescribe => {
+            const mode = try surface.mode(caller, handle);
+            try copy.write(caller.Owner, address, std.mem.asBytes(&mode));
         },
-        .PresentRow => {
+        .SurfaceRow => {
             var row: Row = undefined;
-            try copy.read(caller.Owner, std.mem.asBytes(&row), registers.RSI);
-            try frame.present(caller, row);
+            try copy.read(caller.Owner, std.mem.asBytes(&row), address);
+            try surface.present(caller, handle, row);
         },
+        else => return error.InvalidArgument,
     }
-}
-
-fn status(failure: anyerror) Status {
-    return switch (failure) {
-        error.InvalidArgument => .InvalidArgument,
-        error.InvalidCaller, error.InvalidThread => .InvalidCaller,
-        error.NotInitialized => .NotInitialized,
-        error.InvalidUserRange, error.InvalidAddress, error.NotOwned, error.InvalidOwnedMapping, error.InvalidPhysmap, error.SealedPage => .InvalidAddress,
-        else => .InvalidState,
-    };
 }

@@ -1,6 +1,4 @@
-//! Private Display Mode And Row Invocation
-
-pub const Operation = enum(u64) { Describe, PresentRow };
+//! Bounded Display Row Input
 
 pub const Row = extern struct {
     X: u32,

@@ -13,7 +13,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules) std.Build.LazyPath 
         .Name = names.EXECUTABLE_DISPLAY,
         .Root = paths.DISPLAY_ROOT,
         .Entry = paths.DISPLAY_ENTRY,
-        .Symbol = names.ENTRY_DISPLAY,
+        .Symbol = names.ENTRY_PERSONA,
     });
 }
 

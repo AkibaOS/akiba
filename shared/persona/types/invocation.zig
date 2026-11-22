@@ -25,7 +25,6 @@ pub const Service = enum(u64) {
     ReceiveActivity = 18,
     StopChild = 19,
     WaitCompletionTimed = 20,
-    Display = 22,
     Device = @intFromEnum(Native.Device),
     Provision = provision.SERVICE,
 };

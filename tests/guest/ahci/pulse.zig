@@ -4,7 +4,6 @@ const std = @import("std");
 
 const afs = @import("mirai").bootstrap.driver.afs;
 const authority = @import("mirai").device.ahci.authority;
-const binding = @import("mirai").device.binding;
 const display = @import("tests").guest.ahci.display;
 const drive = @import("tests").guest.support.drive;
 const events = @import("tests").fixtures.constants.service;
@@ -14,9 +13,12 @@ const handoff = @import("mirai").bootstrap.storage.handoff;
 const harness = @import("tests").guest.postman.harness;
 const input = @import("tests").guest.drivers.input;
 const installed = @import("tests").guest.ahci.weaver;
+const instances = @import("mirai").device.instance.registry;
 const kata = @import("mirai").kata;
 const keyboard = @import("tests").guest.ahci.keyboard;
 const launch = @import("mirai").bootstrap.pulse.launch;
+const locators = @import("mirai").device.constants.instance.limits;
+const ports = @import("mirai").drivers.constants.keyboard.ports;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 const status = @import("shared").pulse.constants.status;
@@ -27,6 +29,8 @@ const weaver = @import("mirai").bootstrap.weaver.handoff;
 const Actor = @import("tests").guest.types.postman.fixtures.Actor;
 const DeviceOperation = @import("shared").ahci.types.device.invocation.Operation;
 const Context = @import("tests").guest.types.ahci.pulse.Context;
+const Kata = @import("mirai").kata.types.kata.Kata;
+const Kind = @import("shared").device.types.instance.Kind;
 const Operation = @import("shared").pulse.types.boot.control.Operation;
 const Prepared = @import("mirai").bootstrap.types.image.preparation.Prepared;
 const PulseError = @import("mirai").bootstrap.errors.pulse.launch.PulseError;
@@ -64,14 +68,14 @@ pub fn prove(volume: Volume) !bool {
 
     const ready = weaver.startupFinished(pulse.ID);
     const keyboard_id = if (ready) actual: {
-        const owner = binding.owner(.Keyboard) orelse return WitnessError.KeyboardDriverMissing;
+        const owner = deviceOwner(.Keyboard, ports.IRQ) orelse return WitnessError.KeyboardDriverMissing;
         const target = thread.state.firstFor(owner) orelse return WitnessError.KeyboardDriverMissing;
         if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.KeyboardDriverMissing;
         input.run();
         break :actual owner.ID;
     } else 0;
     const display_id = if (ready) actual: {
-        const owner = binding.owner(.Display) orelse return WitnessError.DisplayDriverMissing;
+        const owner = deviceOwner(.Framebuffer, locators.FIRMWARE_SURFACE) orelse return WitnessError.DisplayDriverMissing;
         const target = thread.state.firstFor(owner) orelse return WitnessError.DisplayDriverMissing;
         if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.DisplayDriverMissing;
         break :actual owner.ID;
@@ -104,7 +108,7 @@ fn exercise(context: *const Context) !bool {
     if (!launched) return false;
     try display.prove(context.PulseID, context.DisplayID);
     const supervised = supervisor.prove(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.SupervisorExerciseDeadline else failure;
-    return supervised and binding.owner(.Display) == null and binding.owner(.Keyboard) == null;
+    return supervised and deviceOwner(.Framebuffer, locators.FIRMWARE_SURFACE) == null and deviceOwner(.Keyboard, ports.IRQ) == null;
 }
 
 fn exchange(identifier: u64) !bool {
@@ -117,7 +121,7 @@ fn exchange(identifier: u64) !bool {
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
         .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
         .{ .Service = .Device },
-        .{ .Service = .Display },
+        .{ .Service = .Yield, .ServiceValue = fixture.LEGACY_DISPLAY_SERVICE },
     });
     try harness.start(&client);
     try harness.waitStep(&client, 1);
@@ -137,9 +141,13 @@ fn exchange(identifier: u64) !bool {
     const keyboard_denied = try harness.resultIs(&client, 5, .InvalidCaller, 0);
     try harness.advance(&client, 5);
     try harness.waitStep(&client, 6);
-    const display_denied = try harness.resultIs(&client, 6, .InvalidCaller, 0);
+    const display_denied = try harness.resultIs(&client, 6, .Unsupported, 0);
     try harness.advance(&client, 6);
     return ready and refused and denied and disk_denied and keyboard_denied and display_denied;
+}
+
+fn deviceOwner(kind: Kind, location: u64) ?*Kata {
+    return instances.assignedOwner(instances.find(kind, location) orelse return null);
 }
 
 fn waiting(pulse: Prepared) bool {

@@ -10,3 +10,5 @@ pub const PENDING_ASSIGNMENT = "an unpublished device reservation cannot be used
 pub const DEVICE_CONTENTION = "a second Kata cannot reserve the same pending device";
 pub const REBOUND_ASSIGNMENT = "destroying an unpublished Kata releases its instance without reusing assignment handles";
 pub const REBOUND_DRIVER = "Pulse reattaches the keyboard instance to a new Kata after the old driver stops";
+pub const REBOUND_SURFACE = "Pulse reattaches the scanout surface after its display driver stops";
+pub const STALE_SURFACE = "a valid row cannot present through an old surface assignment while the fresh assignment succeeds";
