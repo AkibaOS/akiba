@@ -8,4 +8,5 @@ pub const firmware = @import("firmware.zig");
 pub const input = @import("input.zig");
 pub const live = @import("live/live.zig");
 pub const menu = @import("menu/menu.zig");
+pub const storage = @import("storage.zig");
 pub const wire = @import("wire/wire.zig");

@@ -18,6 +18,8 @@ pub const Paths = struct {
     Qemu: []const u8,
     QemuImage: []const u8,
     BootOverlay: ?[]const u8 = null,
+    DataDisk: ?[]const u8 = null,
+    DataOverlay: ?[]const u8 = null,
 };
 
 pub const Connection = struct {

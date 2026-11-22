@@ -39,6 +39,7 @@ pub fn reserve(identifier: u64, owner: *const Kata) !u64 {
     const flags = guard.acquire();
     defer guard.release(flags);
     const entry = record(identifier) orelse return error.InvalidTarget;
+    if (!entry.Available) return error.InvalidTarget;
     if (!state.owns(owner) or owner.Permanent or owner.CanProvision or owner.State != .Born) return error.InvalidState;
     if (entry.Assignment != null or heldBy(owner.ID) != null) return error.Busy;
     if (last_handle == std.math.maxInt(u64)) return error.CapacityReached;
@@ -67,7 +68,7 @@ pub fn handleFor(owner: *const Kata) ?u64 {
     if (!state.owns(owner) or !live(owner)) return null;
     const entry = heldBy(owner.ID) orelse return null;
     const assignment = entry.Assignment.?;
-    return if (assignment.Committed) assignment.Handle else null;
+    return if (entry.Available and assignment.Committed) assignment.Handle else null;
 }
 
 pub fn resolve(owner: *const Kata, handle: u64) ?Instance {
@@ -76,7 +77,14 @@ pub fn resolve(owner: *const Kata, handle: u64) ?Instance {
     if (!state.owns(owner) or !live(owner)) return null;
     const entry = heldBy(owner.ID) orelse return null;
     const assignment = entry.Assignment.?;
-    return if (assignment.Committed and assignment.Handle == handle) entry.Device else null;
+    return if (entry.Available and assignment.Committed and assignment.Handle == handle) entry.Device else null;
+}
+
+pub fn disable(identifier: u64) void {
+    const flags = guard.acquire();
+    defer guard.release(flags);
+    const entry = record(identifier) orelse return;
+    entry.Available = false;
 }
 
 pub fn assignedOwner(identifier: u64) ?*Kata {

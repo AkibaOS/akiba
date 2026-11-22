@@ -13,7 +13,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules) *std.Build.Step.Com
         .Name = names.EXECUTABLE_AHCI,
         .Root = paths.AHCI_ROOT,
         .Entry = paths.AHCI_ENTRY,
-        .Symbol = names.ENTRY_AHCI,
+        .Symbol = names.ENTRY_PERSONA,
         .Linker = paths.AHCI_LINKER,
     });
 }

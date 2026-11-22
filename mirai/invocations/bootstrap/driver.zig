@@ -5,6 +5,7 @@ const std = @import("std");
 const afs = @import("mirai").bootstrap.driver.afs;
 const ahci = @import("mirai").bootstrap.driver.handoff;
 const instances = @import("mirai").device.instance.registry;
+const native = @import("mirai").device.ahci.storage;
 const storage = @import("mirai").bootstrap.storage.handoff;
 
 const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;
@@ -46,7 +47,7 @@ fn perform(caller: *Thread, frame: *const Frame) !u64 {
         .LocateDevice => found: {
             if (storage.forPulse(caller.Owner) == null) return error.InvalidCaller;
             const kind = std.enums.fromInt(Kind, frame.RSI) orelse return error.InvalidArgument;
-            break :found instances.find(kind, frame.RDX) orelse return error.InvalidTarget;
+            break :found if (kind == .Ahci) try native.locate(frame.RDX) else instances.find(kind, frame.RDX) orelse return error.InvalidTarget;
         },
     };
 }

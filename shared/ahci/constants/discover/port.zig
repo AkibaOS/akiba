@@ -7,3 +7,4 @@ pub const POWER_MASK: u32 = 0xf00;
 pub const ACTIVE: u32 = 0x100;
 pub const ATA_SIGNATURE: u32 = 0x00000101;
 pub const PACKET_SIGNATURE: u32 = 0xeb140101;
+pub const INITIAL_SIGNATURE: u32 = 0xffffffff;

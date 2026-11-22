@@ -1,6 +1,6 @@
 //! Address Free Device Inventory Data
 
-pub const Kind = enum(u64) { Keyboard, Framebuffer };
+pub const Kind = enum(u64) { Keyboard, Framebuffer, Ahci };
 
 pub const Instance = extern struct {
     ID: u64,

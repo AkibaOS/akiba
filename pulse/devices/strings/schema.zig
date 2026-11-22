@@ -8,5 +8,6 @@ pub const PROTOCOL = "protocol";
 pub const LOCATION = "location";
 pub const KEYBOARD = "keyboard";
 pub const FRAMEBUFFER = "framebuffer";
+pub const AHCI = "ahci";
 pub const SELECT = "select";
 pub const BINARY = "binary";

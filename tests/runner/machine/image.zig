@@ -4,6 +4,7 @@ const std = @import("std");
 
 const limits = @import("tests").runner.constants.limits;
 const process = @import("tests").runner.process.lifetime;
+const storage = @import("tests").runner.machine.storage;
 const strings = @import("tests").runner.strings.runner;
 const types = @import("tests").runner.types.host;
 
@@ -24,6 +25,11 @@ pub fn fingerprint(path: []const u8) !types.Fingerprint {
 }
 
 pub fn prepare(allocator: std.mem.Allocator, paths: *const types.Paths, cleaned: *bool) !void {
+    if (paths.DataDisk) |path| {
+        try storage.create(path);
+        const overlay = paths.DataOverlay orelse return error.InvalidSecondaryDisk;
+        try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, strings.BACKING_FORMAT_FLAG, strings.RAW, strings.BACKING_FLAG, path, overlay }, cleaned);
+    }
     try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, strings.BACKING_FORMAT_FLAG, strings.RAW, strings.BACKING_FLAG, paths.FirmwareTemplate, paths.Variables }, cleaned);
     try create(allocator, paths, &.{ paths.QemuImage, strings.CREATE, strings.FORMAT_FLAG, strings.QCOW2, paths.State, strings.STATE_SIZE }, cleaned);
     if (paths.BootOverlay) |overlay|

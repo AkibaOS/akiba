@@ -1,4 +1,6 @@
-//! Boot Volume Record Bounds
+//! Internal View Of Native Volume Bounds
 
-pub const GUID_BYTES: usize = 16;
-pub const MINIMUM_BLOCK_BYTES: u32 = 512;
+const wire = @import("sdk").storage.constants.volume;
+
+pub const GUID_BYTES = wire.GUID_BYTES;
+pub const MINIMUM_BLOCK_BYTES = wire.MINIMUM_BLOCK_BYTES;

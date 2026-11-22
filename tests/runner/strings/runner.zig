@@ -92,6 +92,9 @@ pub const BOOT_DEVICE = "virtio-blk-pci,drive=" ++ DISK ++ ",bootindex=1,id=stag
 pub const AHCI_CONTROLLER_ID = "relocated-sata";
 pub const AHCI_CONTROLLER = "ich9-ahci,id=" ++ AHCI_CONTROLLER_ID ++ ",bus=pcie.0,addr=0x6";
 pub const AHCI_DEVICE = "ide-hd,bus=" ++ AHCI_CONTROLLER_ID ++ ".0,drive=" ++ DISK ++ ",bootindex=1,id=stage-drive";
+pub const DATA_DISK = "secondary-data";
+pub const DATA_CONTROLLER = "ich9-ahci,id=data-sata,bus=pcie.0,addr=0x7";
+pub const DATA_DEVICE = "ide-hd,bus=data-sata.0,drive=" ++ DATA_DISK ++ ",id=data-drive";
 pub const CREATE = "create";
 pub const FORMAT_FLAG = "-f";
 pub const BACKING_FORMAT_FLAG = "-F";
@@ -103,7 +106,7 @@ pub const SNAPSHOT_SAVE = "snapshot-save";
 pub const SNAPSHOT_LOAD = "snapshot-load";
 pub const SNAPSHOT_ID = "cold";
 pub const SNAPSHOT_ARGUMENTS = "{\"job-id\":\"" ++ SNAPSHOT_ID ++ "\",\"tag\":\"cold\",\"vmstate\":\"" ++ STATE ++ "\",\"devices\":[\"" ++ FLASH_VARS ++ "\",\"" ++ STATE ++ "\"]}";
-pub const AHCI_SNAPSHOT_ARGUMENTS = "{\"job-id\":\"" ++ SNAPSHOT_ID ++ "\",\"tag\":\"cold\",\"vmstate\":\"" ++ STATE ++ "\",\"devices\":[\"" ++ FLASH_VARS ++ "\",\"" ++ STATE ++ "\",\"" ++ DISK ++ "\"]}";
+pub const AHCI_SNAPSHOT_ARGUMENTS = "{\"job-id\":\"" ++ SNAPSHOT_ID ++ "\",\"tag\":\"cold\",\"vmstate\":\"" ++ STATE ++ "\",\"devices\":[\"" ++ FLASH_VARS ++ "\",\"" ++ STATE ++ "\",\"" ++ DISK ++ "\",\"" ++ DATA_DISK ++ "\"]}";
 pub const QUERY_JOBS = "query-jobs";
 pub const JOB_DISMISS = "job-dismiss";
 pub const DISMISS_ARGUMENTS = "{\"id\":\"" ++ SNAPSHOT_ID ++ "\"}";

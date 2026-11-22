@@ -20,7 +20,6 @@ pub const Service = enum(u64) {
     CollectCompletion = 12,
     BootstrapWeaver = 14,
     BootstrapDriver = 15,
-    Ahci = 16,
     CallTimed = 17,
     ReceiveActivity = 18,
     StopChild = 19,

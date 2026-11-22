@@ -46,6 +46,10 @@ test "AHCI distinguishes a ready ATA disk from a known packet device" {
     try ports.knownKinds();
 }
 
+test "AHCI needs initial FIS reception only for an active linked port with the reset signature" {
+    try ports.initialSignature();
+}
+
 test "AHCI keeps present but unready or unknown ports unverifiable" {
     try ports.unverifiable();
 }

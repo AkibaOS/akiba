@@ -14,6 +14,7 @@ pub const WORLD =
     \\service "control" binary="requestprobe" control=true { parameters "controller"; }
     \\service "keyboard" device="keyboard" location=1 restart=1
     \\service "display" device="framebuffer" location=0 restart=1
+    \\service "secondary" device="ahci" location=0x3800 restart=1
 ;
 pub const FAILURE = "fail";
 pub const SILENT = "silent";

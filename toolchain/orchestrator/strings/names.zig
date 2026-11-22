@@ -25,7 +25,6 @@ pub const ENTRY_PULSE = "pulse_entry";
 pub const EXECUTABLE_AFS = "afs";
 pub const ENTRY_AFS = "afs_entry";
 pub const EXECUTABLE_AHCI = "ahci";
-pub const ENTRY_AHCI = "ahci_entry";
 pub const ENTRY_WEAVER = "weaver_entry";
 pub const MODULE_PERSONA_ASSEMBLY = "personaasm";
 

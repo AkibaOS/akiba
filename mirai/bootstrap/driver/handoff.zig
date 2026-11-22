@@ -1,8 +1,9 @@
 //! Admit Only The Exact Shipped AHCI Driver For Initial Pulse
 
-const authority = @import("mirai").device.ahci.authority;
+const authority = @import("mirai").device.ahci.storage;
 const guard = @import("asm").interrupts.guard;
 const image = @import("mirai").bootstrap.image;
+const instances = @import("mirai").device.instance.registry;
 const memory = @import("mirai").memory.allocator.native;
 const postman = @import("mirai").postman;
 const rollback = @import("mirai").bootstrap.strings.image.rollback;
@@ -43,6 +44,7 @@ pub fn startAhci(caller: *Thread) !u64 {
     try authority.grant(prepared.Owner, disk);
     errdefer authority.rollback(prepared.Owner);
     const identifier = try image.start.start(prepared);
+    instances.commit(identifier);
     pending = null;
     memory.get().free(source.Bytes);
     return identifier;

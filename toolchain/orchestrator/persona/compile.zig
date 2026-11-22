@@ -43,6 +43,7 @@ pub fn artifact(builder: *std.Build, modules: types.Modules, definition: Definit
         .use_llvm = true,
         .use_lld = true,
     });
+    if (std.mem.eql(u8, definition.Symbol, names.ENTRY_PERSONA)) executable.root_module.addObjectFile(modules.PersonaStartup);
     executable.entry = .{ .symbol_name = definition.Symbol };
     executable.pie = false;
     executable.bundle_compiler_rt = true;

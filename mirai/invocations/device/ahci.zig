@@ -1,57 +1,44 @@
-//! Validate And Copy Initial AHCI Driver Invocations
+//! Copy Typed Assigned Block Device Invocation Data
 
 const std = @import("std");
 
-const authority = @import("mirai").device.ahci.authority;
 const copy = @import("mirai").user.copy.transfer;
+const storage = @import("mirai").device.ahci.storage;
 const wire = @import("shared").ahci.constants.command.dma;
 
 const Command = @import("shared").ahci.types.command.operation.Operation;
-const Frame = @import("mirai").interrupts.types.frame.InterruptFrame;
-const Grant = @import("mirai").device.types.ahci.grant.Grant;
-const Operation = @import("shared").ahci.types.device.invocation.Operation;
-const Status = @import("shared").persona.types.invocation.Status;
+const Disk = @import("mirai").device.types.ahci.disk.Disk;
+const Operation = @import("shared").device.types.operation.Operation;
+const Read = @import("shared").ahci.types.device.invocation.Read;
 const Thread = @import("mirai").thread.types.thread.Thread;
+const Volume = @import("shared").boot.types.volume.Volume;
 
-pub fn device(caller: *Thread, frame: *Frame) void {
-    perform(caller, frame) catch |failure| return respond(frame, status(failure), 0);
-    respond(frame, .Success, 0);
-}
-
-fn perform(caller: *Thread, frame: *const Frame) !void {
-    const grant = try authority.authorize(caller);
-    const operation = std.enums.fromInt(Operation, frame.RDI) orelse return error.InvalidArgument;
-    if (frame.R10 != 0 or (operation != .Read and frame.RDX != 0) or (operation == .Confirm and frame.RSI != 0)) return error.InvalidArgument;
+pub fn perform(caller: *Thread, operation: Operation, handle: u64, argument: u64) !void {
+    const disk = try storage.authorize(caller, handle);
     switch (operation) {
-        .Describe => {
-            const description = authority.describe(grant);
-            try copy.write(caller.Owner, frame.RSI, std.mem.asBytes(&description));
+        .BlockDescribe => {
+            const description = storage.describe(disk);
+            try copy.write(caller.Owner, argument, std.mem.asBytes(&description));
         },
-        .Identify => try transfer(caller, grant, .Identify, frame.RSI),
-        .Read => try transfer(caller, grant, .{ .Read = frame.RSI }, frame.RDX),
-        .Confirm => try authority.confirmDisk(grant),
-        .CheckClient => try authority.checkClient(grant, frame.RSI),
+        .BlockIdentify => try transfer(caller, disk, .Identify, argument),
+        .BlockRead => {
+            var request: Read = undefined;
+            try copy.read(caller.Owner, std.mem.asBytes(&request), argument);
+            try transfer(caller, disk, .{ .Read = request.Sector }, request.Destination);
+        },
+        .BlockConfirm => {
+            var volume: Volume = undefined;
+            try copy.read(caller.Owner, std.mem.asBytes(&volume), argument);
+            try storage.confirmDisk(disk, volume);
+        },
+        .BlockClient => try storage.checkClient(disk, argument),
+        else => return error.InvalidArgument,
     }
 }
 
-fn transfer(caller: *Thread, grant: *const Grant, operation: Command, destination: u64) !void {
+fn transfer(caller: *Thread, disk: *Disk, operation: Command, destination: u64) !void {
     var output: [wire.SECTOR_BYTES]u8 = undefined;
     if (!copy.validate(caller.Owner, destination, output.len, true)) return error.InvalidAddress;
-    try authority.transfer(grant, operation, &output);
+    try storage.transfer(disk, operation, &output);
     try copy.write(caller.Owner, destination, &output);
-}
-
-fn respond(frame: *Frame, result: Status, value: u64) void {
-    frame.RAX = @intFromEnum(result);
-    frame.RDX = value;
-}
-
-fn status(failure: anyerror) Status {
-    return switch (failure) {
-        error.InvalidCaller, error.InvalidThread, error.UnsafeContext => .InvalidCaller,
-        error.InvalidArgument => .InvalidArgument,
-        error.InvalidAddress, error.InvalidUserRange, error.NotOwned, error.InvalidOwnedMapping, error.InvalidPhysmap, error.SealedPage, error.PermissionDenied => .InvalidAddress,
-        error.OutOfMemory => .NoResources,
-        else => .InvalidState,
-    };
 }

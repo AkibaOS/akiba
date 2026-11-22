@@ -13,6 +13,15 @@ pub fn knownKinds() !void {
     try std.testing.expectEqual(Kind.Empty, decode.classify(samples.EMPTY, samples.ATA_DISK));
 }
 
+pub fn initialSignature() !void {
+    try std.testing.expectEqual(Kind.Unverifiable, decode.classify(samples.ACTIVE, samples.INITIAL));
+    try std.testing.expect(decode.needsReceive(samples.ACTIVE, samples.INITIAL));
+    try std.testing.expect(!decode.needsReceive(samples.EMPTY, samples.INITIAL));
+    try std.testing.expect(!decode.needsReceive(samples.ASLEEP, samples.INITIAL));
+    try std.testing.expect(!decode.needsReceive(samples.ACTIVE, samples.UNRECOGNIZED));
+    try std.testing.expect(!decode.needsReceive(samples.ACTIVE, samples.ATA_DISK));
+}
+
 pub fn unverifiable() !void {
     try std.testing.expectEqual(Kind.Unverifiable, decode.classify(samples.ACTIVE, samples.UNRECOGNIZED));
     try std.testing.expectEqual(Kind.Unverifiable, decode.classify(samples.ASLEEP, samples.ATA_DISK));

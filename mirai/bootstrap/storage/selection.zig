@@ -7,7 +7,7 @@ const identity = @import("mirai").bootstrap.storage.identity;
 const layout = @import("common").constants.memory.layout;
 const pci = @import("mirai").device.pci.configuration;
 const physmap = @import("mirai").kagami.tables.physmap;
-const registers = @import("mirai").device.ahci.registers;
+const quarantine = @import("mirai").device.ahci.quarantine;
 const session = @import("mirai").bootstrap.storage.session;
 
 const Controller = ahci.types.discover.controller.Controller;
@@ -35,14 +35,14 @@ pub fn withVolume(expected: Volume, context: *anyopaque, consume: Read) !Locatio
 fn find(context: *anyopaque, device: Controller) !?u8 {
     const alias = try physmap.uncachedDevicePage(device.Bar);
     var reclaimable = true;
-    defer if (reclaimable) physmap.restoreDevicePage(alias);
+    defer if (reclaimable) physmap.restoreDevicePage(alias) else quarantine.retain(device.Address);
     const aperture = layout.PHYSMAP_BASE + device.Bar;
     var pending = try attachment.readyPorts(aperture);
     var selected: ?u8 = null;
     while (pending != 0) {
         const index: u5 = @intCast(@ctz(pending));
         pending &= pending - 1;
-        const port = (try registers.diskPort(aperture, index)) orelse continue;
+        const port = (try attachment.diskPort(device, aperture, index, &reclaimable)) orelse continue;
         if (!try session.withDisk(device, aperture, port, &reclaimable, context, verifyCandidate)) continue;
         if (selected != null) return DiscoverError.AmbiguousBootVolume;
         selected = index;
@@ -54,7 +54,7 @@ fn reopen(location: Location, lease: *Lease) !void {
     const device = (try ahci.discover.pci.inspect(pci.source(), location.Address)) orelse return StorageError.BootDeviceChanged;
     const alias = try physmap.uncachedDevicePage(device.Bar);
     var reclaimable = true;
-    defer if (reclaimable) physmap.restoreDevicePage(alias);
+    defer if (reclaimable) physmap.restoreDevicePage(alias) else quarantine.retain(device.Address);
     const aperture = layout.PHYSMAP_BASE + device.Bar;
     const port = try attachment.exactPort(aperture, location.Port);
     if (!try session.withDisk(device, aperture, port, &reclaimable, lease, verifyAndRead)) return StorageError.BootDeviceChanged;

@@ -9,3 +9,4 @@ pub const DISPLAY_DATA: u64 = 0x1400000;
 pub const DISPLAY_STACK: u64 = 0x1500000;
 pub const BOOT_PORT: u8 = 0;
 pub const LEGACY_DISPLAY_SERVICE: u64 = 22;
+pub const LEGACY_AHCI_SERVICE: u64 = 16;

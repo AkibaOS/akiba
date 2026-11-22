@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const authority = @import("mirai").device.ahci.authority;
+const authority = @import("mirai").device.ahci.storage;
 const guard = @import("asm").interrupts.guard;
 const image = @import("mirai").bootstrap.image;
 const install = @import("shared").afs.strings.install;

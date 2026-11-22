@@ -1,6 +1,6 @@
 //! Independent Native Supervisor Probe Protocol
 
-pub const JOBS: u64 = 8;
+pub const JOBS: u64 = 9;
 pub const STEPS: usize = 13;
 pub const TIMEOUT_TICKS: u64 = 1000;
 pub const STOP_STEPS: u64 = 3;

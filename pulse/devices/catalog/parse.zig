@@ -36,6 +36,7 @@ pub fn kind(value: Value) !Kind {
     if (!value.Quoted) return error.InvalidManifest;
     if (same(value.Text, schema.KEYBOARD)) return .Keyboard;
     if (same(value.Text, schema.FRAMEBUFFER)) return .Framebuffer;
+    if (same(value.Text, schema.AHCI)) return .Ahci;
     return error.InvalidManifest;
 }
 

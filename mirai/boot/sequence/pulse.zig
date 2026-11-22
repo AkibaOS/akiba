@@ -1,7 +1,7 @@
 //! Start Pulse In Ordinary Boot On Supported Native Storage
 
 const afs = @import("mirai").bootstrap.driver.afs;
-const ahci = @import("mirai").device.ahci.authority;
+const ahci = @import("mirai").device.ahci.storage;
 const collapse = @import("mirai").crimson.panic.collapse;
 const halt = @import("asm").cpu.halt;
 const launch = @import("mirai").bootstrap.pulse.launch;

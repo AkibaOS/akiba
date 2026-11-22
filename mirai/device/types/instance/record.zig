@@ -14,4 +14,5 @@ pub const Assignment = struct {
 pub const Record = struct {
     Device: Instance,
     Assignment: ?Assignment = null,
+    Available: bool = true,
 };

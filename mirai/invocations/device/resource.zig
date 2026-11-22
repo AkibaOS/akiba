@@ -2,6 +2,7 @@
 
 const std = @import("std");
 
+const block = @import("mirai").invocations.device.ahci;
 const display = @import("mirai").invocations.device.display;
 const instances = @import("mirai").device.instance.registry;
 const postman = @import("mirai").postman;
@@ -36,9 +37,16 @@ fn perform(caller: *Thread, frame: *const Frame) !Result {
     try postman.validate.current(caller);
     if (frame.R10 != 0) return error.InvalidArgument;
     const operation = std.enums.fromInt(Operation, frame.RDI) orelse return error.InvalidArgument;
-    if (operation == .SurfaceDescribe or operation == .SurfaceRow) {
-        try display.perform(caller, operation, frame.RSI, frame.RDX);
-        return .{ .Status = @intFromEnum(Status.Success), .Value = 0 };
+    switch (operation) {
+        .SurfaceDescribe, .SurfaceRow => {
+            try display.perform(caller, operation, frame.RSI, frame.RDX);
+            return .{ .Status = @intFromEnum(Status.Success), .Value = 0 };
+        },
+        .BlockDescribe, .BlockIdentify, .BlockRead, .BlockConfirm, .BlockClient => {
+            try block.perform(caller, operation, frame.RSI, frame.RDX);
+            return .{ .Status = @intFromEnum(Status.Success), .Value = 0 };
+        },
+        else => {},
     }
     if (frame.RDX != 0) return error.InvalidArgument;
     return switch (operation) {
@@ -51,6 +59,6 @@ fn perform(caller: *Thread, frame: *const Frame) !Result {
             break :probed .{ .Status = @intFromEnum(Status.Success), .Value = 0 };
         },
         .StreamNext => stream.next(caller, frame.RSI),
-        .SurfaceDescribe, .SurfaceRow => unreachable,
+        .SurfaceDescribe, .SurfaceRow, .BlockDescribe, .BlockIdentify, .BlockRead, .BlockConfirm, .BlockClient => unreachable,
     };
 }

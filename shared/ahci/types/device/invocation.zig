@@ -1,10 +1,6 @@
-//! Private AHCI Device Invocation Contract
+//! Internal View Of Assigned Block Resource Fields
 
-const Volume = @import("shared").boot.types.volume.Volume;
+const wire = @import("sdk").storage.types.block;
 
-pub const Operation = enum(u64) { Describe, Identify, Read, Confirm, CheckClient };
-
-pub const Description = extern struct {
-    PulseID: u64,
-    Volume: Volume,
-};
+pub const Description = wire.Description;
+pub const Read = wire.Read;

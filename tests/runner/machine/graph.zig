@@ -20,6 +20,14 @@ pub fn arguments(allocator: std.mem.Allocator, list: *std.ArrayList([]const u8),
             .file = file(inputs.Image),
         } });
         try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.AHCI_CONTROLLER, strings.DEVICE_FLAG, strings.AHCI_DEVICE });
+        const data = inputs.DataDisk orelse return error.WrongGuest;
+        const secondary = inputs.DataOverlay orelse return error.WrongGuest;
+        try block(allocator, list, .{ .driver = strings.QCOW2, .@"node-name" = strings.DATA_DISK, .file = file(secondary), .backing = .{
+            .driver = strings.RAW,
+            .@"read-only" = true,
+            .file = file(data),
+        } });
+        try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.DATA_CONTROLLER, strings.DEVICE_FLAG, strings.DATA_DEVICE });
     } else {
         try block(allocator, list, .{ .driver = strings.RAW, .@"node-name" = strings.DISK, .@"read-only" = true, .file = file(inputs.Image) });
         try list.appendSlice(allocator, &.{ strings.DEVICE_FLAG, strings.BOOT_DEVICE });
@@ -43,6 +51,7 @@ pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connectio
     var code = false;
     var variables = false;
     var boot = false;
+    var secondary = false;
     for (devices.array.items) |device| {
         const node = protocol.field(device, strings.INSERTED) orelse continue;
         const name = protocol.text(node, strings.NODE) orelse return error.WrongGuest;
@@ -59,9 +68,14 @@ pub fn verifyAttached(allocator: std.mem.Allocator, connection: *types.Connectio
                 try matches(allocator, node, inputs.Image, strings.RAW, true, null);
             if (boot or !valid) return error.WrongGuest;
             boot = true;
+        } else if (std.mem.eql(u8, name, strings.DATA_DISK)) {
+            const path = inputs.DataDisk orelse return error.WrongGuest;
+            const overlay = inputs.DataOverlay orelse return error.WrongGuest;
+            if (secondary or !try matches(allocator, node, overlay, strings.QCOW2, false, path)) return error.WrongGuest;
+            secondary = true;
         } else return error.WrongGuest;
     }
-    if (!code or !variables or !boot) return error.WrongGuest;
+    if (!code or !variables or !boot or secondary != (inputs.DataDisk != null)) return error.WrongGuest;
 }
 
 pub fn verifyStateStore(allocator: std.mem.Allocator, connection: *types.Connection, inputs: *const types.Paths) !void {

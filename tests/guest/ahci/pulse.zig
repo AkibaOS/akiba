@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const afs = @import("mirai").bootstrap.driver.afs;
-const authority = @import("mirai").device.ahci.authority;
+const authority = @import("mirai").device.ahci.storage;
 const display = @import("tests").guest.ahci.display;
 const drive = @import("tests").guest.support.drive;
 const events = @import("tests").fixtures.constants.service;
@@ -22,12 +22,12 @@ const ports = @import("mirai").drivers.constants.keyboard.ports;
 const postman = @import("mirai").postman;
 const sensei = @import("mirai").sensei;
 const status = @import("shared").pulse.constants.status;
+const storage = @import("tests").guest.ahci.storage;
 const supervisor = @import("tests").guest.ahci.supervisor;
 const thread = @import("mirai").thread;
 const weaver = @import("mirai").bootstrap.weaver.handoff;
 
 const Actor = @import("tests").guest.types.postman.fixtures.Actor;
-const DeviceOperation = @import("shared").ahci.types.device.invocation.Operation;
 const Context = @import("tests").guest.types.ahci.pulse.Context;
 const Kata = @import("mirai").kata.types.kata.Kata;
 const Kind = @import("shared").device.types.instance.Kind;
@@ -80,7 +80,7 @@ pub fn prove(volume: Volume) !bool {
         if (target.Mode != .Persona or kata.completion.storage.ownerOf(owner.ID) != pulse.ID) return WitnessError.DisplayDriverMissing;
         break :actual owner.ID;
     } else 0;
-    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .KeyboardID = keyboard_id, .DisplayID = display_id, .Startup = ready };
+    var context: Context = .{ .PulseID = pulse.ID, .WeaverID = resident.ID, .DiskID = driver.ID, .KeyboardID = keyboard_id, .DisplayID = display_id, .Startup = ready };
     const owner = try kata.create.create();
     const identifier = owner.ID;
     defer harness.dispose(identifier);
@@ -106,6 +106,7 @@ fn exercise(context: *const Context) !bool {
     if (!exchanged) return false;
     const launched = installed.prove(context.WeaverID) catch |failure| return if (failure == error.DriveLimit) WitnessError.InstalledLaunchDeadline else failure;
     if (!launched) return false;
+    try storage.prove(context.PulseID, context.DiskID);
     try display.prove(context.PulseID, context.DisplayID);
     const supervised = supervisor.prove(context.PulseID) catch |failure| return if (failure == error.DriveLimit) WitnessError.SupervisorExerciseDeadline else failure;
     return supervised and deviceOwner(.Framebuffer, locators.FIRMWARE_SURFACE) == null and deviceOwner(.Keyboard, ports.IRQ) == null;
@@ -119,7 +120,7 @@ fn exchange(identifier: u64) !bool {
         harness.call(&client),
         harness.call(&client),
         .{ .Service = .BootstrapWeaver, .First = .{ .Immediate = @intFromEnum(Operation.Start) } },
-        .{ .Service = .Ahci, .First = .{ .Immediate = @intFromEnum(DeviceOperation.Describe) } },
+        .{ .Service = .Yield, .ServiceValue = fixture.LEGACY_AHCI_SERVICE },
         .{ .Service = .Device },
         .{ .Service = .Yield, .ServiceValue = fixture.LEGACY_DISPLAY_SERVICE },
     });
@@ -135,7 +136,7 @@ fn exchange(identifier: u64) !bool {
     const denied = try harness.resultIs(&client, 3, .InvalidCaller, 0);
     try harness.advance(&client, 3);
     try harness.waitStep(&client, 4);
-    const disk_denied = try harness.resultIs(&client, 4, .InvalidCaller, 0);
+    const disk_denied = try harness.resultIs(&client, 4, .Unsupported, 0);
     try harness.advance(&client, 4);
     try harness.waitStep(&client, 5);
     const keyboard_denied = try harness.resultIs(&client, 5, .InvalidCaller, 0);

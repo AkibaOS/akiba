@@ -56,7 +56,11 @@ pub fn run(unattended: bool, ahci: bool) !void {
             fingerprint.* = image.fingerprint(path) catch |failure| break :work failure;
             known += 1;
         }
-        if (ahci) inputs.BootOverlay = std.fs.path.join(allocator, &.{ inputs.Run, pathnames.BOOT_OVERLAY_FILE }) catch |failure| break :work failure;
+        if (ahci) {
+            inputs.BootOverlay = std.fs.path.join(allocator, &.{ inputs.Run, pathnames.BOOT_OVERLAY_FILE }) catch |failure| break :work failure;
+            inputs.DataDisk = std.fs.path.join(allocator, &.{ inputs.Run, pathnames.DATA_DISK_FILE }) catch |failure| break :work failure;
+            inputs.DataOverlay = std.fs.path.join(allocator, &.{ inputs.Run, pathnames.DATA_OVERLAY_FILE }) catch |failure| break :work failure;
+        }
         break :work execute(allocator, &inputs, &session, unattended);
     };
     var failure: ?anyerror = if (outcome) |_| null else |reason| reason;
