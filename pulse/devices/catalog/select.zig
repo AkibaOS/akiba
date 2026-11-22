@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const Candidate = @import("pulse").devices.types.catalog.Candidate;
+const Candidate = @import("pulse").devices.types.catalog.records.Candidate;
 const Key = @import("shared").device.types.instance.Key;
 
 pub fn choose(candidates: []const Candidate, device: Key, override: ?[]const u8) ![]const u8 {

@@ -11,7 +11,7 @@ const limits = @import("shared").persona.constants.postman;
 const service = @import("pulse").supervision.client.service;
 
 const Call = @import("shared").persona.types.call.Call;
-const Catalog = @import("pulse").devices.types.catalog.Catalog;
+const Catalog = @import("pulse").devices.types.catalog.records.Catalog;
 const Header = @import("shared").persona.types.letter.Header;
 const Job = @import("pulse").world.types.parse.document.Job;
 const Operation = @import("shared").pulse.types.boot.driver.Operation;

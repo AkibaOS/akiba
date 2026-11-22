@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const Catalog = @import("pulse").devices.types.catalog.Catalog;
+const Catalog = @import("pulse").devices.types.catalog.records.Catalog;
 const Model = @import("pulse").supervision.types.plan.state.Model;
 const Phase = @import("shared").pulse.types.supervision.report.Phase;
 

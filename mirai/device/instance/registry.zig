@@ -3,13 +3,13 @@
 const std = @import("std");
 
 const guard = @import("asm").interrupts.guard;
-const limits = @import("mirai").device.constants.instance;
+const limits = @import("mirai").device.constants.instance.limits;
 const state = @import("mirai").kata.state;
 
-const Instance = @import("mirai").device.types.instance.Instance;
+const Instance = @import("mirai").device.types.instance.record.Instance;
 const Kata = @import("mirai").kata.types.kata.Kata;
-const Kind = @import("mirai").device.types.instance.Kind;
-const Record = @import("mirai").device.types.instance.Record;
+const Kind = @import("mirai").device.types.instance.record.Kind;
+const Record = @import("mirai").device.types.instance.record.Record;
 
 var records: [limits.MAX_INSTANCES]Record = undefined;
 var count: usize = 0;

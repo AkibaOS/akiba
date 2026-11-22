@@ -9,7 +9,7 @@ const policy = @import("pulse").supervision.plan.model;
 const samples = @import("tests").fast.pulse.strings.world;
 const world = @import("pulse").world.parse.document;
 
-const Candidate = @import("pulse").devices.types.catalog.Candidate;
+const Candidate = @import("pulse").devices.types.catalog.records.Candidate;
 
 const ALLOCATOR = std.testing.allocator;
 

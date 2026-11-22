@@ -8,8 +8,8 @@ const geometry = @import("shared").display.geometry.rectangle;
 const guard = @import("asm").interrupts.guard;
 const instances = @import("mirai").device.instance.registry;
 const limits = @import("mirai").user.constants.limits;
-const locations = @import("mirai").device.constants.instance;
-const messages = @import("mirai").device.strings.instance;
+const locations = @import("mirai").device.constants.instance.limits;
+const messages = @import("mirai").device.strings.instance.messages;
 const postman = @import("mirai").postman;
 
 const Framebuffer = @import("shared").boot.types.framebuffer.FramebufferInfo;

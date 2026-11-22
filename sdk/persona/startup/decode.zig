@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const layout = @import("sdk").persona.constants.startup;
+const layout = @import("sdk").persona.constants.startup.record;
 
 pub fn supervisor(address: u64) !u64 {
     if (address == 0 or address > std.math.maxInt(usize) - layout.HEADER_BYTES) return error.InvalidStartup;

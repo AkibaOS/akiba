@@ -9,7 +9,7 @@ const unit = @import("shared").launch.service.request;
 
 const Key = @import("shared").device.types.instance.Key;
 const Node = @import("pulse").world.types.parse.syntax.Node;
-const Preference = @import("pulse").devices.types.catalog.Preference;
+const Preference = @import("pulse").devices.types.catalog.records.Preference;
 
 pub fn read(allocator: std.mem.Allocator, bytes: []const u8) ![]const Preference {
     const nodes = try syntax.parse(allocator, bytes);

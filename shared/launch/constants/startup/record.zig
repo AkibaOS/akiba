@@ -1,6 +1,6 @@
 //! Internal View Of The Persona Startup Record
 
-const wire = @import("sdk").persona.constants.startup;
+const wire = @import("sdk").persona.constants.startup.record;
 
 pub const VERSION = wire.VERSION;
 pub const IDENTITY_LENGTH = wire.IDENTITY_LENGTH;

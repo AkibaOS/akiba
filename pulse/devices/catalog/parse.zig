@@ -2,14 +2,14 @@
 
 const std = @import("std");
 
-const limits = @import("pulse").devices.constants.catalog;
+const limits = @import("pulse").devices.constants.catalog.limits;
 const schema = @import("pulse").devices.strings.schema;
 const syntax = @import("pulse").world.parse.syntax;
 
-const Descriptor = @import("pulse").devices.types.catalog.Descriptor;
+const Descriptor = @import("pulse").devices.types.catalog.records.Descriptor;
 const Kind = @import("shared").device.types.instance.Kind;
 const Node = @import("pulse").world.types.parse.syntax.Node;
-const Selector = @import("pulse").devices.types.catalog.Selector;
+const Selector = @import("pulse").devices.types.catalog.records.Selector;
 const Value = @import("pulse").world.types.parse.syntax.Value;
 
 pub fn manifest(allocator: std.mem.Allocator, bytes: []const u8) !Descriptor {

@@ -1,6 +1,6 @@
 //! Operate On This Kata's Assigned Device
 
-const invoke = @import("sdk").persona.call;
+const invoke = @import("sdk").persona.call.invoke;
 
 const Operation = @import("sdk").device.types.operation.Operation;
 const Result = @import("sdk").persona.types.invocation.Result;

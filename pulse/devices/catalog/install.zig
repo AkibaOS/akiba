@@ -5,14 +5,14 @@ const std = @import("std");
 const afs = @import("shared").afs;
 const install = @import("shared").device.strings.install;
 const letters = @import("shared").afs.constants.service.postman;
-const limits = @import("pulse").devices.constants.catalog;
+const limits = @import("pulse").devices.constants.catalog.limits;
 const parse = @import("pulse").devices.catalog.parse;
 const policy = @import("pulse").devices.catalog.policy;
 const select = @import("pulse").devices.catalog.select;
 const unit = @import("shared").launch.service.request;
 
-const Candidate = @import("pulse").devices.types.catalog.Candidate;
-const Catalog = @import("pulse").devices.types.catalog.Catalog;
+const Candidate = @import("pulse").devices.types.catalog.records.Candidate;
+const Catalog = @import("pulse").devices.types.catalog.records.Catalog;
 const Client = @import("shared").afs.types.service.client.Client;
 const Entry = @import("shared").afs.types.read.list.Entry;
 const Key = @import("shared").device.types.instance.Key;

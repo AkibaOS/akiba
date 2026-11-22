@@ -1,3 +1,3 @@
 //! Device Catalog Constants Exports
 
-pub const catalog = @import("catalog.zig");
+pub const catalog = @import("catalog/catalog.zig");
