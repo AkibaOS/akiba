@@ -2,13 +2,13 @@
 
 const std = @import("std");
 
-const grammar = @import("pulse").world.strings.grammar;
-const space = @import("pulse").world.lex.space;
-const string = @import("pulse").world.lex.string;
+const grammar = @import("shared").world.strings.grammar;
+const space = @import("shared").world.lex.space;
+const string = @import("shared").world.lex.string;
 
-const State = @import("pulse").world.types.lex.state.State;
-const Token = @import("pulse").world.types.lex.token.Token;
-const WorldError = @import("pulse").world.errors.parse.document.WorldError;
+const State = @import("shared").world.types.lex.state.State;
+const Token = @import("shared").world.types.lex.token.Token;
+const WorldError = @import("shared").world.errors.syntax.SyntaxError;
 
 pub fn peek(state: *State) WorldError!Token {
     if (state.Pending == null) state.Pending = try next(state);

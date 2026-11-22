@@ -2,9 +2,9 @@
 
 const std = @import("std");
 
-const State = @import("pulse").world.types.lex.state.State;
-const Token = @import("pulse").world.types.lex.token.Token;
-const WorldError = @import("pulse").world.errors.parse.document.WorldError;
+const State = @import("shared").world.types.lex.state.State;
+const Token = @import("shared").world.types.lex.token.Token;
+const WorldError = @import("shared").world.errors.syntax.SyntaxError;
 
 pub fn read(state: *State, hashes: usize) WorldError!Token {
     const multiline = state.Bytes.len - state.Offset >= 2 and state.Bytes[state.Offset] == '"' and state.Bytes[state.Offset + 1] == '"';

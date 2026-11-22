@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const WorldError = @import("pulse").world.errors.parse.document.WorldError;
+const WorldError = @import("shared").world.errors.syntax.SyntaxError;
 
 pub fn code(bytes: []const u8) WorldError!u21 {
     if (bytes.len == 0) return error.InvalidWorld;
@@ -12,6 +12,7 @@ pub fn code(bytes: []const u8) WorldError!u21 {
 }
 
 pub fn width(bytes: []const u8) WorldError!usize {
+    if (bytes.len == 0) return error.InvalidWorld;
     const length = std.unicode.utf8ByteSequenceLength(bytes[0]) catch return error.InvalidWorld;
     if (length > bytes.len) return error.InvalidWorld;
     return length;

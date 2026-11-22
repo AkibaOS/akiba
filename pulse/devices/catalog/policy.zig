@@ -4,15 +4,16 @@ const std = @import("std");
 
 const parse = @import("pulse").devices.catalog.parse;
 const schema = @import("pulse").devices.strings.schema;
-const syntax = @import("pulse").world.parse.syntax;
+const syntax = @import("shared").world.parse.syntax;
 const unit = @import("shared").launch.service.request;
 
 const Key = @import("shared").device.types.instance.Key;
-const Node = @import("pulse").world.types.parse.syntax.Node;
+const Node = @import("shared").world.types.parse.syntax.Node;
 const Preference = @import("pulse").devices.types.catalog.records.Preference;
 
-pub fn read(allocator: std.mem.Allocator, bytes: []const u8) ![]const Preference {
-    const nodes = try syntax.parse(allocator, bytes);
+pub fn read(arena: *std.heap.ArenaAllocator, bytes: []const u8) ![]const Preference {
+    const allocator = arena.allocator();
+    const nodes = try syntax.parse(arena, bytes);
     var result: std.ArrayList(Preference) = .empty;
     for (nodes) |node| {
         if (node.Disabled) continue;

@@ -2,17 +2,19 @@
 
 const std = @import("std");
 
-const scan = @import("pulse").world.lex.scan;
-const types = @import("pulse").world.types.parse.syntax;
+const scan = @import("shared").world.lex.scan;
+const types = @import("shared").world.types.parse.syntax;
 
 const Node = types.Node;
 const Property = types.Property;
-const State = @import("pulse").world.types.lex.state.State;
+const State = @import("shared").world.types.lex.state.State;
 const Value = types.Value;
-const WorldError = @import("pulse").world.errors.parse.document.WorldError;
+const WorldError = @import("shared").world.errors.syntax.SyntaxError;
 
-pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) WorldError![]Node {
-    var state: State = .{ .Allocator = allocator, .Bytes = bytes };
+pub fn parse(arena: *std.heap.ArenaAllocator, bytes: []const u8) WorldError![]Node {
+    const allocator = arena.allocator();
+    const owned = try allocator.dupe(u8, bytes);
+    var state: State = .{ .Allocator = allocator, .Bytes = owned };
     var nodes: std.ArrayList(Node) = .empty;
     var parents: std.ArrayList(usize) = .empty;
     while (true) {

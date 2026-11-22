@@ -3,24 +3,23 @@
 const std = @import("std");
 
 const catalog = @import("pulse").devices.catalog.parse;
-const grammar = @import("pulse").world.strings.grammar;
 const graph = @import("pulse").world.policy.graph;
 const schema = @import("pulse").world.strings.schema;
-const syntax = @import("pulse").world.parse.syntax;
+const syntax = @import("shared").world.parse.syntax;
+const values = @import("shared").world.parse.values;
 
 const Document = @import("pulse").world.types.parse.document.Document;
 const Job = @import("pulse").world.types.parse.document.Job;
 const Kind = @import("shared").device.types.instance.Kind;
-const Node = @import("pulse").world.types.parse.syntax.Node;
-const Value = @import("pulse").world.types.parse.syntax.Value;
+const Node = @import("shared").world.types.parse.syntax.Node;
+const Value = @import("shared").world.types.parse.syntax.Value;
 const WorldError = @import("pulse").world.errors.parse.document.WorldError;
 
 pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) WorldError!Document {
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const owned = arena.allocator();
-    const input = try owned.dupe(u8, bytes);
-    const nodes = try syntax.parse(owned, input);
+    const nodes = try syntax.parse(&arena, bytes);
     var jobs: std.ArrayList(Job) = .empty;
     for (nodes, 0..) |node, index| {
         if (node.Disabled or node.Parent != null) continue;
@@ -41,11 +40,11 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
     var location: ?u64 = null;
     for (node.Properties) |property| {
         if (std.mem.eql(u8, property.Name, schema.BINARY)) result.Binary = try text(property.Value) else if (std.mem.eql(u8, property.Name, schema.ENABLED)) {
-            result.Enabled = try boolean(property.Value);
+            result.Enabled = try values.boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.REQUIRED)) {
-            result.Required = try boolean(property.Value);
+            result.Required = try values.boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.CONTROL)) {
-            result.Controller = try boolean(property.Value);
+            result.Controller = try values.boolean(property.Value);
         } else if (std.mem.eql(u8, property.Name, schema.DEVICE)) {
             kind = catalog.kind(property.Value) catch return error.InvalidWorld;
         } else if (std.mem.eql(u8, property.Name, schema.LOCATION)) {
@@ -80,13 +79,6 @@ fn service(allocator: std.mem.Allocator, nodes: []const Node, index: usize) Worl
 fn text(value: Value) WorldError![]const u8 {
     if (!value.Quoted) return error.InvalidWorld;
     return value.Text;
-}
-
-fn boolean(value: Value) WorldError!bool {
-    if (value.Quoted) return error.InvalidWorld;
-    if (std.mem.eql(u8, value.Text, grammar.TRUE)) return true;
-    if (std.mem.eql(u8, value.Text, grammar.FALSE)) return false;
-    return error.InvalidWorld;
 }
 
 fn integer(allocator: std.mem.Allocator, value: Value) WorldError!u64 {

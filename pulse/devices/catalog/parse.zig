@@ -4,18 +4,19 @@ const std = @import("std");
 
 const limits = @import("pulse").devices.constants.catalog.limits;
 const schema = @import("pulse").devices.strings.schema;
-const syntax = @import("pulse").world.parse.syntax;
+const syntax = @import("shared").world.parse.syntax;
+const values = @import("shared").world.parse.values;
 
 const Descriptor = @import("pulse").devices.types.catalog.records.Descriptor;
 const Kind = @import("shared").device.types.instance.Kind;
-const Node = @import("pulse").world.types.parse.syntax.Node;
+const Node = @import("shared").world.types.parse.syntax.Node;
 const Selector = @import("pulse").devices.types.catalog.records.Selector;
-const Value = @import("pulse").world.types.parse.syntax.Value;
+const Value = @import("shared").world.types.parse.syntax.Value;
 
 pub fn manifest(allocator: std.mem.Allocator, bytes: []const u8) !Descriptor {
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    const nodes = try syntax.parse(arena.allocator(), bytes);
+    const nodes = try syntax.parse(&arena, bytes);
     var root: ?usize = null;
     var match: ?Selector = null;
     for (nodes, 0..) |node, index| {
@@ -41,8 +42,7 @@ pub fn kind(value: Value) !Kind {
 }
 
 pub fn number(value: Value) !u64 {
-    if (value.Quoted) return error.InvalidManifest;
-    return std.fmt.parseInt(u64, value.Text, 0) catch error.InvalidManifest;
+    return values.unsigned(value) catch error.InvalidManifest;
 }
 
 fn selector(node: Node) !Selector {

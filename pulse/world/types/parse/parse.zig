@@ -1,4 +1,3 @@
-//! World Syntax And Document Type Exports
+//! Pulse World Document Type Exports
 
 pub const document = @import("document.zig");
-pub const syntax = @import("syntax.zig");

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const Token = @import("pulse").world.types.lex.token.Token;
+const Token = @import("shared").world.types.lex.token.Token;
 
 pub const State = struct {
     Allocator: std.mem.Allocator,

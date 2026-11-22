@@ -39,7 +39,7 @@ pub fn load(allocator: std.mem.Allocator, client: Client) !Catalog {
         try candidates.append(owned, .{ .Identity = identity, .Description = description });
     }
     const overrides = try afs.service.client.readWithin(client, owned, install.FLAT_DRIVER_WORLD, limits.MAX_DESCRIPTION_BYTES);
-    const preferences = if (overrides) |bytes| try policy.read(owned, bytes) else &.{};
+    const preferences = if (overrides) |bytes| try policy.read(&arena, bytes) else &.{};
     return .{ .Arena = arena, .Candidates = try candidates.toOwnedSlice(owned), .Preferences = preferences };
 }
 
